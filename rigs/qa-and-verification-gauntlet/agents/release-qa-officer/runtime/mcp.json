@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "github": {
+      "description": "GitHub read-only (pull_requests toolset) for the fleet's repositories.",
+      "exposure": "deferred",
+      "url": "https://api.githubcopilot.com/mcp/x/pull_requests/readonly",
+      "headers": {
+        "Authorization": "!echo Bearer $(cat @SECRETS@/github.pat)"
+      },
+      "enabled": false
+    }
+  }
+}

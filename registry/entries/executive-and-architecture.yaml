@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: executive-and-architecture
+name: Heretek Executive & Architecture
+summary: Executive governance, product strategy, sprint decomposition, system architecture, git drift coordination, and technical
+  documentation squad.
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/executive-and-architecture
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: a8f1a193891598674629dccde56e2bf8480cb263d4f47832d769c2bba8235aa6
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/executive-and-architecture/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

@@ -1,0 +1,75 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  engine.engine-systems-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  engine.physics-sim-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  engine.graphics-shader-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  gameplay.game-systems-dev:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  gameplay.game-ai-dev:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  gameplay.tech-artist-pipeline:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    engine.engine-systems-eng: pi
+    engine.physics-sim-eng: pi
+    engine.graphics-shader-eng: pi
+    gameplay.game-systems-dev: pi
+    gameplay.game-ai-dev: pi
+    gameplay.tech-artist-pipeline: pi
+  all-pi:
+    engine.engine-systems-eng: pi
+    engine.physics-sim-eng: pi
+    engine.graphics-shader-eng: pi
+    gameplay.game-systems-dev: pi
+    gameplay.game-ai-dev: pi
+    gameplay.tech-artist-pipeline: pi
+  all-omp:
+    engine.engine-systems-eng: omp
+    engine.physics-sim-eng: omp
+    engine.graphics-shader-eng: omp
+    gameplay.game-systems-dev: omp
+    gameplay.game-ai-dev: omp
+    gameplay.tech-artist-pipeline: omp
+  all-claude:
+    engine.engine-systems-eng: claude-code
+    engine.physics-sim-eng: claude-code
+    engine.graphics-shader-eng: claude-code
+    gameplay.game-systems-dev: claude-code
+    gameplay.game-ai-dev: claude-code
+    gameplay.tech-artist-pipeline: claude-code
+  all-codex:
+    engine.engine-systems-eng: codex
+    engine.physics-sim-eng: codex
+    engine.graphics-shader-eng: codex
+    gameplay.game-systems-dev: codex
+    gameplay.game-ai-dev: codex
+    gameplay.tech-artist-pipeline: codex

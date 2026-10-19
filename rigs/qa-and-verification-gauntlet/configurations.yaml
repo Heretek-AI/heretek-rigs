@@ -1,0 +1,75 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  qa.release-qa-officer:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  qa.e2e-browser-qa:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  qa.api-contract-tester:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  qa.load-stress-tester:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  qa.sabotage-qa-tester:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  qa.static-analysis-lead:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    qa.release-qa-officer: pi
+    qa.e2e-browser-qa: pi
+    qa.api-contract-tester: pi
+    qa.load-stress-tester: pi
+    qa.sabotage-qa-tester: pi
+    qa.static-analysis-lead: pi
+  all-pi:
+    qa.release-qa-officer: pi
+    qa.e2e-browser-qa: pi
+    qa.api-contract-tester: pi
+    qa.load-stress-tester: pi
+    qa.sabotage-qa-tester: pi
+    qa.static-analysis-lead: pi
+  all-omp:
+    qa.release-qa-officer: omp
+    qa.e2e-browser-qa: omp
+    qa.api-contract-tester: omp
+    qa.load-stress-tester: omp
+    qa.sabotage-qa-tester: omp
+    qa.static-analysis-lead: omp
+  all-claude:
+    qa.release-qa-officer: claude-code
+    qa.e2e-browser-qa: claude-code
+    qa.api-contract-tester: claude-code
+    qa.load-stress-tester: claude-code
+    qa.sabotage-qa-tester: claude-code
+    qa.static-analysis-lead: claude-code
+  all-codex:
+    qa.release-qa-officer: codex
+    qa.e2e-browser-qa: codex
+    qa.api-contract-tester: codex
+    qa.load-stress-tester: codex
+    qa.sabotage-qa-tester: codex
+    qa.static-analysis-lead: codex

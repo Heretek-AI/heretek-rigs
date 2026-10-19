@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "k6": {
+      "description": "Run k6 load scripts and summarize results.",
+      "exposure": "direct",
+      "command": "uvx",
+      "args": [
+        "k6-mcp-server==2.2.0"
+      ]
+    },
+    "codebase-memory": {
+      "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
+      "args": []
+    }
+  }
+}

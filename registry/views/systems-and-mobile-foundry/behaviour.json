@@ -1,0 +1,261 @@
+{
+  "schema": "openrig.bundle-behaviour/v1",
+  "state": "generated",
+  "identity": {
+    "source": {
+      "repository": "https://github.com/Heretek-AI/heretek-rigs",
+      "folder": "rigs/systems-and-mobile-foundry",
+      "resolvedCommit": "09270e6f987c1625436b04543b9bdc54b28137e8",
+      "requestedRef": "main",
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/09270e6f987c1625436b04543b9bdc54b28137e8/rigs/systems-and-mobile-foundry"
+    },
+    "configurationId": "mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi",
+    "packageDigest": {
+      "algorithm": "sha256",
+      "value": "5107475236a1b89fffc43cd1a79057a20a9a398ca24a0eaa656c60165ead0295",
+      "coverage": "openrig.package-digest/v1"
+    },
+    "assembler": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "generator": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "compatibility": {
+      "minDaemonVersion": "0.6.11",
+      "minCliVersion": "0.6.11"
+    },
+    "statedProvenance": {
+      "notes": "Heretek-Rigs systems-and-mobile-foundry v1.0.0"
+    },
+    "integrity": {
+      "digestValid": true,
+      "filesVerified": true
+    }
+  },
+  "team": [
+    {
+      "seat": "systems.rust-systems-spec",
+      "pod": "systems",
+      "member": "rust-systems-spec",
+      "agentRef": "local:agents/rust-systems-spec",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "systems.cpp-lowlevel-eng",
+      "pod": "systems",
+      "member": "cpp-lowlevel-eng",
+      "agentRef": "local:agents/cpp-lowlevel-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "mobile.android-mobile-spec",
+      "pod": "mobile",
+      "member": "android-mobile-spec",
+      "agentRef": "local:agents/android-mobile-spec",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "mobile.ios-mobile-spec",
+      "pod": "mobile",
+      "member": "ios-mobile-spec",
+      "agentRef": "local:agents/ios-mobile-spec",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    }
+  ],
+  "posture": [
+    {
+      "seat": "systems.rust-systems-spec",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.systems.members.rust-systems-spec.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "systems.cpp-lowlevel-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.systems.members.cpp-lowlevel-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "mobile.android-mobile-spec",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.mobile.members.android-mobile-spec.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "mobile.ios-mobile-spec",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.mobile.members.ios-mobile-spec.permission_policy"
+        }
+      ]
+    }
+  ],
+  "toldFiles": [
+    {
+      "kind": "culture",
+      "pathOrRef": "CULTURE.md",
+      "delivery": "guidance_merge",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "culture_file"
+        }
+      ]
+    },
+    {
+      "seat": "systems.rust-systems-spec",
+      "kind": "startup_file",
+      "pathOrRef": "agents/rust-systems-spec/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/rust-systems-spec/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "systems.cpp-lowlevel-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/cpp-lowlevel-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/cpp-lowlevel-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "mobile.android-mobile-spec",
+      "kind": "startup_file",
+      "pathOrRef": "agents/android-mobile-spec/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/android-mobile-spec/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "mobile.ios-mobile-spec",
+      "kind": "startup_file",
+      "pathOrRef": "agents/ios-mobile-spec/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/ios-mobile-spec/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    }
+  ],
+  "alsoRuns": [],
+  "writes": [
+    {
+      "kind": "managed_block",
+      "destinationBase": "each seat's working folder",
+      "path": "AGENTS.md",
+      "operation": "add OpenRig block",
+      "phase": "launch",
+      "condition": "Pi and OMP seats"
+    }
+  ],
+  "outsideAddresses": [
+    {
+      "domain": "opencode.ai",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "domain": "github.com",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    }
+  ],
+  "needs": [
+    {
+      "kind": "runtime",
+      "name": "pi",
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml"
+        }
+      ]
+    },
+    {
+      "kind": "precondition",
+      "name": "Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)",
+      "commands": [
+        "python3 ./scripts/seed-rig.py rigs/systems-and-mobile-foundry/rig.yaml"
+      ],
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "bundle.yaml",
+          "field": "preconditions[0]"
+        }
+      ]
+    }
+  ],
+  "unknownBeforeLaunch": [
+    {
+      "subject": "host and native settings",
+      "reason": "Effective native permissions and $PI_CODING_AGENT_DIR credentials are resolved at launch."
+    }
+  ]
+}

@@ -1,0 +1,333 @@
+{
+  "schema": "openrig.bundle-behaviour/v1",
+  "state": "generated",
+  "identity": {
+    "source": {
+      "repository": "https://github.com/Heretek-AI/heretek-rigs",
+      "folder": "rigs/qa-and-verification-gauntlet",
+      "resolvedCommit": "09270e6f987c1625436b04543b9bdc54b28137e8",
+      "requestedRef": "main",
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/09270e6f987c1625436b04543b9bdc54b28137e8/rigs/qa-and-verification-gauntlet"
+    },
+    "configurationId": "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi",
+    "packageDigest": {
+      "algorithm": "sha256",
+      "value": "56230d2e471ea06e6865a80d1d49d1c5a20bdb17dd5bc4fde82678669230ea98",
+      "coverage": "openrig.package-digest/v1"
+    },
+    "assembler": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "generator": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "compatibility": {
+      "minDaemonVersion": "0.6.11",
+      "minCliVersion": "0.6.11"
+    },
+    "statedProvenance": {
+      "notes": "Heretek-Rigs qa-and-verification-gauntlet v1.0.0"
+    },
+    "integrity": {
+      "digestValid": true,
+      "filesVerified": true
+    }
+  },
+  "team": [
+    {
+      "seat": "qa.release-qa-officer",
+      "pod": "qa",
+      "member": "release-qa-officer",
+      "agentRef": "local:agents/release-qa-officer",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "qa.e2e-browser-qa",
+      "pod": "qa",
+      "member": "e2e-browser-qa",
+      "agentRef": "local:agents/e2e-browser-qa",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "qa.api-contract-tester",
+      "pod": "qa",
+      "member": "api-contract-tester",
+      "agentRef": "local:agents/api-contract-tester",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "qa.load-stress-tester",
+      "pod": "qa",
+      "member": "load-stress-tester",
+      "agentRef": "local:agents/load-stress-tester",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "qa.sabotage-qa-tester",
+      "pod": "qa",
+      "member": "sabotage-qa-tester",
+      "agentRef": "local:agents/sabotage-qa-tester",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "qa.static-analysis-lead",
+      "pod": "qa",
+      "member": "static-analysis-lead",
+      "agentRef": "local:agents/static-analysis-lead",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    }
+  ],
+  "posture": [
+    {
+      "seat": "qa.release-qa-officer",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.qa.members.release-qa-officer.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "qa.e2e-browser-qa",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.qa.members.e2e-browser-qa.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "qa.api-contract-tester",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.qa.members.api-contract-tester.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "qa.load-stress-tester",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.qa.members.load-stress-tester.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "qa.sabotage-qa-tester",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.qa.members.sabotage-qa-tester.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "qa.static-analysis-lead",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.qa.members.static-analysis-lead.permission_policy"
+        }
+      ]
+    }
+  ],
+  "toldFiles": [
+    {
+      "kind": "culture",
+      "pathOrRef": "CULTURE.md",
+      "delivery": "guidance_merge",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "culture_file"
+        }
+      ]
+    },
+    {
+      "seat": "qa.release-qa-officer",
+      "kind": "startup_file",
+      "pathOrRef": "agents/release-qa-officer/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/release-qa-officer/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "qa.e2e-browser-qa",
+      "kind": "startup_file",
+      "pathOrRef": "agents/e2e-browser-qa/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/e2e-browser-qa/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "qa.api-contract-tester",
+      "kind": "startup_file",
+      "pathOrRef": "agents/api-contract-tester/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/api-contract-tester/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "qa.load-stress-tester",
+      "kind": "startup_file",
+      "pathOrRef": "agents/load-stress-tester/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/load-stress-tester/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "qa.sabotage-qa-tester",
+      "kind": "startup_file",
+      "pathOrRef": "agents/sabotage-qa-tester/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/sabotage-qa-tester/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "qa.static-analysis-lead",
+      "kind": "startup_file",
+      "pathOrRef": "agents/static-analysis-lead/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/static-analysis-lead/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    }
+  ],
+  "alsoRuns": [],
+  "writes": [
+    {
+      "kind": "managed_block",
+      "destinationBase": "each seat's working folder",
+      "path": "AGENTS.md",
+      "operation": "add OpenRig block",
+      "phase": "launch",
+      "condition": "Pi and OMP seats"
+    }
+  ],
+  "outsideAddresses": [
+    {
+      "domain": "opencode.ai",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "domain": "github.com",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    }
+  ],
+  "needs": [
+    {
+      "kind": "runtime",
+      "name": "pi",
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml"
+        }
+      ]
+    },
+    {
+      "kind": "precondition",
+      "name": "Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)",
+      "commands": [
+        "python3 ./scripts/seed-rig.py rigs/qa-and-verification-gauntlet/rig.yaml"
+      ],
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "bundle.yaml",
+          "field": "preconditions[0]"
+        }
+      ]
+    }
+  ],
+  "unknownBeforeLaunch": [
+    {
+      "subject": "host and native settings",
+      "reason": "Effective native permissions and $PI_CODING_AGENT_DIR credentials are resolved at launch."
+    }
+  ]
+}

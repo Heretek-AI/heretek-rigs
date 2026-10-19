@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "mobile": {
+      "description": "Android emulator and iOS simulator control (screens, taps, app install).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/mcp-server-mobile",
+      "args": []
+    },
+    "codebase-memory": {
+      "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
+      "args": []
+    }
+  }
+}

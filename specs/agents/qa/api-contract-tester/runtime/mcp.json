@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "openapi": {
+      "description": "Read-only explorer for the project's OpenAPI document.",
+      "exposure": "direct",
+      "command": "@TOOLS@/mcp/node_modules/.bin/mcp-openapi-schema-explorer",
+      "args": [
+        "openapi/openapi.yaml"
+      ]
+    }
+  }
+}

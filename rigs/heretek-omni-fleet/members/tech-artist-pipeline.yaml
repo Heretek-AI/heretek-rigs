@@ -1,0 +1,12 @@
+id: tech-artist-pipeline
+label: Technical Artist & Asset Pipeline Lead
+agent_ref: local:agents/tech-artist-pipeline
+profile: default
+runtime: pi
+model: opencode-go/muse-spark-1.3-contributor:high
+effort: high
+role: tech-artist-pipeline
+permission_policy: builtin:standard
+cwd: .
+restore_policy: resume_if_possible
+compaction_strategy: default-compaction

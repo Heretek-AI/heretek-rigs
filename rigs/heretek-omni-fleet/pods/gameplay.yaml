@@ -1,0 +1,60 @@
+id: gameplay
+label: Gameplay
+summary: Gameplay pod led by game-systems-dev.
+continuity_policy:
+  enabled: true
+  sync_triggers:
+  - pre_compaction
+  - pre_shutdown
+  - milestone
+  artifacts:
+    session_log: true
+    restore_brief: true
+    quiz: false
+  restore_protocol:
+    peer_driven: true
+    verify_via_quiz: false
+members:
+- id: game-systems-dev
+  label: Game Systems & Gameplay Programmer
+  agent_ref: local:agents/game-systems-dev
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: game-systems-dev
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: game-ai-dev
+  label: Game AI Programmer
+  agent_ref: local:agents/game-ai-dev
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: game-ai-dev
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: tech-artist-pipeline
+  label: Technical Artist & Asset Pipeline Lead
+  agent_ref: local:agents/tech-artist-pipeline
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: tech-artist-pipeline
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+edges:
+- kind: delegates_to
+  from: game-systems-dev
+  to: game-ai-dev
+- kind: delegates_to
+  from: game-systems-dev
+  to: tech-artist-pipeline

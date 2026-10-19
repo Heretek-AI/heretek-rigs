@@ -1,0 +1,126 @@
+id: design
+label: Design & Front-end
+summary: Design & Front-end pod led by ui-ux-designer.
+continuity_policy:
+  enabled: true
+  sync_triggers:
+  - pre_compaction
+  - pre_shutdown
+  - milestone
+  artifacts:
+    session_log: true
+    restore_brief: true
+    quiz: false
+  restore_protocol:
+    peer_driven: true
+    verify_via_quiz: false
+members:
+- id: ui-ux-designer
+  label: UI/UX Designer & Prototyper
+  agent_ref: local:agents/ui-ux-designer
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: ui-ux-designer
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: design-system-eng
+  label: Design System Engineer
+  agent_ref: local:agents/design-system-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: design-system-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: fe-perf-eng
+  label: Frontend Performance Engineer
+  agent_ref: local:agents/fe-perf-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: fe-perf-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: a11y-specialist
+  label: Accessibility (a11y) & Usability Specialist
+  agent_ref: local:agents/a11y-specialist
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: a11y-specialist
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: mobile-web-eng
+  label: Mobile Web & Responsive Layout Engineer
+  agent_ref: local:agents/mobile-web-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: mobile-web-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: brand-copy-spec
+  label: Brand & Creative Copy Specialist
+  agent_ref: local:agents/brand-copy-spec
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: brand-copy-spec
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: ux-research-analyst
+  label: User Research & Feedback Analyst
+  agent_ref: local:agents/ux-research-analyst
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: ux-research-analyst
+  permission_policy: builtin:locked
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+edges:
+- kind: delegates_to
+  from: ui-ux-designer
+  to: design-system-eng
+- kind: delegates_to
+  from: ui-ux-designer
+  to: fe-perf-eng
+- kind: delegates_to
+  from: ui-ux-designer
+  to: a11y-specialist
+- kind: delegates_to
+  from: ui-ux-designer
+  to: mobile-web-eng
+- kind: delegates_to
+  from: ui-ux-designer
+  to: brand-copy-spec
+- kind: delegates_to
+  from: ui-ux-designer
+  to: ux-research-analyst
+- kind: can_observe
+  from: a11y-specialist
+  to: mobile-web-eng
+- kind: can_observe
+  from: a11y-specialist
+  to: design-system-eng

@@ -1,0 +1,135 @@
+version: '0.2'
+name: game-dev-and-sim-rig
+summary: Real-time game engine architecture, ECS systems, deterministic physics simulation, GPU shader pipelines, game AI,
+  and glTF/KTX2 asset tooling.
+culture_file: CULTURE.md
+permission_policy: builtin:standard
+non_interruptive: false
+docs:
+- path: README.md
+- path: SETUP.md
+pods:
+- id: engine
+  label: Engine
+  summary: Engine pod led by engine-systems-eng.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: engine-systems-eng
+    label: Engine & Systems Programmer
+    agent_ref: local:agents/engine-systems-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: engine-systems-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: physics-sim-eng
+    label: Physics & Simulation Engineer
+    agent_ref: local:agents/physics-sim-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: physics-sim-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: graphics-shader-eng
+    label: Graphics & Shader Engineer
+    agent_ref: local:agents/graphics-shader-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: graphics-shader-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: engine-systems-eng
+    to: physics-sim-eng
+  - kind: delegates_to
+    from: engine-systems-eng
+    to: graphics-shader-eng
+- id: gameplay
+  label: Gameplay
+  summary: Gameplay pod led by game-systems-dev.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: game-systems-dev
+    label: Game Systems & Gameplay Programmer
+    agent_ref: local:agents/game-systems-dev
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: game-systems-dev
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: game-ai-dev
+    label: Game AI Programmer
+    agent_ref: local:agents/game-ai-dev
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: game-ai-dev
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: tech-artist-pipeline
+    label: Technical Artist & Asset Pipeline Lead
+    agent_ref: local:agents/tech-artist-pipeline
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: tech-artist-pipeline
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: game-systems-dev
+    to: game-ai-dev
+  - kind: delegates_to
+    from: game-systems-dev
+    to: tech-artist-pipeline
+edges:
+- kind: collaborates_with
+  from: engine.engine-systems-eng
+  to: gameplay.game-systems-dev

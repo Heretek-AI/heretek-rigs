@@ -1,0 +1,513 @@
+{
+  "schema": "openrig.bundle-behaviour/v1",
+  "state": "generated",
+  "identity": {
+    "source": {
+      "repository": "https://github.com/Heretek-AI/heretek-rigs",
+      "folder": "rigs/cloud-sre-and-data-platform",
+      "resolvedCommit": "09270e6f987c1625436b04543b9bdc54b28137e8",
+      "requestedRef": "main",
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/09270e6f987c1625436b04543b9bdc54b28137e8/rigs/cloud-sre-and-data-platform"
+    },
+    "configurationId": "data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi",
+    "packageDigest": {
+      "algorithm": "sha256",
+      "value": "e21951edd7386ff8e9686a673ce015e0e1a7930325c10712555eeb3e430219a5",
+      "coverage": "openrig.package-digest/v1"
+    },
+    "assembler": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "generator": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "compatibility": {
+      "minDaemonVersion": "0.6.11",
+      "minCliVersion": "0.6.11"
+    },
+    "statedProvenance": {
+      "notes": "Heretek-Rigs cloud-sre-and-data-platform v1.0.0"
+    },
+    "integrity": {
+      "digestValid": true,
+      "filesVerified": true
+    }
+  },
+  "team": [
+    {
+      "seat": "platform.cloud-platform-eng",
+      "pod": "platform",
+      "member": "cloud-platform-eng",
+      "agentRef": "local:agents/cloud-platform-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "platform.k8s-orchestrator",
+      "pod": "platform",
+      "member": "k8s-orchestrator",
+      "agentRef": "local:agents/k8s-orchestrator",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "platform.dependency-patcher",
+      "pod": "platform",
+      "member": "dependency-patcher",
+      "agentRef": "local:agents/dependency-patcher",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "sre.sre-incident-eng",
+      "pod": "sre",
+      "member": "sre-incident-eng",
+      "agentRef": "local:agents/sre-incident-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "sre.observability-eng",
+      "pod": "sre",
+      "member": "observability-eng",
+      "agentRef": "local:agents/observability-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "data.dba-specialist",
+      "pod": "data",
+      "member": "dba-specialist",
+      "agentRef": "local:agents/dba-specialist",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "data.cache-streaming-eng",
+      "pod": "data",
+      "member": "cache-streaming-eng",
+      "agentRef": "local:agents/cache-streaming-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "data.data-pipeline-eng",
+      "pod": "data",
+      "member": "data-pipeline-eng",
+      "agentRef": "local:agents/data-pipeline-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "data.analytics-metrics-eng",
+      "pod": "data",
+      "member": "analytics-metrics-eng",
+      "agentRef": "local:agents/analytics-metrics-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "ml.mlops-serving-eng",
+      "pod": "ml",
+      "member": "mlops-serving-eng",
+      "agentRef": "local:agents/mlops-serving-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "ml.vector-rag-spec",
+      "pod": "ml",
+      "member": "vector-rag-spec",
+      "agentRef": "local:agents/vector-rag-spec",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    }
+  ],
+  "posture": [
+    {
+      "seat": "platform.cloud-platform-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.platform.members.cloud-platform-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "platform.k8s-orchestrator",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.platform.members.k8s-orchestrator.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "platform.dependency-patcher",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.platform.members.dependency-patcher.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "sre.sre-incident-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.sre.members.sre-incident-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "sre.observability-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.sre.members.observability-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "data.dba-specialist",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.data.members.dba-specialist.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "data.cache-streaming-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.data.members.cache-streaming-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "data.data-pipeline-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.data.members.data-pipeline-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "data.analytics-metrics-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.data.members.analytics-metrics-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "ml.mlops-serving-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.ml.members.mlops-serving-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "ml.vector-rag-spec",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.ml.members.vector-rag-spec.permission_policy"
+        }
+      ]
+    }
+  ],
+  "toldFiles": [
+    {
+      "kind": "culture",
+      "pathOrRef": "CULTURE.md",
+      "delivery": "guidance_merge",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "culture_file"
+        }
+      ]
+    },
+    {
+      "seat": "platform.cloud-platform-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/cloud-platform-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/cloud-platform-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "platform.k8s-orchestrator",
+      "kind": "startup_file",
+      "pathOrRef": "agents/k8s-orchestrator/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/k8s-orchestrator/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "platform.dependency-patcher",
+      "kind": "startup_file",
+      "pathOrRef": "agents/dependency-patcher/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/dependency-patcher/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "sre.sre-incident-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/sre-incident-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/sre-incident-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "sre.observability-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/observability-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/observability-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "data.dba-specialist",
+      "kind": "startup_file",
+      "pathOrRef": "agents/dba-specialist/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/dba-specialist/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "data.cache-streaming-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/cache-streaming-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/cache-streaming-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "data.data-pipeline-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/data-pipeline-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/data-pipeline-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "data.analytics-metrics-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/analytics-metrics-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/analytics-metrics-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "ml.mlops-serving-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/mlops-serving-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/mlops-serving-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "ml.vector-rag-spec",
+      "kind": "startup_file",
+      "pathOrRef": "agents/vector-rag-spec/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/vector-rag-spec/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    }
+  ],
+  "alsoRuns": [],
+  "writes": [
+    {
+      "kind": "managed_block",
+      "destinationBase": "each seat's working folder",
+      "path": "AGENTS.md",
+      "operation": "add OpenRig block",
+      "phase": "launch",
+      "condition": "Pi and OMP seats"
+    }
+  ],
+  "outsideAddresses": [
+    {
+      "domain": "opencode.ai",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "domain": "github.com",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    }
+  ],
+  "needs": [
+    {
+      "kind": "runtime",
+      "name": "pi",
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml"
+        }
+      ]
+    },
+    {
+      "kind": "precondition",
+      "name": "Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)",
+      "commands": [
+        "python3 ./scripts/seed-rig.py rigs/cloud-sre-and-data-platform/rig.yaml"
+      ],
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "bundle.yaml",
+          "field": "preconditions[0]"
+        }
+      ]
+    }
+  ],
+  "unknownBeforeLaunch": [
+    {
+      "subject": "host and native settings",
+      "reason": "Effective native permissions and $PI_CODING_AGENT_DIR credentials are resolved at launch."
+    }
+  ]
+}

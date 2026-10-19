@@ -1,0 +1,61 @@
+name: tpm-scrum-lead
+version: '1.0'
+description: Technical Product Manager / Scrum Lead (Executive & Product Management) — Muse Spark 1.3 Contributor via OpenCode
+  Go
+defaults:
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  lifecycle:
+    execution_mode: interactive_resident
+    compaction_strategy: default-compaction
+    restore_policy: resume_if_possible
+imports:
+- ref: local:../_shared
+  version: '1.0'
+profiles:
+  default:
+    summary: Default Pi profile for Technical Product Manager / Scrum Lead on Muse Spark 1.3 Contributor
+    preferences:
+      runtime: pi
+      model: opencode-go/muse-spark-1.3-contributor:high
+      effort: high
+    uses:
+      skills:
+      - heretek-shared:openrig-operating-model
+      - heretek-shared:mission-slice-sop
+      - heretek-shared:delegating-work
+      - heretek-shared:queue-handoff
+      - heretek-shared:refocusing
+      - heretek-shared:seat-continuity-and-handover
+      - heretek-shared:messaging-the-human
+      - heretek-shared:orienting-to-an-inherited-seat
+      - heretek-shared:session-compaction-and-restore
+      - heretek-shared:openrig-user
+      - heretek-shared:forming-an-openrig-mental-model
+      - heretek-shared:agent-operated-workflows
+      - heretek-shared:dispatching-parallel-agents
+      - heretek-shared:git-flow
+      - planning-with-files
+      - sprint-ticket-decomposition
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    lifecycle:
+      compaction_strategy: default-compaction
+      restore_policy: resume_if_possible
+resources:
+  skills:
+  - id: planning-with-files
+    path: skills/planning-with-files
+  - id: sprint-ticket-decomposition
+    path: skills/sprint-ticket-decomposition
+startup:
+  files:
+  - path: startup/context.md
+    delivery_hint: send_text
+    required: true
+    applies_on:
+    - fresh_start
+  actions: []

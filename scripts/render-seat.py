@@ -99,6 +99,29 @@ def build_seat_files(
         die(f"unknown role {role_id}")
     role = fleet_data["roles"][role_id]
 
+    # HR-4.2 (fail-closed): --pod must be a real pod of --rig (fleet/fleet.yaml
+    # is canonical). A phantom pod (e.g. --pod command --rig
+    # executive-and-architecture, whose pods are exec/delivery) must die here
+    # instead of rendering a seat no bootstrap target will ever materialize.
+    _valid_pods = set()
+    for _r in fleet_data.get("rigs", []):
+        if _r.get("id") == rig_id:
+            for _p in _r.get("pods", []):
+                if _p.get("id"):
+                    _valid_pods.add(_p["id"])
+    _omni = fleet_data.get("omni", {})
+    if rig_id == _omni.get("id", "heretek-omni-fleet"):
+        _cp = _omni.get("core_pod", {})
+        if _cp.get("id"):
+            _valid_pods.add(_cp["id"])
+        for _f in _omni.get("pod_fragments", []):
+            if _f.get("pod"):
+                _valid_pods.add(_f["pod"])
+    if _valid_pods and pod_id not in _valid_pods:
+        die(
+            f"unknown pod {pod_id!r} for rig {rig_id} (valid pods: {sorted(_valid_pods)})"
+        )
+
     for ident in (pod_id, member_id):
         if re.search(r"[.@]", ident):
             die(f"pod/member ids must not contain '.' or '@': {ident}")
@@ -330,6 +353,20 @@ def build_seat_files(
         "*id_rsa*": "deny",
         "*kubeconfig*": "deny",
         "*/secrets/*": "deny",
+        # HR-5.2 (fail-closed): the same dot-directory/file guard block as
+        # path_write — reads of .git/.pi/.agents metadata, seat charters, and
+        # the fleet toolchain itself must deny (live corpus: gate-role.sh
+        # .pi/.agents read probes). Guards sit before terminal "*..*".
+        ".git/*": "deny",
+        "*/.git/*": "deny",
+        "AGENTS.md": "deny",
+        "*/AGENTS.md": "deny",
+        ".pi/*": "deny",
+        "*/.pi/*": "deny",
+        ".agents/*": "deny",
+        "*/.agents/*": "deny",
+        "fleet/*": "deny",
+        "scripts/*": "deny",
         # HR-5.3 (fail-closed): explicit denies for every secret-filename suffix
         # in fleet/mcp-servers.yaml so coverage never depends on the secrets
         # dir containing a `/secrets/` segment (default $HERETEK_SECRETS has none).

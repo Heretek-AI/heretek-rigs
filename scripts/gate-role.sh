@@ -16,7 +16,7 @@ try:
 except ImportError:
     if shutil.which("uv") and not os.environ.get("_HERETEK_UV_REEXEC"):
         os.environ["_HERETEK_UV_REEXEC"] = "1"
-        os.execvp("uv", ["uv", "run", "--quiet", "--with", "pyyaml", "python3", "-c", sys.argv[1], sys.argv[2]])
+        os.execvp("uv", ["uv", "run", "--quiet", "--with", "pyyaml", "python3"] + sys.argv)
     raise
 with open("fleet/fleet.yaml") as f:
     fleet = yaml.safe_load(f)
@@ -35,7 +35,7 @@ printf '{"providers":{"mock":{"baseUrl":"http://127.0.0.1:%s/v1","api":"openai-c
 fails=0
 expect() { # expect <allow|deny> <tool> <json-args> <label>
   local want=$1 tool=$2 args=$3 label=$4 out
-  out=$(bash "$ROOT/scripts/gate-run.sh" "$A" "$W" "$tool" "$args" 2>&1 | grep -o '"isError":[a-z]*' | head -1)
+  out=$(bash "$ROOT/scripts/gate-run.sh" "$A" "$W" "$tool" "$args" 2>&1 | grep -o '"isError":[a-z]*' | head -1 || true)
   if [[ "$want" == allow && "$out" == '"isError":false' ]] || [[ "$want" == deny && "$out" == '"isError":true' ]]; then
     echo "ok   $ROLE $label"
   else echo "FAIL $ROLE $label (wanted $want, got ${out:-no tool_execution_end})"; fails=$((fails+1)); fi

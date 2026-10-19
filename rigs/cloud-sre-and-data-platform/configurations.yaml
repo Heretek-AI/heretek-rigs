@@ -1,0 +1,130 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  platform.cloud-platform-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  platform.k8s-orchestrator:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  platform.dependency-patcher:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  sre.sre-incident-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  sre.observability-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  data.dba-specialist:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  data.cache-streaming-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  data.data-pipeline-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  data.analytics-metrics-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  ml.mlops-serving-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  ml.vector-rag-spec:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    platform.cloud-platform-eng: pi
+    platform.k8s-orchestrator: pi
+    platform.dependency-patcher: pi
+    sre.sre-incident-eng: pi
+    sre.observability-eng: pi
+    data.dba-specialist: pi
+    data.cache-streaming-eng: pi
+    data.data-pipeline-eng: pi
+    data.analytics-metrics-eng: pi
+    ml.mlops-serving-eng: pi
+    ml.vector-rag-spec: pi
+  all-pi:
+    platform.cloud-platform-eng: pi
+    platform.k8s-orchestrator: pi
+    platform.dependency-patcher: pi
+    sre.sre-incident-eng: pi
+    sre.observability-eng: pi
+    data.dba-specialist: pi
+    data.cache-streaming-eng: pi
+    data.data-pipeline-eng: pi
+    data.analytics-metrics-eng: pi
+    ml.mlops-serving-eng: pi
+    ml.vector-rag-spec: pi
+  all-omp:
+    platform.cloud-platform-eng: omp
+    platform.k8s-orchestrator: omp
+    platform.dependency-patcher: omp
+    sre.sre-incident-eng: omp
+    sre.observability-eng: omp
+    data.dba-specialist: omp
+    data.cache-streaming-eng: omp
+    data.data-pipeline-eng: omp
+    data.analytics-metrics-eng: omp
+    ml.mlops-serving-eng: omp
+    ml.vector-rag-spec: omp
+  all-claude:
+    platform.cloud-platform-eng: claude-code
+    platform.k8s-orchestrator: claude-code
+    platform.dependency-patcher: claude-code
+    sre.sre-incident-eng: claude-code
+    sre.observability-eng: claude-code
+    data.dba-specialist: claude-code
+    data.cache-streaming-eng: claude-code
+    data.data-pipeline-eng: claude-code
+    data.analytics-metrics-eng: claude-code
+    ml.mlops-serving-eng: claude-code
+    ml.vector-rag-spec: claude-code
+  all-codex:
+    platform.cloud-platform-eng: codex
+    platform.k8s-orchestrator: codex
+    platform.dependency-patcher: codex
+    sre.sre-incident-eng: codex
+    sre.observability-eng: codex
+    data.dba-specialist: codex
+    data.cache-streaming-eng: codex
+    data.data-pipeline-eng: codex
+    data.analytics-metrics-eng: codex
+    ml.mlops-serving-eng: codex
+    ml.vector-rag-spec: codex

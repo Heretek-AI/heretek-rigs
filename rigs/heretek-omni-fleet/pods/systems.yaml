@@ -1,0 +1,45 @@
+id: systems
+label: Systems
+summary: Systems pod led by rust-systems-spec.
+continuity_policy:
+  enabled: true
+  sync_triggers:
+  - pre_compaction
+  - pre_shutdown
+  - milestone
+  artifacts:
+    session_log: true
+    restore_brief: true
+    quiz: false
+  restore_protocol:
+    peer_driven: true
+    verify_via_quiz: false
+members:
+- id: rust-systems-spec
+  label: Rust Systems Specialist
+  agent_ref: local:agents/rust-systems-spec
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: rust-systems-spec
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: cpp-lowlevel-eng
+  label: C++ Systems & Low-Level Engineer
+  agent_ref: local:agents/cpp-lowlevel-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: cpp-lowlevel-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+edges:
+- kind: delegates_to
+  from: rust-systems-spec
+  to: cpp-lowlevel-eng

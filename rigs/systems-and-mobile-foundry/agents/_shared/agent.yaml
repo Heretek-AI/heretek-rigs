@@ -1,0 +1,130 @@
+name: heretek-shared
+version: '1.0'
+description: Heretek fleet shared skill pool (vendored, pinned, zero external plugin paths).
+resources:
+  skills:
+  - id: address-sanitizer
+    path: skills/address-sanitizer
+  - id: agent-operated-workflows
+    path: skills/agent-operated-workflows
+  - id: agentic-actions-auditor
+    path: skills/agentic-actions-auditor
+  - id: audit-context-building
+    path: skills/audit-context-building
+  - id: brainstorming
+    path: skills/brainstorming
+  - id: c-review
+    path: skills/c-review
+  - id: cargo-fuzz
+    path: skills/cargo-fuzz
+  - id: code-review
+    path: skills/code-review
+  - id: codeql
+    path: skills/codeql
+  - id: delegating-work
+    path: skills/delegating-work
+  - id: dispatching-parallel-agents
+    path: skills/dispatching-parallel-agents
+  - id: doc-coauthoring
+    path: skills/doc-coauthoring
+  - id: document-api-endpoint
+    path: skills/document-api-endpoint
+  - id: dwarf-expert
+    path: skills/dwarf-expert
+  - id: entry-point-analyzer
+    path: skills/entry-point-analyzer
+  - id: executing-plans
+    path: skills/executing-plans
+  - id: find-bugs
+    path: skills/find-bugs
+  - id: finishing-a-development-branch
+    path: skills/finishing-a-development-branch
+  - id: forming-an-openrig-mental-model
+    path: skills/forming-an-openrig-mental-model
+  - id: fp-check
+    path: skills/fp-check
+  - id: frontend-design
+    path: skills/frontend-design
+  - id: gha-security-review
+    path: skills/gha-security-review
+  - id: git-flow
+    path: skills/git-flow
+  - id: libfuzzer
+    path: skills/libfuzzer
+  - id: messaging-the-human
+    path: skills/messaging-the-human
+  - id: mission-slice-sop
+    path: skills/mission-slice-sop
+  - id: modern-python
+    path: skills/modern-python
+  - id: mutation-testing
+    path: skills/mutation-testing
+  - id: nextjs-dev
+    path: skills/nextjs-dev
+  - id: openrig-operating-model
+    path: skills/openrig-operating-model
+  - id: openrig-user
+    path: skills/openrig-user
+  - id: orienting-to-an-inherited-seat
+    path: skills/orienting-to-an-inherited-seat
+  - id: property-based-testing
+    path: skills/property-based-testing
+  - id: queue-handoff
+    path: skills/queue-handoff
+  - id: react-best-practices
+    path: skills/react-best-practices
+  - id: receiving-code-review
+    path: skills/receiving-code-review
+  - id: refocusing
+    path: skills/refocusing
+  - id: requesting-code-review
+    path: skills/requesting-code-review
+  - id: rust-review
+    path: skills/rust-review
+  - id: sarif-parsing
+    path: skills/sarif-parsing
+  - id: seat-continuity-and-handover
+    path: skills/seat-continuity-and-handover
+  - id: security-audit
+    path: skills/security-audit
+  - id: security-review
+    path: skills/security-review
+  - id: semgrep
+    path: skills/semgrep
+  - id: semgrep-rule-creator
+    path: skills/semgrep-rule-creator
+  - id: semgrep-rule-variant-creator
+    path: skills/semgrep-rule-variant-creator
+  - id: session-compaction-and-restore
+    path: skills/session-compaction-and-restore
+  - id: skill-scanner
+    path: skills/skill-scanner
+  - id: spec-to-code-compliance
+    path: skills/spec-to-code-compliance
+  - id: supply-chain-risk-auditor
+    path: skills/supply-chain-risk-auditor
+  - id: systematic-debugging
+    path: skills/systematic-debugging
+  - id: tailwind-ui
+    path: skills/tailwind-ui
+  - id: tdd
+    path: skills/tdd
+  - id: test-driven-development
+    path: skills/test-driven-development
+  - id: typescript-astro
+    path: skills/typescript-astro
+  - id: using-git-worktrees
+    path: skills/using-git-worktrees
+  - id: variant-analysis
+    path: skills/variant-analysis
+  - id: verification-before-completion
+    path: skills/verification-before-completion
+  - id: web-design-guidelines
+    path: skills/web-design-guidelines
+  - id: webapp-testing
+    path: skills/webapp-testing
+  - id: writing-plans
+    path: skills/writing-plans
+  - id: yara-rule-authoring
+    path: skills/yara-rule-authoring
+profiles: {}

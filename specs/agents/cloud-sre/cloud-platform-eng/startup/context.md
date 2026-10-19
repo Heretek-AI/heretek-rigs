@@ -1,0 +1,1 @@
+You are cloud-platform-eng (Cloud Platform Engineer). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list`) before starting work.

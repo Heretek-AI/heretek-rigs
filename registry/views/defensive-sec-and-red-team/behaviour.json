@@ -1,0 +1,369 @@
+{
+  "schema": "openrig.bundle-behaviour/v1",
+  "state": "generated",
+  "identity": {
+    "source": {
+      "repository": "https://github.com/Heretek-AI/heretek-rigs",
+      "folder": "rigs/defensive-sec-and-red-team",
+      "resolvedCommit": "09270e6f987c1625436b04543b9bdc54b28137e8",
+      "requestedRef": "main",
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/09270e6f987c1625436b04543b9bdc54b28137e8/rigs/defensive-sec-and-red-team"
+    },
+    "configurationId": "blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi",
+    "packageDigest": {
+      "algorithm": "sha256",
+      "value": "f0a9f68648425774f42fff64416e79edad9e1b501e826b03170174137ff5d443",
+      "coverage": "openrig.package-digest/v1"
+    },
+    "assembler": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "generator": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "compatibility": {
+      "minDaemonVersion": "0.6.11",
+      "minCliVersion": "0.6.11"
+    },
+    "statedProvenance": {
+      "notes": "Heretek-Rigs defensive-sec-and-red-team v1.0.0"
+    },
+    "integrity": {
+      "digestValid": true,
+      "filesVerified": true
+    }
+  },
+  "team": [
+    {
+      "seat": "blue.threat-modeler",
+      "pod": "blue",
+      "member": "threat-modeler",
+      "agentRef": "local:agents/threat-modeler",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "blue.appsec-engineer",
+      "pod": "blue",
+      "member": "appsec-engineer",
+      "agentRef": "local:agents/appsec-engineer",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "blue.cloud-sec-auditor",
+      "pod": "blue",
+      "member": "cloud-sec-auditor",
+      "agentRef": "local:agents/cloud-sec-auditor",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "blue.compliance-auditor",
+      "pod": "blue",
+      "member": "compliance-auditor",
+      "agentRef": "local:agents/compliance-auditor",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "red.ai-red-teamer",
+      "pod": "red",
+      "member": "ai-red-teamer",
+      "agentRef": "local:agents/ai-red-teamer",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "red.binary-reverse-eng",
+      "pod": "red",
+      "member": "binary-reverse-eng",
+      "agentRef": "local:agents/binary-reverse-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "red.firmware-sec-analyst",
+      "pod": "red",
+      "member": "firmware-sec-analyst",
+      "agentRef": "local:agents/firmware-sec-analyst",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    }
+  ],
+  "posture": [
+    {
+      "seat": "blue.threat-modeler",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.blue.members.threat-modeler.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "blue.appsec-engineer",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.blue.members.appsec-engineer.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "blue.cloud-sec-auditor",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.blue.members.cloud-sec-auditor.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "blue.compliance-auditor",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.blue.members.compliance-auditor.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "red.ai-red-teamer",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.red.members.ai-red-teamer.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "red.binary-reverse-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.red.members.binary-reverse-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "red.firmware-sec-analyst",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.red.members.firmware-sec-analyst.permission_policy"
+        }
+      ]
+    }
+  ],
+  "toldFiles": [
+    {
+      "kind": "culture",
+      "pathOrRef": "CULTURE.md",
+      "delivery": "guidance_merge",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "culture_file"
+        }
+      ]
+    },
+    {
+      "seat": "blue.threat-modeler",
+      "kind": "startup_file",
+      "pathOrRef": "agents/threat-modeler/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/threat-modeler/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "blue.appsec-engineer",
+      "kind": "startup_file",
+      "pathOrRef": "agents/appsec-engineer/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/appsec-engineer/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "blue.cloud-sec-auditor",
+      "kind": "startup_file",
+      "pathOrRef": "agents/cloud-sec-auditor/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/cloud-sec-auditor/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "blue.compliance-auditor",
+      "kind": "startup_file",
+      "pathOrRef": "agents/compliance-auditor/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/compliance-auditor/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "red.ai-red-teamer",
+      "kind": "startup_file",
+      "pathOrRef": "agents/ai-red-teamer/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/ai-red-teamer/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "red.binary-reverse-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/binary-reverse-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/binary-reverse-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "red.firmware-sec-analyst",
+      "kind": "startup_file",
+      "pathOrRef": "agents/firmware-sec-analyst/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/firmware-sec-analyst/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    }
+  ],
+  "alsoRuns": [],
+  "writes": [
+    {
+      "kind": "managed_block",
+      "destinationBase": "each seat's working folder",
+      "path": "AGENTS.md",
+      "operation": "add OpenRig block",
+      "phase": "launch",
+      "condition": "Pi and OMP seats"
+    }
+  ],
+  "outsideAddresses": [
+    {
+      "domain": "opencode.ai",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "domain": "github.com",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    }
+  ],
+  "needs": [
+    {
+      "kind": "runtime",
+      "name": "pi",
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml"
+        }
+      ]
+    },
+    {
+      "kind": "precondition",
+      "name": "Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)",
+      "commands": [
+        "python3 ./scripts/seed-rig.py rigs/defensive-sec-and-red-team/rig.yaml"
+      ],
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "bundle.yaml",
+          "field": "preconditions[0]"
+        }
+      ]
+    }
+  ],
+  "unknownBeforeLaunch": [
+    {
+      "subject": "host and native settings",
+      "reason": "Effective native permissions and $PI_CODING_AGENT_DIR credentials are resolved at launch."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "github": {
+      "description": "GitHub read-only (issues toolset) for the fleet's repositories.",
+      "exposure": "deferred",
+      "url": "https://api.githubcopilot.com/mcp/x/issues/readonly",
+      "headers": {
+        "Authorization": "!echo Bearer $(cat @SECRETS@/github.pat)"
+      },
+      "enabled": false
+    },
+    "memory": {
+      "description": "Per-seat knowledge-graph memory (entities, relations, observations).",
+      "exposure": "direct",
+      "command": "@TOOLS@/mcp/node_modules/.bin/mcp-server-memory",
+      "args": [],
+      "env": {
+        "MEMORY_FILE_PATH": "@SEAT@/memory.jsonl"
+      }
+    }
+  }
+}

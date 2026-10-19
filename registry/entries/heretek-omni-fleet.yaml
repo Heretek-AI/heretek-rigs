@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: heretek-omni-fleet
+name: Heretek Heretek Omni Fleet (dynamic)
+summary: Master composable 51-agent omni-fleet topology booting a 3-seat command center with 15 pod fragments and 51 member
+  fragments for dynamic scaling.
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/heretek-omni-fleet
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: 5b170ed67304d62032c7af547b2e83bc6bbc94691adba5b7bcf05ea2b2d20769
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/heretek-omni-fleet/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

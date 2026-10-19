@@ -1,0 +1,377 @@
+{
+  "version": 1,
+  "skills": {
+    "address-sanitizer": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/testing-handbook-skills/skills/address-sanitizer",
+      "tree": "sha256:03ce4b3acdb14bfbdbe39b182e6bd3d5040dbac31302605159e4d9fa53f7feaa",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "agent-operated-workflows": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "agent-operated-workflows",
+      "tree": "sha256:c39a2c6bcb7b5349155dafb234fef3833b72e9c60f6adbd735469f4ff1c2d360",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "agentic-actions-auditor": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/agentic-actions-auditor/skills/agentic-actions-auditor",
+      "tree": "sha256:c1e2138adf34fb9eb491ef4148a4cb99a3d22bcea922078da5bab4a1e5b25df7",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "audit-context-building": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/audit-context-building/skills/audit-context-building",
+      "tree": "sha256:af4e46419c3be7547aec2c1e56aa700991c47a524c8e665b6cf14ca0f7210e65",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "brainstorming": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/brainstorming",
+      "tree": "sha256:f1df957b80681c370d6651ff2d283c55b3d8d92f5046480b7959a0c3347b1937",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "c-review": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/c-review/skills/c-review",
+      "tree": "sha256:b5e678d2db6dff476be39a4fb8be579f1d12b7526e4512fe99900c24e9c84e7e",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "cargo-fuzz": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/testing-handbook-skills/skills/cargo-fuzz",
+      "tree": "sha256:3f324bbb67ad14d810a5dda5ec2b38b664caf747650c895630fcd17f7297b8c7",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "code-review": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/appsec-engineer/.opencode/skills/code-review",
+      "tree": "sha256:1e4dbfc5ea9bebe318b38367964a3c77c81cafc1f756f6505c3970e9163fe1ff",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "codeql": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/static-analysis/skills/codeql",
+      "tree": "sha256:c0b558a01afe736652775982f10371e7ec74cfc4240c8245aceecaac5b8136db",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "delegating-work": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "delegating-work",
+      "tree": "sha256:da585b5c9d9af9c6cf3ed0ebef05c9064d0a0fcb09681d5913ffffcc1f4887af",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "dispatching-parallel-agents": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/dispatching-parallel-agents",
+      "tree": "sha256:2e5f18b30479092e903a4b107355d3ddcd28540f687e7e58307002c23bbfded4",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "doc-coauthoring": {
+      "source": "anthropics/skills@dbd4588",
+      "path": "skills/doc-coauthoring",
+      "tree": "sha256:bb40097e54fbb99b14b7fab0b9b3bae502cddfcb48ba530be2c339e2cabcbc4f",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "document-api-endpoint": {
+      "source": "getsentry/skills@f57ada2",
+      "path": "skills/document-api-endpoint",
+      "tree": "sha256:c347a85a54b671c700f373c2a2a5ba74015a986e8aeeb29de1060f54ca4c2e50",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "dwarf-expert": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/dwarf-expert/skills/dwarf-expert",
+      "tree": "sha256:b151568b2c36c97a68a292dd96df6c1229b2ed578162b642238d8b01254f3ecf",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "entry-point-analyzer": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/entry-point-analyzer/skills/entry-point-analyzer",
+      "tree": "sha256:2fdacf5f62e59cc4d71f55813bd44c0cd0cd47832d98ad172d4a7806f8dc7c80",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "executing-plans": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/executing-plans",
+      "tree": "sha256:5615d830f6e0fd94cf557a640661055f74c480de38dabc19b6d1cc1d0e07150b",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "find-bugs": {
+      "source": "getsentry/skills@f57ada2",
+      "path": "skills/find-bugs",
+      "tree": "sha256:44cc6e443b9f6e320efc5df56c5abf3dd139e8efcadae0109a9df45062b31471",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "finishing-a-development-branch": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/finishing-a-development-branch",
+      "tree": "sha256:bc6e2b6d00c888ac9d7c72d4b13730a41995a97f6b9dc03599f41c6568d6d011",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "forming-an-openrig-mental-model": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "forming-an-openrig-mental-model",
+      "tree": "sha256:b069a75f772a4181f0fc28de6e42bfcd9b35400bca13676e6ce6378b01e787fe",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "fp-check": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/fp-check/skills/fp-check",
+      "tree": "sha256:7200d10aa80a3c3fc859720eaddc22d72e35f6378a01eb5625ce9ea8450fd661",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills@dbd4588",
+      "path": "skills/frontend-design",
+      "tree": "sha256:19de668f2da4a0cd78cce1a5e7e10094ac01d0feb80bcc7190fee085ce49df32",
+      "license_file": "in-tree"
+    },
+    "gha-security-review": {
+      "source": "getsentry/skills@f57ada2",
+      "path": "skills/gha-security-review",
+      "tree": "sha256:12ae3ee6159e17f63467212f3d747ea68c6baae7507c6a89ae6fb8af843deeaa",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "git-flow": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/git-drift-coord/.opencode/skills/git-flow",
+      "tree": "sha256:592873786e98992a371de44d1539d80826bb0fe586fdd81933178d5f1da8a0c5",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "libfuzzer": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/testing-handbook-skills/skills/libfuzzer",
+      "tree": "sha256:039198a67134b8b61e66315fbb10089a927540c2de56aeb3420bd0a5a948a538",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "messaging-the-human": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "messaging-the-human",
+      "tree": "sha256:ab7e187a16896e371baabad70d563ea2553ffc31c030b31bc796aa0f828c4d67",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "mission-slice-sop": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "mission-slice-sop",
+      "tree": "sha256:f00e4e0899546290751847fe9b66b9d4eb46ad74daf691460c85c2ffa0502ae3",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "modern-python": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/modern-python/skills/modern-python",
+      "tree": "sha256:8faa37b07f4db2670007c7530c2a5b2abcd21b42f79b40de0c53edb6a057f452",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "mutation-testing": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/mutation-testing/skills/mutation-testing",
+      "tree": "sha256:853ec8bcd924bda9375110872f5a4bffd6c853587274a12dbd1d314cde7de9ee",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "nextjs-dev": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/mobile-web-eng/.opencode/skills/nextjs-dev",
+      "tree": "sha256:04c7637bebe9fd56f993c31ba1b9481b1843993713474e467eeaf65307e11b77",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "openrig-operating-model": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "openrig-operating-model",
+      "tree": "sha256:5714be9e341f678eba7dc19400c42248efd9ad66d4c1295924912dedc8c33593",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "openrig-user": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "openrig-user",
+      "tree": "sha256:06fdbfc47551fccc4ea0c63766c2cf2d0592d62a8ff3099cb9920c8f2892dd6d",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "orienting-to-an-inherited-seat": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "orienting-to-an-inherited-seat",
+      "tree": "sha256:26b466f77511f670590b1f7b91acb9816c77a9a8fcb04b8d25ceb61c4e111727",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "property-based-testing": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/property-based-testing/skills/property-based-testing",
+      "tree": "sha256:a191d926f1cec527cc93ab0815963942b919fff6ecb47c357755e2c9823c3e46",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "queue-handoff": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "queue-handoff",
+      "tree": "sha256:48b4d5d399fd00c4b9b32fead981b66c4aa92d8630a6bd2cd1eb12c11b5399b0",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "react-best-practices": {
+      "source": "vercel-labs/agent-skills@063bee9",
+      "path": "skills/react-best-practices",
+      "tree": "sha256:06c92a29e848b85ceb9b0367d4384f67c51c20b0013dd29679a3d5163e8a34b7",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "receiving-code-review": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/receiving-code-review",
+      "tree": "sha256:de172be1e6037b69b145eaccf238bf39b7a0b443db115b3d012ae861d2ad030c",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "refocusing": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "refocusing",
+      "tree": "sha256:ecada5443cc4da2c3513c7b07763270c518184d5419c1c23cc173015c3945776",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "requesting-code-review": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/requesting-code-review",
+      "tree": "sha256:fb57d6b1ab9756833b159d9bbad6e5f369646b572d34200d30e4d52561eaadd0",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "rust-review": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/rust-review/skills/rust-review",
+      "tree": "sha256:a61cbdca69435f9c2fc94a3bc6b8b6581507d8b9e56d2455eaa30f1f42121a03",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "sarif-parsing": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/static-analysis/skills/sarif-parsing",
+      "tree": "sha256:37c6a6e47fcfb7cece4cc96705f29c46577071ed37d438a0f860fe96440d5413",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "seat-continuity-and-handover": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "seat-continuity-and-handover",
+      "tree": "sha256:c619aab75093feb64785bb4cac442f2022d9205a947dc42cdcd6b4f2b55e488f",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "security-audit": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/appsec-engineer/.opencode/skills/security-audit",
+      "tree": "sha256:403e053bfbdd464b3dcc90adfc9c5086d943d6f0036812b62050e97f18e3e3a9",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "security-review": {
+      "source": "getsentry/skills@f57ada2",
+      "path": "skills/security-review",
+      "tree": "sha256:bbed7ac4a3c2708c14d991daad834e4cf97ce7d9313f59d91534ae6072571a9b",
+      "license_file": "in-tree"
+    },
+    "semgrep": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/static-analysis/skills/semgrep",
+      "tree": "sha256:d8b4e2ca9bb4231c6ca9cffc5fcd0d84da3c31480b7e0badf479df269c16d504",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "semgrep-rule-creator": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/semgrep-rule-creator/skills/semgrep-rule-creator",
+      "tree": "sha256:9ffc75adeb2b126595f3639db920d594b0795e31d2e7143843afc79b6965f7c3",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "semgrep-rule-variant-creator": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/semgrep-rule-variant-creator/skills/semgrep-rule-variant-creator",
+      "tree": "sha256:cf5abbf5866824de2aecd449f5f1d25dce1d45fb0622e253c5da25517e6ec0bb",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "session-compaction-and-restore": {
+      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "path": "session-compaction-and-restore",
+      "tree": "sha256:c1a7e0abf9b8122962a12dd5881ed22ba2d3026461972084d2d0fbe9b17eebc8",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "skill-scanner": {
+      "source": "getsentry/skills@f57ada2",
+      "path": "skills/skill-scanner",
+      "tree": "sha256:81d9254fd1b522d3734a9b4626c4d213e875736bab2463663d91b4612b498d24",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "spec-to-code-compliance": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/spec-to-code-compliance/skills/spec-to-code-compliance",
+      "tree": "sha256:50f003c978865bebff271854a731a169d6a746293a1d25af753024fa57a4acc2",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "supply-chain-risk-auditor": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/supply-chain-risk-auditor/skills/supply-chain-risk-auditor",
+      "tree": "sha256:c9586a9e6297a870ee3cd008ae91c0ed00e82da3ae0a0809731328e16e68c3ae",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "systematic-debugging": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/systematic-debugging",
+      "tree": "sha256:cf38cce969d8c7f156d5919356d4a6a31a3ac943d3da6d25c021ad5a472a21b2",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "tailwind-ui": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/design-system-eng/.opencode/skills/tailwind-ui",
+      "tree": "sha256:9bf39ac230bdc5fc22e35064cb519c32f526ea39a734dc4fd343318f0015e2ae",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "tdd": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/api-contract-tester/.opencode/skills/tdd",
+      "tree": "sha256:c538ffb25d1ba5601c058b6d923e1acad9014ae3988bb87996c37b54eed69949",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "test-driven-development": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/test-driven-development",
+      "tree": "sha256:1ea0fb02cb626926b04dccb30d1c80c528a0994135a24bae8cf8a064a022321e",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "typescript-astro": {
+      "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
+      "path": "roles/design-system-eng/.opencode/skills/typescript-astro",
+      "tree": "sha256:97ed01931902ae445bacf175ffcd55d69d3a19797caff61db98320e82ec6678d",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "using-git-worktrees": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/using-git-worktrees",
+      "tree": "sha256:40af03bf20f17f0a2544cb2d24091e3577abe393f4b4359a5fcaac6257085861",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "variant-analysis": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/variant-analysis/skills/variant-analysis",
+      "tree": "sha256:bb10850e50b9e67b483641df395021dc2da1f303196f5464fcf12e425761c556",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "verification-before-completion": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/verification-before-completion",
+      "tree": "sha256:89a426c6e82dd7e5f8c2cda146d422dede1e3c70c6436eaf9acc7dc103d0a2ea",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "web-design-guidelines": {
+      "source": "vercel-labs/agent-skills@063bee9",
+      "path": "skills/web-design-guidelines",
+      "tree": "sha256:d5cb29ea15d5ceeb4ef0802e75c17ef4287c6f60ff8aa05e46c6080f615178bc",
+      "license_file": "none (see SKILL.md frontmatter)"
+    },
+    "webapp-testing": {
+      "source": "anthropics/skills@dbd4588",
+      "path": "skills/webapp-testing",
+      "tree": "sha256:564acfdb5fc84463905a3c4e2562cb325ae6ffaf2a4bac92d93777373363501f",
+      "license_file": "in-tree"
+    },
+    "writing-plans": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/writing-plans",
+      "tree": "sha256:da556af0e77b07c75a9fce3ebaffdcaf07001ff95d28b0edf38310674228a8bd",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "yara-rule-authoring": {
+      "source": "trailofbits/skills@5c99c03",
+      "path": "plugins/yara-authoring/skills/yara-rule-authoring",
+      "tree": "sha256:d7719cc9de93ee1c5fa994a533056d97b053d3b5307c77076161b62a8b6fe8f0",
+      "license_file": "LICENSE (copied from source root)"
+    }
+  }
+}

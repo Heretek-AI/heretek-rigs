@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "redis": {
+      "description": "Redis inspection with a read-only ACL user.",
+      "exposure": "deferred",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "redis-mcp-server==0.5.1",
+        "redis-mcp-server"
+      ],
+      "env": {
+        "REDIS_URL": "!cat @SECRETS@/redis-readonly.url"
+      },
+      "enabled": false
+    }
+  }
+}

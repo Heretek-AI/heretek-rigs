@@ -1,0 +1,12 @@
+id: k8s-orchestrator
+label: Kubernetes & Container Orchestrator
+agent_ref: local:agents/k8s-orchestrator
+profile: default
+runtime: pi
+model: opencode-go/muse-spark-1.3-contributor:high
+effort: high
+role: k8s-orchestrator
+permission_policy: builtin:standard
+cwd: .
+restore_policy: resume_if_possible
+compaction_strategy: default-compaction

@@ -1,0 +1,75 @@
+id: data
+label: Data
+summary: Data pod led by dba-specialist.
+continuity_policy:
+  enabled: true
+  sync_triggers:
+  - pre_compaction
+  - pre_shutdown
+  - milestone
+  artifacts:
+    session_log: true
+    restore_brief: true
+    quiz: false
+  restore_protocol:
+    peer_driven: true
+    verify_via_quiz: false
+members:
+- id: dba-specialist
+  label: Database Administrator (DBA)
+  agent_ref: local:agents/dba-specialist
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: dba-specialist
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: cache-streaming-eng
+  label: Cache & Streaming Systems Engineer
+  agent_ref: local:agents/cache-streaming-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: cache-streaming-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: data-pipeline-eng
+  label: Data Pipeline & ETL Engineer
+  agent_ref: local:agents/data-pipeline-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: data-pipeline-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+- id: analytics-metrics-eng
+  label: Analytics & Metrics Engineer
+  agent_ref: local:agents/analytics-metrics-eng
+  profile: default
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  role: analytics-metrics-eng
+  permission_policy: builtin:standard
+  cwd: .
+  restore_policy: resume_if_possible
+  compaction_strategy: default-compaction
+edges:
+- kind: delegates_to
+  from: dba-specialist
+  to: cache-streaming-eng
+- kind: delegates_to
+  from: dba-specialist
+  to: data-pipeline-eng
+- kind: delegates_to
+  from: dba-specialist
+  to: analytics-metrics-eng

@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "aws": {
+      "description": "AWS CLI-backed read-only inspection (READ_OPERATIONS_ONLY=true; IAM is the real control).",
+      "exposure": "deferred",
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-api-mcp-server==1.5.6"
+      ],
+      "env": {
+        "READ_OPERATIONS_ONLY": "true",
+        "AWS_PROFILE": "!cat @SECRETS@/aws.profile",
+        "AWS_REGION": "!cat @SECRETS@/aws.region",
+        "AWS_CONFIG_FILE": "@SECRETS@/aws.config",
+        "AWS_SHARED_CREDENTIALS_FILE": "@SECRETS@/aws.credentials"
+      },
+      "enabled": false
+    },
+    "codebase-memory": {
+      "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
+      "args": []
+    }
+  }
+}

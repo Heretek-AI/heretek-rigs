@@ -1,0 +1,49 @@
+name: analytics-metrics-eng
+version: '1.0'
+description: Analytics & Metrics Engineer (Data & AI Systems) — Muse Spark 1.3 Contributor via OpenCode Go
+defaults:
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  lifecycle:
+    execution_mode: interactive_resident
+    compaction_strategy: default-compaction
+    restore_policy: resume_if_possible
+imports:
+- ref: local:../../_shared
+  version: '1.0'
+profiles:
+  default:
+    summary: Default Pi profile for Analytics & Metrics Engineer on Muse Spark 1.3 Contributor
+    preferences:
+      runtime: pi
+      model: opencode-go/muse-spark-1.3-contributor:high
+      effort: high
+    uses:
+      skills:
+      - heretek-shared:openrig-operating-model
+      - heretek-shared:mission-slice-sop
+      - heretek-shared:delegating-work
+      - heretek-shared:queue-handoff
+      - heretek-shared:refocusing
+      - heretek-shared:seat-continuity-and-handover
+      - clickhouse-schema-and-aggregation-optimization
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    lifecycle:
+      compaction_strategy: default-compaction
+      restore_policy: resume_if_possible
+resources:
+  skills:
+  - id: clickhouse-schema-and-aggregation-optimization
+    path: skills/clickhouse-schema-and-aggregation-optimization
+startup:
+  files:
+  - path: startup/context.md
+    delivery_hint: send_text
+    required: true
+    applies_on:
+    - fresh_start
+  actions: []

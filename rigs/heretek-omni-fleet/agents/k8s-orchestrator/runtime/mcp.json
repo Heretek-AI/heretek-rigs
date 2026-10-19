@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "kubernetes": {
+      "description": "Kubernetes cluster inspection, read-only.",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/kubernetes-mcp-server",
+      "args": [
+        "--read-only"
+      ],
+      "env": {
+        "KUBECONFIG": "@SECRETS@/kubeconfig"
+      },
+      "enabled": false
+    }
+  }
+}

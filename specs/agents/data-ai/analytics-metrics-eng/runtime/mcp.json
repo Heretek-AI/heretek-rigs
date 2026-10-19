@@ -1,0 +1,25 @@
+{
+  "mcpServers": {
+    "codebase-memory": {
+      "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
+      "args": []
+    },
+    "clickhouse": {
+      "description": "ClickHouse queries, read-only by default.",
+      "exposure": "deferred",
+      "command": "uvx",
+      "args": [
+        "mcp-clickhouse==0.7.0"
+      ],
+      "env": {
+        "CLICKHOUSE_HOST": "!cat @SECRETS@/clickhouse.host",
+        "CLICKHOUSE_USER": "!cat @SECRETS@/clickhouse.user",
+        "CLICKHOUSE_PASSWORD": "!cat @SECRETS@/clickhouse.password",
+        "CLICKHOUSE_ALLOW_WRITE_ACCESS": "false"
+      },
+      "enabled": false
+    }
+  }
+}

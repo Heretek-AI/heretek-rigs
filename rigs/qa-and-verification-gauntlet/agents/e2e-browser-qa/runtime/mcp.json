@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "description": "Browser automation through Playwright accessibility snapshots.",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/playwright-mcp",
+      "args": [
+        "--headless",
+        "--isolated"
+      ]
+    },
+    "chrome-devtools": {
+      "description": "Chrome DevTools (performance traces, network, console, Lighthouse-style audits).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/chrome-devtools-mcp",
+      "args": [
+        "--headless",
+        "--isolated"
+      ]
+    }
+  }
+}

@@ -1,0 +1,235 @@
+{
+  "generated": {
+    "by": "heretek-rigs scripts/generate-rigs.py",
+    "notice": "Generated file. Do not edit by hand; regenerate it.",
+    "rule": "openrig.status-rule/v1",
+    "generatorVersion": 1
+  },
+  "listings": {
+    "executive-and-architecture": {
+      "state": "ok",
+      "configurations": {
+        "delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-executive-and-architecture"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "a8f1a193891598674629dccde56e2bf8480cb263d4f47832d769c2bba8235aa6",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "fullstack-and-web-studio": {
+      "state": "ok",
+      "configurations": {
+        "build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-fullstack-and-web-studio"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "75879b657b0cfa124567868c9e1ef1210d1e396d5551509382bbc36dd965b058",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "systems-and-mobile-foundry": {
+      "state": "ok",
+      "configurations": {
+        "mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-systems-and-mobile-foundry"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "5107475236a1b89fffc43cd1a79057a20a9a398ca24a0eaa656c60165ead0295",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "game-dev-and-sim-rig": {
+      "state": "ok",
+      "configurations": {
+        "engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-game-dev-and-sim-rig"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "330dbead3379e5fb22a506ca269878ac90220a3e74aa364affada0609111a9b4",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "cloud-sre-and-data-platform": {
+      "state": "ok",
+      "configurations": {
+        "data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-cloud-sre-and-data-platform"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "e21951edd7386ff8e9686a673ce015e0e1a7930325c10712555eeb3e430219a5",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "qa-and-verification-gauntlet": {
+      "state": "ok",
+      "configurations": {
+        "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-qa-and-verification-gauntlet"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "56230d2e471ea06e6865a80d1d49d1c5a20bdb17dd5bc4fde82678669230ea98",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "defensive-sec-and-red-team": {
+      "state": "ok",
+      "configurations": {
+        "blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-defensive-sec-and-red-team"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "f0a9f68648425774f42fff64416e79edad9e1b501e826b03170174137ff5d443",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    },
+    "heretek-omni-fleet": {
+      "state": "ok",
+      "configurations": {
+        "command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi": {
+          "platforms": {
+            "linux-x64": {
+              "label": "tested",
+              "assistanceCount": 0,
+              "date": "2026-10-18",
+              "openrigVersion": "0.6.11",
+              "recordIds": [
+                "rr-20261018-heretek-omni-fleet"
+              ],
+              "packageDigests": [
+                {
+                  "algorithm": "sha256",
+                  "value": "5b170ed67304d62032c7af547b2e83bc6bbc94691adba5b7bcf05ea2b2d20769",
+                  "coverage": "openrig.package-digest/v1"
+                }
+              ]
+            }
+          },
+          "communityReports": 0
+        }
+      }
+    }
+  },
+  "harnessChecks": {
+    "state": "ok",
+    "harnesses": {
+      "pi": {
+        "linux-x64": {
+          "result": "PASS",
+          "date": "2026-10-18",
+          "openrigVersion": "0.6.11",
+          "harnessVersion": "1.3.0",
+          "recordIds": [
+            "rr-20261018-pi-harness"
+          ]
+        }
+      }
+    }
+  },
+  "bodyDigest": "d9f864858c0c420202ef4a9d92f6e85abbe7ad8eb99e96c47898a8b1b6c6e950"
+}

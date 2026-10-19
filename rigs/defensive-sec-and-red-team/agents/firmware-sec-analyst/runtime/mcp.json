@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "radare2": {
+      "description": "radare2 disassembly and analysis in read-only mode.",
+      "exposure": "deferred",
+      "command": "@TOOLS@/bin/r2mcp",
+      "args": [
+        "-R"
+      ]
+    }
+  }
+}

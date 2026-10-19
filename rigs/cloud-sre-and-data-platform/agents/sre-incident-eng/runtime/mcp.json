@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "prometheus": {
+      "description": "PromQL queries and metric discovery against the team Prometheus.",
+      "exposure": "deferred",
+      "command": "uvx",
+      "args": [
+        "prometheus-mcp-server==1.6.2"
+      ],
+      "env": {
+        "PROMETHEUS_URL": "!cat @SECRETS@/prometheus.url"
+      },
+      "enabled": false
+    }
+  }
+}

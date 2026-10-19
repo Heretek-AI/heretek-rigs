@@ -1,0 +1,75 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  exec.exec-director:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  exec.product-director:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  exec.system-architect:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  delivery.tpm-scrum-lead:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  delivery.git-drift-coord:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  delivery.tech-docs-lead:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    exec.exec-director: pi
+    exec.product-director: pi
+    exec.system-architect: pi
+    delivery.tpm-scrum-lead: pi
+    delivery.git-drift-coord: pi
+    delivery.tech-docs-lead: pi
+  all-pi:
+    exec.exec-director: pi
+    exec.product-director: pi
+    exec.system-architect: pi
+    delivery.tpm-scrum-lead: pi
+    delivery.git-drift-coord: pi
+    delivery.tech-docs-lead: pi
+  all-omp:
+    exec.exec-director: omp
+    exec.product-director: omp
+    exec.system-architect: omp
+    delivery.tpm-scrum-lead: omp
+    delivery.git-drift-coord: omp
+    delivery.tech-docs-lead: omp
+  all-claude:
+    exec.exec-director: claude-code
+    exec.product-director: claude-code
+    exec.system-architect: claude-code
+    delivery.tpm-scrum-lead: claude-code
+    delivery.git-drift-coord: claude-code
+    delivery.tech-docs-lead: claude-code
+  all-codex:
+    exec.exec-director: codex
+    exec.product-director: codex
+    exec.system-architect: codex
+    delivery.tpm-scrum-lead: codex
+    delivery.git-drift-coord: codex
+    delivery.tech-docs-lead: codex

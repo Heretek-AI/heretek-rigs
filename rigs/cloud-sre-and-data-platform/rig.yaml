@@ -1,0 +1,246 @@
+version: '0.2'
+name: cloud-sre-and-data-platform
+summary: Cloud IaC (OpenTofu), Kubernetes orchestration, SRE incident response, observability, DBA migrations, streaming,
+  ETL, analytics, MLOps, RAG, and CVE patching.
+culture_file: CULTURE.md
+permission_policy: builtin:standard
+non_interruptive: false
+docs:
+- path: README.md
+- path: SETUP.md
+pods:
+- id: platform
+  label: Platform
+  summary: Platform pod led by cloud-platform-eng.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: cloud-platform-eng
+    label: Cloud Platform Engineer
+    agent_ref: local:agents/cloud-platform-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: cloud-platform-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: k8s-orchestrator
+    label: Kubernetes & Container Orchestrator
+    agent_ref: local:agents/k8s-orchestrator
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: k8s-orchestrator
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: dependency-patcher
+    label: Dependency & CVE Patching Steward
+    agent_ref: local:agents/dependency-patcher
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: dependency-patcher
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: cloud-platform-eng
+    to: k8s-orchestrator
+  - kind: delegates_to
+    from: cloud-platform-eng
+    to: dependency-patcher
+- id: sre
+  label: Site Reliability
+  summary: Site Reliability pod led by sre-incident-eng.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: sre-incident-eng
+    label: Site Reliability Engineer (SRE)
+    agent_ref: local:agents/sre-incident-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: sre-incident-eng
+    permission_policy: builtin:locked
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: observability-eng
+    label: Observability & Telemetry Engineer
+    agent_ref: local:agents/observability-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: observability-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: sre-incident-eng
+    to: observability-eng
+- id: data
+  label: Data
+  summary: Data pod led by dba-specialist.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: dba-specialist
+    label: Database Administrator (DBA)
+    agent_ref: local:agents/dba-specialist
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: dba-specialist
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: cache-streaming-eng
+    label: Cache & Streaming Systems Engineer
+    agent_ref: local:agents/cache-streaming-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: cache-streaming-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: data-pipeline-eng
+    label: Data Pipeline & ETL Engineer
+    agent_ref: local:agents/data-pipeline-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: data-pipeline-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: analytics-metrics-eng
+    label: Analytics & Metrics Engineer
+    agent_ref: local:agents/analytics-metrics-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: analytics-metrics-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: dba-specialist
+    to: cache-streaming-eng
+  - kind: delegates_to
+    from: dba-specialist
+    to: data-pipeline-eng
+  - kind: delegates_to
+    from: dba-specialist
+    to: analytics-metrics-eng
+- id: ml
+  label: ML Serving & Retrieval
+  summary: ML Serving & Retrieval pod led by mlops-serving-eng.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: mlops-serving-eng
+    label: MLOps & Model Serving Engineer
+    agent_ref: local:agents/mlops-serving-eng
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: mlops-serving-eng
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: vector-rag-spec
+    label: Vector Search & RAG Specialist
+    agent_ref: local:agents/vector-rag-spec
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: vector-rag-spec
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: mlops-serving-eng
+    to: vector-rag-spec
+edges:
+- kind: collaborates_with
+  from: platform.cloud-platform-eng
+  to: sre.sre-incident-eng
+- kind: collaborates_with
+  from: data.dba-specialist
+  to: ml.mlops-serving-eng
+- kind: escalates_to
+  from: sre.sre-incident-eng
+  to: platform.cloud-platform-eng

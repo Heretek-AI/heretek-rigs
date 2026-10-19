@@ -1,0 +1,123 @@
+version: '0.2'
+name: qa-and-verification-gauntlet
+summary: 'Adversarial quality assurance gauntlet: Playwright E2E browser automation, OpenAPI contract testing, k6 load testing,
+  mutation sabotage, static analysis, and release QA veto.'
+culture_file: CULTURE.md
+permission_policy: builtin:standard
+non_interruptive: false
+docs:
+- path: README.md
+- path: SETUP.md
+pods:
+- id: qa
+  label: Verification
+  summary: Verification pod led by release-qa-officer.
+  continuity_policy:
+    enabled: true
+    sync_triggers:
+    - pre_compaction
+    - pre_shutdown
+    - milestone
+    artifacts:
+      session_log: true
+      restore_brief: true
+      quiz: false
+    restore_protocol:
+      peer_driven: true
+      verify_via_quiz: false
+  members:
+  - id: release-qa-officer
+    label: Release QA & Acceptance Sign-off Officer
+    agent_ref: local:agents/release-qa-officer
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: release-qa-officer
+    permission_policy: builtin:locked
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: e2e-browser-qa
+    label: End-to-End Browser Automation Engineer
+    agent_ref: local:agents/e2e-browser-qa
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: e2e-browser-qa
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: api-contract-tester
+    label: API & Contract Testing Specialist
+    agent_ref: local:agents/api-contract-tester
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: api-contract-tester
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: load-stress-tester
+    label: Load & Performance Stress Tester
+    agent_ref: local:agents/load-stress-tester
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: load-stress-tester
+    permission_policy: builtin:standard
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: sabotage-qa-tester
+    label: Adversarial Red-Proof Sabotage Tester
+    agent_ref: local:agents/sabotage-qa-tester
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: sabotage-qa-tester
+    permission_policy: builtin:locked
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  - id: static-analysis-lead
+    label: Code Style & Static Analysis Lead
+    agent_ref: local:agents/static-analysis-lead
+    profile: default
+    runtime: pi
+    model: opencode-go/muse-spark-1.3-contributor:high
+    effort: high
+    role: static-analysis-lead
+    permission_policy: builtin:locked
+    cwd: .
+    restore_policy: resume_if_possible
+    compaction_strategy: default-compaction
+  edges:
+  - kind: delegates_to
+    from: release-qa-officer
+    to: e2e-browser-qa
+  - kind: delegates_to
+    from: release-qa-officer
+    to: api-contract-tester
+  - kind: delegates_to
+    from: release-qa-officer
+    to: load-stress-tester
+  - kind: delegates_to
+    from: release-qa-officer
+    to: sabotage-qa-tester
+  - kind: delegates_to
+    from: release-qa-officer
+    to: static-analysis-lead
+  - kind: can_observe
+    from: static-analysis-lead
+    to: e2e-browser-qa
+  - kind: can_observe
+    from: static-analysis-lead
+    to: api-contract-tester
+edges: []

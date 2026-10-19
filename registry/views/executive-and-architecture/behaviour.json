@@ -1,0 +1,333 @@
+{
+  "schema": "openrig.bundle-behaviour/v1",
+  "state": "generated",
+  "identity": {
+    "source": {
+      "repository": "https://github.com/Heretek-AI/heretek-rigs",
+      "folder": "rigs/executive-and-architecture",
+      "resolvedCommit": "09270e6f987c1625436b04543b9bdc54b28137e8",
+      "requestedRef": "main",
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/09270e6f987c1625436b04543b9bdc54b28137e8/rigs/executive-and-architecture"
+    },
+    "configurationId": "delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi",
+    "packageDigest": {
+      "algorithm": "sha256",
+      "value": "a8f1a193891598674629dccde56e2bf8480cb263d4f47832d769c2bba8235aa6",
+      "coverage": "openrig.package-digest/v1"
+    },
+    "assembler": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "generator": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "compatibility": {
+      "minDaemonVersion": "0.6.11",
+      "minCliVersion": "0.6.11"
+    },
+    "statedProvenance": {
+      "notes": "Heretek-Rigs executive-and-architecture v1.0.0"
+    },
+    "integrity": {
+      "digestValid": true,
+      "filesVerified": true
+    }
+  },
+  "team": [
+    {
+      "seat": "exec.exec-director",
+      "pod": "exec",
+      "member": "exec-director",
+      "agentRef": "local:agents/exec-director",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "exec.product-director",
+      "pod": "exec",
+      "member": "product-director",
+      "agentRef": "local:agents/product-director",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "exec.system-architect",
+      "pod": "exec",
+      "member": "system-architect",
+      "agentRef": "local:agents/system-architect",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "delivery.tpm-scrum-lead",
+      "pod": "delivery",
+      "member": "tpm-scrum-lead",
+      "agentRef": "local:agents/tpm-scrum-lead",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "delivery.git-drift-coord",
+      "pod": "delivery",
+      "member": "git-drift-coord",
+      "agentRef": "local:agents/git-drift-coord",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "delivery.tech-docs-lead",
+      "pod": "delivery",
+      "member": "tech-docs-lead",
+      "agentRef": "local:agents/tech-docs-lead",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    }
+  ],
+  "posture": [
+    {
+      "seat": "exec.exec-director",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.exec.members.exec-director.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "exec.product-director",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.exec.members.product-director.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "exec.system-architect",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.exec.members.system-architect.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "delivery.tpm-scrum-lead",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.delivery.members.tpm-scrum-lead.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "delivery.git-drift-coord",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.delivery.members.git-drift-coord.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "delivery.tech-docs-lead",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.delivery.members.tech-docs-lead.permission_policy"
+        }
+      ]
+    }
+  ],
+  "toldFiles": [
+    {
+      "kind": "culture",
+      "pathOrRef": "CULTURE.md",
+      "delivery": "guidance_merge",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "culture_file"
+        }
+      ]
+    },
+    {
+      "seat": "exec.exec-director",
+      "kind": "startup_file",
+      "pathOrRef": "agents/exec-director/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/exec-director/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "exec.product-director",
+      "kind": "startup_file",
+      "pathOrRef": "agents/product-director/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/product-director/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "exec.system-architect",
+      "kind": "startup_file",
+      "pathOrRef": "agents/system-architect/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/system-architect/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "delivery.tpm-scrum-lead",
+      "kind": "startup_file",
+      "pathOrRef": "agents/tpm-scrum-lead/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/tpm-scrum-lead/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "delivery.git-drift-coord",
+      "kind": "startup_file",
+      "pathOrRef": "agents/git-drift-coord/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/git-drift-coord/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "delivery.tech-docs-lead",
+      "kind": "startup_file",
+      "pathOrRef": "agents/tech-docs-lead/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/tech-docs-lead/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    }
+  ],
+  "alsoRuns": [],
+  "writes": [
+    {
+      "kind": "managed_block",
+      "destinationBase": "each seat's working folder",
+      "path": "AGENTS.md",
+      "operation": "add OpenRig block",
+      "phase": "launch",
+      "condition": "Pi and OMP seats"
+    }
+  ],
+  "outsideAddresses": [
+    {
+      "domain": "opencode.ai",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "domain": "github.com",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    }
+  ],
+  "needs": [
+    {
+      "kind": "runtime",
+      "name": "pi",
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml"
+        }
+      ]
+    },
+    {
+      "kind": "precondition",
+      "name": "Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)",
+      "commands": [
+        "python3 ./scripts/seed-rig.py rigs/executive-and-architecture/rig.yaml"
+      ],
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "bundle.yaml",
+          "field": "preconditions[0]"
+        }
+      ]
+    }
+  ],
+  "unknownBeforeLaunch": [
+    {
+      "subject": "host and native settings",
+      "reason": "Effective native permissions and $PI_CODING_AGENT_DIR credentials are resolved at launch."
+    }
+  ]
+}

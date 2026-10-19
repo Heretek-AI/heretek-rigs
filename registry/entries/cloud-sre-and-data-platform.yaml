@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: cloud-sre-and-data-platform
+name: Heretek Cloud, SRE & Data Platform
+summary: Cloud IaC (OpenTofu), Kubernetes orchestration, SRE incident response, observability, DBA migrations, streaming,
+  ETL, analytics, MLOps, RAG, and CVE patching.
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/cloud-sre-and-data-platform
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: e21951edd7386ff8e9686a673ce015e0e1a7930325c10712555eeb3e430219a5
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/cloud-sre-and-data-platform/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

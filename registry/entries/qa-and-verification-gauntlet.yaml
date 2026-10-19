@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: qa-and-verification-gauntlet
+name: Heretek QA & Verification Gauntlet
+summary: 'Adversarial quality assurance gauntlet: Playwright E2E browser automation, OpenAPI contract testing, k6 load testing,
+  mutation sabotage, static analysis, and release QA veto.'
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/qa-and-verification-gauntlet
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: 56230d2e471ea06e6865a80d1d49d1c5a20bdb17dd5bc4fde82678669230ea98
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/qa-and-verification-gauntlet/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

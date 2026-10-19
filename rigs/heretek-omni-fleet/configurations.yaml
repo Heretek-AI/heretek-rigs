@@ -1,0 +1,42 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  command.exec-director:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  command.tpm-scrum-lead:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  command.system-architect:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    command.exec-director: pi
+    command.tpm-scrum-lead: pi
+    command.system-architect: pi
+  all-pi:
+    command.exec-director: pi
+    command.tpm-scrum-lead: pi
+    command.system-architect: pi
+  all-omp:
+    command.exec-director: omp
+    command.tpm-scrum-lead: omp
+    command.system-architect: omp
+  all-claude:
+    command.exec-director: claude-code
+    command.tpm-scrum-lead: claude-code
+    command.system-architect: claude-code
+  all-codex:
+    command.exec-director: codex
+    command.tpm-scrum-lead: codex
+    command.system-architect: codex

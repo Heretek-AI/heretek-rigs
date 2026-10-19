@@ -1,0 +1,970 @@
+{
+  "version": 1,
+  "id": "heretek-omni-fleet",
+  "name": "Heretek 51-Agent Autonomous Omni-Fleet Roster",
+  "purpose": "Discover and engage any of the 51 specialized Heretek agents across the 8 OpenRig bundles.",
+  "curator": {
+    "seat": "exec-exec-director@executive-and-architecture",
+    "host": "heretek-primary"
+  },
+  "updated_at": "2026-10-18",
+  "members": [
+    {
+      "seat": "design-a11y-specialist@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "web-design",
+        "a11y-specialist",
+        "wcag-axe-audit-automation",
+        "web-design-guidelines"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Accessibility (a11y) & Usability Specialist (Web & UI/UX Design) expertise.",
+      "why": "Equipped with wcag-axe-audit-automation, web-design-guidelines and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to tests/a11y/*, docs/a11y/*."
+    },
+    {
+      "seat": "red-ai-red-teamer@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "ai-red-teamer",
+        "auditing-mcp-servers-for-tool-poisoning",
+        "detecting-ai-model-prompt-injection-attacks",
+        "detecting-indirect-prompt-injection",
+        "testing-for-system-prompt-leakage",
+        "testing-prompt-injection-in-rag-pipelines",
+        "skill-scanner",
+        "agentic-actions-auditor"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Adversarial AI Red-Teamer (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with auditing-mcp-servers-for-tool-poisoning, detecting-ai-model-prompt-injection-attacks, detecting-indirect-prompt-injection, testing-for-system-prompt-leakage and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/security/ai-redteam/*)."
+    },
+    {
+      "seat": "data-analytics-metrics-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "data-ai",
+        "analytics-metrics-eng",
+        "clickhouse-schema-and-aggregation-optimization"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Analytics & Metrics Engineer (Data & AI Systems) expertise.",
+      "why": "Equipped with clickhouse-schema-and-aggregation-optimization and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to migrations/clickhouse/*, analytics/*."
+    },
+    {
+      "seat": "mobile-android-mobile-spec@systems-and-mobile-foundry",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "android-mobile-spec",
+        "artemis-android-ui-exploration",
+        "jetpack-compose-state-hoisting"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Mobile Android Specialist (Specialized Language Engineers) expertise.",
+      "why": "Equipped with artemis-android-ui-exploration, jetpack-compose-state-hoisting and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to app/src/*, build.gradle*, app/build.gradle*, docs/evidence/android-artemis/*."
+    },
+    {
+      "seat": "qa-api-contract-tester@qa-and-verification-gauntlet",
+      "host": "heretek-primary",
+      "capabilities": [
+        "qa",
+        "api-contract-tester",
+        "dotnet-expert",
+        "openapi-contract-verification",
+        "requesting-code-review",
+        "tdd",
+        "verification-before-completion",
+        "document-api-endpoint"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need API & Contract Testing Specialist (Quality Assurance & Verification) expertise.",
+      "why": "Equipped with dotnet-expert, openapi-contract-verification, requesting-code-review, tdd and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to tests/api/*, openapi/*."
+    },
+    {
+      "seat": "blue-appsec-engineer@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "appsec-engineer",
+        "owasp-reachability-triage",
+        "code-review",
+        "security-audit",
+        "semgrep",
+        "sarif-parsing",
+        "variant-analysis",
+        "fp-check",
+        "security-review"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Application Security (AppSec) Engineer (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with owasp-reachability-triage, code-review, security-audit, semgrep and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/security/advisories/*)."
+    },
+    {
+      "seat": "red-binary-reverse-eng@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "binary-reverse-eng",
+        "radare2-defensive-disassembly",
+        "rea-evidence-based-decompilation",
+        "dwarf-expert",
+        "yara-rule-authoring"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Binary & Protocol Reverse Engineer (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with radare2-defensive-disassembly, rea-evidence-based-decompilation, dwarf-expert, yara-rule-authoring and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/protocols/*, docs/forensics/*)."
+    },
+    {
+      "seat": "design-brand-copy-spec@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "web-design",
+        "brand-copy-spec",
+        "actionable-microcopy-refactoring",
+        "humanizer"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Brand & Creative Copy Specialist (Web & UI/UX Design) expertise.",
+      "why": "Equipped with actionable-microcopy-refactoring, humanizer and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to locales/*, docs/brand/*."
+    },
+    {
+      "seat": "data-cache-streaming-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "cloud-sre",
+        "cache-streaming-eng",
+        "kafka-topic-and-consumer-tuning"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Cache & Streaming Systems Engineer (Cloud, Platform & Site Reliability) expertise.",
+      "why": "Equipped with kafka-topic-and-consumer-tuning and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to schemas/events/*, src/cache/*, deploy/kafka/*."
+    },
+    {
+      "seat": "platform-cloud-platform-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "cloud-sre",
+        "cloud-platform-eng",
+        "opentofu-plan-and-validation"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Cloud Platform Engineer (Cloud, Platform & Site Reliability) expertise.",
+      "why": "Equipped with opentofu-plan-and-validation and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to terraform/*, infra/*."
+    },
+    {
+      "seat": "blue-cloud-sec-auditor@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "cloud-sec-auditor",
+        "iam-least-privilege-audit",
+        "security-audit",
+        "gha-security-review",
+        "agentic-actions-auditor"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Cloud Security & IAM Auditor (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with iam-least-privilege-audit, security-audit, gha-security-review, agentic-actions-auditor and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/security/cloud/*)."
+    },
+    {
+      "seat": "blue-compliance-auditor@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "compliance-auditor",
+        "sbom-generation-and-license-audit",
+        "supply-chain-risk-auditor",
+        "spec-to-code-compliance"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Compliance & License Auditor (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with sbom-generation-and-license-audit, supply-chain-risk-auditor, spec-to-code-compliance and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to sbom/*, docs/compliance/*)."
+    },
+    {
+      "seat": "systems-cpp-lowlevel-eng@systems-and-mobile-foundry",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "cpp-lowlevel-eng",
+        "modern-cpp-sanitizer-verification",
+        "systematic-debugging",
+        "test-driven-development",
+        "c-review",
+        "address-sanitizer",
+        "libfuzzer"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need C++ Systems & Low-Level Engineer (Specialized Language Engineers) expertise.",
+      "why": "Equipped with modern-cpp-sanitizer-verification, systematic-debugging, test-driven-development, c-review and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/*, include/*, tests/*, CMakeLists.txt."
+    },
+    {
+      "seat": "data-data-pipeline-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "data-ai",
+        "data-pipeline-eng",
+        "duckdb-dbt-pipeline-execution"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Data Pipeline & ETL Engineer (Data & AI Systems) expertise.",
+      "why": "Equipped with duckdb-dbt-pipeline-execution and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to dbt/*, pipelines/*."
+    },
+    {
+      "seat": "data-dba-specialist@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "cloud-sre",
+        "dba-specialist",
+        "zero-downtime-migration-audit"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Database Administrator (DBA) (Cloud, Platform & Site Reliability) expertise.",
+      "why": "Equipped with zero-downtime-migration-audit and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to migrations/*, docs/db/*."
+    },
+    {
+      "seat": "platform-dependency-patcher@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "operations",
+        "dependency-patcher",
+        "automated-lockfile-patching",
+        "supply-chain-risk-auditor"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Dependency & CVE Patching Steward (Operations & Maintenance) expertise.",
+      "why": "Equipped with automated-lockfile-patching, supply-chain-risk-auditor and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to *package-lock.json, *pnpm-lock.yaml, package.json, Cargo.toml, Cargo.lock, pyproject.toml, go.mod, go.sum."
+    },
+    {
+      "seat": "design-design-system-eng@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "web-design",
+        "design-system-eng",
+        "impeccable-taste",
+        "storybook-component-tokenization",
+        "tailwind-ui",
+        "typescript-astro"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Design System Engineer (Web & UI/UX Design) expertise.",
+      "why": "Equipped with impeccable-taste, storybook-component-tokenization, tailwind-ui, typescript-astro and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to packages/ui/*, tokens/*, src/components/ui/*."
+    },
+    {
+      "seat": "qa-e2e-browser-qa@qa-and-verification-gauntlet",
+      "host": "heretek-primary",
+      "capabilities": [
+        "qa",
+        "e2e-browser-qa",
+        "playwright-page-object-automation",
+        "requesting-code-review",
+        "verification-before-completion",
+        "webapp-testing"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need End-to-End Browser Automation Engineer (Quality Assurance & Verification) expertise.",
+      "why": "Equipped with playwright-page-object-automation, requesting-code-review, verification-before-completion, webapp-testing and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to tests/e2e/*, playwright.config.*."
+    },
+    {
+      "seat": "engine-engine-systems-eng@game-dev-and-sim-rig",
+      "host": "heretek-primary",
+      "capabilities": [
+        "gamedev",
+        "engine-systems-eng",
+        "cache-conscious-ecs-design"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Engine & Systems Programmer (Game Development) expertise.",
+      "why": "Equipped with cache-conscious-ecs-design and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/engine/*, tests/engine/*."
+    },
+    {
+      "seat": "exec-exec-director@executive-and-architecture",
+      "host": "heretek-primary",
+      "capabilities": [
+        "executive",
+        "exec-director",
+        "executive-okr-decomposition",
+        "dispatching-parallel-agents"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Director / CEO-Delegate (Executive & Product Management) expertise.",
+      "why": "Equipped with executive-okr-decomposition, dispatching-parallel-agents and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/executive/*)."
+    },
+    {
+      "seat": "design-fe-perf-eng@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "web-design",
+        "fe-perf-eng",
+        "core-web-vitals-profiling",
+        "react-best-practices"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Frontend Performance Engineer (Web & UI/UX Design) expertise.",
+      "why": "Equipped with core-web-vitals-profiling, react-best-practices and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to *.config.js, *.config.ts, docs/perf/*."
+    },
+    {
+      "seat": "red-firmware-sec-analyst@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "firmware-sec-analyst",
+        "firmware-extraction-and-hardening-audit",
+        "yara-rule-authoring",
+        "dwarf-expert"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Firmware & Embedded Security Analyst (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with firmware-extraction-and-hardening-audit, yara-rule-authoring, dwarf-expert and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/security/firmware/*)."
+    },
+    {
+      "seat": "gameplay-game-ai-dev@game-dev-and-sim-rig",
+      "host": "heretek-primary",
+      "capabilities": [
+        "gamedev",
+        "game-ai-dev",
+        "behavior-tree-authoring"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Game AI Programmer (Game Development) expertise.",
+      "why": "Equipped with behavior-tree-authoring and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/game/ai/*, tests/game/ai/*."
+    },
+    {
+      "seat": "gameplay-game-systems-dev@game-dev-and-sim-rig",
+      "host": "heretek-primary",
+      "capabilities": [
+        "gamedev",
+        "game-systems-dev",
+        "gameplay-state-machine-implementation"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Game Systems & Gameplay Programmer (Game Development) expertise.",
+      "why": "Equipped with gameplay-state-machine-implementation and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/game/*, tests/game/*."
+    },
+    {
+      "seat": "delivery-git-drift-coord@executive-and-architecture",
+      "host": "heretek-primary",
+      "capabilities": [
+        "operations",
+        "git-drift-coord",
+        "worktree-rebase-orchestration",
+        "git-flow",
+        "using-git-worktrees",
+        "finishing-a-development-branch"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Git & Worktree Drift Coordinator (Operations & Maintenance) expertise.",
+      "why": "Equipped with worktree-rebase-orchestration, git-flow, using-git-worktrees, finishing-a-development-branch and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/ops/*)."
+    },
+    {
+      "seat": "build-go-backend-eng@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "go-backend-eng",
+        "go-expert",
+        "idiomatic-go-service-development",
+        "systematic-debugging",
+        "test-driven-development",
+        "receiving-code-review"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Go Backend Engineer (Specialized Language Engineers) expertise.",
+      "why": "Equipped with go-expert, idiomatic-go-service-development, systematic-debugging, test-driven-development and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to cmd/*, internal/*, pkg/*, go.mod, go.sum."
+    },
+    {
+      "seat": "engine-graphics-shader-eng@game-dev-and-sim-rig",
+      "host": "heretek-primary",
+      "capabilities": [
+        "gamedev",
+        "graphics-shader-eng",
+        "shader-compilation-and-validation"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Graphics & Shader Engineer (Game Development) expertise.",
+      "why": "Equipped with shader-compilation-and-validation and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/shaders/*, src/rendering/*."
+    },
+    {
+      "seat": "mobile-ios-mobile-spec@systems-and-mobile-foundry",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "ios-mobile-spec",
+        "swiftui-concurrency-implementation"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Mobile iOS Specialist (Specialized Language Engineers) expertise.",
+      "why": "Equipped with swiftui-concurrency-implementation and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to ios/*, Sources/*, Tests/*, Package.swift."
+    },
+    {
+      "seat": "build-java-kotlin-eng@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "java-kotlin-eng",
+        "spring-boot-virtual-thread-tuning",
+        "systematic-debugging",
+        "test-driven-development",
+        "receiving-code-review"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Java / Kotlin Enterprise Engineer (Specialized Language Engineers) expertise.",
+      "why": "Equipped with spring-boot-virtual-thread-tuning, systematic-debugging, test-driven-development, receiving-code-review and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/main/*, src/test/*, build.gradle*, pom.xml."
+    },
+    {
+      "seat": "platform-k8s-orchestrator@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "cloud-sre",
+        "k8s-orchestrator",
+        "helm-chart-security-hardening"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Kubernetes & Container Orchestrator (Cloud, Platform & Site Reliability) expertise.",
+      "why": "Equipped with helm-chart-security-hardening and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to deploy/*, k8s/*."
+    },
+    {
+      "seat": "qa-load-stress-tester@qa-and-verification-gauntlet",
+      "host": "heretek-primary",
+      "capabilities": [
+        "qa",
+        "load-stress-tester",
+        "k6-stress-scenario-execution"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Load & Performance Stress Tester (Quality Assurance & Verification) expertise.",
+      "why": "Equipped with k6-stress-scenario-execution and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to tests/load/*, docs/perf/*."
+    },
+    {
+      "seat": "ml-mlops-serving-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "data-ai",
+        "mlops-serving-eng",
+        "vllm-serving-benchmarking"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need MLOps & Model Serving Engineer (Data & AI Systems) expertise.",
+      "why": "Equipped with vllm-serving-benchmarking and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to deploy/mlops/*, tools/mlops/*."
+    },
+    {
+      "seat": "design-mobile-web-eng@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "web-design",
+        "mobile-web-eng",
+        "mobile-viewport-emulation-audit",
+        "nextjs-dev",
+        "tailwind-ui",
+        "typescript-astro",
+        "web-design-guidelines"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Mobile Web & Responsive Layout Engineer (Web & UI/UX Design) expertise.",
+      "why": "Equipped with mobile-viewport-emulation-audit, nextjs-dev, tailwind-ui, typescript-astro and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/styles/*, src/components/*, public/*."
+    },
+    {
+      "seat": "sre-observability-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "cloud-sre",
+        "observability-eng",
+        "prometheus-rule-validation"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Observability & Telemetry Engineer (Cloud, Platform & Site Reliability) expertise.",
+      "why": "Equipped with prometheus-rule-validation and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to deploy/prometheus/*, deploy/grafana/*, deploy/otel/*."
+    },
+    {
+      "seat": "engine-physics-sim-eng@game-dev-and-sim-rig",
+      "host": "heretek-primary",
+      "capabilities": [
+        "gamedev",
+        "physics-sim-eng",
+        "collision-broadphase-optimization"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Physics & Simulation Engineer (Game Development) expertise.",
+      "why": "Equipped with collision-broadphase-optimization and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/engine/physics/*, tests/engine/physics/*."
+    },
+    {
+      "seat": "exec-product-director@executive-and-architecture",
+      "host": "heretek-primary",
+      "capabilities": [
+        "executive",
+        "product-director",
+        "epic-roadmap-authoring",
+        "brainstorming",
+        "writing-plans"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Product Director / Head of Product (Executive & Product Management) expertise.",
+      "why": "Equipped with epic-roadmap-authoring, brainstorming, writing-plans and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/product/*)."
+    },
+    {
+      "seat": "build-python-backend-spec@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "python-backend-spec",
+        "fastapi-async-development",
+        "systematic-debugging",
+        "test-driven-development",
+        "modern-python",
+        "property-based-testing"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Python Backend & Systems Specialist (Specialized Language Engineers) expertise.",
+      "why": "Equipped with fastapi-async-development, systematic-debugging, test-driven-development, modern-python and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to app/*, tests/*, pyproject.toml."
+    },
+    {
+      "seat": "qa-release-qa-officer@qa-and-verification-gauntlet",
+      "host": "heretek-primary",
+      "capabilities": [
+        "qa",
+        "release-qa-officer",
+        "release-readiness-audit",
+        "code-review",
+        "requesting-code-review",
+        "tdd",
+        "verification-before-completion",
+        "finishing-a-development-branch",
+        "find-bugs"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Release QA & Acceptance Sign-off Officer (Quality Assurance & Verification) expertise.",
+      "why": "Equipped with release-readiness-audit, code-review, requesting-code-review, tdd and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/releases/*)."
+    },
+    {
+      "seat": "systems-rust-systems-spec@systems-and-mobile-foundry",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "rust-systems-spec",
+        "rust-async-service-hardening",
+        "systematic-debugging",
+        "test-driven-development",
+        "rust-review",
+        "cargo-fuzz"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Rust Systems Specialist (Specialized Language Engineers) expertise.",
+      "why": "Equipped with rust-async-service-hardening, systematic-debugging, test-driven-development, rust-review and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to crates/*, src/*, tests/*, Cargo.toml, Cargo.lock."
+    },
+    {
+      "seat": "qa-sabotage-qa-tester@qa-and-verification-gauntlet",
+      "host": "heretek-primary",
+      "capabilities": [
+        "qa",
+        "sabotage-qa-tester",
+        "adversarial-mutation-sabotage",
+        "requesting-code-review",
+        "verification-before-completion",
+        "mutation-testing",
+        "property-based-testing"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Adversarial Red-Proof Sabotage Tester (Quality Assurance & Verification) expertise.",
+      "why": "Equipped with adversarial-mutation-sabotage, requesting-code-review, verification-before-completion, mutation-testing and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to tests/chaos/*, docs/qa/*."
+    },
+    {
+      "seat": "sre-sre-incident-eng@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "cloud-sre",
+        "sre-incident-eng",
+        "blameless-incident-triage-and-postmortem"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Site Reliability Engineer (SRE) (Cloud, Platform & Site Reliability) expertise.",
+      "why": "Equipped with blameless-incident-triage-and-postmortem and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/incidents/*, docs/runbooks/*)."
+    },
+    {
+      "seat": "qa-static-analysis-lead@qa-and-verification-gauntlet",
+      "host": "heretek-primary",
+      "capabilities": [
+        "qa",
+        "static-analysis-lead",
+        "custom-semgrep-rule-authoring",
+        "code-review",
+        "semgrep",
+        "semgrep-rule-creator",
+        "semgrep-rule-variant-creator",
+        "codeql",
+        "sarif-parsing"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Code Style & Static Analysis Lead (Quality Assurance & Verification) expertise.",
+      "why": "Equipped with custom-semgrep-rule-authoring, code-review, semgrep, semgrep-rule-creator and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to *.eslintrc.json, *eslint.config.js, rules/*, biome.json, ruff.toml."
+    },
+    {
+      "seat": "exec-system-architect@executive-and-architecture",
+      "host": "heretek-primary",
+      "capabilities": [
+        "executive",
+        "system-architect",
+        "madr-architecture-decision",
+        "brainstorming",
+        "writing-plans",
+        "executing-plans"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need System Architect (Executive & Product Management) expertise.",
+      "why": "Equipped with madr-architecture-decision, brainstorming, writing-plans, executing-plans and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/adr/*, docs/architecture/*)."
+    },
+    {
+      "seat": "gameplay-tech-artist-pipeline@game-dev-and-sim-rig",
+      "host": "heretek-primary",
+      "capabilities": [
+        "gamedev",
+        "tech-artist-pipeline",
+        "gltf-asset-optimization"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Technical Artist & Asset Pipeline Lead (Game Development) expertise.",
+      "why": "Equipped with gltf-asset-optimization and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to assets/*, tools/asset-pipeline/*."
+    },
+    {
+      "seat": "delivery-tech-docs-lead@executive-and-architecture",
+      "host": "heretek-primary",
+      "capabilities": [
+        "executive",
+        "tech-docs-lead",
+        "docs-as-code-synchronization",
+        "doc-coauthoring"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Technical Documentation Lead (Executive & Product Management) expertise.",
+      "why": "Equipped with docs-as-code-synchronization, doc-coauthoring and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/*, docs/*.md)."
+    },
+    {
+      "seat": "blue-threat-modeler@defensive-sec-and-red-team",
+      "host": "heretek-primary",
+      "capabilities": [
+        "security",
+        "threat-modeler",
+        "stride-threat-modeling",
+        "security-audit",
+        "entry-point-analyzer",
+        "audit-context-building"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Threat Modeling & Hardening Engineer (Defensive Security, Binary Analysis & Forensics) expertise.",
+      "why": "Equipped with stride-threat-modeling, security-audit, entry-point-analyzer, audit-context-building and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/security/threat-models/*)."
+    },
+    {
+      "seat": "delivery-tpm-scrum-lead@executive-and-architecture",
+      "host": "heretek-primary",
+      "capabilities": [
+        "executive",
+        "tpm-scrum-lead",
+        "planning-with-files",
+        "sprint-ticket-decomposition",
+        "dispatching-parallel-agents",
+        "git-flow"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Technical Product Manager / Scrum Lead (Executive & Product Management) expertise.",
+      "why": "Equipped with planning-with-files, sprint-ticket-decomposition, dispatching-parallel-agents, git-flow and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/sprints/*)."
+    },
+    {
+      "seat": "build-ts-node-fullstack@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "languages",
+        "ts-node-fullstack",
+        "end-to-end-type-safe-fullstack",
+        "nextjs-dev",
+        "systematic-debugging",
+        "tailwind-ui",
+        "test-driven-development",
+        "typescript-astro",
+        "react-best-practices",
+        "receiving-code-review"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need TypeScript / Node Fullstack Engineer (Specialized Language Engineers) expertise.",
+      "why": "Equipped with end-to-end-type-safe-fullstack, nextjs-dev, systematic-debugging, tailwind-ui and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/*, package.json."
+    },
+    {
+      "seat": "design-ui-ux-designer@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "web-design",
+        "ui-ux-designer",
+        "tailwind-ui-prototyping",
+        "tailwind-ui",
+        "typescript-astro",
+        "frontend-design",
+        "web-design-guidelines"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need UI/UX Designer & Prototyper (Web & UI/UX Design) expertise.",
+      "why": "Equipped with tailwind-ui-prototyping, tailwind-ui, typescript-astro, frontend-design and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/components/*, src/assets/*."
+    },
+    {
+      "seat": "design-ux-research-analyst@fullstack-and-web-studio",
+      "host": "heretek-primary",
+      "capabilities": [
+        "executive",
+        "ux-research-analyst",
+        "feedback-clustering-analysis"
+      ],
+      "engagement": [
+        "consult",
+        "review"
+      ],
+      "use_when": "Need User Research & Feedback Analyst (Executive & Product Management) expertise.",
+      "why": "Equipped with feedback-clustering-analysis and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Read-only/docs-only charter (writes confined to docs/research/*)."
+    },
+    {
+      "seat": "ml-vector-rag-spec@cloud-sre-and-data-platform",
+      "host": "heretek-primary",
+      "capabilities": [
+        "data-ai",
+        "vector-rag-spec",
+        "rag-retrieval-evaluation"
+      ],
+      "engagement": [
+        "implement",
+        "consult",
+        "review"
+      ],
+      "use_when": "Need Vector Search & RAG Specialist (Data & AI Systems) expertise.",
+      "why": "Equipped with rag-retrieval-evaluation and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "caveat": "Writes scoped to src/rag/*, tests/rag/*."
+    }
+  ]
+}

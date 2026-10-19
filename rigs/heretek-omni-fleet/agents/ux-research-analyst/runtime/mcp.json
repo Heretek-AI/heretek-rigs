@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "duckdb": {
+      "description": "Local DuckDB SQL over project data files (in-memory, no MotherDuck token).",
+      "exposure": "direct",
+      "command": "uvx",
+      "args": [
+        "mcp-server-motherduck==1.1.0",
+        "--db-path",
+        ":memory:"
+      ]
+    },
+    "github": {
+      "description": "GitHub read-only (issues toolset) for the fleet's repositories.",
+      "exposure": "deferred",
+      "url": "https://api.githubcopilot.com/mcp/x/issues/readonly",
+      "headers": {
+        "Authorization": "!echo Bearer $(cat @SECRETS@/github.pat)"
+      },
+      "enabled": false
+    }
+  }
+}

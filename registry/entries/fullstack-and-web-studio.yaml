@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: fullstack-and-web-studio
+name: Heretek Full-stack & Web Studio
+summary: End-to-end web, backend microservice, UI/UX design system, frontend performance, accessibility, and user research
+  studio.
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/fullstack-and-web-studio
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: 75879b657b0cfa124567868c9e1ef1210d1e396d5551509382bbc36dd965b058
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/fullstack-and-web-studio/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

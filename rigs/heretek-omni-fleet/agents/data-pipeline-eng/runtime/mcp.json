@@ -1,0 +1,20 @@
+{
+  "mcpServers": {
+    "duckdb": {
+      "description": "Local DuckDB SQL over project data files (in-memory, no MotherDuck token).",
+      "exposure": "direct",
+      "command": "uvx",
+      "args": [
+        "mcp-server-motherduck==1.1.0",
+        "--db-path",
+        ":memory:"
+      ]
+    },
+    "codebase-memory": {
+      "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
+      "args": []
+    }
+  }
+}

@@ -1,0 +1,54 @@
+name: cpp-lowlevel-eng
+version: '1.0'
+description: C++ Systems & Low-Level Engineer (Specialized Language Engineers) — Muse Spark 1.3 Contributor via OpenCode Go
+defaults:
+  runtime: pi
+  model: opencode-go/muse-spark-1.3-contributor:high
+  effort: high
+  lifecycle:
+    execution_mode: interactive_resident
+    compaction_strategy: default-compaction
+    restore_policy: resume_if_possible
+imports:
+- ref: local:../../_shared
+  version: '1.0'
+profiles:
+  default:
+    summary: Default Pi profile for C++ Systems & Low-Level Engineer on Muse Spark 1.3 Contributor
+    preferences:
+      runtime: pi
+      model: opencode-go/muse-spark-1.3-contributor:high
+      effort: high
+    uses:
+      skills:
+      - heretek-shared:openrig-operating-model
+      - heretek-shared:mission-slice-sop
+      - heretek-shared:delegating-work
+      - heretek-shared:queue-handoff
+      - heretek-shared:refocusing
+      - heretek-shared:seat-continuity-and-handover
+      - heretek-shared:systematic-debugging
+      - heretek-shared:test-driven-development
+      - heretek-shared:c-review
+      - heretek-shared:address-sanitizer
+      - heretek-shared:libfuzzer
+      - modern-cpp-sanitizer-verification
+      guidance: []
+      subagents: []
+      plugins: []
+      runtime_resources: []
+    lifecycle:
+      compaction_strategy: default-compaction
+      restore_policy: resume_if_possible
+resources:
+  skills:
+  - id: modern-cpp-sanitizer-verification
+    path: skills/modern-cpp-sanitizer-verification
+startup:
+  files:
+  - path: startup/context.md
+    delivery_hint: send_text
+    required: true
+    applies_on:
+    - fresh_start
+  actions: []

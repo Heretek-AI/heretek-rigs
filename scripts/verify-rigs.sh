@@ -125,6 +125,25 @@ MEMBER_KEYS = {"id", "label", "agent_ref", "profile", "runtime", "codex_config_p
 EDGE_KINDS = {"delegates_to", "spawned_by", "can_observe", "collaborates_with", "escalates_to"}
 
 print("== V1. 51-Role Catalog Parity, Fleet YAML & Shared Skill Lock ==")
+# HR-1.1 (fail-closed): generated trees (specs/, rigs/, rosters/, registry/,
+# fleet/skills-lock.json) are deterministic build outputs. On a checkout where
+# they were never generated, fail with a run-the-generator message — never an
+# uncaught traceback.
+_missing_gen = [
+    p
+    for p in (
+        "fleet/skills-lock.json",
+        "specs/agents",
+        "rigs",
+        "rosters/heretek-omni-fleet.json",
+        "registry/status.json",
+    )
+    if not (root / p).exists()
+]
+if _missing_gen:
+    fail(f"generated trees absent — run `python3 scripts/generate-rigs.py` first (missing: {', '.join(_missing_gen)})")
+    print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
+    sys.exit(1)
 fleet = yaml.safe_load((root / "fleet/fleet.yaml").read_text())
 mcp_catalog = yaml.safe_load((root / "fleet/mcp-servers.yaml").read_text())["servers"]
 skills_lock = json.loads((root / "fleet/skills-lock.json").read_text())
@@ -186,10 +205,33 @@ for rid, rdir in sorted(discovered_roles.items()):
     for sf in ay.get("startup", {}).get("files", []):
         if sf.get("delivery_hint") == "guidance_merge":
             fail(f"{rid}: startup.files must not use guidance_merge")
-    for req_file in ["guidance/role.md", "startup/context.md", "runtime/pi-settings.json", "runtime/mcp.json", "runtime/policy-enforcement.json", "runtime/pi-permission-config.json"]:
+    for req_file in ["guidance/role.md", "startup/context.md", "runtime/pi-settings.json", "runtime/policy-enforcement.json", "runtime/pi-permission-config.json"]:
         fp = rdir / req_file
         if not fp.exists() or fp.stat().st_size < 40:
             fail(f"{rid}: missing or stub {req_file}")
+    # HR-1.4 (fail-closed): runtime/mcp.json shape follows the canonical binding —
+    # zero-server roles (fleet `mcp: []`: brand-copy-spec, mlops-serving-eng,
+    # tech-artist-pipeline) must render exactly `{"mcpServers": {}}` (23 bytes,
+    # correctly below the 40-byte stub floor); bound roles must list exactly the
+    # bound servers and stay above the stub floor. Either direction of drift
+    # (hidden server on a zero-server role, dropped server on a bound role)
+    # flips the gate.
+    _mcp_fp = rdir / "runtime/mcp.json"
+    if not _mcp_fp.exists():
+        fail(f"{rid}: missing runtime/mcp.json")
+    else:
+        try:
+            _mcp_doc = json.loads(_mcp_fp.read_text())
+        except Exception as _e:
+            fail(f"{rid}: runtime/mcp.json unreadable: {_e}")
+            _mcp_doc = None
+        if _mcp_doc is not None:
+            _bound = {b["server"] for b in (r_fleet.get("mcp") or [])}
+            _rendered = set((_mcp_doc.get("mcpServers") or {}).keys())
+            if _rendered != _bound:
+                fail(f"{rid}: runtime/mcp.json servers {_rendered} != fleet binding {_bound}")
+            if _bound and _mcp_fp.stat().st_size < 40:
+                fail(f"{rid}: missing or stub runtime/mcp.json")
     role_md_text = (rdir / "guidance/role.md").read_text()
     if "Paperclip" in role_md_text:
         fail(f"{rid}: unported 'Paperclip' reference in guidance/role.md")
@@ -238,6 +280,18 @@ for rid, rdir in sorted(discovered_roles.items()):
         fail(f"{rid}: path_write guards out of order (got {pw_keys})")
     if not path_keys or path_keys[0] != "*" or path_keys[-1] != "*..*":
         fail(f"{rid}: path must start with '*' and end with '*..*' (got {path_keys})")
+    # HR-5.2 (fail-closed): the read map carries the same dot-directory/file
+    # guard block as path_write (order matters, *..* last) — a regression
+    # deleting ".pi/*" would silently re-allow reads of Pi state dirs.
+    expected_path_guards = [".git/*", "*/.git/*", "AGENTS.md", "*/AGENTS.md", ".pi/*", "*/.pi/*", ".agents/*", "*/.agents/*", "fleet/*", "scripts/*", "*..*"]
+    for g in expected_path_guards:
+        if g not in perm.get("path", {}):
+            fail(f"{rid}: path missing guard {g}")
+        elif perm.get("path", {})[g] != "deny":
+            fail(f"{rid}: path guard {g} must be deny")
+    _pguard_idx = [path_keys.index(g) for g in expected_path_guards if g in path_keys]
+    if _pguard_idx != sorted(_pguard_idx):
+        fail(f"{rid}: path guards out of order (got {path_keys})")
     for mut_tool in ("code_rewrite", "lsp_rename", "lsp_code_actions"):
         if perm.get(mut_tool) != "deny":
             fail(f"{rid}: mutating extension tool {mut_tool} must be explicitly 'deny'")
@@ -825,14 +879,15 @@ for _ref_host in set(re.findall(r"://([A-Za-z0-9][A-Za-z0-9_-]*)", _compose_raw)
 
 dsp = sidecars["services"].get("docker-socket-proxy", {})
 dsp_env = dsp.get("environment", {})
-_PROXY_18 = ("POST", "BUILD", "EXEC", "VOLUMES", "NETWORKS", "SWARM", "SYSTEM", "AUTH", "CONTAINERS", "IMAGES", "INFO", "PING", "SERVICES", "TASKS", "NODES", "CONFIGS", "SECRETS", "PLUGINS")
-for k in _PROXY_18:
+_PROXY_20 = ("POST", "BUILD", "EXEC", "VOLUMES", "NETWORKS", "SWARM", "SYSTEM", "AUTH", "CONTAINERS", "IMAGES", "INFO", "PING", "SERVICES", "TASKS", "NODES", "CONFIGS", "SECRETS", "PLUGINS", "EVENTS", "VERSION")
+for k in _PROXY_20:
     if str(dsp_env.get(k)) != "0":
         fail(f"docker-socket-proxy must set {k}=0")
-# HR-7.2 (fail-closed): the proxy env must be exactly the 18-key set from the
-# tecnativa/docker-socket-proxy:0.5.0 README — extra keys widen the API surface.
-if set(dsp_env.keys()) != set(_PROXY_18):
-    fail(f"docker-socket-proxy environment must be exactly the 18-toggle set (got {sorted(dsp_env.keys())})")
+# HR-7.2 (fail-closed): the proxy env must be exactly the 20-key set from the
+# tecnativa/docker-socket-proxy:0.5.0 README/haproxy.cfg (18 README toggles +
+# default-grant EVENTS/VERSION, both denied) — extra keys widen the API surface.
+if set(dsp_env.keys()) != set(_PROXY_20):
+    fail(f"docker-socket-proxy environment must be exactly the 20-toggle set (got {sorted(dsp_env.keys())})")
 dsp_img = dsp.get("image", "")
 if "tecnativa/docker-socket-proxy:0.5.0" not in dsp_img:
     fail(f"docker-socket-proxy must be pinned tecnativa/docker-socket-proxy:0.5.0 (got {dsp_img})")

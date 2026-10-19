@@ -1,0 +1,86 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  blue.threat-modeler:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  blue.appsec-engineer:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  blue.cloud-sec-auditor:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  blue.compliance-auditor:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  red.ai-red-teamer:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  red.binary-reverse-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  red.firmware-sec-analyst:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    blue.threat-modeler: pi
+    blue.appsec-engineer: pi
+    blue.cloud-sec-auditor: pi
+    blue.compliance-auditor: pi
+    red.ai-red-teamer: pi
+    red.binary-reverse-eng: pi
+    red.firmware-sec-analyst: pi
+  all-pi:
+    blue.threat-modeler: pi
+    blue.appsec-engineer: pi
+    blue.cloud-sec-auditor: pi
+    blue.compliance-auditor: pi
+    red.ai-red-teamer: pi
+    red.binary-reverse-eng: pi
+    red.firmware-sec-analyst: pi
+  all-omp:
+    blue.threat-modeler: omp
+    blue.appsec-engineer: omp
+    blue.cloud-sec-auditor: omp
+    blue.compliance-auditor: omp
+    red.ai-red-teamer: omp
+    red.binary-reverse-eng: omp
+    red.firmware-sec-analyst: omp
+  all-claude:
+    blue.threat-modeler: claude-code
+    blue.appsec-engineer: claude-code
+    blue.cloud-sec-auditor: claude-code
+    blue.compliance-auditor: claude-code
+    red.ai-red-teamer: claude-code
+    red.binary-reverse-eng: claude-code
+    red.firmware-sec-analyst: claude-code
+  all-codex:
+    blue.threat-modeler: codex
+    blue.appsec-engineer: codex
+    blue.cloud-sec-auditor: codex
+    blue.compliance-auditor: codex
+    red.ai-red-teamer: codex
+    red.binary-reverse-eng: codex
+    red.firmware-sec-analyst: codex

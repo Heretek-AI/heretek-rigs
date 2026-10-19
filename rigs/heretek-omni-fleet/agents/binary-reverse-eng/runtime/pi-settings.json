@@ -1,0 +1,19 @@
+{
+  "defaultProvider": "opencode-go",
+  "defaultModel": "muse-spark-1.3-contributor",
+  "defaultThinkingLevel": "xhigh",
+  "defaultTools": [
+    "read",
+    "grep",
+    "find",
+    "ls",
+    "bash",
+    "edit",
+    "write",
+    "tool_search"
+  ],
+  "packages": [
+    "@TOOLS@/pi-packages/node_modules/@gotgenes/pi-permission-system"
+  ],
+  "quietStartup": true
+}

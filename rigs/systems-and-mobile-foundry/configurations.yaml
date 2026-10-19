@@ -1,0 +1,53 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  systems.rust-systems-spec:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  systems.cpp-lowlevel-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  mobile.android-mobile-spec:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  mobile.ios-mobile-spec:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    systems.rust-systems-spec: pi
+    systems.cpp-lowlevel-eng: pi
+    mobile.android-mobile-spec: pi
+    mobile.ios-mobile-spec: pi
+  all-pi:
+    systems.rust-systems-spec: pi
+    systems.cpp-lowlevel-eng: pi
+    mobile.android-mobile-spec: pi
+    mobile.ios-mobile-spec: pi
+  all-omp:
+    systems.rust-systems-spec: omp
+    systems.cpp-lowlevel-eng: omp
+    mobile.android-mobile-spec: omp
+    mobile.ios-mobile-spec: omp
+  all-claude:
+    systems.rust-systems-spec: claude-code
+    systems.cpp-lowlevel-eng: claude-code
+    mobile.android-mobile-spec: claude-code
+    mobile.ios-mobile-spec: claude-code
+  all-codex:
+    systems.rust-systems-spec: codex
+    systems.cpp-lowlevel-eng: codex
+    mobile.android-mobile-spec: codex
+    mobile.ios-mobile-spec: codex

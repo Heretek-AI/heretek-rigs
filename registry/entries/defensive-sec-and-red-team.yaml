@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: defensive-sec-and-red-team
+name: Heretek Defensive Security & Red Team
+summary: 'Zero-trust defensive security and red-team rig: STRIDE threat modeling, SAST reachability, cloud IAM auditing, SPDX/SBOM
+  compliance, LLM red-teaming, and Ghidra/Radare2 reverse engineering.'
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/defensive-sec-and-red-team
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: f0a9f68648425774f42fff64416e79edad9e1b501e826b03170174137ff5d443
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/defensive-sec-and-red-team/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

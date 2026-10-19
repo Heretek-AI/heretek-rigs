@@ -1,0 +1,26 @@
+schema: openrig.registry-entry/v1
+slug: game-dev-and-sim-rig
+name: Heretek Game Dev & Simulation
+summary: Real-time game engine architecture, ECS systems, deterministic physics simulation, GPU shader pipelines, game AI,
+  and glTF/KTX2 asset tooling.
+source:
+  repository: https://github.com/Heretek-AI/heretek-rigs
+  folder: rigs/game-dev-and-sim-rig
+  resolvedCommit: 09270e6f987c1625436b04543b9bdc54b28137e8
+  requestedRef: main
+configurations:
+- id: engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi
+  alias: recommended
+  recommended: true
+  packageDigest:
+    algorithm: sha256
+    value: 330dbead3379e5fb22a506ca269878ac90220a3e74aa364affada0609111a9b4
+    coverage: openrig.package-digest/v1
+  assembler:
+    openrigVersion: 0.6.11
+    commit: 379f0a0d
+  behaviour: views/game-dev-and-sim-rig/behaviour.json
+review:
+  date: '2026-10-18'
+  note: Reviewed for Heretek-Rigs fleet registry. Review is not a security audit.
+status: listed

@@ -1,0 +1,130 @@
+schema: openrig.bundle-configurations/v1
+recommended: recommended
+seats:
+  build.ts-node-fullstack:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  build.python-backend-spec:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  build.go-backend-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  build.java-kotlin-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.ui-ux-designer:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.design-system-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.fe-perf-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.a11y-specialist:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.mobile-web-eng:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.brand-copy-spec:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+  design.ux-research-analyst:
+    runtimes:
+      pi: default
+      omp: default
+      claude-code: default
+      codex: default
+presets:
+  recommended:
+    build.ts-node-fullstack: pi
+    build.python-backend-spec: pi
+    build.go-backend-eng: pi
+    build.java-kotlin-eng: pi
+    design.ui-ux-designer: pi
+    design.design-system-eng: pi
+    design.fe-perf-eng: pi
+    design.a11y-specialist: pi
+    design.mobile-web-eng: pi
+    design.brand-copy-spec: pi
+    design.ux-research-analyst: pi
+  all-pi:
+    build.ts-node-fullstack: pi
+    build.python-backend-spec: pi
+    build.go-backend-eng: pi
+    build.java-kotlin-eng: pi
+    design.ui-ux-designer: pi
+    design.design-system-eng: pi
+    design.fe-perf-eng: pi
+    design.a11y-specialist: pi
+    design.mobile-web-eng: pi
+    design.brand-copy-spec: pi
+    design.ux-research-analyst: pi
+  all-omp:
+    build.ts-node-fullstack: omp
+    build.python-backend-spec: omp
+    build.go-backend-eng: omp
+    build.java-kotlin-eng: omp
+    design.ui-ux-designer: omp
+    design.design-system-eng: omp
+    design.fe-perf-eng: omp
+    design.a11y-specialist: omp
+    design.mobile-web-eng: omp
+    design.brand-copy-spec: omp
+    design.ux-research-analyst: omp
+  all-claude:
+    build.ts-node-fullstack: claude-code
+    build.python-backend-spec: claude-code
+    build.go-backend-eng: claude-code
+    build.java-kotlin-eng: claude-code
+    design.ui-ux-designer: claude-code
+    design.design-system-eng: claude-code
+    design.fe-perf-eng: claude-code
+    design.a11y-specialist: claude-code
+    design.mobile-web-eng: claude-code
+    design.brand-copy-spec: claude-code
+    design.ux-research-analyst: claude-code
+  all-codex:
+    build.ts-node-fullstack: codex
+    build.python-backend-spec: codex
+    build.go-backend-eng: codex
+    build.java-kotlin-eng: codex
+    design.ui-ux-designer: codex
+    design.design-system-eng: codex
+    design.fe-perf-eng: codex
+    design.a11y-specialist: codex
+    design.mobile-web-eng: codex
+    design.brand-copy-spec: codex
+    design.ux-research-analyst: codex

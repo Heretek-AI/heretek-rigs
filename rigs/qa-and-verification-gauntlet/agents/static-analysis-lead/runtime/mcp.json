@@ -1,0 +1,21 @@
+{
+  "mcpServers": {
+    "semgrep": {
+      "description": "Semgrep scans, rule authoring support and AST dumps.",
+      "exposure": "deferred",
+      "command": "uvx",
+      "args": [
+        "semgrep==1.181.0",
+        "mcp",
+        "-t",
+        "stdio"
+      ]
+    },
+    "codebase-memory": {
+      "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
+      "exposure": "deferred",
+      "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
+      "args": []
+    }
+  }
+}

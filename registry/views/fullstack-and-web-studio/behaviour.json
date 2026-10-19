@@ -1,0 +1,513 @@
+{
+  "schema": "openrig.bundle-behaviour/v1",
+  "state": "generated",
+  "identity": {
+    "source": {
+      "repository": "https://github.com/Heretek-AI/heretek-rigs",
+      "folder": "rigs/fullstack-and-web-studio",
+      "resolvedCommit": "09270e6f987c1625436b04543b9bdc54b28137e8",
+      "requestedRef": "main",
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/09270e6f987c1625436b04543b9bdc54b28137e8/rigs/fullstack-and-web-studio"
+    },
+    "configurationId": "build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi",
+    "packageDigest": {
+      "algorithm": "sha256",
+      "value": "75879b657b0cfa124567868c9e1ef1210d1e396d5551509382bbc36dd965b058",
+      "coverage": "openrig.package-digest/v1"
+    },
+    "assembler": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "generator": {
+      "openrigVersion": "0.6.11",
+      "commit": "379f0a0d"
+    },
+    "compatibility": {
+      "minDaemonVersion": "0.6.11",
+      "minCliVersion": "0.6.11"
+    },
+    "statedProvenance": {
+      "notes": "Heretek-Rigs fullstack-and-web-studio v1.0.0"
+    },
+    "integrity": {
+      "digestValid": true,
+      "filesVerified": true
+    }
+  },
+  "team": [
+    {
+      "seat": "build.ts-node-fullstack",
+      "pod": "build",
+      "member": "ts-node-fullstack",
+      "agentRef": "local:agents/ts-node-fullstack",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "build.python-backend-spec",
+      "pod": "build",
+      "member": "python-backend-spec",
+      "agentRef": "local:agents/python-backend-spec",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "build.go-backend-eng",
+      "pod": "build",
+      "member": "go-backend-eng",
+      "agentRef": "local:agents/go-backend-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "build.java-kotlin-eng",
+      "pod": "build",
+      "member": "java-kotlin-eng",
+      "agentRef": "local:agents/java-kotlin-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.ui-ux-designer",
+      "pod": "design",
+      "member": "ui-ux-designer",
+      "agentRef": "local:agents/ui-ux-designer",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.design-system-eng",
+      "pod": "design",
+      "member": "design-system-eng",
+      "agentRef": "local:agents/design-system-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.fe-perf-eng",
+      "pod": "design",
+      "member": "fe-perf-eng",
+      "agentRef": "local:agents/fe-perf-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.a11y-specialist",
+      "pod": "design",
+      "member": "a11y-specialist",
+      "agentRef": "local:agents/a11y-specialist",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.mobile-web-eng",
+      "pod": "design",
+      "member": "mobile-web-eng",
+      "agentRef": "local:agents/mobile-web-eng",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.brand-copy-spec",
+      "pod": "design",
+      "member": "brand-copy-spec",
+      "agentRef": "local:agents/brand-copy-spec",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    },
+    {
+      "seat": "design.ux-research-analyst",
+      "pod": "design",
+      "member": "ux-research-analyst",
+      "agentRef": "local:agents/ux-research-analyst",
+      "profile": "default",
+      "runtime": "pi",
+      "model": "opencode-go/muse-spark-1.3-contributor:high",
+      "cwd": "."
+    }
+  ],
+  "posture": [
+    {
+      "seat": "build.ts-node-fullstack",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.build.members.ts-node-fullstack.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "build.python-backend-spec",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.build.members.python-backend-spec.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "build.go-backend-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.build.members.go-backend-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "build.java-kotlin-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.build.members.java-kotlin-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.ui-ux-designer",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.ui-ux-designer.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.design-system-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.design-system-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.fe-perf-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.fe-perf-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.a11y-specialist",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.a11y-specialist.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.mobile-web-eng",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.mobile-web-eng.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.brand-copy-spec",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:standard",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.brand-copy-spec.permission_policy"
+        }
+      ]
+    },
+    {
+      "seat": "design.ux-research-analyst",
+      "shellAccess": "Can run shell commands as the launching user, subject to runtime and host policy.",
+      "selection": "builtin:locked",
+      "basis": "explicit",
+      "nativeEffect": "unknown",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "pods.design.members.ux-research-analyst.permission_policy"
+        }
+      ]
+    }
+  ],
+  "toldFiles": [
+    {
+      "kind": "culture",
+      "pathOrRef": "CULTURE.md",
+      "delivery": "guidance_merge",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml",
+          "field": "culture_file"
+        }
+      ]
+    },
+    {
+      "seat": "build.ts-node-fullstack",
+      "kind": "startup_file",
+      "pathOrRef": "agents/ts-node-fullstack/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/ts-node-fullstack/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "build.python-backend-spec",
+      "kind": "startup_file",
+      "pathOrRef": "agents/python-backend-spec/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/python-backend-spec/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "build.go-backend-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/go-backend-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/go-backend-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "build.java-kotlin-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/java-kotlin-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/java-kotlin-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.ui-ux-designer",
+      "kind": "startup_file",
+      "pathOrRef": "agents/ui-ux-designer/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/ui-ux-designer/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.design-system-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/design-system-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/design-system-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.fe-perf-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/fe-perf-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/fe-perf-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.a11y-specialist",
+      "kind": "startup_file",
+      "pathOrRef": "agents/a11y-specialist/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/a11y-specialist/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.mobile-web-eng",
+      "kind": "startup_file",
+      "pathOrRef": "agents/mobile-web-eng/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/mobile-web-eng/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.brand-copy-spec",
+      "kind": "startup_file",
+      "pathOrRef": "agents/brand-copy-spec/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/brand-copy-spec/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    },
+    {
+      "seat": "design.ux-research-analyst",
+      "kind": "startup_file",
+      "pathOrRef": "agents/ux-research-analyst/startup/context.md",
+      "delivery": "send_text",
+      "resolution": "archive",
+      "sourceRefs": [
+        {
+          "path": "agents/ux-research-analyst/agent.yaml",
+          "field": "startup.files"
+        }
+      ]
+    }
+  ],
+  "alsoRuns": [],
+  "writes": [
+    {
+      "kind": "managed_block",
+      "destinationBase": "each seat's working folder",
+      "path": "AGENTS.md",
+      "operation": "add OpenRig block",
+      "phase": "launch",
+      "condition": "Pi and OMP seats"
+    }
+  ],
+  "outsideAddresses": [
+    {
+      "domain": "opencode.ai",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    },
+    {
+      "domain": "github.com",
+      "sourceRefs": [
+        {
+          "path": "README.md"
+        }
+      ]
+    }
+  ],
+  "needs": [
+    {
+      "kind": "runtime",
+      "name": "pi",
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "rig.yaml"
+        }
+      ]
+    },
+    {
+      "kind": "precondition",
+      "name": "Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)",
+      "commands": [
+        "python3 ./scripts/seed-rig.py rigs/fullstack-and-web-studio/rig.yaml"
+      ],
+      "status": "not_checked",
+      "sourceRefs": [
+        {
+          "path": "bundle.yaml",
+          "field": "preconditions[0]"
+        }
+      ]
+    }
+  ],
+  "unknownBeforeLaunch": [
+    {
+      "subject": "host and native settings",
+      "reason": "Effective native permissions and $PI_CODING_AGENT_DIR credentials are resolved at launch."
+    }
+  ]
+}
