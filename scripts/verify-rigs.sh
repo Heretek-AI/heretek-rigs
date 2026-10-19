@@ -65,6 +65,25 @@ def fail(msg: str):
     print(f"  [FAIL] {msg}", file=sys.stderr)
 
 
+# HR-8.2 (fail-closed): entry-point executable bits — Claim 8.2 invokes
+# `./scripts/...` directly, which fails on a fresh clone unless the index
+# stores 100755. `make verify` survives via explicit `bash`/`python3`
+# wrappers, but the canonical recipes do not. A 0644 entry point must flip
+# the gate so `git update-index --chmod=+x` is never silently skipped.
+for _ep in ("scripts/verify-rigs.sh", "scripts/bootstrap-pi-seats.sh", "scripts/render-seat.py", "scripts/seed-rig.py", "scripts/gate-role.sh", "scripts/gate-run.sh", "scripts/generate-rigs.py", "scripts/audit_loop.py"):
+    _epp = root / _ep
+    if _epp.exists() and (_epp.stat().st_mode & 0o111) == 0:
+        fail(f"{_ep} must be executable (mode {oct(_epp.stat().st_mode & 0o777)}; run git update-index --chmod=+x {_ep})")
+    elif _epp.exists():
+        # Shebang present so direct `./scripts/...` exec works once the bit is set.
+        try:
+            _head = _epp.read_text().splitlines()[0] if _epp.stat().st_size else ""
+        except Exception:
+            _head = ""
+        if not _head.startswith("#!"):
+            fail(f"{_ep} must start with a shebang for direct ./ execution (got {_head!r})")
+
+
 def utf16_key(s: str):
     # True UTF-16 code-unit sort (mirrors generate-rigs.py): surrogate-pair order for astral chars.
     b = s.encode("utf-16-le")
@@ -171,6 +190,16 @@ if len(skills_lock.get("skills", {})) == 62 and len(list(shared_skills_dir.glob(
     ok("All 62 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
 else:
     fail("Shared skill count mismatch (expected 62)")
+# HR-2.3-uses-skills (fail-closed): lock keys must equal the _shared
+# agent.yaml resources.skills ids — a lock-vs-shared drift would let an
+# unknown heretek-shared: id pass one side while failing the other.
+try:
+    _shared_ay = yaml.safe_load((root / "specs/agents/_shared/agent.yaml").read_text())
+    _shared_ids = set([s.get("id") for s in ((_shared_ay.get("resources", {}) or {}).get("skills", []) or []) if isinstance(s, dict) and s.get("id")])
+    if _shared_ids != set(skills_lock.get("skills", {}).keys()):
+        fail(f"fleet/skills-lock.json keys != specs/agents/_shared/agent.yaml resources.skills ids (lock-only={sorted(set(skills_lock.get('skills', {}).keys()) - _shared_ids)[:5]}, shared-only={sorted(_shared_ids - set(skills_lock.get('skills', {}).keys()))[:5]})")
+except Exception as _e:
+    fail(f"specs/agents/_shared/agent.yaml unreadable for skills cross-check: {_e}")
 
 for rid, rdir in sorted(discovered_roles.items()):
     r_fleet = fleet["roles"][rid]
@@ -202,6 +231,55 @@ for rid, rdir in sorted(discovered_roles.items()):
         fail(f"{rid}: profiles.default.lifecycle must be default-compaction/resume_if_possible (got {pl})")
     if ay.get("profiles", {}).get("default", {}).get("uses", {}).get("guidance"):
         fail(f"{rid}: uses.guidance must be empty to prevent shared-<cwd> guidance_merge collision")
+    # HR-2.3 (fail-closed): positive allowlist for profiles.default.uses —
+    # upstream validateAgentSpec contract is unvendored, so a non-empty
+    # `plugins: [evil]` would pass the gate today. All 51 specs currently
+    # render `plugins: []` (generator generate-rigs.py:619-624 emits skills/
+    # guidance/subagents/plugins/runtime_resources with the last four empty);
+    # any non-empty plugins/subagents/runtime_resources or any unknown uses key
+    # must flip the gate. A `plugins: [evil]` fixture must exit 1.
+    _uses = ay.get("profiles", {}).get("default", {}).get("uses", {})
+    _allowed_uses_keys = {"skills", "guidance", "subagents", "plugins", "runtime_resources"}
+    if set(_uses.keys()) != _allowed_uses_keys:
+        fail(f"{rid}: profiles.default.uses must be exactly {_allowed_uses_keys} (got {set(_uses.keys())})")
+    for _k in ("guidance", "subagents", "plugins", "runtime_resources"):
+        if _uses.get(_k) not in (None, []):
+            fail(f"{rid}: profiles.default.uses.{_k} must be [] (got {_uses.get(_k)!r})")
+    # HR-2.3-uses-skills (fail-closed): `uses.skills` values were unbounded —
+    # a `uses.skills: [evil-pkg]` passed the gate and the
+    # `agent-manifest.v1.schema.json` bare `items: {type: string}` by
+    # construction. Cross-check every entry against the canonical sources:
+    # `heretek-shared:<id>` must exist in fleet/skills-lock.json, bare `<id>`
+    # must be one of this role's fleet `skills.role_local` ids, and the full
+    # set must equal exactly what the generator emits (openrig_core + shared
+    # as heretek-shared:, role_local bare). Any unknown, missing, or duplicate
+    # entry flips the gate.
+    _skills_val = _uses.get("skills", None)
+    if not isinstance(_skills_val, list) or not _skills_val:
+        fail(f"{rid}: profiles.default.uses.skills must be a non-empty list")
+    else:
+        _lock_ids = set((skills_lock.get("skills", {}) or {}).keys())
+        _fleet_sk = (r_fleet.get("skills", {}) or {})
+        _fleet_core = list(_fleet_sk.get("openrig_core", []) or [])
+        _fleet_shared = [s.get("id") for s in (_fleet_sk.get("shared", []) or []) if isinstance(s, dict) and s.get("id")]
+        _fleet_local = [s.get("id") for s in (_fleet_sk.get("role_local", []) or []) if isinstance(s, dict) and s.get("id")]
+        _expected_skills = set([f"heretek-shared:{s}" for s in (_fleet_core + _fleet_shared)] + _fleet_local)
+        if len(set(_skills_val)) != len(_skills_val):
+            fail(f"{rid}: profiles.default.uses.skills must not contain duplicates")
+        if set(_skills_val) != _expected_skills:
+            _extra = set(_skills_val) - _expected_skills
+            _missing = _expected_skills - set(_skills_val)
+            fail(f"{rid}: profiles.default.uses.skills mismatch (extra={sorted(_extra)[:5]}, missing={sorted(_missing)[:5]})")
+        for _se in _skills_val:
+            if not isinstance(_se, str):
+                fail(f"{rid}: profiles.default.uses.skills entry must be a string (got {_se!r})")
+            elif _se.startswith("heretek-shared:"):
+                _sid = _se.split(":", 1)[1]
+                if _sid not in _lock_ids:
+                    fail(f"{rid}: uses.skills {_se!r} not in fleet/skills-lock.json")
+            else:
+                if _se not in _fleet_local:
+                    fail(f"{rid}: uses.skills bare id {_se!r} not in fleet role_local for {rid}")
     for sf in ay.get("startup", {}).get("files", []):
         if sf.get("delivery_hint") == "guidance_merge":
             fail(f"{rid}: startup.files must not use guidance_merge")
@@ -305,6 +383,24 @@ for rid, rdir in sorted(discovered_roles.items()):
             continue
         if mk not in allowed_servers or mv != "allow":
             fail(f"{rid}: permission mcp key '{mk}' must be a bound-server allow (got '{mv}')")
+    # HR-5.5-prefix-escape (fail-closed): terminal bash denies must be present
+    # LAST in the rendered bash map so live `--output=` / chaining suffixes
+    # (`;`, `|`, `>`, `<`, `&`, backtick, `$()`, subshell parens) appended to
+    # an allowed trailing-* prefix still deny (last-match-wins).
+    # A regression deleting any terminal deny must flip the gate 0->1.
+    # HR-5.5-enforcement-gap: `&`/backtick/`$`/parens denies added; newline
+    # stays covered by generation-time ban (no portable glob).
+    _bash_map = perm.get("bash", {})
+    _bash_keys = list(_bash_map.keys())
+    for _td in ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*"):
+        if _bash_map.get(_td) != "deny":
+            fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
+    if _bash_keys and _bash_keys[0] != "*":
+        fail(f"{rid}: permission bash must start with '*': deny")
+    # Terminal denies must come after all role allows (last-match-wins).
+    _term_idx = [_bash_keys.index(_t) for _t in ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*") if _t in _bash_keys]
+    if _term_idx != sorted(_term_idx):
+        fail(f"{rid}: permission bash terminal denies out of order (got {_bash_keys})")
 
     if rid in READONLY_16_ROLES:
         for g in r_fleet["permissions"]["path_write"]:
@@ -738,6 +834,26 @@ if re.search(r"(ghp_[A-Za-z0-9_-]{8,}|github_pat_[A-Za-z0-9_-]{8,}|sk-[A-Za-z0-9
 # HR-4.4 full claim name-list: reserved/secret env names must not be assigned literal values in fleet
 if re.search(r"(OPENRIG_[A-Za-z0-9_]+|OPENCODE_API_KEY|GITHUB_TOKEN|_PASSWORD|_SECRET|_TOKEN)", fleet_raw):
     fail("fleet/fleet.yaml contains forbidden reserved/secret env name")
+# HR-6.2-stale-legacy-pins (fail-closed): shipped surface must never contain
+# the rejected second-delegation / duplicate-LSP packages. `pi-subagents`
+# (second delegation channel) and `pi-lsp@0.1.7` (duplicate tool names vs
+# pi-lsp-extension@1.4.0) are Rejected in docs/OSINT_ECOSYSTEM_REPORT.md:68-71;
+# stale ADOPT tables live only in retired spike snapshots (gemini/, claude/).
+# An active pin in fleet/specs/rigs/scripts must flip the gate.
+for _shipped in [(root / "fleet/fleet.yaml").read_text(), (root / "fleet/mcp-servers.yaml").read_text()]:
+    if "pi-subagents" in _shipped:
+        fail("shipped catalog must not contain pi-subagents (rejected second delegation path)")
+    if "pi-lsp@0.1.7" in _shipped:
+        fail("shipped catalog must not contain pi-lsp@0.1.7 (duplicate vs pi-lsp-extension@1.4.0)")
+for _sp in list((root / "specs").rglob("*.yaml")) + list((root / "specs").rglob("*.json")) + list((root / "rigs").rglob("*.yaml")) + [p for p in list((root / "scripts").glob("*.py")) + list((root / "scripts").glob("*.sh")) if p.name != "verify-rigs.sh"]:
+    try:
+        _st = _sp.read_text()
+    except Exception:
+        continue
+    if "pi-subagents" in _st:
+        fail(f"{_sp.relative_to(root)} must not contain pi-subagents (rejected)")
+    if "pi-lsp@0.1.7" in _st:
+        fail(f"{_sp.relative_to(root)} must not contain pi-lsp@0.1.7 (rejected duplicate)")
 for rid2, r2 in fleet.get("roles", {}).items():
     for b in (r2.get("mcp") or []):
         if b.get("server") not in mcp_catalog:
@@ -785,6 +901,19 @@ if "os.chmod(p, 0o600)" not in _seed_text and "chmod(p, 0o600)" not in _seed_tex
     fail("scripts/render-seat.py must chmod rendered seat files 0600")
 if "https://opencode.ai/inference/go/v1" not in _seed_text:
     fail("scripts/render-seat.py must pin baseUrl https://opencode.ai/inference/go/v1")
+# HR-4.3 (fail-closed): secret files must be symlink-rejected, ownership-pinned,
+# and O_NOFOLLOW-opened — a regression deleting any of these must flip the gate.
+if "is_symlink()" not in _seed_text:
+    fail("scripts/render-seat.py must reject symlinked secret files")
+if "st_uid" not in _seed_text:
+    fail("scripts/render-seat.py must pin secret-file ownership (st_uid)")
+if "O_NOFOLLOW" not in _seed_text:
+    fail("scripts/render-seat.py must open secret files with O_NOFOLLOW")
+# HR-5.5-prefix-escape (fail-closed): the renderer must emit terminal bash
+# denies LAST so live --output/chaining suffixes cannot escape an allowed
+# trailing-* prefix under prefix-glob matcher semantics.
+if '"*--output*"' not in _seed_text:
+    fail('scripts/render-seat.py must emit terminal "*--output*" bash deny')
 # HR-4.2 (fail-closed opt-in): when HERETEK_REQUIRE_SEATS=1, assert sampled
 # $OPENRIG_HOME/state/pi/<pod>-<member>@<rig>/agent/ seat dirs exist with 0600
 # files and the pinned endpoint. Default --check-only stays repo-scoped (seat
@@ -823,6 +952,26 @@ if "refusing to co-schedule" not in make_text:
 # make by design, so CI must invoke via make (documented in compose header).
 if "sidecars-up:" not in make_text or "guard-profiles" not in make_text.split("sidecars-up:")[1].split("\n")[0]:
     fail("Makefile sidecars-up must depend on guard-profiles")
+# HR-7.3-make-bypass (fail-closed): the compose wrapper must exist and enforce
+# the same mobile isolation refusal so raw-compose users have a guarded path.
+# A deleted wrapper or weakened guard message must flip the gate.
+_wrapper = root / "scripts/compose-sidecars.sh"
+if not _wrapper.exists():
+    fail("scripts/compose-sidecars.sh wrapper must exist (guarded compose path)")
+else:
+    _wt = _wrapper.read_text()
+    if "refusing to co-schedule" not in _wt or "mobile" not in _wt or "devsec" not in _wt or "web-research" not in _wt:
+        fail("scripts/compose-sidecars.sh must refuse mobile+devsec and mobile+web-research co-scheduling")
+    if "guard-profiles" not in _wt and "make sidecars-up" not in _wt:
+        fail("scripts/compose-sidecars.sh must reference the make guard-profiles path")
+    # HR-7.3-wrapper-substring (fail-closed): wrapper must tokenize profiles on
+    # whitespace/commas and match whole tokens only, mirroring the Makefile
+    # space/comma patterns. A naive `*"mobile"*` substring test disagrees with
+    # the Makefile and false-positives on hypothetical `automobile`-style names.
+    if '== *"mobile"*' in _wt or "== *'mobile'*" in _wt:
+        fail('scripts/compose-sidecars.sh must not use substring *mobile* matching (use whole-token comparison)')
+    if '"mobile"' not in _wt and "'mobile'" not in _wt:
+        fail('scripts/compose-sidecars.sh must match the mobile profile as a whole token')
 # HR-8.1 (fail-closed wiring): determinism gate must stay wired — Makefile
 # idempotent target must invoke --check-idempotent and the generator must
 # implement that flag (the gate itself never re-runs generation here).
@@ -846,7 +995,12 @@ for rel in ["fleet/fleet.yaml", "fleet/mcp-servers.yaml", "scripts/audit_loop.py
         fail(f"{rel} contains unresolved placeholder")
 for rel in ["docs/OSINT_ECOSYSTEM_REPORT.md", "docs/OPENRIG_MUSE_GO_ARCHITECTURE.md", "PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md", "PROMPT_ADVERSARIAL_FLEET_AUDIT.md", "PROMPT_FLEET_AUDIT_REMEDIATION.md"]:
     txt = (root / rel).read_text()
-    if re.search(r"FIXME|\{\{[A-Z_]+\}\}|\bTBD\b", txt):
+    # HR-1.4 allowlist: Claim 1.4's intentional stub-token enumeration is
+    # documented prose (not an unresolved template); strip that single
+    # sanctioned sentence before the fail-closed scan so any other FIXME /
+    # TBD / {{TEMPLATE}} still flips the gate.
+    txt_scan = txt.replace("with zero `TODO`/`FIXME`/`TBD`/`PLACEHOLDER`/`{{...}}` stub tokens (documented `@TOOLS@`/`@SECRETS@`/`@SEAT@` seed-substitution tokens in `runtime/mcp.json` excepted per Claim 4.3)", "")
+    if re.search(r"FIXME|\{\{[A-Z_]+\}\}|\bTBD\b", txt_scan):
         fail(f"{rel} contains unresolved placeholder")
 ok(f"All {len(mcp_catalog)} MCP servers in fleet/mcp-servers.yaml verified (pinned, command-backed secrets)")
 

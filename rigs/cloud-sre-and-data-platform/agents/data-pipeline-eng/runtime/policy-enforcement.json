@@ -34,7 +34,17 @@
       "git diff --stat*": "allow",
       "git diff --name-only*": "allow",
       "git log --oneline*": "allow",
-      "git show --stat*": "allow"
+      "git show --stat*": "allow",
+      "*--output*": "deny",
+      "*;*": "deny",
+      "*|*": "deny",
+      "*>*": "deny",
+      "*<*": "deny",
+      "*&*": "deny",
+      "*`*": "deny",
+      "*$*": "deny",
+      "*(*": "deny",
+      "*)*": "deny"
     },
     "path": {
       "*": "allow",

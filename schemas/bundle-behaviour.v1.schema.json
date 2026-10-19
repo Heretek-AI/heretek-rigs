@@ -21,7 +21,7 @@
             "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
             "coverage": {"const": "openrig.package-digest/v1"}
           },
-          "additionalProperties": true
+          "additionalProperties": false
         },
         "assembler": {"type": "object"},
         "generator": {"type": "object"},
@@ -29,7 +29,7 @@
         "statedProvenance": {"type": "object"},
         "integrity": {"type": "object"}
       },
-      "additionalProperties": true
+      "additionalProperties": false
     },
     "team": {"type": "array"},
     "posture": {"type": "array"},
@@ -40,5 +40,5 @@
     "needs": {"type": "array"},
     "unknownBeforeLaunch": {"type": "array"}
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

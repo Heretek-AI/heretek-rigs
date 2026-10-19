@@ -1,0 +1,168 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "permissions": [
+    {
+      "action": "shell",
+      "resource": "python3 scripts/generate-rigs.py *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "python3 ./scripts/generate-rigs.py *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "bash ./scripts/verify-rigs.sh *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "./scripts/verify-rigs.sh *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "bash scripts/verify-rigs.sh *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "python3 ./scripts/audit_loop.py *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "python3 scripts/audit_loop.py *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "bash ./scripts/bootstrap-pi-seats.sh *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "./scripts/bootstrap-pi-seats.sh *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "python3 ./scripts/seed-rig.py *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "python3 ./scripts/render-seat.py *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "python3 -m unittest *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "git ls-files *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "git status *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "git diff *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "rg *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "find *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "test *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "make guard-profiles *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "git ls-remote *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "timeout *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "pip index *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "npm view *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "chmod 600 *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "chmod 644 *",
+      "effect": "allow"
+    },
+    {
+      "action": "shell",
+      "resource": "printf *seat-test*",
+      "effect": "allow"
+    },
+    {
+      "action": "external_directory",
+      "resource": "/tmp/heretek-seat-test/*",
+      "effect": "allow"
+    }
+  ],
+  "permission": {
+    "bash": {
+      "python3 scripts/generate-rigs.py *": "allow",
+      "python3 ./scripts/generate-rigs.py *": "allow",
+      "bash ./scripts/verify-rigs.sh *": "allow",
+      "./scripts/verify-rigs.sh *": "allow",
+      "bash scripts/verify-rigs.sh *": "allow",
+      "python3 ./scripts/audit_loop.py *": "allow",
+      "python3 scripts/audit_loop.py *": "allow",
+      "bash ./scripts/bootstrap-pi-seats.sh *": "allow",
+      "./scripts/bootstrap-pi-seats.sh *": "allow",
+      "python3 ./scripts/seed-rig.py *": "allow",
+      "python3 ./scripts/render-seat.py *": "allow",
+      "python3 -m unittest *": "allow",
+      "git ls-files *": "allow",
+      "rg *": "allow",
+      "find *": "allow",
+      "test *": "allow",
+      "make guard-profiles *": "allow",
+      "git ls-remote *": "allow",
+      "timeout *": "allow",
+      "pip index *": "allow",
+      "npm view *": "allow",
+      "chmod 600 *": "allow",
+      "chmod 644 *": "allow",
+      "printf *seat-test*": "allow"
+    }
+  }
+}

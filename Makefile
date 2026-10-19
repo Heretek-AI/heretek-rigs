@@ -28,13 +28,13 @@ idempotent: ## Regenerate twice and fail if any byte differs (HR-8.1 determinism
 	python3 ./scripts/generate-rigs.py --check-idempotent
 
 verify: ## Run the self-testing verification gate (schemas, digests, 51-role parity, DAGs, sidecars, unit tests).
-	./scripts/verify-rigs.sh
+	bash ./scripts/verify-rigs.sh
 
 test: ## Run unit tests for seat rendering and permission configuration.
 	python3 -m unittest tests/test_render_seat.py -v
 
 bootstrap-seats: ## Provision $OPENRIG_HOME/state/pi/<seat>/agent/ across all rigs.
-	./scripts/bootstrap-pi-seats.sh --all
+	bash ./scripts/bootstrap-pi-seats.sh --all
 
 seed: ## Seed one rig before launch: make seed RIG=defensive-sec-and-red-team
 	python3 ./scripts/seed-rig.py rigs/$(RIG)/rig.yaml --allow-missing-secrets

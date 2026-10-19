@@ -4,7 +4,7 @@
   "title": "openrig.bundle-common/v1 (heretek-rigs restored baseline)",
   "type": "object",
   "properties": {
-    "configurationId": {"type": "string"},
+    "configurationId": {"type": "string", "minLength": 1},
     "packageDigest": {
       "type": "object",
       "required": ["algorithm", "value", "coverage"],
@@ -12,8 +12,9 @@
         "algorithm": {"const": "sha256"},
         "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
         "coverage": {"const": "openrig.package-digest/v1"}
-      }
+      },
+      "additionalProperties": false
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

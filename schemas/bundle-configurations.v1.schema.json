@@ -16,7 +16,7 @@
           "properties": {
             "runtimes": {"type": "object"}
           },
-          "additionalProperties": true
+          "additionalProperties": false
         }
       }
     },
@@ -30,8 +30,8 @@
         "all-claude": {"type": "object"},
         "all-codex": {"type": "object"}
       },
-      "additionalProperties": true
+      "additionalProperties": false
     }
   },
-  "additionalProperties": true
+  "additionalProperties": false
 }

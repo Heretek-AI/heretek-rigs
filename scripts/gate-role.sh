@@ -49,6 +49,10 @@ expect deny  bash  '{"command":"git status | tee /tmp/pwned"}' "bash chaining wi
 expect deny  bash  '{"command":"git show --stat --output=/tmp/pwned"}' "bash --output write-escape"
 expect deny  bash  '{"command":"git log --oneline > /tmp/pwned"}' "bash redirection with >"
 expect deny  bash  '{"command":"cat < /etc/passwd"}' "bash redirection with <"
+expect deny  bash  '{"command":"git status & evil"}' "bash chaining with & (HR-5.5-enforcement-gap)"
+expect deny  bash  '{"command":"git status$(evil)"}' "bash chaining with $() (HR-5.5-enforcement-gap)"
+expect deny  bash  '{"command":"git status `evil`"}' "bash chaining with backtick (HR-5.5-enforcement-gap)"
+expect deny  bash  '{"command":"git status\nevil"}' "bash chaining with newline (HR-5.5-enforcement-gap)"
 expect allow bash  '{"command":"git status --short"}' "bash git status"
 if [[ "$FIRST" != "-" ]]; then
   expect allow write "{\"path\":\"${FIRST}gate-probe.txt\",\"content\":\"x\"}" "write inside ${FIRST}"
@@ -72,6 +76,12 @@ printf 'x=1' > "$W/svc/secrets/tok"
 expect deny  read  '{"path":"svc/secrets/tok"}' "read */secrets/* path"
 expect deny  read  '{"path":".git/hooks/pre-commit"}' "read .git/hooks path"
 expect deny  read  '{"path":"../evil.txt"}' "read-path dot-dot traversal"
+expect deny  read  '{"path":"./docs/security/../../../pwn.sh"}' "read ./-prefixed traversal (HR-5.2-corpus-gap)"
+expect deny  read  '{"path":".env.production"}' "read .env.production (HR-5.2-corpus-gap)"
+expect deny  read  '{"path":"creds.pem"}' "read *.pem credential file (HR-5.2-corpus-gap)"
+expect deny  read  '{"path":"fleet/fleet.yaml"}' "read fleet/* toolchain (HR-5.2-corpus-gap)"
+expect deny  read  '{"path":"scripts/verify-rigs.sh"}' "read scripts/* toolchain (HR-5.2-corpus-gap)"
+expect deny  read  '{"path":"x/.git/config"}' "read */.git/* metadata (HR-5.2-corpus-gap)"
 expect deny  code_rewrite  '{"path":"zz-not-allowed/evil.txt","content":"x"}' "live code_rewrite mutation attempt"
 # HR-5.4-gate-coverage (fail-closed): a regression dropping either of the other
 # two mutating-extension denies must trip the live corpus, not just the static

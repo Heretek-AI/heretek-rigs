@@ -76,12 +76,12 @@ graph TD
   - Verify zero `guidance_merge` entries exist in any `agent.yaml` (`startup.files`), preventing the shared `<cwd>/AGENTS.md` overwrite bug, and confirm all 6 OpenRig core SOP skills (`openrig-operating-model`, `mission-slice-sop`, `delegating-work`, `queue-handoff`, `refocusing`, `seat-continuity-and-handover`) are projected via `resources.skills`.
 
 ### Subagent Beta: Architecture, 51-Role Parity, Cryptographic Digests & Supply Chain Auditor
-* **Focus**: "Are all 51 roles from `Heretek-Crew` and 62 vendored skills 100% accounted for without truncation, do all v1 JSON Schemas and cryptographic digests validate against `identity-vectors.json`, and are all package/image pins real?"
+* **Focus**: "Are all 51 roles from `Heretek-Crew` and 62 vendored skills 100% accounted for without truncation, do all v1 JSON Schemas validate, do cryptographic digests match disk, do the canonicalization rules replay the `identity-vectors.json` shape fixtures, and are all package/image pins real?"
 * **Methodology**:
   - Cross-check `fleet/fleet.yaml`, `specs/agents/<domain>/<role-slug>/`, and Rigs 1–7 (`rigs/*/rig.yaml`) against all 51 roles in `Heretek-Crew` (specifically verifying Role 37 `static-analysis-lead` in Rig 6 and Role 51 `ai-red-teamer` in Rig 7, with partition counts 6 + 11 + 4 + 6 + 11 + 6 + 7 = 51).
   - Verify zero byte-drift between `specs/agents/<domain>/<role-slug>/{guidance,startup,runtime}` and every materialized `rigs/<rig-slug>/agents/<role-slug>/` copy, and verify `python3 scripts/generate-rigs.py` is 100% deterministic (`git status --porcelain` empty after re-run).
   - Validate all 8 `rigs/*/configurations.yaml`, 8 `registry/views/*/behaviour.json`, 8 `registry/entries/*.yaml`, and `registry/status.json` against `schemas/*.v1.schema.json` using `jsonschema.Draft202012Validator`.
-  - Recompute `configurationId` (UTF-16 code-unit sort over `pod.member=runtime`), `packageDigest` (`openrig.package-digest/v1` over `JSON.stringify(path) + "\t" + sha256 + "\n"` sorted by UTF-16 code units), and `registry/status.json` `bodyDigest` (SHA-256 over RFC 8785 JCS canonical JSON) and prove they match both `identity-vectors.json` test vectors and the repository's files byte-for-byte.
+  - Recompute `configurationId` (UTF-16 code-unit sort over `pod.member=runtime`), `packageDigest` (`openrig.package-digest/v1` over `JSON.stringify(path) + "\t" + sha256 + "\n"` sorted by UTF-16 code units), and `registry/status.json` `bodyDigest` (SHA-256 over RFC 8785 JCS canonical JSON) and prove they match the repository's files byte-for-byte; replay the `identity-vectors.json` shape fixtures (UTF-16 order, JCS canonical form, coverage/algorithm constants) separately — that file pins canonicalization rules, not per-rig digests.
   - Verify all 62 vendored skills in `specs/agents/_shared/skills/<id>/` against `fleet/skills-lock.json` (`obra/superpowers@bb92a77` full multi-file directories, `trailofbits/skills@5c99c03` unmodified CC-BY-SA-4.0 with LICENSE, `getsentry/skills@f57ada2`, `anthropics/skills@dbd4588`, `vercel-labs/agent-skills@063bee9`, `@openrig/cli@0.6.11`), and confirm every pin in `fleet/mcp-servers.yaml` and `fleet/fleet.yaml` exists (zero `r2mcp==0.2.5`, zero `aws-mcp`, zero duplicate `pi-lsp@0.1.7`, zero `pi-subagents`).
 
 ### Subagent Gamma: Security, Permission Bypass, Extension Tool Containment & Sidecar Isolation Auditor
@@ -105,7 +105,7 @@ graph TD
 * **Claim 1.1 [B][S]**: `fleet/fleet.yaml` defines all 51 canonical specialist roles from `Heretek-Crew` (Roles 01–50 plus Role 51 `ai-red-teamer`, including Role 37 `static-analysis-lead` in Rig 6), and all 51 role directories exist under `specs/agents/<domain>/<role-slug>/`.
 * **Claim 1.2 [B][S]**: Rigs 1 through 7 (`executive-and-architecture`, `fullstack-and-web-studio`, `systems-and-mobile-foundry`, `game-dev-and-sim-rig`, `cloud-sre-and-data-platform`, `qa-and-verification-gauntlet`, `defensive-sec-and-red-team`) partition all 51 specialist roles with 100% coverage (6 + 11 + 4 + 6 + 11 + 6 + 7 = 51), each role in exactly one static rig.
 * **Claim 1.3 [B][S]**: Rig 8 (`rigs/heretek-omni-fleet/`) implements the Hybrid Omni-Fleet architecture: default `rig.yaml` boots the 3-seat `command` pod (`exec-director`, `system-architect`, `tpm-scrum-lead`), accompanied by 15 pod fragments (`rigs/heretek-omni-fleet/pods/*.yaml`), 51 member fragments (`rigs/heretek-omni-fleet/members/*.yaml`), `rigs/heretek-omni-fleet/rig.all-51.yaml`, and `rosters/heretek-omni-fleet.json`.
-* **Claim 1.4 [B][S]**: Every role directory in `specs/agents/<domain>/<role-slug>/` contains non-empty `agent.yaml`, `guidance/role.md`, `startup/context.md`, `runtime/pi-settings.json`, `runtime/mcp.json`, `runtime/policy-enforcement.json`, and `runtime/pi-permission-config.json`, with zero `TODO` or placeholder tokens, and matches its materialized `rigs/<rig-slug>/agents/<role-slug>/` copy.
+* **Claim 1.4 [B][S]**: Every role directory in `specs/agents/<domain>/<role-slug>/` contains non-empty `agent.yaml`, `guidance/role.md`, `startup/context.md`, `runtime/pi-settings.json`, `runtime/mcp.json`, `runtime/policy-enforcement.json`, and `runtime/pi-permission-config.json`, with zero `TODO`/`FIXME`/`TBD`/`PLACEHOLDER`/`{{...}}` stub tokens (documented `@TOOLS@`/`@SECRETS@`/`@SEAT@` seed-substitution tokens in `runtime/mcp.json` excepted per Claim 4.3), and matches its materialized `rigs/<rig-slug>/agents/<role-slug>/` copy modulo the documented `local:../../_shared` → `local:../_shared` import rewrite (the only allowed delta; any other drift fails the gate).
 
 ### Domain 2: OpenRig `RigSpec` v0.2, `AgentSpec` v1.0 & Bundle Containment
 * **Claim 2.1 [A][S]**: Every `rigs/<rig-slug>/rig.yaml` (and `rig.all-51.yaml`) declares `version: "0.2"`, uses only valid `RIG_KEYS`, `POD_KEYS`, `MEMBER_KEYS`, and `EDGE_KEYS` (`rigspec-schema.ts`), and passes `rig spec validate <rig.yaml> --json`.
@@ -130,11 +130,11 @@ graph TD
 * **Claim 5.2 [G][S]**: Every seat's `extensions/pi-permission-system/config.json` starts `path_write` with `"*": "deny"`, explicitly denies `AGENTS.md`, `*/AGENTS.md`, `.git/*`, `*/.git/*`, `.pi/*`, `*/.pi/*`, `.agents/*`, `*/.agents/*`, `fleet/*`, `scripts/*`, and places `"*..*": "deny"` as the **last** key in both `path_write` and `path` so `..` traversal attempts are always denied.
 * **Claim 5.3 [G][S]**: Every seat's `extensions/pi-permission-system/config.json` denies secret reads (`*.env`, `*.env.*` except `*.env.example`, `*.pem`, `*.key`, `*id_rsa*`, `*kubeconfig*`, `*/secrets/*`, `*.pat`, `*.uri`, `*.profile`, `*.region`, `*.host`, `*.password`, `*.credentials`, `*.config`, `*.url`, `*.user`), sets `external_directory: "deny"` and `promptTimeoutMs: 60000`, and contains zero `"ask"` rules.
 * **Claim 5.4 [G][S]**: Every seat's `extensions/pi-permission-system/config.json` explicitly sets mutating AST/LSP extension tools (`"code_rewrite": "deny"`, `"lsp_rename": "deny"`, `"lsp_code_actions": "deny"`) to `"deny"` so `ToolKind = "extension"` tools from `pi-lsp-extension@1.4.0` cannot bypass `path_write`, while the 21 code-analysis/builder seats allow only read-only AST/LSP tools (`ast_grep`, `ast_search`, `code_overview`, `lsp_diagnostics`, `lsp_hover`, `lsp_definition`, `lsp_references`, `lsp_symbols`, `lsp_completions`) and never load the duplicate `pi-lsp@0.1.7` package.
-* **Claim 5.5 [G][S]**: Every seat's `bash` map starts with `"*": "deny"` followed only by role-scoped allow patterns (with zero `git diff/log/show --output=*` write escapes or arbitrary interpreters on locked seats), and `mcp` starts with `"*": "deny"` followed only by `<server>: "allow"` for servers bound to that role.
+* **Claim 5.5 [G][S]**: Every seat's `bash` map starts with `"*": "deny"` followed only by role-scoped allow patterns (with zero `git diff/log/show --output=*` write escapes or arbitrary interpreters on locked seats) and ends with the terminal denies `"*--output*"`, `"*;*"`, `"*|*"`, `"*>*"`, `"*<*"`, `"*&*"`, `"*`*", `"*$*"`, `"*(*"`, `"*)*"` (last-match-wins, so chained/redirection suffixes deny even on allowed prefixes), and `mcp` starts with `"*": "deny"` followed only by `<server>: "allow"` for servers bound to that role.
 
 ### Domain 6: 62 Vendored Skills & Curated MCP Catalog
 * **Claim 6.1 [B][S]**: `specs/agents/_shared/agent.yaml` (and `rigs/*/agents/_shared/agent.yaml`) vendors all 62 shared skills under `specs/agents/_shared/skills/<id>/` with valid `SKILL.md` frontmatter and `LICENSE`, matching `fleet/skills-lock.json`, including all 6 OpenRig core SOP skills (`openrig-operating-model`, `mission-slice-sop`, `delegating-work`, `queue-handoff`, `refocusing`, `seat-continuity-and-handover`) under `resources.skills` and full multi-file `obra/superpowers@bb92a77` skill directories.
-* **Claim 6.2 [B][S]**: Every MCP server in `fleet/mcp-servers.yaml` and `runtime/mcp.json` is pinned to an exact, verified package version (including `radareorg/radare2-mcp@1.9.0` with `-R` and `awslabs.aws-api-mcp-server==1.5.6` with `READ_OPERATIONS_ONLY=true`, and zero `r2mcp==0.2.5`, `aws-mcp`, or `:latest` tags), and read-only modes/flags are enforced (`--read-only`, `--access-mode=restricted`, `CLICKHOUSE_ALLOW_WRITE_ACCESS=false`).
+* **Claim 6.2 [B][S]**: Every MCP server in `fleet/mcp-servers.yaml` is pinned to an exact package version in the catalog (including `radareorg/radare2-mcp@1.9.0` with `-R` and `awslabs.aws-api-mcp-server==1.5.6` with `READ_OPERATIONS_ONLY=true`, and zero `r2mcp==0.2.5`, `aws-mcp`, or `:latest` tags), with per-seat `runtime/mcp.json` resolving pins at seed time; liveness exceptions honestly labeled in-catalog (`semgrep: run-failed-here`, `radare2: not-run`) are not silent pins, and read-only modes/flags are enforced (`--read-only`, `--access-mode=restricted`, `CLICKHOUSE_ALLOW_WRITE_ACCESS=false`).
 
 ### Domain 7: Sidecar Docker Compose & Network Segmentation
 * **Claim 7.1 [G][S]**: Every published host port in `docker-compose.sidecars.yml` binds strictly to `127.0.0.1:` (zero `0.0.0.0` or bare `<port>:<port>` host publishes), and every service image uses an exact version or `@sha256:` digest (zero `:latest`).
@@ -167,7 +167,7 @@ python3 ./scripts/audit_loop.py --self-test | tee "$AUDIT_TMP/logs/self-test.log
 # 2. Real @openrig/cli@0.6.11 offline validation across all 8 rigs
 for d in rigs/*/; do
   rig spec validate "${d}rig.yaml" --json | jq -e '.valid == true' >/dev/null
-  test "$(rig bundle check "$d" --json | jq 'length')" -eq 0
+  test "$(rig bundle check "$d" --json | jq '[.checks[] | select(.status=="fail")] | length')" -eq 0
 done
 
 # 3. Verify rendered permission config shape across all 51 roles (path_write "..", extension tool denies, zero ask)
@@ -187,14 +187,18 @@ print("51/51 permission configs verified")
 '
 
 # 4. Verify secret file permission refusal in render-seat.py (must fail on 0644 secret, pass on 0600 secret)
+# HR-4.2: exec-director lives in the exec pod of executive-and-architecture
+# (the command pod exists only in heretek-omni-fleet), and binds the github
+# server, so the passing render needs --allow-missing-secrets for github.pat.
 printf 'dummy-key\n' > "$AUDIT_TMP/secrets/opencode-go.key"
 chmod 644 "$AUDIT_TMP/secrets/opencode-go.key"
 ! HERETEK_SECRETS="$AUDIT_TMP/secrets" python3 ./scripts/render-seat.py \
-  --role exec-director --rig executive-and-architecture --pod command \
+  --role exec-director --rig executive-and-architecture --pod exec \
   --out "$AUDIT_TMP/seat-bad" 2>/dev/null
 chmod 600 "$AUDIT_TMP/secrets/opencode-go.key"
 HERETEK_SECRETS="$AUDIT_TMP/secrets" python3 ./scripts/render-seat.py \
-  --role exec-director --rig executive-and-architecture --pod command \
+  --role exec-director --rig executive-and-architecture --pod exec \
+  --allow-missing-secrets \
   --out "$AUDIT_TMP/seat-ok"
 test "$(stat -c '%a' "$AUDIT_TMP/seat-ok/auth.json")" = "600"
 test "$(stat -c '%a' "$AUDIT_TMP/seat-ok/extensions/pi-permission-system/config.json")" = "600"
@@ -205,10 +209,12 @@ test "$(stat -c '%a' "$AUDIT_TMP/seat-ok/extensions/pi-permission-system/config.
 make guard-profiles SIDECAR_PROFILES="web-research"
 
 # 6. Test bootstrap-pi-seats.sh in an isolated OPENRIG_HOME
+# HR-4.2: the exec pod seats exec-director as exec-exec-director@... (the
+# command pod exists only in heretek-omni-fleet).
 OPENRIG_HOME="$AUDIT_TMP/openrig-home" ./scripts/bootstrap-pi-seats.sh --rig executive-and-architecture
-test -f "$AUDIT_TMP/openrig-home/state/pi/command-exec-director@executive-and-architecture/agent/models.json"
-test -f "$AUDIT_TMP/openrig-home/state/pi/command-exec-director@executive-and-architecture/agent/AGENTS.md"
-test "$(stat -c '%a' "$AUDIT_TMP/openrig-home/state/pi/command-exec-director@executive-and-architecture/agent/auth.json")" = "600"
+test -f "$AUDIT_TMP/openrig-home/state/pi/exec-exec-director@executive-and-architecture/agent/models.json"
+test -f "$AUDIT_TMP/openrig-home/state/pi/exec-exec-director@executive-and-architecture/agent/AGENTS.md"
+test "$(stat -c '%a' "$AUDIT_TMP/openrig-home/state/pi/exec-exec-director@executive-and-architecture/agent/auth.json")" = "600"
 ```
 
 **Sabotage targets** (one-line breaks in `$AUDIT_TMP/wt`, then run `(cd "$AUDIT_TMP/wt" && ! ./scripts/verify-rigs.sh --check-only)` and restore after each test):

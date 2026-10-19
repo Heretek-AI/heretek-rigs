@@ -135,11 +135,38 @@ def build_seat_files(
         if not check_secret_fs:
             return False
         p = Path(secrets_dir) / filename
+        # HR-4.3 (fail-closed): reject symlinks before stat (TOCTOU / link-swap).
+        # A secrets dir containing a symlink must never be trusted — die loudly.
+        if p.is_symlink():
+            die(f"{p} must not be a symlink")
         if not p.exists():
             return False
-        mode = p.stat().st_mode & 0o777
+        try:
+            st = p.stat()
+        except FileNotFoundError:
+            return False
+        # HR-4.3 (fail-closed): ownership pin — secret files must be owned by
+        # the invoking user. Group/world-readable is already rejected below;
+        # a file owned by another uid (e.g. planted via shared /tmp) must die.
+        try:
+            euid = os.geteuid()
+        except AttributeError:
+            euid = None  # Windows: no geteuid, skip ownership pin
+        if euid is not None and st.st_uid != euid:
+            die(f"{p} must be owned by uid {euid} (got {st.st_uid})")
+        mode = st.st_mode & 0o777
         if mode & 0o077:
             die(f"{p} is mode {oct(mode)[2:]}; run: chmod 600 {p}")
+        # HR-4.3 (fail-closed): O_NOFOLLOW open proves the path is still a
+        # regular file at use time (stat-then-use race / symlink swap).
+        try:
+            fd = os.open(p, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        except FileNotFoundError:
+            return False
+        except OSError:
+            die(f"{p} cannot be opened safely (symlink/race)")
+        else:
+            os.close(fd)
         return True
 
     def subst(val):
@@ -158,12 +185,31 @@ def build_seat_files(
         has_key = secret_ok("opencode-go.key")
         if not has_key and not allow_missing_secrets:
             die(f"missing {Path(secrets_dir) / 'opencode-go.key'} (chmod 600)")
-        files["auth.json"] = {
-            "opencode-go": {
-                "type": "api_key",
-                "key": f"!cat {Path(secrets_dir) / 'opencode-go.key'}",
+        # HR-4.3 (fail-closed): never emit a silent dangling `!cat` for the
+        # primary provider key — under --allow-missing-secrets an absent key
+        # renders `"enabled": false` plus a stderr warning (mirroring the mcp
+        # deferred-server path), so the seat is visibly degraded instead of
+        # pointing at a nonexistent secret. No literal is ever materialized.
+        if has_key:
+            files["auth.json"] = {
+                "opencode-go": {
+                    "type": "api_key",
+                    "key": f"!cat {Path(secrets_dir) / 'opencode-go.key'}",
+                }
             }
-        }
+        else:
+            if check_secret_fs:
+                print(
+                    f"warn: {session}: opencode-go.key missing, auth disabled",
+                    file=sys.stderr,
+                )
+            files["auth.json"] = {
+                "opencode-go": {
+                    "type": "api_key",
+                    "key": f"!cat {Path(secrets_dir) / 'opencode-go.key'}",
+                    "enabled": False,
+                }
+            }
         files["models.json"] = {
             "providers": {
                 "opencode-go": {
@@ -324,6 +370,33 @@ def build_seat_files(
                 f"{role_id}: bash_allow pattern contains forbidden --output write-escape: {p!r}"
             )
         bash_map[p] = "allow"
+    # HR-5.5 (fail-closed): prefix-glob matcher semantics — a live command
+    # appending `--output=/tmp/x` (or `;`, `|`, `>`, `<`, `&`, backtick,
+    # `$()`, subshell parens) to an allowed trailing-* prefix would still
+    # match the allow prefix under prefix-glob matcher semantics. Terminal
+    # deny rules placed LAST (last-match-wins, same as path_write/path guards)
+    # ensure any command containing those substrings is denied even when it
+    # starts with an allowed prefix. Legitimate allows contain none of these
+    # substrings (fleet verified metachar-free), so the clean fleet renders
+    # unchanged except for these added terminal denies. Newline (`\n`) cannot
+    # be expressed as a portable glob and stays covered by the generation-time
+    # metachar die above plus Pi's own compound-command decomposition
+    # (docs/OSINT_ECOSYSTEM_REPORT.md gate probes); live `&`/backtick/`$()`
+    # semantics remain UNVERIFIED pending a hostile-corpus run through the
+    # installed @gotgenes/pi-permission-system@41.0.0 (HR-5.5-enforcement-gap).
+    for _deny_pat in (
+        "*--output*",
+        "*;*",
+        "*|*",
+        "*>*",
+        "*<*",
+        "*&*",
+        "*`*",
+        "*$*",
+        "*(*",
+        "*)*",
+    ):
+        bash_map[_deny_pat] = "deny"
 
     permission = {
         "*": "deny",

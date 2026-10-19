@@ -98,6 +98,22 @@ class TestRenderSeat(unittest.TestCase):
         )["extensions/pi-permission-system/config.json"]
         self.assertEqual(c["permission"]["*"], "deny")
         self.assertEqual(c["permission"]["bash"]["*"], "deny")
+        # HR-5.5-prefix-escape: terminal bash denies must be present LAST so
+        # live --output/chaining suffixes cannot escape an allowed prefix.
+        # HR-5.5-enforcement-gap: `&`/backtick/`$`/parens denies added.
+        for _td in (
+            "*--output*",
+            "*;*",
+            "*|*",
+            "*>*",
+            "*<*",
+            "*&*",
+            "*`*",
+            "*$*",
+            "*(*",
+            "*)*",
+        ):
+            self.assertEqual(c["permission"]["bash"][_td], "deny")
         self.assertEqual(c["permission"]["external_directory"], "deny")
         self.assertEqual(c["promptTimeoutMs"], 60000)
         keys = list(c["permission"]["path_write"].keys())
@@ -135,6 +151,42 @@ class TestRenderSeat(unittest.TestCase):
         # HR-5.3: credential-bearing URL/user suffixes must be denied too.
         self.assertEqual(c["permission"]["path"]["*.url"], "deny")
         self.assertEqual(c["permission"]["path"]["*.user"], "deny")
+        # HR-5.2: the read map carries the same guard block as path_write.
+        self.assertEqual(
+            list(c["permission"]["path"].keys()),
+            [
+                "*",
+                "*.env",
+                "*.env.*",
+                "*.env.example",
+                "*.pem",
+                "*.key",
+                "*id_rsa*",
+                "*kubeconfig*",
+                "*/secrets/*",
+                ".git/*",
+                "*/.git/*",
+                "AGENTS.md",
+                "*/AGENTS.md",
+                ".pi/*",
+                "*/.pi/*",
+                ".agents/*",
+                "*/.agents/*",
+                "fleet/*",
+                "scripts/*",
+                "*.pat",
+                "*.uri",
+                "*.profile",
+                "*.region",
+                "*.host",
+                "*.password",
+                "*.credentials",
+                "*.config",
+                "*.url",
+                "*.user",
+                "*..*",
+            ],
+        )
         self.assertNotIn('"ask"', json.dumps(c))
 
     def test_product_director_github_readonly_and_disabled_without_pat(self):

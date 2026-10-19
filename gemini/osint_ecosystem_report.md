@@ -1,3 +1,14 @@
+# RETIRED — Planning spike snapshot. Superseded by canonical `docs/OSINT_ECOSYSTEM_REPORT.md`.
+
+> **Do NOT follow the ADOPT tables below for `pi-subagents@0.79.1` or `pi-lsp@0.1.7`.**
+> Canonical `docs/OSINT_ECOSYSTEM_REPORT.md:68-71` explicitly **Rejects** both:
+> `pi-subagents` opens an unaudited second delegation channel (delegation belongs
+> to OpenRig `rig queue`/`rig send`); `pi-lsp@0.1.7` duplicates the 5 tool names
+> registered by adopted `pi-lsp-extension@1.4.0`. Shipped `fleet/fleet.yaml`
+> `pi_packages` contain only `@gotgenes/pi-permission-system@41.0.0`,
+> `pi-lsp-extension@1.4.0`, and `pi-ast-grep@0.1.0` (HR-6.2-stale-legacy-pins).
+> This file is retained for audit provenance only.
+
 # Heretek-Rigs OSINT Ecosystem Discovery & 51-Agent Master Mapping Report
 
 **Target Repository:** [Heretek-AI/heretek-rigs](https://www.google.com/search?q=https%3A%2F%2Fgithub.com%2FHeretek-AI%2Fheretek-rigs)
