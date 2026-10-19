@@ -1,0 +1,268 @@
+# MCP server catalog for the Heretek fleet (Pi built-in MCP, written per seat to <agentDir>/mcp.json).
+#
+# Placeholders the seed script substitutes with ABSOLUTE paths before writing mcp.json:
+#   @TOOLS@    -> $HERETEK_TOOLS   (default ~/.local/share/heretek-rigs/tools; npm MCP servers live in @TOOLS@/mcp)
+#   @SECRETS@  -> $HERETEK_SECRETS (default ~/.config/heretek-rigs/secrets; every file mode 0600)
+#   @SEAT@     -> the seat's state dir ($OPENRIG_HOME/state/pi/<pod>-<member>@<rig>)
+# Secrets are NEVER literal values here. A secret value is always a whole-value command: "!cat @SECRETS@/<file>".
+# Pi runs that command itself when it connects, so the secret never enters rig.yaml env:, git, or the seat's env.
+#
+# status:
+#   run-verified      = connected through `pi mcp list --json` in the planning spike (see docs/OSINT_ECOSYSTEM_REPORT.md)
+#   registry-verified = the pinned version exists in its registry and in the official MCP registry; not run here
+# exposure: direct = declared to the model; deferred = found with tool_search (the seat must allow tool_search).
+version: 1
+servers:
+  codebase-memory:
+    pin: npm:codebase-memory-mcp@0.12.1
+    source: https://github.com/DeusData/codebase-memory-mcp
+    license: MIT
+    status: run-verified  # connected via `pi mcp list --json` in the planning spike
+    note: postinstall (node install.js) downloads a release binary from GitHub; install with scripts enabled.
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp"
+    args: []
+    exposure: deferred
+    description: Code knowledge graph of the working repository (symbols, call paths, trace_path).
+  context7:
+    pin: npm:@upstash/context7-mcp@4.4.2
+    source: https://github.com/upstash/context7
+    license: MIT
+    status: run-verified  # connected via `pi mcp list --json` in the planning spike
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/context7-mcp"
+    args: []
+    env:
+      CONTEXT7_API_KEY: "!cat @SECRETS@/context7.key"
+    optional_secrets: [context7.key]
+    exposure: deferred
+    description: Current library documentation lookup (resolve-library-id, get-library-docs).
+  github:
+    pin: remote:https://api.githubcopilot.com/mcp/ (official GitHub remote server)
+    source: https://github.com/github/github-mcp-server
+    license: MIT
+    status: registry-verified
+    transport: http
+    # The seed builds the URL per role: https://api.githubcopilot.com/mcp/x/<toolset>/readonly
+    url_template: "https://api.githubcopilot.com/mcp/x/{toolset}/readonly"
+    headers:
+      Authorization: "!echo Bearer $(cat @SECRETS@/github.pat)"
+    required_secrets: [github.pat]
+    exposure: deferred
+    description: GitHub read-only ({toolset} toolset) for the fleet's repositories.
+  memory:
+    pin: npm:@modelcontextprotocol/server-memory@1.0.0
+    source: https://github.com/modelcontextprotocol/servers
+    license: SEE LICENSE IN LICENSE (MIT upstream)
+    status: run-verified
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/mcp-server-memory"
+    args: []
+    env:
+      MEMORY_FILE_PATH: "@SEAT@/memory.jsonl"
+    exposure: direct
+    description: Per-seat knowledge-graph memory (entities, relations, observations).
+  playwright:
+    pin: npm:@playwright/mcp@0.0.83
+    source: https://github.com/microsoft/playwright-mcp
+    license: Apache-2.0
+    status: run-verified  # connected via `pi mcp list --json` in the planning spike
+    replaces: npm:@executeautomation/playwright-mcp-server@1.0.12
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/playwright-mcp"
+    args: ["--headless", "--isolated"]
+    exposure: deferred
+    description: Browser automation through Playwright accessibility snapshots.
+  chrome-devtools:
+    pin: npm:chrome-devtools-mcp@1.11.0
+    source: https://github.com/ChromeDevTools/chrome-devtools-mcp
+    license: Apache-2.0
+    status: run-verified  # connected via `pi mcp list --json` in the planning spike
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/chrome-devtools-mcp"
+    args: ["--headless", "--isolated"]
+    exposure: deferred
+    description: Chrome DevTools (performance traces, network, console, Lighthouse-style audits).
+  mobile:
+    pin: npm:@mobilenext/mobile-mcp@1.0.12
+    source: https://github.com/mobile-next/mobile-mcp
+    license: Apache-2.0
+    status: run-verified  # connected via `pi mcp list --json` in the planning spike
+    replaces: npm:@mobilenext/mobile-mcp@1.0.11
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/mcp-server-mobile"
+    args: []
+    exposure: deferred
+    description: Android emulator and iOS simulator control (screens, taps, app install).
+  openapi:
+    pin: npm:mcp-openapi-schema-explorer@1.3.5
+    source: https://github.com/kadykov/mcp-openapi-schema-explorer
+    license: MIT
+    status: run-verified  # connected via `pi mcp list --json` in the planning spike
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/mcp-openapi-schema-explorer"
+    # The seed appends the spec path: openapi/openapi.yaml relative to the seat cwd (fails closed if absent).
+    args: ["openapi/openapi.yaml"]
+    exposure: direct
+    description: Read-only explorer for the project's OpenAPI document.
+  semgrep:
+    pin: pypi:semgrep==1.181.0 (subcommand `semgrep mcp`)
+    source: https://github.com/semgrep/semgrep
+    license: LGPL-2.1
+    status: run-failed-here  # `semgrep mcp` calls https://semgrep.dev/api/auth/oauth2/.well-known/... at startup; blocked in the planning container
+    transport: stdio
+    command: uvx
+    args: ["semgrep==1.181.0", "mcp", "-t", "stdio"]
+    exposure: deferred
+    description: Semgrep scans, rule authoring support and AST dumps.
+  radare2:
+    pin: git:https://github.com/radareorg/radare2-mcp@1.9.0
+    source: https://github.com/radareorg/radare2-mcp
+    license: MIT
+    status: not-run  # tag 1.9.0 exists (git ls-remote); build and -R read-only flag not run here
+    replaces: pypi:r2mcp==0.2.5  # TYPOSQUAT-LIKE: that PyPI package is an unrelated "rest2mcp" CLI, not radare2
+    install: "git clone --depth 1 --branch 1.9.0 https://github.com/radareorg/radare2-mcp @TOOLS@/src/radare2-mcp && make -C @TOOLS@/src/radare2-mcp && install -m 755 @TOOLS@/src/radare2-mcp/src/r2mcp @TOOLS@/bin/r2mcp"
+    transport: stdio
+    command: "@TOOLS@/bin/r2mcp"
+    args: ["-R"]  # -R = read-only mode (per upstream README; verify with r2mcp -h)
+    exposure: deferred
+    description: radare2 disassembly and analysis in read-only mode.
+  aws:
+    pin: pypi:awslabs.aws-api-mcp-server==1.5.6
+    source: https://github.com/awslabs/mcp
+    license: Apache-2.0
+    status: registry-verified
+    replaces: npm:aws-mcp@1.0.2  # no repository, last publish 2025-01: treat as untrusted
+    transport: stdio
+    command: uvx
+    args: ["awslabs.aws-api-mcp-server==1.5.6"]
+    env:
+      READ_OPERATIONS_ONLY: "true"
+      AWS_PROFILE: "!cat @SECRETS@/aws.profile"
+      AWS_REGION: "!cat @SECRETS@/aws.region"
+      AWS_CONFIG_FILE: "@SECRETS@/aws.config"
+      AWS_SHARED_CREDENTIALS_FILE: "@SECRETS@/aws.credentials"
+    required_secrets: [aws.profile, aws.region, aws.config, aws.credentials]
+    exposure: deferred
+    description: AWS CLI-backed read-only inspection (READ_OPERATIONS_ONLY=true; IAM is the real control).
+  duckdb:
+    pin: pypi:mcp-server-motherduck==1.1.0
+    source: https://github.com/motherduckdb/mcp-server-motherduck
+    license: MIT
+    status: registry-verified
+    replaces: pypi:mcp-server-duckdb==1.1.0  # last release 2025-05
+    transport: stdio
+    command: uvx
+    args: ["mcp-server-motherduck==1.1.0", "--db-path", ":memory:"]
+    exposure: direct
+    description: Local DuckDB SQL over project data files (in-memory, no MotherDuck token).
+  postgres:
+    pin: pypi:postgres-mcp==0.3.0
+    source: https://github.com/crystaldba/postgres-mcp
+    license: MIT
+    status: registry-verified
+    replaces: npm:@modelcontextprotocol/server-postgres@0.6.2  # deprecated on npm
+    transport: stdio
+    command: uvx
+    args: ["postgres-mcp==0.3.0", "--access-mode=restricted"]
+    env:
+      DATABASE_URI: "!cat @SECRETS@/postgres-readonly.uri"
+    required_secrets: [postgres-readonly.uri]
+    exposure: deferred
+    description: PostgreSQL schema, EXPLAIN and index advice in restricted (read-only) mode.
+  kubernetes:
+    pin: npm:kubernetes-mcp-server@0.0.67
+    source: https://github.com/containers/kubernetes-mcp-server
+    license: Apache-2.0
+    status: run-verified-fails-closed  # exits 'no current-context is set' without a kubeconfig context
+    replaces: pypi:mcp-server-kubernetes==0.1.6  # last release 2025-03
+    transport: stdio
+    command: "@TOOLS@/mcp/node_modules/.bin/kubernetes-mcp-server"
+    args: ["--read-only"]
+    env:
+      KUBECONFIG: "@SECRETS@/kubeconfig"
+    required_secrets: [kubeconfig]
+    exposure: deferred
+    description: Kubernetes cluster inspection, read-only.
+  k6:
+    pin: pypi:k6-mcp-server==2.2.0
+    source: https://pypi.org/project/k6-mcp-server/
+    license: MIT
+    status: registry-verified
+    note: last release 2025-09; keep, the load-stress seat also has `k6 run*` in bash.
+    transport: stdio
+    command: uvx
+    args: ["k6-mcp-server==2.2.0"]
+    exposure: direct
+    description: Run k6 load scripts and summarize results.
+  qdrant:
+    pin: pypi:mcp-server-qdrant==0.8.1
+    source: https://github.com/qdrant/mcp-server-qdrant
+    license: Apache-2.0
+    status: registry-verified
+    transport: stdio
+    command: uvx
+    args: ["mcp-server-qdrant==0.8.1"]
+    env:
+      QDRANT_LOCAL_PATH: "@SEAT@/qdrant"
+      COLLECTION_NAME: "heretek-rag-eval"
+    exposure: direct
+    description: Local Qdrant store for retrieval evaluation.
+  prometheus:
+    pin: oci:ghcr.io/pab1it0/prometheus-mcp-server:1.6.2 / pypi:prometheus-mcp-server==1.6.2
+    source: https://github.com/pab1it0/prometheus-mcp-server
+    license: MIT
+    status: registry-verified
+    transport: stdio
+    command: uvx
+    args: ["prometheus-mcp-server==1.6.2"]
+    env:
+      PROMETHEUS_URL: "!cat @SECRETS@/prometheus.url"
+    required_secrets: [prometheus.url]
+    exposure: deferred
+    description: PromQL queries and metric discovery against the team Prometheus.
+  clickhouse:
+    pin: pypi:mcp-clickhouse==0.7.0
+    source: https://github.com/ClickHouse/mcp-clickhouse
+    license: Apache-2.0
+    status: registry-verified
+    transport: stdio
+    command: uvx
+    args: ["mcp-clickhouse==0.7.0"]
+    env:
+      CLICKHOUSE_HOST: "!cat @SECRETS@/clickhouse.host"
+      CLICKHOUSE_USER: "!cat @SECRETS@/clickhouse.user"
+      CLICKHOUSE_PASSWORD: "!cat @SECRETS@/clickhouse.password"
+      CLICKHOUSE_ALLOW_WRITE_ACCESS: "false"
+    required_secrets: [clickhouse.host, clickhouse.user, clickhouse.password]
+    exposure: deferred
+    description: ClickHouse queries, read-only by default.
+  redis:
+    pin: pypi:redis-mcp-server==0.5.1
+    source: https://github.com/redis/mcp-redis
+    license: MIT
+    status: registry-verified
+    transport: stdio
+    command: uvx
+    args: ["--from", "redis-mcp-server==0.5.1", "redis-mcp-server"]
+    note: "Pi expands !command only in env and headers values, never in args, so the URL goes through env REDIS_URL."
+    env:
+      REDIS_URL: "!cat @SECRETS@/redis-readonly.url"
+    required_secrets: [redis-readonly.url]
+    exposure: deferred
+    description: Redis inspection with a read-only ACL user.
+  terraform:
+    pin: oci:docker.io/hashicorp/terraform-mcp-server:1.0.0
+    source: https://github.com/hashicorp/terraform-mcp-server
+    license: MPL-2.0
+    status: registry-verified
+    transport: stdio
+    command: docker
+    args: ["run", "-i", "--rm", "--network", "bridge", "hashicorp/terraform-mcp-server:1.0.0"]
+    exposure: deferred
+    description: Terraform/OpenTofu registry lookups (providers, modules, docs).
+
+dropped:
+  git: "@cyanheads/git-mcp-server@2.15.3 is healthy, but read-only git through the bash allow-list is cheaper in tokens and gated by pi-permission-system."
+  filesystem: "@modelcontextprotocol/server-filesystem duplicated Pi's read/grep/find/ls and pointed at a Paperclip-only path (/paperclip/workspaces/binaries)."
+  docker: "docker-mcp==0.2.0 (last release 2024-12) gave daemon-level access; mlops/k8s seats use explicit bash allows instead."
