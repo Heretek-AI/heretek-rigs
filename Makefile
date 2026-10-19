@@ -43,10 +43,11 @@ gate: ## Gate-test one role against mock OpenAI + pi-permission-system: make gat
 	bash ./scripts/gate-role.sh $(ROLE)
 
 guard-profiles: ## Fail-closed guard: refuse co-scheduling --profile mobile with devsec or web-research.
-	@case " $(SIDECAR_PROFILES) " in \
-	  *" mobile "*|*"mobile,"*|*",mobile"*) \
-	    case " $(SIDECAR_PROFILES) " in \
-	      *" devsec "*|*"devsec,"*|*",devsec"*|*" web-research "*|*"web-research,"*|*",web-research"*) \
+	@norm="$$(printf '%s' "$(SIDECAR_PROFILES)" | tr '\t\r\n\v\f,' '      ')"; \
+	case " $$norm " in \
+	  *" mobile "* ) \
+	    case " $$norm " in \
+	      *" devsec "*|*" web-research "* ) \
 	        echo "error: refusing to co-schedule --profile mobile with devsec/web-research (privileged /dev/kvm emulator must stay isolated)" >&2; \
 	        exit 1;; \
 	    esac;; \

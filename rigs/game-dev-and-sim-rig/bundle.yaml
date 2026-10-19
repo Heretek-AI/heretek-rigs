@@ -28,7 +28,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: physics-sim-eng
   version: '1.0'
   path: agents/physics-sim-eng
@@ -39,7 +39,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: graphics-shader-eng
   version: '1.0'
   path: agents/graphics-shader-eng
@@ -50,7 +50,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: game-systems-dev
   version: '1.0'
   path: agents/game-systems-dev
@@ -61,7 +61,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: game-ai-dev
   version: '1.0'
   path: agents/game-ai-dev
@@ -72,7 +72,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: tech-artist-pipeline
   version: '1.0'
   path: agents/tech-artist-pipeline
@@ -83,14 +83,14 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 integrity:
   algorithm: sha256
   files:
     CULTURE.md: 138469da9119bebdc81c706e748d38989504a0b2f281619470763b81c492c833
     README.md: a70aefe8cdb5bb25855cbb096e9b720cd0288ef186b13efe666b1d3be2ba5012
     SETUP.md: 85f0aa11d377384d29b5ddee3dc418e1c567d666d9e44bc7496fb0666d376a53
-    agents/_shared/agent.yaml: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    agents/_shared/agent.yaml: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
     agents/_shared/skills/address-sanitizer/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/address-sanitizer/SKILL.md: eb9ea8210fa55d50477fbe52993a704e320c88739c10d619864b6ce377ebce25
     agents/_shared/skills/address-sanitizer/agents/openai.yaml: cbad1378f4912a71dec8c1c9307b806f787c559e751a5fd1926028f1c0c2e7b5
@@ -456,6 +456,14 @@ integrity:
     agents/_shared/skills/spec-to-code-compliance/resources/DIVERGENCE_RUBRIC.md: c7192803ae5c489501788ae5be56a5dd36b3f0b64f88982bf41f69a4245303f1
     agents/_shared/skills/spec-to-code-compliance/resources/DOMAIN_NOTES.md: 435459c75d21208ea73a6cda7dfc6910efc468a903f62e20f4837d5bd8b92c4a
     agents/_shared/skills/spec-to-code-compliance/resources/WORKED_EXAMPLE.md: 7b9ff43b20ba83e1ce934bc9161b14ce58617b65a9ae9c4583026dbf0299e927
+    agents/_shared/skills/subagent-driven-development/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
+    agents/_shared/skills/subagent-driven-development/SKILL.md: 8dde5589ee083fb4999106d116f01c8fdaf3116a8a9813fdedeb80329de49046
+    agents/_shared/skills/subagent-driven-development/implementer-prompt.md: 81dd9d5a3fb0b09b96b5829f03b9796842f3199ef7591d1ba1c2db2a515f64d0
+    agents/_shared/skills/subagent-driven-development/re-review-prompt.md: 0828a5e9cbb12ba49f14621dd8c3953c48c0fc383e75bb5494f055ed0d6d824f
+    agents/_shared/skills/subagent-driven-development/scripts/review-package: f9275175b2276b1d5fdb1bae0bedaadd2a950659b7c6f311ea37ff85e1861b1f
+    agents/_shared/skills/subagent-driven-development/scripts/sdd-workspace: 4fd9770e7a49b6bde488c0e92bac1b3bd01fcbdaf8f06b6c4efbe3a1abd99f86
+    agents/_shared/skills/subagent-driven-development/scripts/task-brief: cc563538e09abf719b34ddf4b2fa7a65cf3b301729039dbfa923cb060f729146
+    agents/_shared/skills/subagent-driven-development/task-reviewer-prompt.md: bfed55c8f19d0ff6ed57b0fe09127c92890e9311c6c73917129598826bf9ebe8
     agents/_shared/skills/supply-chain-risk-auditor/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/supply-chain-risk-auditor/SKILL.md: a1254b7f8d3a1731a9a7e1f9cd6c67b59cf84ed6ef7c7fb455db9a14c528ceb4
     agents/_shared/skills/supply-chain-risk-auditor/agents/openai.yaml: 7d79ce0a77aaa1e2c72939b02b285b13a84d9da85ffb965a9d1489c358cd27ab
@@ -546,49 +554,49 @@ integrity:
     agents/engine-systems-eng/agent.yaml: 8624285eef1ae2e5a4600da9422ad818fc5f176ab51ddafdee252740304314f4
     agents/engine-systems-eng/guidance/role.md: 58685e6c55faa3cfa2c82ff9f7e723cd63092ef6b4a36f6345965334163429d0
     agents/engine-systems-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/engine-systems-eng/runtime/pi-permission-config.json: 8d5e766d6889325b7a242105d8e3383d89fb5e6d8c0935fdb59d2edb1c8035f9
+    agents/engine-systems-eng/runtime/pi-permission-config.json: e5c12c4b9da93f2f2ad05d0a22195cfa8376b73a942398acd51b710be37c808e
     agents/engine-systems-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/engine-systems-eng/runtime/policy-enforcement.json: ae3f91c86d60a1ebe15c3706c1dc743a6d8663bbccfbc40eb99f27502dd09976
+    agents/engine-systems-eng/runtime/policy-enforcement.json: bb4aa8f16e9fbe3ba59a0356df2d1d85edee30feb0d9321e59feee88a8a940ba
     agents/engine-systems-eng/skills/cache-conscious-ecs-design/SKILL.md: d8f4b69cd8cd1b2f65b8bde5f3aa52c2f28ff9e133bddf93bea19b16c647bb39
     agents/engine-systems-eng/startup/context.md: f303840a61ffc207982854078053a45a2b1780a61228b1703a8afd04503b5026
     agents/game-ai-dev/agent.yaml: ccacc1e8e01dcb435c5bf6ebe8bc75a7fb5f01aabc6e08c47c22404e05d54753
     agents/game-ai-dev/guidance/role.md: 2bdb9117dbab8529b465e582b49840c6dded34db8d55f11797773ae97987a5f8
     agents/game-ai-dev/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/game-ai-dev/runtime/pi-permission-config.json: 44ecfc0f2d7e5501988b4ad2920fba908ff22c42031404f4bccfbc4db7b900e1
+    agents/game-ai-dev/runtime/pi-permission-config.json: 97a201a38a3689d22c1d977d4e64379cf062b514398667456fce1bc2be860452
     agents/game-ai-dev/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/game-ai-dev/runtime/policy-enforcement.json: 664c656b51d617ca821459e66ea68157091815bbfaf208411839688f07623ee8
+    agents/game-ai-dev/runtime/policy-enforcement.json: 7bd94e1d951fe97a86647650bbf54fa55d7b7feee7ef89fa4aa5f3f71d148f06
     agents/game-ai-dev/skills/behavior-tree-authoring/SKILL.md: 3ffebea21b62b52c0c8389ef10a47a7a654beddf07b104caadb662014cc867a4
     agents/game-ai-dev/startup/context.md: db4e2783e8f45b196e8e3ea3c0f439bdc44e154ad8fd3b04841a7def04d615e5
     agents/game-systems-dev/agent.yaml: 09b9176da65aeb058cdfdd5b1354e0eea33f31ff2f76d59e4f4e68b96bb8bcd8
     agents/game-systems-dev/guidance/role.md: 62e52c2fe14562d69b77ba32e0a27acb82b1db476076a8dfe79df87afcd6e172
     agents/game-systems-dev/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/game-systems-dev/runtime/pi-permission-config.json: 966c1d9f1d5000bac3a24ff3009164079306014ba6c49eb1f1f399f3f7663d27
+    agents/game-systems-dev/runtime/pi-permission-config.json: 68e0232ef0b2351721728b3f59ad929026c968f811a3d57dee5888be280306f0
     agents/game-systems-dev/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/game-systems-dev/runtime/policy-enforcement.json: 9fa65c2500db28ddafa8c3b8de4337a690144f98c1b54318e2be72a1a1dc2d42
+    agents/game-systems-dev/runtime/policy-enforcement.json: 712876d1ec439e8d8a786a0ee8c17b0166c2e22c6ff79948747e7aaf2c5e4907
     agents/game-systems-dev/skills/gameplay-state-machine-implementation/SKILL.md: c4cc153f0aaa5a5a2b5454a11b370c2625e0e3b0e9805b100b6b8f3b71c4d178
     agents/game-systems-dev/startup/context.md: 2d7b4bcb6884e721c762b4a98537ae9bafd0f232af0efc853ce11c83b4352d26
     agents/graphics-shader-eng/agent.yaml: 921fc9e4a1c8708ce3166a7fe751fbf838c4a5a94b011fcff2ea3a8bf480519b
     agents/graphics-shader-eng/guidance/role.md: 20cd58ce60e2222fc130d8725a93c4e6e6229ff659257ba85923373a40088c8c
     agents/graphics-shader-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/graphics-shader-eng/runtime/pi-permission-config.json: e69a7da1737e83a52658c86f48f6b4ce449ebdf9773d3c523eb8bba861565e27
+    agents/graphics-shader-eng/runtime/pi-permission-config.json: 66b0195ea654946d98e02727168edda3a669615aab2878a974fafb3293d68a0f
     agents/graphics-shader-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/graphics-shader-eng/runtime/policy-enforcement.json: 74c4fbed5a0003dba5904c246eef94b4469fc98004ed8b70fdc579640de1446d
+    agents/graphics-shader-eng/runtime/policy-enforcement.json: a1e92cc747f208f99f6bcff6b8e7c3d49258bc0b098ff07ac6186bb80df91dc5
     agents/graphics-shader-eng/skills/shader-compilation-and-validation/SKILL.md: 97aecd3994cd1c630d485ed836dd68d95cad1118f80b005b9cbd4680c941f3b8
     agents/graphics-shader-eng/startup/context.md: aab09222226a7c55a324ae855972b6aec860b58534bf43accc614610d581b854
     agents/physics-sim-eng/agent.yaml: 172b5ed0e039624098cc6590a13599a482716fbc9e5f7fad2ed0b8dfc9171567
     agents/physics-sim-eng/guidance/role.md: 1acbc2fe4c56b73017df765190a9ad3bec931af99ab3d9eeaaeb45315a779f02
     agents/physics-sim-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/physics-sim-eng/runtime/pi-permission-config.json: 78a307a4de46a6114f1a2b43a4f69f52b9237d3de436b1aa76fc9149f84ff838
+    agents/physics-sim-eng/runtime/pi-permission-config.json: c6f1d5711702de7548229d035e9ce1b0ae8515d1b8f8279ec06634aa98b29403
     agents/physics-sim-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/physics-sim-eng/runtime/policy-enforcement.json: 1f29ceb68ae62e30dfab94c2e6ab6f7db15f74c1afc438e4ecbede03294f35ca
+    agents/physics-sim-eng/runtime/policy-enforcement.json: b52645dc1ef74dda11d4633d4af76730c5916f3c2c4c0b1906a9375a5e0d9552
     agents/physics-sim-eng/skills/collision-broadphase-optimization/SKILL.md: 7df3d11a480b25775c0c7381f105a959a7d70f032e4b79c705e3186a95f079a5
     agents/physics-sim-eng/startup/context.md: 24834621e231fe0769bed142a190b66bc453429f58b0474965d6419f98ec65d8
     agents/tech-artist-pipeline/agent.yaml: 7417fcd011e1879cecf8a301c6ba0aaf658d48ca12a05807df09a3ace40ab77d
     agents/tech-artist-pipeline/guidance/role.md: 35a41637419c47f4675e4e1ef7303ba248c06388bf50f74828c7e85595147e12
     agents/tech-artist-pipeline/runtime/mcp.json: d8e397af03b5b032f21d0aa967086f0c78b33c87b76f2e9898ae0a144df7de02
-    agents/tech-artist-pipeline/runtime/pi-permission-config.json: 3110ceed77e090020781bcd8d2b011498189ec1f4dfc26d08b3fdbc82bbf23f6
+    agents/tech-artist-pipeline/runtime/pi-permission-config.json: 4cb731ca549d1c4d6c3c9067a0c82ca379180ddc78cc9547026b13cc7f9022df
     agents/tech-artist-pipeline/runtime/pi-settings.json: ed0f22e6beec11ce958f1cf0f206b4f0d7b899a77cbb1aba8f3d042caa7423e9
-    agents/tech-artist-pipeline/runtime/policy-enforcement.json: 9a34c320ed167131bf1265ee50fd35cab52aea340c9890984e994f2b06baaf14
+    agents/tech-artist-pipeline/runtime/policy-enforcement.json: 4630da0c21ba1ff7ab8e67a32e492ca371242f9604226b79cee05177cc49e825
     agents/tech-artist-pipeline/skills/gltf-asset-optimization/SKILL.md: 452456100ba6a4bb3a6f4884cdd8b20697cb484229c7795fa2e29e0bb0066660
     agents/tech-artist-pipeline/startup/context.md: 29a051a44c2671b9e5f3a8e1f6a186a3da8e70c2367a980a36e778838cf06d45
     configurations.yaml: 12fb93a0829e005ec5957a22ccede1270b2486c94a15244cb3648ca6e9b83377

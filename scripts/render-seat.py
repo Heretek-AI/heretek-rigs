@@ -384,6 +384,17 @@ def build_seat_files(
     # (docs/OSINT_ECOSYSTEM_REPORT.md gate probes); live `&`/backtick/`$()`
     # semantics remain UNVERIFIED pending a hostile-corpus run through the
     # installed @gotgenes/pi-permission-system@41.0.0 (HR-5.5-enforcement-gap).
+    # HR-5.5-git-patch-read-bypass (fail-closed): patch-output flags smuggle
+    # full file contents past path read-denies under prefix-glob matcher
+    # semantics (e.g. `git log --oneline -p -- fleet/fleet.yaml` matches the
+    # `git log --oneline*` allow while `fleet/*` stays `"deny"` in `path`).
+    # Deny the patch-output flag family LAST for the same reason. Residual
+    # (documented, P3): `--stat`/`--name-only` output is metadata-only (no
+    # file contents); path-qualified git commands such as
+    # `git show --stat HEAD -- fleet/fleet.yaml` still match their allow
+    # prefix. Blast radius stays capped at tracked content — secrets live
+    # untracked in $HERETEK_SECRETS (4.3/4.4) and the `*.env`/`*id_rsa*`
+    # direct-read denies still hold.
     for _deny_pat in (
         "*--output*",
         "*;*",
@@ -395,6 +406,10 @@ def build_seat_files(
         "*$*",
         "*(*",
         "*)*",
+        "* -p*",
+        "*--patch*",
+        "*--full-diff*",
+        "*--textconv*",
     ):
         bash_map[_deny_pat] = "deny"
 

@@ -43,6 +43,7 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `brainstorming`
 - `writing-plans`
 - `executing-plans`
+- `subagent-driven-development`
 - `madr-architecture-decision`
 
 ## 6. Coordination on openrig

@@ -29,6 +29,15 @@ print(r["rig"], r["pod"], "-" if g == "" else g)
 ' 'pass' "$ROLE")
 A="$TMP/agent"; W="$TMP/work"
 mkdir -p "$W" && git -C "$W" init -q
+# HR-5.5-git-patch-read-bypass (fail-closed): seed + commit a canary
+# fleet/fleet.yaml so patch-exfil probes are decisive — a permission-allowed
+# `git log -p` must succeed against real committed content (proving the
+# bypass pre-fix), while a permission-denied one fails before git ever runs.
+mkdir -p "$W/fleet" "$W/scripts"
+printf 'canary: fleet-toolchain\n' > "$W/fleet/fleet.yaml"
+printf '# canary\n' > "$W/scripts/verify-rigs.sh"
+git -C "$W" add -A
+git -C "$W" -c user.email=gate-role@test -c user.name=gate-role commit -qm canary
 HERETEK_SECRETS="$TMP/secrets" python3 "$ROOT/scripts/render-seat.py" --role "$ROLE" --rig "$RIG" --pod "$POD" \
   --model-provider mock --model-id mock-model --out "$A" --allow-missing-secrets >/dev/null 2>"$TMP/render.err"
 printf '{"providers":{"mock":{"baseUrl":"http://127.0.0.1:%s/v1","api":"openai-completions","apiKey":"mock","models":[{"id":"mock-model"}]}}}\n' "$PORT" > "$A/models.json"
@@ -53,6 +62,14 @@ expect deny  bash  '{"command":"git status & evil"}' "bash chaining with & (HR-5
 expect deny  bash  '{"command":"git status$(evil)"}' "bash chaining with $() (HR-5.5-enforcement-gap)"
 expect deny  bash  '{"command":"git status `evil`"}' "bash chaining with backtick (HR-5.5-enforcement-gap)"
 expect deny  bash  '{"command":"git status\nevil"}' "bash chaining with newline (HR-5.5-enforcement-gap)"
+# HR-5.5-git-patch-read-bypass (fail-closed): patch-output flags must deny
+# even on allowed git prefixes — `git log --oneline -p -- fleet/fleet.yaml`
+# exfiltrates file contents past the `fleet/*` path read-deny. The canary
+# commit above makes these probes decisive (pre-fix they allow AND succeed).
+expect deny  bash  '{"command":"git log --oneline -p -- fleet/fleet.yaml"}' "bash git log -p patch exfil past fleet/* read-deny"
+expect deny  bash  '{"command":"git show --stat --patch HEAD -- fleet/fleet.yaml"}' "bash git show --patch past fleet/* read-deny"
+# Anti-over-block: path-scoped git without patch flags must stay allowed.
+expect allow bash  '{"command":"git log --oneline -- fleet/fleet.yaml"}' "bash git log --oneline path-scoped without patch flag"
 expect allow bash  '{"command":"git status --short"}' "bash git status"
 if [[ "$FIRST" != "-" ]]; then
   expect allow write "{\"path\":\"${FIRST}gate-probe.txt\",\"content\":\"x\"}" "write inside ${FIRST}"

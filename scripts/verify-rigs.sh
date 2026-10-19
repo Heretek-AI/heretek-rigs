@@ -3,7 +3,7 @@
 #
 # Verifies:
 #   V1. 100% Role Parity & Skill Lock: All 51 canonical roles from Heretek-Crew exist in fleet/fleet.yaml and
-#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 62 locked shared skills.
+#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 63 locked shared skills.
 #   V2. OpenRig AgentSpec v1.0 & RigSpec v0.2 Structural Conformance: Exact key allowlists, pod-local vs cross-pod
 #       edge rules, topological DAG cycle checks, and byte-for-byte parity between specs/agents/ and rigs/*/agents/.
 #   V3. OpenRig Bundle Check Parity: Zero symlinks in specs/ or rigs/, all referenced files inside each rig
@@ -141,7 +141,69 @@ EXPECTED_8_RIGS = [
 RIG_KEYS = {"version", "name", "summary", "culture_file", "permission_policy", "managed_blocks", "docs", "startup", "services", "workspace", "pods", "edges", "non_interruptive", "env"}
 POD_KEYS = {"id", "label", "summary", "continuity_policy", "startup", "members", "edges"}
 MEMBER_KEYS = {"id", "label", "agent_ref", "profile", "runtime", "codex_config_profile", "model", "effort", "role", "permission_policy", "cwd", "restore_policy", "compaction_strategy", "mechanic", "startup", "session_source", "starter_ref", "env"}
+EDGE_KEYS = {"kind", "from", "to"}
 EDGE_KINDS = {"delegates_to", "spawned_by", "can_observe", "collaborates_with", "escalates_to"}
+
+# HR-2.1-schema-drift (fail-closed): the RIG/POD/MEMBER/EDGE key sets above are
+# a copy of the pinned @openrig/cli@0.6.11 rigspec-schema.ts export in
+# schemas/rigspec-keys.pinned.json plus the vendored bytes in
+# schemas/rigspec-schema.pinned.ts. Diff them here so any upstream bump or
+# local drift flips the gate instead of silently desyncing. A sabotage adding,
+# removing, or renaming one pinned key must exit 1. The vendored .ts file must
+# exist: editing both local copies identically without updating the vendored
+# bytes still fails (upstream-hash attestation; refresh from the real
+# @openrig/cli@0.6.11 rigspec-schema.ts per the JSON provenance recipe).
+# HR-2.1-pinned-self-referential: the three-way local-local diff alone passes
+# an identical 3-copy edit. The 4th anchor below (SHA-256 of the vendored
+# bytes, refreshed at generation time into the JSON provenance) fails closed
+# when absent/mismatched, so a 3-copy identical edit without a generator
+# refresh still flips the gate.
+try:
+    _pinned_doc = json.loads((root / "schemas/rigspec-keys.pinned.json").read_text())
+    _pinned_keys = _pinned_doc.get("keys", {})
+    for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
+        _pinned_set = set(_pinned_keys.get(_name, []))
+        if _live != _pinned_set:
+            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.6.11 rigspec-schema.ts)")
+    _anchored = _pinned_doc.get("provenance", {}).get("vendored_sha256", "")
+    if not re.fullmatch(r"[0-9a-f]{64}", str(_anchored or "")):
+        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.6.11 rigspec-schema.ts per provenance recipe)")
+    else:
+        _actual_ts_hash = hashlib.sha256((root / "schemas/rigspec-schema.pinned.ts").read_bytes()).hexdigest()
+        if _actual_ts_hash != _anchored:
+            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.6.11 rigspec-schema.ts)")
+    # HR-2.1-pinned-still-local (fail-closed): the vendored_sha256 anchor above
+    # is refreshed FROM the local vendored bytes at generation time, so an
+    # identical edit of all three local copies followed by a generator refresh
+    # still passes. The upstream tarball anchor below is NEVER derived from
+    # local bytes — it is recorded by a human running `npm pack
+    # @openrig/cli@0.6.11` on a networked shell host per the provenance recipe,
+    # and the gate fails while it is absent/placeholder so the gap stays
+    # visible instead of silently self-consistent.
+    _upstream = _pinned_doc.get("provenance", {}).get("upstream_tarball", {})
+    _tb_sha = str(_upstream.get("tarball_sha256", "") or "")
+    if not re.fullmatch(r"[0-9a-f]{64}", _tb_sha):
+        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.6.11` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
+    else:
+        _tgz = root / "schemas/openrig-cli-0.6.11.tgz"
+        if _tgz.exists():
+            _actual_tgz = hashlib.sha256(_tgz.read_bytes()).hexdigest()
+            if _actual_tgz != _tb_sha:
+                fail(f"schemas/openrig-cli-0.6.11.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.6.11`)")
+except Exception as _e:
+    fail(f"schemas/rigspec-keys.pinned.json unreadable for schema-drift check: {_e}")
+try:
+    _vendored_ts = (root / "schemas/rigspec-schema.pinned.ts").read_text()
+    for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
+        _m = re.search(rf"export const {_name} = \[(.*?)\] as const", _vendored_ts, flags=re.DOTALL)
+        if not _m:
+            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.6.11 rigspec-schema.ts)")
+            continue
+        _vendored_set = set(re.findall(r'"([^"]+)"', _m.group(1)))
+        if _live != _vendored_set:
+            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.6.11 rigspec-schema.ts)")
+except Exception as _e:
+    fail(f"schemas/rigspec-schema.pinned.ts unreadable for schema-drift check: {_e}")
 
 print("== V1. 51-Role Catalog Parity, Fleet YAML & Shared Skill Lock ==")
 # HR-1.1 (fail-closed): generated trees (specs/, rigs/, rosters/, registry/,
@@ -186,10 +248,59 @@ else:
     fail(f"Role inventory mismatch: missing={missing}, extra={extra}")
 
 shared_skills_dir = root / "specs/agents/_shared/skills"
-if len(skills_lock.get("skills", {})) == 62 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 62:
-    ok("All 62 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
+if len(skills_lock.get("skills", {})) == 63 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 63:
+    ok("All 63 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
 else:
-    fail("Shared skill count mismatch (expected 62)")
+    fail("Shared skill count mismatch (expected 63)")
+# HR-6.1-thin-superpowers-wording (fail-closed): counts alone cannot prove
+# full-fidelity obra/superpowers@bb92a77 directories. Enforce per-skill
+# tree-hash (recomputed from disk vs fleet/skills-lock.json), SKILL.md
+# frontmatter, LICENSE presence, and file-count floor. A truncated skill
+# (missing companion) or a lock-vs-disk drift must flip the gate. Upstream
+# parity itself is refreshed at generation time via `tree_hash(sdir)` in
+# scripts/generate-rigs.py; shell hosts must re-run generation after
+# `fetch https://github.com/obra/superpowers/archive/bb92a77.tar.gz` + diff.
+def _skill_tree_hash(_d: Path) -> str:
+    import hashlib as _hl
+    _h = _hl.sha256()
+    def _walk(_cur: Path):
+        for _e in sorted(_cur.iterdir(), key=lambda _p: _p.name):
+            if _e.is_dir():
+                _walk(_e)
+            else:
+                _rel = _e.relative_to(_d).as_posix()
+                _h.update(_rel.encode("utf-8") + b"\0")
+                _h.update(_e.read_bytes())
+    _walk(_d)
+    return "sha256:" + _h.hexdigest()
+for _sid, _smeta in sorted((skills_lock.get("skills", {}) or {}).items()):
+    _sdir = shared_skills_dir / _sid
+    if not _sdir.is_dir():
+        fail(f"shared skill {_sid}: missing directory specs/agents/_shared/skills/{_sid}/")
+        continue
+    if not (_sdir / "SKILL.md").exists():
+        fail(f"shared skill {_sid}: missing SKILL.md")
+        continue
+    try:
+        _sk = (_sdir / "SKILL.md").read_text()
+    except Exception as _e:
+        fail(f"shared skill {_sid}: unreadable SKILL.md: {_e}")
+        continue
+    if not _sk.startswith("---") or "\nname:" not in _sk.split("---", 2)[1] or "\ndescription:" not in _sk.split("---", 2)[1]:
+        fail(f"shared skill {_sid}: SKILL.md missing valid frontmatter (---/name:/description:)")
+    if not any((_sdir / _n).exists() for _n in ("LICENSE", "LICENSE.md", "LICENSE.txt")) and _smeta.get("license_file") not in ("none (see SKILL.md frontmatter)",):
+        fail(f"shared skill {_sid}: missing LICENSE (expected {_smeta.get('license_file')})")
+    _files = [p for p in _sdir.rglob("*") if p.is_file()]
+    _floor = 1 if _smeta.get("license_file") == "none (see SKILL.md frontmatter)" else 2
+    if len(_files) < _floor:
+        fail(f"shared skill {_sid}: file-count below floor (got {len(_files)}, want >={_floor} SKILL.md+LICENSE)")
+    try:
+        _recomputed = _skill_tree_hash(_sdir)
+    except Exception as _e:
+        fail(f"shared skill {_sid}: tree-hash recompute failed: {_e}")
+        continue
+    if _recomputed != _smeta.get("tree"):
+        fail(f"shared skill {_sid}: tree-hash mismatch disk={_recomputed} lock={_smeta.get('tree')} (re-run python3 scripts/generate-rigs.py from pinned upstream)")
 # HR-2.3-uses-skills (fail-closed): lock keys must equal the _shared
 # agent.yaml resources.skills ids — a lock-vs-shared drift would let an
 # unknown heretek-shared: id pass one side while failing the other.
@@ -200,6 +311,49 @@ try:
         fail(f"fleet/skills-lock.json keys != specs/agents/_shared/agent.yaml resources.skills ids (lock-only={sorted(set(skills_lock.get('skills', {}).keys()) - _shared_ids)[:5]}, shared-only={sorted(_shared_ids - set(skills_lock.get('skills', {}).keys()))[:5]})")
 except Exception as _e:
     fail(f"specs/agents/_shared/agent.yaml unreadable for skills cross-check: {_e}")
+# HR-6.1-missing-subagent-sibling (fail-closed): vendored skill guidance must
+# not mandate a sibling that is not provisioned. Every REQUIRED SUB-SKILL
+# `superpowers:<id>` reference on a REQUIRED line inside
+# specs/agents/_shared/skills/*/SKILL.md (the dead REQUIRED path that
+# writing-plans/executing-plans had on subagent-driven-development) must
+# resolve to a fleet/skills-lock.json key with a vendored directory on disk,
+# and every `../<id>/scripts/` call (e.g. executing-plans invoking
+# `../subagent-driven-development/scripts/...`) must resolve to an existing
+# sibling scripts directory. Either direction of drift (dangling ref or
+# lock-without-disk) flips the gate; the shell host resolves it by re-running
+# python3 scripts/generate-rigs.py after the fleet binding lands.
+_lock_ids61 = set((skills_lock.get("skills", {}) or {}).keys())
+for _skd61 in sorted(shared_skills_dir.iterdir()):
+    if not _skd61.is_dir():
+        continue
+    _skm61 = _skd61 / "SKILL.md"
+    if not _skm61.exists():
+        continue
+    try:
+        _skt61 = _skm61.read_text()
+    except Exception as _e:
+        fail(f"shared skill {_skd61.name}: unreadable SKILL.md for sibling-ref check: {_e}")
+        continue
+    for _line61 in _skt61.splitlines():
+        if "REQUIRED" in _line61:
+            for _req61 in set(re.findall(r"superpowers:([a-z0-9-]+)", _line61)):
+                if _req61 not in _lock_ids61:
+                    fail(f"shared skill {_skd61.name}: REQUIRED SUB-SKILL superpowers:{_req61} is not vendored/locked (add the fleet binding and re-run python3 scripts/generate-rigs.py)")
+                elif not (shared_skills_dir / _req61).is_dir():
+                    fail(f"shared skill {_skd61.name}: REQUIRED SUB-SKILL superpowers:{_req61} locked but missing on disk")
+    for _rel61 in set(re.findall(r"\.\./([a-z0-9-]+)/scripts/", _skt61)):
+        if not (shared_skills_dir / _rel61 / "scripts").is_dir():
+            fail(f"shared skill {_skd61.name}: relative skill call ../{_rel61}/scripts/ has no vendored sibling scripts directory")
+    for _sh61 in sorted((_skd61 / "scripts").rglob("*")) if (_skd61 / "scripts").is_dir() else []:
+        if not _sh61.is_file():
+            continue
+        try:
+            _sht61 = _sh61.read_text()
+        except Exception:
+            continue
+        for _rel61 in set(re.findall(r"\.\./([a-z0-9-]+)/scripts/", _sht61)):
+            if not (shared_skills_dir / _rel61 / "scripts").is_dir():
+                fail(f"shared skill {_skd61.name}: script {_sh61.name} calls ../{_rel61}/scripts/ with no vendored sibling scripts directory")
 
 for rid, rdir in sorted(discovered_roles.items()):
     r_fleet = fleet["roles"][rid]
@@ -390,17 +544,44 @@ for rid, rdir in sorted(discovered_roles.items()):
     # A regression deleting any terminal deny must flip the gate 0->1.
     # HR-5.5-enforcement-gap: `&`/backtick/`$`/parens denies added; newline
     # stays covered by generation-time ban (no portable glob).
+    # HR-5.5-git-patch-read-bypass (fail-closed): patch-output flag denies
+    # (`-p`, `--patch`, `--full-diff`, `--textconv`) added LAST for the same
+    # reason — `git log --oneline -p -- fleet/fleet.yaml` exfiltrates file
+    # contents past the `fleet/*` path read-deny under prefix-glob matcher
+    # semantics. Residual (documented, P3): `--stat`/`--name-only` output is
+    # metadata-only; path-qualified git commands without patch flags still
+    # match their allow prefix. Blast radius stays capped at tracked content
+    # (secrets live untracked in $HERETEK_SECRETS; `*.env`/`*id_rsa*`
+    # direct-read denies hold).
     _bash_map = perm.get("bash", {})
     _bash_keys = list(_bash_map.keys())
-    for _td in ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*"):
+    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*--patch*", "*--full-diff*", "*--textconv*")
+    for _td in _TERMINAL_BASH_DENIES:
         if _bash_map.get(_td) != "deny":
             fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
     if _bash_keys and _bash_keys[0] != "*":
         fail(f"{rid}: permission bash must start with '*': deny")
     # Terminal denies must come after all role allows (last-match-wins).
-    _term_idx = [_bash_keys.index(_t) for _t in ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*") if _t in _bash_keys]
+    _term_idx = [_bash_keys.index(_t) for _t in _TERMINAL_BASH_DENIES if _t in _bash_keys]
     if _term_idx != sorted(_term_idx):
         fail(f"{rid}: permission bash terminal denies out of order (got {_bash_keys})")
+    # HR-5.5-rendered-allow-superset-gap (fail-closed): rendered allow-sets
+    # must be subsets of the fleet-declared allow-sets. The guards above only
+    # assert denies are present — a hand-injected `"zzz-evil/*": "allow"`
+    # (`path_write`) or `"curl *": "allow"` (`bash`) in a checked-in
+    # generated permission file would otherwise survive --check-only (the
+    # mcp map is the exception proving the rule: it already rejects rendered
+    # keys outside the bound-server set). Rendered<->rendered drift between
+    # the two permission files is separately covered by the
+    # pi-permission-config.json == policy-enforcement.json equality check.
+    _rendered_bash_allows = {_k for _k, _v in _bash_map.items() if _v == "allow"}
+    _declared_bash = set((r_fleet.get("permissions", {}) or {}).get("bash_allow") or [])
+    if not _rendered_bash_allows <= _declared_bash:
+        fail(f"{rid}: rendered bash allows exceed fleet-declared bash_allow (surplus={sorted(_rendered_bash_allows - _declared_bash)[:5]})")
+    _rendered_pw_allows = {_k for _k, _v in perm.get("path_write", {}).items() if _v == "allow"}
+    _declared_pw = set((r_fleet.get("permissions", {}) or {}).get("path_write") or [])
+    if not _rendered_pw_allows <= _declared_pw:
+        fail(f"{rid}: rendered path_write allows exceed fleet-declared path_write (surplus={sorted(_rendered_pw_allows - _declared_pw)[:5]})")
 
     if rid in READONLY_16_ROLES:
         for g in r_fleet["permissions"]["path_write"]:
@@ -520,11 +701,17 @@ for rig_slug in EXPECTED_8_RIGS:
                 except Exception as _e:
                     fail(f"{rig_slug}.{qual}: agent.yaml comparison failed: {_e}")
         for pe in pod.get("edges", []):
+            # HR-2.2-edge-extra-keys (fail-closed): edges carry exactly
+            # {kind, from, to} — an extra key (e.g. foo: 1) must flip the gate.
+            if set(pe.keys()) - EDGE_KEYS:
+                fail(f"{rig_slug}.{pid}: unknown pod-local edge keys {set(pe.keys()) - EDGE_KEYS} in {pe}")
             if pe["kind"] not in EDGE_KINDS or pe["from"] not in m_ids or pe["to"] not in m_ids:
                 fail(f"{rig_slug}.{pid}: invalid pod-local edge {pe}")
             if pe["kind"] in ("delegates_to", "spawned_by"):
                 dag_adj[f"{pid}.{pe['from']}"].add(f"{pid}.{pe['to']}")
     for ce in spec.get("edges", []):
+        if set(ce.keys()) - EDGE_KEYS:
+            fail(f"{rig_slug}: unknown cross-pod edge keys {set(ce.keys()) - EDGE_KEYS} in {ce}")
         if ce["kind"] not in EDGE_KINDS or ce["from"] not in qual_members or ce["to"] not in qual_members:
             fail(f"{rig_slug}: invalid cross-pod edge {ce}")
         if ce["from"].split(".")[0] == ce["to"].split(".")[0]:
@@ -590,6 +777,8 @@ try:
         # HR-2.1 (fail-closed): pod-local edges must qualify like the rig.yaml
         # path (:367-371); DAG population happens below.
         for _pe in _p.get("edges", []):
+            if set(_pe.keys()) - EDGE_KEYS:
+                fail(f"rig.all-51.yaml pod {_p.get('id')}: unknown pod-local edge keys {set(_pe.keys()) - EDGE_KEYS} in {_pe}")
             if _pe.get("kind") not in EDGE_KINDS or _pe.get("from") not in _pm_ids or _pe.get("to") not in _pm_ids:
                 fail(f"rig.all-51.yaml pod {_p.get('id')}: invalid pod-local edge {_pe}")
     _flat51 = {f"{a}.{b}" for a, b in _seats51}
@@ -597,11 +786,15 @@ try:
     for _p in _all51.get("pods", []):
         _pm_ids2 = {m.get("id") for m in _p.get("members", [])}
         for _pe in _p.get("edges", []):
+            if set(_pe.keys()) - EDGE_KEYS:
+                fail(f"rig.all-51.yaml pod {_p.get('id')}: unknown pod-local edge keys {set(_pe.keys()) - EDGE_KEYS} in {_pe}")
             if _pe.get("kind") not in EDGE_KINDS or _pe.get("from") not in _pm_ids2 or _pe.get("to") not in _pm_ids2:
                 fail(f"rig.all-51.yaml pod {_p.get('id')}: invalid pod-local edge {_pe}")
             if _pe.get("kind") in ("delegates_to", "spawned_by"):
                 _dagx51[f"{_p.get('id')}.{_pe['from']}"].add(f"{_p.get('id')}.{_pe['to']}")
     for _ce in _all51.get("edges", []):
+        if set(_ce.keys()) - EDGE_KEYS:
+            fail(f"rig.all-51.yaml: unknown cross-pod edge keys {set(_ce.keys()) - EDGE_KEYS} in {_ce}")
         if _ce.get("kind") not in EDGE_KINDS or _ce.get("from") not in _flat51 or _ce.get("to") not in _flat51:
             fail(f"rig.all-51.yaml: invalid cross-pod edge {_ce}")
         if _ce.get("from", "").split(".")[0] == _ce.get("to", "").split(".")[0]:
@@ -914,6 +1107,12 @@ if "O_NOFOLLOW" not in _seed_text:
 # trailing-* prefix under prefix-glob matcher semantics.
 if '"*--output*"' not in _seed_text:
     fail('scripts/render-seat.py must emit terminal "*--output*" bash deny')
+# HR-5.5-git-patch-read-bypass (fail-closed): the renderer must emit the
+# patch-output flag denies LAST so `git log -p` / `git show --patch` cannot
+# exfiltrate file contents past path read-denies on allowed git prefixes.
+for _ptd in ('"* -p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"'):
+    if _ptd not in _seed_text:
+        fail(f"scripts/render-seat.py must emit terminal {_ptd} bash deny")
 # HR-4.2 (fail-closed opt-in): when HERETEK_REQUIRE_SEATS=1, assert sampled
 # $OPENRIG_HOME/state/pi/<pod>-<member>@<rig>/agent/ seat dirs exist with 0600
 # files and the pinned endpoint. Default --check-only stays repo-scoped (seat
@@ -946,6 +1145,16 @@ if "exit 1" not in make_text:
     fail("Makefile guard-profiles must exit 1 on forbidden co-scheduling")
 if "refusing to co-schedule" not in make_text:
     fail("Makefile guard-profiles must carry the explicit refusing-to-co-schedule error")
+# HR-7.3-guard-tab-separation (fail-closed): SIDECAR_PROFILES word-splits on
+# tabs in the foreach launcher, so the guard must normalize tabs/commas before
+# matching (a tab-separated "mobile<TAB>devsec" must exit 1). A guard matching
+# only space/comma arms passes while launching both profiles.
+# HR-7.3-guard-newline-class: the foreach splits on ALL whitespace (space/tab/
+# newline), so the guard must normalize the full class (tab, CR, newline, VT,
+# FF) plus commas. A tab/comma-only `tr '\t,'` passes while `$'mobile\ndevsec'`
+# bypasses the guard yet launches both profiles via foreach.
+if "\\t" not in make_text or "\\r" not in make_text or "\\n" not in make_text or "\\v" not in make_text or "\\f" not in make_text or "tr" not in make_text:
+    fail("Makefile guard-profiles must normalize tabs/newlines/CR/VT/FF/commas before matching (newline-class SIDECAR_PROFILES bypass)")
 # HR-7.3 (fail-closed): sidecars-up must run the guard first — a dropped
 # dependency would let `make sidecars-up SIDECAR_PROFILES="mobile devsec"`
 # bypass the co-scheduling refusal. Raw `docker compose --profile` bypasses
@@ -1048,20 +1257,34 @@ if "tecnativa/docker-socket-proxy:0.5.0" not in dsp_img:
 dsp_vols = dsp.get("volumes", [])
 if not any("/var/run/docker.sock:/var/run/docker.sock:ro" in str(v) for v in dsp_vols):
     fail("docker-socket-proxy must mount /var/run/docker.sock:/var/run/docker.sock:ro")
-# HR-7.3: network isolation — ghidra/radare2 on heretek-devsec with :ro samples, docker-android on heretek-mobile
-for svc in ("ghidra", "radare2"):
-    if svc in sidecars.get("services", {}):
-        nets = sidecars["services"][svc].get("networks", [])
-        if "heretek-devsec" not in (nets if isinstance(nets, list) else list(nets.keys() if isinstance(nets, dict) else [])):
-            fail(f"{svc} must be isolated on heretek-devsec network")
-        vols = " ".join(str(v) for v in sidecars["services"][svc].get("volumes", []))
-        if "/samples:ro" not in vols:
-            fail(f"{svc} must mount ./workspaces/binaries:/samples:ro")
+# HR-7.3-network-exclusivity (fail-closed): assert EXACT network sets, not
+# membership — a membership test lets a future edit dual-home ghidra/radare2
+# onto public `heretek` (or docker-android elsewhere), silently bridging the
+# `internal: true` malware-analysis/emulator containment boundary while the
+# gate stays green. `sonarqube` is intentionally co-resident on
+# `heretek-devsec` (code-review findings feed SAST triage on the same isolated
+# tenant net; it never mounts ./workspaces/binaries and never joins
+# `heretek-mobile`) and is pinned here so its placement is gated rather than
+# accidental. A dual-homing sabotage fixture must flip the gate 0->1.
+for _svc73 in ("ghidra", "radare2"):
+    if _svc73 in sidecars.get("services", {}):
+        _raw73 = sidecars["services"][_svc73].get("networks", [])
+        _set73 = set(_raw73 if isinstance(_raw73, list) else list(_raw73.keys() if isinstance(_raw73, dict) else []))
+        if _set73 != {"heretek-devsec"}:
+            fail(f"{_svc73} must be connected ONLY to heretek-devsec (got {sorted(_set73)}); dual-homing bridges the isolated analysis network")
+        _vols73 = " ".join(str(_v73) for _v73 in sidecars["services"][_svc73].get("volumes", []))
+        if "/samples:ro" not in _vols73:
+            fail(f"{_svc73} must mount ./workspaces/binaries:/samples:ro")
+if "sonarqube" in sidecars.get("services", {}):
+    _raw73 = sidecars["services"]["sonarqube"].get("networks", [])
+    _set73 = set(_raw73 if isinstance(_raw73, list) else list(_raw73.keys() if isinstance(_raw73, dict) else []))
+    if _set73 != {"heretek-devsec"}:
+        fail(f"sonarqube must be connected ONLY to heretek-devsec (got {sorted(_set73)}); co-residency with the analysis tenant is intentional and gated")
 if "docker-android" in sidecars.get("services", {}):
-    anets = sidecars["services"]["docker-android"].get("networks", [])
-    anet_list = anets if isinstance(anets, list) else list(anets.keys() if isinstance(anets, dict) else [])
-    if "heretek-mobile" not in anet_list:
-        fail("docker-android must be isolated on heretek-mobile network")
+    _raw73 = sidecars["services"]["docker-android"].get("networks", [])
+    _set73 = set(_raw73 if isinstance(_raw73, list) else list(_raw73.keys() if isinstance(_raw73, dict) else []))
+    if _set73 != {"heretek-mobile"}:
+        fail(f"docker-android must be connected ONLY to heretek-mobile (got {sorted(_set73)}); emulator isolation is mandatory")
 ok("Sidecar Docker Compose verified (loopback-only ports, zero :latest tags, GET-only docker-socket-proxy)")
 
 ut = subprocess.run([sys.executable, "-m", "unittest", "tests/test_render_seat.py"], cwd=str(root), capture_output=True, text=True)

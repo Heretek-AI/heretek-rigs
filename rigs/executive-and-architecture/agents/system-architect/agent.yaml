@@ -30,6 +30,7 @@ profiles:
       - heretek-shared:brainstorming
       - heretek-shared:writing-plans
       - heretek-shared:executing-plans
+      - heretek-shared:subagent-driven-development
       - madr-architecture-decision
       guidance: []
       subagents: []

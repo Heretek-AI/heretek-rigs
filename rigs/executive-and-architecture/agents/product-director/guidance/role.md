@@ -42,6 +42,7 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `seat-continuity-and-handover`
 - `brainstorming`
 - `writing-plans`
+- `subagent-driven-development`
 - `epic-roadmap-authoring`
 
 ## 6. Coordination on openrig
