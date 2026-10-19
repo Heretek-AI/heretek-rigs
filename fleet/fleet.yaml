@@ -1,0 +1,3805 @@
+# Canonical Source of Truth for the 51 Heretek-Rigs Specialist Seats & 8 OpenRig Bundles.
+# Synthesized from Heretek-AI/Heretek-Crew@5ffb1fc, @openrig/cli@0.6.11, @earendil-works/pi-coding-agent@1.3.0,
+# and @gotgenes/pi-permission-system@41.0.0.
+# Do NOT hand-edit generated files in specs/, rigs/, rosters/, or registry/; edit this file and run:
+#   python3 scripts/generate-rigs.py
+version: 1
+generated_from: Heretek-AI/Heretek-Crew@5ffb1fc roles/*
+model:
+  provider: opencode-go
+  id: muse-spark-1.3-contributor
+  ref: opencode-go/muse-spark-1.3-contributor
+  spec_model: opencode-go/muse-spark-1.3-contributor:high
+  api: openai-responses
+  base_url: https://opencode.ai/inference/go/v1
+  context_window: 1048576
+  max_tokens: 131072
+  runtime: pi
+  thinking_levels_supported:
+  - 'off'
+  - minimal
+  - low
+  - medium
+  - high
+  - xhigh
+counts:
+  roles: 51
+  rigs: 8
+  pods: 15
+rigs:
+- id: executive-and-architecture
+  title: Executive & Architecture
+  pods:
+  - id: exec
+    label: Executive
+    lead: exec-director
+    members:
+    - exec-director
+    - product-director
+    - system-architect
+    edges:
+    - kind: delegates_to
+      from: exec-director
+      to: product-director
+    - kind: delegates_to
+      from: exec-director
+      to: system-architect
+  - id: delivery
+    label: Delivery
+    lead: tpm-scrum-lead
+    members:
+    - tpm-scrum-lead
+    - git-drift-coord
+    - tech-docs-lead
+    edges:
+    - kind: delegates_to
+      from: tpm-scrum-lead
+      to: git-drift-coord
+    - kind: delegates_to
+      from: tpm-scrum-lead
+      to: tech-docs-lead
+  edges:
+  - kind: delegates_to
+    from: exec.exec-director
+    to: delivery.tpm-scrum-lead
+  - kind: collaborates_with
+    from: exec.system-architect
+    to: delivery.tpm-scrum-lead
+  - kind: can_observe
+    from: exec.product-director
+    to: delivery.tech-docs-lead
+  summary: Executive governance, product strategy, sprint decomposition, system architecture, git drift coordination, and
+    technical documentation squad.
+  permission_policy: builtin:locked
+  sidecar_profiles:
+  - core
+  - ai-gateway
+  - web-research
+- id: fullstack-and-web-studio
+  title: Full-stack & Web Studio
+  pods:
+  - id: build
+    label: Backend & Full-stack Build
+    lead: ts-node-fullstack
+    members:
+    - ts-node-fullstack
+    - python-backend-spec
+    - go-backend-eng
+    - java-kotlin-eng
+    edges:
+    - kind: delegates_to
+      from: ts-node-fullstack
+      to: python-backend-spec
+    - kind: delegates_to
+      from: ts-node-fullstack
+      to: go-backend-eng
+    - kind: delegates_to
+      from: ts-node-fullstack
+      to: java-kotlin-eng
+  - id: design
+    label: Design & Front-end
+    lead: ui-ux-designer
+    members:
+    - ui-ux-designer
+    - design-system-eng
+    - fe-perf-eng
+    - a11y-specialist
+    - mobile-web-eng
+    - brand-copy-spec
+    - ux-research-analyst
+    edges:
+    - kind: delegates_to
+      from: ui-ux-designer
+      to: design-system-eng
+    - kind: delegates_to
+      from: ui-ux-designer
+      to: fe-perf-eng
+    - kind: delegates_to
+      from: ui-ux-designer
+      to: a11y-specialist
+    - kind: delegates_to
+      from: ui-ux-designer
+      to: mobile-web-eng
+    - kind: delegates_to
+      from: ui-ux-designer
+      to: brand-copy-spec
+    - kind: delegates_to
+      from: ui-ux-designer
+      to: ux-research-analyst
+    - kind: can_observe
+      from: a11y-specialist
+      to: mobile-web-eng
+    - kind: can_observe
+      from: a11y-specialist
+      to: design-system-eng
+  edges:
+  - kind: collaborates_with
+    from: build.ts-node-fullstack
+    to: design.ui-ux-designer
+  summary: End-to-end web, backend microservice, UI/UX design system, frontend performance, accessibility, and user research
+    studio.
+  permission_policy: builtin:standard
+  sidecar_profiles:
+  - core
+  - qa-testing
+  - web-research
+- id: systems-and-mobile-foundry
+  title: Systems & Mobile Foundry
+  pods:
+  - id: systems
+    label: Systems
+    lead: rust-systems-spec
+    members:
+    - rust-systems-spec
+    - cpp-lowlevel-eng
+    edges:
+    - kind: delegates_to
+      from: rust-systems-spec
+      to: cpp-lowlevel-eng
+  - id: mobile
+    label: Native Mobile
+    lead: android-mobile-spec
+    members:
+    - android-mobile-spec
+    - ios-mobile-spec
+    edges:
+    - kind: delegates_to
+      from: android-mobile-spec
+      to: ios-mobile-spec
+  edges:
+  - kind: collaborates_with
+    from: systems.rust-systems-spec
+    to: mobile.android-mobile-spec
+  summary: Low-level Rust and C++ systems programming paired with native Android (Jetpack Compose) and iOS (Swift 6/SwiftUI)
+    engineering.
+  permission_policy: builtin:standard
+  sidecar_profiles:
+  - core
+  - qa-testing
+  - mobile
+- id: game-dev-and-sim-rig
+  title: Game Dev & Simulation
+  pods:
+  - id: engine
+    label: Engine
+    lead: engine-systems-eng
+    members:
+    - engine-systems-eng
+    - physics-sim-eng
+    - graphics-shader-eng
+    edges:
+    - kind: delegates_to
+      from: engine-systems-eng
+      to: physics-sim-eng
+    - kind: delegates_to
+      from: engine-systems-eng
+      to: graphics-shader-eng
+  - id: gameplay
+    label: Gameplay
+    lead: game-systems-dev
+    members:
+    - game-systems-dev
+    - game-ai-dev
+    - tech-artist-pipeline
+    edges:
+    - kind: delegates_to
+      from: game-systems-dev
+      to: game-ai-dev
+    - kind: delegates_to
+      from: game-systems-dev
+      to: tech-artist-pipeline
+  edges:
+  - kind: collaborates_with
+    from: engine.engine-systems-eng
+    to: gameplay.game-systems-dev
+  summary: Real-time game engine architecture, ECS systems, deterministic physics simulation, GPU shader pipelines, game AI,
+    and glTF/KTX2 asset tooling.
+  permission_policy: builtin:standard
+  sidecar_profiles:
+  - core
+- id: cloud-sre-and-data-platform
+  title: Cloud, SRE & Data Platform
+  pods:
+  - id: platform
+    label: Platform
+    lead: cloud-platform-eng
+    members:
+    - cloud-platform-eng
+    - k8s-orchestrator
+    - dependency-patcher
+    edges:
+    - kind: delegates_to
+      from: cloud-platform-eng
+      to: k8s-orchestrator
+    - kind: delegates_to
+      from: cloud-platform-eng
+      to: dependency-patcher
+  - id: sre
+    label: Site Reliability
+    lead: sre-incident-eng
+    members:
+    - sre-incident-eng
+    - observability-eng
+    edges:
+    - kind: delegates_to
+      from: sre-incident-eng
+      to: observability-eng
+  - id: data
+    label: Data
+    lead: dba-specialist
+    members:
+    - dba-specialist
+    - cache-streaming-eng
+    - data-pipeline-eng
+    - analytics-metrics-eng
+    edges:
+    - kind: delegates_to
+      from: dba-specialist
+      to: cache-streaming-eng
+    - kind: delegates_to
+      from: dba-specialist
+      to: data-pipeline-eng
+    - kind: delegates_to
+      from: dba-specialist
+      to: analytics-metrics-eng
+  - id: ml
+    label: ML Serving & Retrieval
+    lead: mlops-serving-eng
+    members:
+    - mlops-serving-eng
+    - vector-rag-spec
+    edges:
+    - kind: delegates_to
+      from: mlops-serving-eng
+      to: vector-rag-spec
+  edges:
+  - kind: collaborates_with
+    from: platform.cloud-platform-eng
+    to: sre.sre-incident-eng
+  - kind: collaborates_with
+    from: data.dba-specialist
+    to: ml.mlops-serving-eng
+  - kind: escalates_to
+    from: sre.sre-incident-eng
+    to: platform.cloud-platform-eng
+  summary: Cloud IaC (OpenTofu), Kubernetes orchestration, SRE incident response, observability, DBA migrations, streaming,
+    ETL, analytics, MLOps, RAG, and CVE patching.
+  permission_policy: builtin:standard
+  sidecar_profiles:
+  - core
+  - ai-gateway
+  - observability
+- id: qa-and-verification-gauntlet
+  title: QA & Verification Gauntlet
+  pods:
+  - id: qa
+    label: Verification
+    lead: release-qa-officer
+    members:
+    - release-qa-officer
+    - e2e-browser-qa
+    - api-contract-tester
+    - load-stress-tester
+    - sabotage-qa-tester
+    - static-analysis-lead
+    edges:
+    - kind: delegates_to
+      from: release-qa-officer
+      to: e2e-browser-qa
+    - kind: delegates_to
+      from: release-qa-officer
+      to: api-contract-tester
+    - kind: delegates_to
+      from: release-qa-officer
+      to: load-stress-tester
+    - kind: delegates_to
+      from: release-qa-officer
+      to: sabotage-qa-tester
+    - kind: delegates_to
+      from: release-qa-officer
+      to: static-analysis-lead
+    - kind: can_observe
+      from: static-analysis-lead
+      to: e2e-browser-qa
+    - kind: can_observe
+      from: static-analysis-lead
+      to: api-contract-tester
+  edges: []
+  summary: 'Adversarial quality assurance gauntlet: Playwright E2E browser automation, OpenAPI contract testing, k6 load testing,
+    mutation sabotage, static analysis, and release QA veto.'
+  permission_policy: builtin:standard
+  sidecar_profiles:
+  - core
+  - qa-testing
+- id: defensive-sec-and-red-team
+  title: Defensive Security & Red Team
+  pods:
+  - id: blue
+    label: Blue Team
+    lead: threat-modeler
+    members:
+    - threat-modeler
+    - appsec-engineer
+    - cloud-sec-auditor
+    - compliance-auditor
+    edges:
+    - kind: delegates_to
+      from: threat-modeler
+      to: appsec-engineer
+    - kind: delegates_to
+      from: threat-modeler
+      to: cloud-sec-auditor
+    - kind: delegates_to
+      from: threat-modeler
+      to: compliance-auditor
+  - id: red
+    label: Red Team & Forensics
+    lead: ai-red-teamer
+    members:
+    - ai-red-teamer
+    - binary-reverse-eng
+    - firmware-sec-analyst
+    edges:
+    - kind: delegates_to
+      from: ai-red-teamer
+      to: binary-reverse-eng
+    - kind: delegates_to
+      from: ai-red-teamer
+      to: firmware-sec-analyst
+  edges:
+  - kind: collaborates_with
+    from: blue.threat-modeler
+    to: red.ai-red-teamer
+  - kind: can_observe
+    from: blue.appsec-engineer
+    to: red.binary-reverse-eng
+  summary: 'Zero-trust defensive security and red-team rig: STRIDE threat modeling, SAST reachability, cloud IAM auditing,
+    SPDX/SBOM compliance, LLM red-teaming, and Ghidra/Radare2 reverse engineering.'
+  permission_policy: builtin:locked
+  sidecar_profiles:
+  - core
+  - devsec
+omni:
+  id: heretek-omni-fleet
+  title: Heretek Omni Fleet (dynamic)
+  core_pod:
+    id: command
+    label: Command
+    lead: exec-director
+    members:
+    - exec-director
+    - tpm-scrum-lead
+    - system-architect
+    edges:
+    - kind: delegates_to
+      from: exec-director
+      to: tpm-scrum-lead
+    - kind: collaborates_with
+      from: system-architect
+      to: tpm-scrum-lead
+  pod_fragments:
+  - pod: exec
+    from_rig: executive-and-architecture
+  - pod: delivery
+    from_rig: executive-and-architecture
+  - pod: build
+    from_rig: fullstack-and-web-studio
+  - pod: design
+    from_rig: fullstack-and-web-studio
+  - pod: systems
+    from_rig: systems-and-mobile-foundry
+  - pod: mobile
+    from_rig: systems-and-mobile-foundry
+  - pod: engine
+    from_rig: game-dev-and-sim-rig
+  - pod: gameplay
+    from_rig: game-dev-and-sim-rig
+  - pod: platform
+    from_rig: cloud-sre-and-data-platform
+  - pod: sre
+    from_rig: cloud-sre-and-data-platform
+  - pod: data
+    from_rig: cloud-sre-and-data-platform
+  - pod: ml
+    from_rig: cloud-sre-and-data-platform
+  - pod: qa
+    from_rig: qa-and-verification-gauntlet
+  - pod: blue
+    from_rig: defensive-sec-and-red-team
+  - pod: red
+    from_rig: defensive-sec-and-red-team
+  member_fragments: every role in roles (51), attached with rig add into a compatible pod
+  summary: Master composable 51-agent omni-fleet topology booting a 3-seat command center with 15 pod fragments and 51 member
+    fragments for dynamic scaling.
+  permission_policy: builtin:standard
+  sidecar_profiles:
+  - core
+roles:
+  a11y-specialist:
+    title: Accessibility (a11y) & Usability Specialist
+    domain: web-design
+    department: Web & UI/UX Design
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-a11y-specialist@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - brand-copy-spec
+    - design-system-eng
+    - release-qa-officer
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: web-design-guidelines
+        source: vercel
+      role_local:
+      - id: wcag-axe-audit-automation
+        source: heretek-crew
+    mcp:
+    - server: playwright
+    - server: chrome-devtools
+    permissions:
+      path_write:
+      - tests/a11y/*
+      - docs/a11y/*
+      bash_allow:
+      - npx playwright test tests/a11y*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/a11y-specialist/AGENTS.md
+      opencode_json: roles/a11y-specialist/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  ai-red-teamer:
+    title: Adversarial AI Red-Teamer
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: red
+    session: red-ai-red-teamer@defensive-sec-and-red-team
+    pod_lead: true
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - exec-director
+    - appsec-engineer
+    - threat-modeler
+    - vector-rag-spec
+    - release-qa-officer
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: xhigh
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared:
+      - id: skill-scanner
+        source: sentry
+      - id: agentic-actions-auditor
+        source: tob
+      role_local:
+      - id: auditing-mcp-servers-for-tool-poisoning
+        source: heretek-crew
+      - id: detecting-ai-model-prompt-injection-attacks
+        source: heretek-crew
+      - id: detecting-indirect-prompt-injection
+        source: heretek-crew
+      - id: testing-for-system-prompt-leakage
+        source: heretek-crew
+      - id: testing-prompt-injection-in-rag-pipelines
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: context7
+    permissions:
+      path_write:
+      - docs/security/ai-redteam/*
+      bash_allow:
+      - garak*
+      - pyrit*
+      - promptfoo*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/ai-red-teamer/AGENTS.md
+      opencode_json: roles/ai-red-teamer/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  analytics-metrics-eng:
+    title: Analytics & Metrics Engineer
+    domain: data-ai
+    department: Data & AI Systems
+    rig: cloud-sre-and-data-platform
+    pod: data
+    session: data-analytics-metrics-eng@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - data-pipeline-eng
+    - product-director
+    - ux-research-analyst
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: clickhouse-schema-and-aggregation-optimization
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: clickhouse
+    permissions:
+      path_write:
+      - migrations/clickhouse/*
+      - analytics/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/analytics-metrics-eng/AGENTS.md
+      opencode_json: roles/analytics-metrics-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  android-mobile-spec:
+    title: Mobile Android Specialist
+    domain: languages
+    department: Specialized Language Engineers
+    rig: systems-and-mobile-foundry
+    pod: mobile
+    session: mobile-android-mobile-spec@systems-and-mobile-foundry
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - ios-mobile-spec
+    - system-architect
+    - tpm-scrum-lead
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: artemis-android-ui-exploration
+        source: heretek-crew
+      - id: jetpack-compose-state-hoisting
+        source: heretek-crew
+    mcp:
+    - server: mobile
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - app/src/*
+      - build.gradle*
+      - app/build.gradle*
+      - docs/evidence/android-artemis/*
+      bash_allow:
+      - ./gradlew testDebugUnitTest*
+      - ./gradlew assembleDebug*
+      - ./gradlew ktlintCheck*
+      - adb connect 127.0.0.1*
+      - adb connect localhost*
+      - adb logcat*
+      - artemis explore*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/android-mobile-spec/AGENTS.md
+      opencode_json: roles/android-mobile-spec/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  api-contract-tester:
+    title: API & Contract Testing Specialist
+    domain: qa
+    department: Quality Assurance & Verification
+    rig: qa-and-verification-gauntlet
+    pod: qa
+    session: qa-api-contract-tester@qa-and-verification-gauntlet
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - e2e-browser-qa
+    - release-qa-officer
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: requesting-code-review
+        source: superpowers
+      - id: tdd
+        source: heretek-crew
+      - id: verification-before-completion
+        source: superpowers
+      - id: document-api-endpoint
+        source: sentry
+      role_local:
+      - id: dotnet-expert
+        source: heretek-crew
+      - id: openapi-contract-verification
+        source: heretek-crew
+    mcp:
+    - server: openapi
+    permissions:
+      path_write:
+      - tests/api/*
+      - openapi/*
+      bash_allow:
+      - npx newman run*
+      - npx spectral lint*
+      - schemathesis run*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/api-contract-tester/AGENTS.md
+      opencode_json: roles/api-contract-tester/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  appsec-engineer:
+    title: Application Security (AppSec) Engineer
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: blue
+    session: blue-appsec-engineer@defensive-sec-and-red-team
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - exec-director
+    - release-qa-officer
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: code-review
+        source: heretek-crew
+      - id: security-audit
+        source: heretek-crew
+      - id: semgrep
+        source: tob
+      - id: sarif-parsing
+        source: tob
+      - id: variant-analysis
+        source: tob
+      - id: fp-check
+        source: tob
+      - id: security-review
+        source: sentry
+      role_local:
+      - id: owasp-reachability-triage
+        source: heretek-crew
+    mcp:
+    - server: semgrep
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - docs/security/advisories/*
+      bash_allow:
+      - semgrep scan*
+      - trivy fs*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/appsec-engineer/AGENTS.md
+      opencode_json: roles/appsec-engineer/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  binary-reverse-eng:
+    title: Binary & Protocol Reverse Engineer
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: red
+    session: red-binary-reverse-eng@defensive-sec-and-red-team
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cpp-lowlevel-eng
+    - exec-director
+    - rust-systems-spec
+    - system-architect
+    permission_policy: builtin:locked
+    thinking: xhigh
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: dwarf-expert
+        source: tob
+      - id: yara-rule-authoring
+        source: tob
+      role_local:
+      - id: radare2-defensive-disassembly
+        source: heretek-crew
+      - id: rea-evidence-based-decompilation
+        source: heretek-crew
+    mcp:
+    - server: radare2
+    permissions:
+      path_write:
+      - docs/protocols/*
+      - docs/forensics/*
+      bash_allow:
+      - r2 -e cfg.sandbox=true -q*
+      - rabin2*
+      - strings*
+      - tshark -r *
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/binary-reverse-eng/AGENTS.md
+      opencode_json: roles/binary-reverse-eng/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  brand-copy-spec:
+    title: Brand & Creative Copy Specialist
+    domain: web-design
+    department: Web & UI/UX Design
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-brand-copy-spec@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - product-director
+    - tpm-scrum-lead
+    - ts-node-fullstack
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: actionable-microcopy-refactoring
+        source: heretek-crew
+      - id: humanizer
+        source: heretek-crew
+    mcp: []
+    permissions:
+      path_write:
+      - locales/*
+      - docs/brand/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/brand-copy-spec/AGENTS.md
+      opencode_json: roles/brand-copy-spec/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  cache-streaming-eng:
+    title: Cache & Streaming Systems Engineer
+    domain: cloud-sre
+    department: Cloud, Platform & Site Reliability
+    rig: cloud-sre-and-data-platform
+    pod: data
+    session: data-cache-streaming-eng@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - dba-specialist
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: kafka-topic-and-consumer-tuning
+        source: heretek-crew
+    mcp:
+    - server: redis
+    permissions:
+      path_write:
+      - schemas/events/*
+      - src/cache/*
+      - deploy/kafka/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/cache-streaming-eng/AGENTS.md
+      opencode_json: roles/cache-streaming-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  cloud-platform-eng:
+    title: Cloud Platform Engineer
+    domain: cloud-sre
+    department: Cloud, Platform & Site Reliability
+    rig: cloud-sre-and-data-platform
+    pod: platform
+    session: platform-cloud-platform-eng@cloud-sre-and-data-platform
+    pod_lead: true
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-sec-auditor
+    - k8s-orchestrator
+    - sre-incident-eng
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: opentofu-plan-and-validation
+        source: heretek-crew
+    mcp:
+    - server: aws
+    - server: codebase-memory
+    - server: terraform
+    permissions:
+      path_write:
+      - terraform/*
+      - infra/*
+      bash_allow:
+      - tofu fmt*
+      - tofu validate*
+      - tofu plan*
+      - tflint*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/cloud-platform-eng/AGENTS.md
+      opencode_json: roles/cloud-platform-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  cloud-sec-auditor:
+    title: Cloud Security & IAM Auditor
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: blue
+    session: blue-cloud-sec-auditor@defensive-sec-and-red-team
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - exec-director
+    - release-qa-officer
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: security-audit
+        source: heretek-crew
+      - id: gha-security-review
+        source: sentry
+      - id: agentic-actions-auditor
+        source: tob
+      role_local:
+      - id: iam-least-privilege-audit
+        source: heretek-crew
+    mcp:
+    - server: aws
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - docs/security/cloud/*
+      bash_allow:
+      - checkov -d*
+      - tfsec*
+      - gitleaks detect*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/cloud-sec-auditor/AGENTS.md
+      opencode_json: roles/cloud-sec-auditor/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  compliance-auditor:
+    title: Compliance & License Auditor
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: blue
+    session: blue-compliance-auditor@defensive-sec-and-red-team
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - dependency-patcher
+    - exec-director
+    - release-qa-officer
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: supply-chain-risk-auditor
+        source: tob
+      - id: spec-to-code-compliance
+        source: tob
+      role_local:
+      - id: sbom-generation-and-license-audit
+        source: heretek-crew
+    mcp:
+    - server: github
+      toolset: repos
+      readonly: true
+    permissions:
+      path_write:
+      - sbom/*
+      - docs/compliance/*
+      bash_allow:
+      - syft dir*
+      - npx license-checker*
+      - cargo license*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/compliance-auditor/AGENTS.md
+      opencode_json: roles/compliance-auditor/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  cpp-lowlevel-eng:
+    title: C++ Systems & Low-Level Engineer
+    domain: languages
+    department: Specialized Language Engineers
+    rig: systems-and-mobile-foundry
+    pod: systems
+    session: systems-cpp-lowlevel-eng@systems-and-mobile-foundry
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - engine-systems-eng
+    - game-systems-dev
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: systematic-debugging
+        source: superpowers
+      - id: test-driven-development
+        source: superpowers
+      - id: c-review
+        source: tob
+      - id: address-sanitizer
+        source: tob
+      - id: libfuzzer
+        source: tob
+      role_local:
+      - id: modern-cpp-sanitizer-verification
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/*
+      - include/*
+      - tests/*
+      - CMakeLists.txt
+      bash_allow:
+      - cmake*
+      - ninja*
+      - ctest*
+      - clang-tidy*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/cpp-lowlevel-eng/AGENTS.md
+      opencode_json: roles/cpp-lowlevel-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  data-pipeline-eng:
+    title: Data Pipeline & ETL Engineer
+    domain: data-ai
+    department: Data & AI Systems
+    rig: cloud-sre-and-data-platform
+    pod: data
+    session: data-data-pipeline-eng@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - analytics-metrics-eng
+    - dba-specialist
+    - mlops-serving-eng
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: duckdb-dbt-pipeline-execution
+        source: heretek-crew
+    mcp:
+    - server: duckdb
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - dbt/*
+      - pipelines/*
+      bash_allow:
+      - dbt run*
+      - dbt test*
+      - python3 pipelines/*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/data-pipeline-eng/AGENTS.md
+      opencode_json: roles/data-pipeline-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  dba-specialist:
+    title: Database Administrator (DBA)
+    domain: cloud-sre
+    department: Cloud, Platform & Site Reliability
+    rig: cloud-sre-and-data-platform
+    pod: data
+    session: data-dba-specialist@cloud-sre-and-data-platform
+    pod_lead: true
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: zero-downtime-migration-audit
+        source: heretek-crew
+    mcp:
+    - server: postgres
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - migrations/*
+      - docs/db/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/dba-specialist/AGENTS.md
+      opencode_json: roles/dba-specialist/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  dependency-patcher:
+    title: Dependency & CVE Patching Steward
+    domain: operations
+    department: Operations & Maintenance
+    rig: cloud-sre-and-data-platform
+    pod: platform
+    session: platform-dependency-patcher@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - appsec-engineer
+    - release-qa-officer
+    - sre-incident-eng
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: supply-chain-risk-auditor
+        source: tob
+      role_local:
+      - id: automated-lockfile-patching
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - '*package-lock.json'
+      - '*pnpm-lock.yaml'
+      - package.json
+      - Cargo.toml
+      - Cargo.lock
+      - pyproject.toml
+      - go.mod
+      - go.sum
+      bash_allow:
+      - npm update --ignore-scripts*
+      - npm install --ignore-scripts*
+      - npm ci --ignore-scripts*
+      - npm test*
+      - cargo update*
+      - cargo test*
+      - uv lock*
+      - pytest*
+      - go get*
+      - go mod tidy*
+      - go test*
+      - git checkout*
+      - git commit*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/dependency-patcher/AGENTS.md
+      opencode_json: roles/dependency-patcher/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  design-system-eng:
+    title: Design System Engineer
+    domain: web-design
+    department: Web & UI/UX Design
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-design-system-eng@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - a11y-specialist
+    - system-architect
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: tailwind-ui
+        source: heretek-crew
+      - id: typescript-astro
+        source: heretek-crew
+      role_local:
+      - id: impeccable-taste
+        source: heretek-crew
+      - id: storybook-component-tokenization
+        source: heretek-crew
+    mcp:
+    - server: chrome-devtools
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - packages/ui/*
+      - tokens/*
+      - src/components/ui/*
+      bash_allow:
+      - npm run test-storybook*
+      - npm run build-tokens*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/design-system-eng/AGENTS.md
+      opencode_json: roles/design-system-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  e2e-browser-qa:
+    title: End-to-End Browser Automation Engineer
+    domain: qa
+    department: Quality Assurance & Verification
+    rig: qa-and-verification-gauntlet
+    pod: qa
+    session: qa-e2e-browser-qa@qa-and-verification-gauntlet
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - api-contract-tester
+    - load-stress-tester
+    - release-qa-officer
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: requesting-code-review
+        source: superpowers
+      - id: verification-before-completion
+        source: superpowers
+      - id: webapp-testing
+        source: anthropic
+      role_local:
+      - id: playwright-page-object-automation
+        source: heretek-crew
+    mcp:
+    - server: playwright
+    - server: chrome-devtools
+    permissions:
+      path_write:
+      - tests/e2e/*
+      - playwright.config.*
+      bash_allow:
+      - npx playwright test*
+      - npx playwright show-trace*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/e2e-browser-qa/AGENTS.md
+      opencode_json: roles/e2e-browser-qa/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  engine-systems-eng:
+    title: Engine & Systems Programmer
+    domain: gamedev
+    department: Game Development
+    rig: game-dev-and-sim-rig
+    pod: engine
+    session: engine-engine-systems-eng@game-dev-and-sim-rig
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - game-systems-dev
+    - graphics-shader-eng
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: cache-conscious-ecs-design
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/engine/*
+      - tests/engine/*
+      bash_allow:
+      - cargo bench*
+      - cargo test engine*
+      - cmake --build*
+      - ctest*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/engine-systems-eng/AGENTS.md
+      opencode_json: roles/engine-systems-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  exec-director:
+    title: Director / CEO-Delegate
+    domain: executive
+    department: Executive & Product Management
+    rig: executive-and-architecture
+    pod: exec
+    session: exec-exec-director@executive-and-architecture
+    pod_lead: true
+    reports_to: null
+    collaborators:
+    - product-director
+    - system-architect
+    permission_policy: builtin:locked
+    thinking: xhigh
+    heartbeat_sec: 1800
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      - openrig-user
+      - forming-an-openrig-mental-model
+      - agent-operated-workflows
+      shared:
+      - id: dispatching-parallel-agents
+        source: superpowers
+      role_local:
+      - id: executive-okr-decomposition
+        source: heretek-crew
+    mcp:
+    - server: github
+      toolset: issues
+      readonly: true
+    - server: memory
+    permissions:
+      path_write:
+      - docs/executive/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/exec-director/AGENTS.md
+      opencode_json: roles/exec-director/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  fe-perf-eng:
+    title: Frontend Performance Engineer
+    domain: web-design
+    department: Web & UI/UX Design
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-fe-perf-eng@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - sre-incident-eng
+    - system-architect
+    - ts-node-fullstack
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: react-best-practices
+        source: vercel
+      role_local:
+      - id: core-web-vitals-profiling
+        source: heretek-crew
+    mcp:
+    - server: chrome-devtools
+    - server: playwright
+    permissions:
+      path_write:
+      - '*.config.js'
+      - '*.config.ts'
+      - docs/perf/*
+      bash_allow:
+      - npx lighthouse*
+      - npm run build*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/fe-perf-eng/AGENTS.md
+      opencode_json: roles/fe-perf-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  firmware-sec-analyst:
+    title: Firmware & Embedded Security Analyst
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: red
+    session: red-firmware-sec-analyst@defensive-sec-and-red-team
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cpp-lowlevel-eng
+    - exec-director
+    - rust-systems-spec
+    - system-architect
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: yara-rule-authoring
+        source: tob
+      - id: dwarf-expert
+        source: tob
+      role_local:
+      - id: firmware-extraction-and-hardening-audit
+        source: heretek-crew
+    mcp:
+    - server: radare2
+    permissions:
+      path_write:
+      - docs/security/firmware/*
+      bash_allow:
+      - readelf*
+      - objdump*
+      - checksec*
+      - binwalk*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/firmware-sec-analyst/AGENTS.md
+      opencode_json: roles/firmware-sec-analyst/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  game-ai-dev:
+    title: Game AI Programmer
+    domain: gamedev
+    department: Game Development
+    rig: game-dev-and-sim-rig
+    pod: gameplay
+    session: gameplay-game-ai-dev@game-dev-and-sim-rig
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - game-systems-dev
+    - physics-sim-eng
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: behavior-tree-authoring
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/game/ai/*
+      - tests/game/ai/*
+      bash_allow:
+      - cargo test ai*
+      - npm test ai*
+      - pytest tests/game/ai*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/game-ai-dev/AGENTS.md
+      opencode_json: roles/game-ai-dev/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  game-systems-dev:
+    title: Game Systems & Gameplay Programmer
+    domain: gamedev
+    department: Game Development
+    rig: game-dev-and-sim-rig
+    pod: gameplay
+    session: gameplay-game-systems-dev@game-dev-and-sim-rig
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - engine-systems-eng
+    - graphics-shader-eng
+    - sabotage-qa-tester
+    - system-architect
+    - tech-artist-pipeline
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: gameplay-state-machine-implementation
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/game/*
+      - tests/game/*
+      bash_allow:
+      - cargo test game*
+      - npm test game*
+      - pytest tests/game*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/game-systems-dev/AGENTS.md
+      opencode_json: roles/game-systems-dev/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  git-drift-coord:
+    title: Git & Worktree Drift Coordinator
+    domain: operations
+    department: Operations & Maintenance
+    rig: executive-and-architecture
+    pod: delivery
+    session: delivery-git-drift-coord@executive-and-architecture
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: true
+    collaborators:
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: git-flow
+        source: heretek-crew
+      - id: using-git-worktrees
+        source: superpowers
+      - id: finishing-a-development-branch
+        source: superpowers
+      role_local:
+      - id: worktree-rebase-orchestration
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - docs/ops/*
+      bash_allow:
+      - git branch*
+      - git merge-base*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/git-drift-coord/AGENTS.md
+      opencode_json: roles/git-drift-coord/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  go-backend-eng:
+    title: Go Backend Engineer
+    domain: languages
+    department: Specialized Language Engineers
+    rig: fullstack-and-web-studio
+    pod: build
+    session: build-go-backend-eng@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - dba-specialist
+    - k8s-orchestrator
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: systematic-debugging
+        source: superpowers
+      - id: test-driven-development
+        source: superpowers
+      - id: receiving-code-review
+        source: superpowers
+      role_local:
+      - id: go-expert
+        source: heretek-crew
+      - id: idiomatic-go-service-development
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: context7
+    permissions:
+      path_write:
+      - cmd/*
+      - internal/*
+      - pkg/*
+      - go.mod
+      - go.sum
+      bash_allow:
+      - go build*
+      - go test*
+      - golangci-lint*
+      - go mod*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/go-backend-eng/AGENTS.md
+      opencode_json: roles/go-backend-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  graphics-shader-eng:
+    title: Graphics & Shader Engineer
+    domain: gamedev
+    department: Game Development
+    rig: game-dev-and-sim-rig
+    pod: engine
+    session: engine-graphics-shader-eng@game-dev-and-sim-rig
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - e2e-browser-qa
+    - engine-systems-eng
+    - game-systems-dev
+    - sabotage-qa-tester
+    - system-architect
+    - tech-artist-pipeline
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: shader-compilation-and-validation
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/shaders/*
+      - src/rendering/*
+      bash_allow:
+      - glslangValidator*
+      - naga*
+      - spirv-val*
+      - cargo test rendering*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/graphics-shader-eng/AGENTS.md
+      opencode_json: roles/graphics-shader-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  ios-mobile-spec:
+    title: Mobile iOS Specialist
+    domain: languages
+    department: Specialized Language Engineers
+    rig: systems-and-mobile-foundry
+    pod: mobile
+    session: mobile-ios-mobile-spec@systems-and-mobile-foundry
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - android-mobile-spec
+    - go-backend-eng
+    - rust-systems-spec
+    - system-architect
+    - tpm-scrum-lead
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: swiftui-concurrency-implementation
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - ios/*
+      - Sources/*
+      - Tests/*
+      - Package.swift
+      bash_allow:
+      - swift build*
+      - swift test*
+      - swiftlint*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/ios-mobile-spec/AGENTS.md
+      opencode_json: roles/ios-mobile-spec/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  java-kotlin-eng:
+    title: Java / Kotlin Enterprise Engineer
+    domain: languages
+    department: Specialized Language Engineers
+    rig: fullstack-and-web-studio
+    pod: build
+    session: build-java-kotlin-eng@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - dba-specialist
+    - system-architect
+    - tpm-scrum-lead
+    - ts-node-fullstack
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: systematic-debugging
+        source: superpowers
+      - id: test-driven-development
+        source: superpowers
+      - id: receiving-code-review
+        source: superpowers
+      role_local:
+      - id: spring-boot-virtual-thread-tuning
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/main/*
+      - src/test/*
+      - build.gradle*
+      - pom.xml
+      bash_allow:
+      - ./gradlew test*
+      - ./gradlew check*
+      - ./mvnw test*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/java-kotlin-eng/AGENTS.md
+      opencode_json: roles/java-kotlin-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  k8s-orchestrator:
+    title: Kubernetes & Container Orchestrator
+    domain: cloud-sre
+    department: Cloud, Platform & Site Reliability
+    rig: cloud-sre-and-data-platform
+    pod: platform
+    session: platform-k8s-orchestrator@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - sre-incident-eng
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: helm-chart-security-hardening
+        source: heretek-crew
+    mcp:
+    - server: kubernetes
+    permissions:
+      path_write:
+      - deploy/*
+      - k8s/*
+      bash_allow:
+      - helm lint*
+      - helm template*
+      - kubeconform*
+      - kubectl diff*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/k8s-orchestrator/AGENTS.md
+      opencode_json: roles/k8s-orchestrator/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  load-stress-tester:
+    title: Load & Performance Stress Tester
+    domain: qa
+    department: Quality Assurance & Verification
+    rig: qa-and-verification-gauntlet
+    pod: qa
+    session: qa-load-stress-tester@qa-and-verification-gauntlet
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - release-qa-officer
+    - sre-incident-eng
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: k6-stress-scenario-execution
+        source: heretek-crew
+    mcp:
+    - server: k6
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - tests/load/*
+      - docs/perf/*
+      bash_allow:
+      - k6 run*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/load-stress-tester/AGENTS.md
+      opencode_json: roles/load-stress-tester/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  mlops-serving-eng:
+    title: MLOps & Model Serving Engineer
+    domain: data-ai
+    department: Data & AI Systems
+    rig: cloud-sre-and-data-platform
+    pod: ml
+    session: ml-mlops-serving-eng@cloud-sre-and-data-platform
+    pod_lead: true
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - sre-incident-eng
+    - system-architect
+    - vector-rag-spec
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: vllm-serving-benchmarking
+        source: heretek-crew
+    mcp: []
+    permissions:
+      path_write:
+      - deploy/mlops/*
+      - tools/mlops/*
+      bash_allow:
+      - python3 tools/mlops/*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/mlops-serving-eng/AGENTS.md
+      opencode_json: roles/mlops-serving-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  mobile-web-eng:
+    title: Mobile Web & Responsive Layout Engineer
+    domain: web-design
+    department: Web & UI/UX Design
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-mobile-web-eng@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - android-mobile-spec
+    - ios-mobile-spec
+    - tpm-scrum-lead
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: nextjs-dev
+        source: heretek-crew
+      - id: tailwind-ui
+        source: heretek-crew
+      - id: typescript-astro
+        source: heretek-crew
+      - id: web-design-guidelines
+        source: vercel
+      role_local:
+      - id: mobile-viewport-emulation-audit
+        source: heretek-crew
+    mcp:
+    - server: chrome-devtools
+    - server: playwright
+    permissions:
+      path_write:
+      - src/styles/*
+      - src/components/*
+      - public/*
+      bash_allow:
+      - npx playwright test tests/mobile*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/mobile-web-eng/AGENTS.md
+      opencode_json: roles/mobile-web-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  observability-eng:
+    title: Observability & Telemetry Engineer
+    domain: cloud-sre
+    department: Cloud, Platform & Site Reliability
+    rig: cloud-sre-and-data-platform
+    pod: sre
+    session: sre-observability-eng@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - sre-incident-eng
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: prometheus-rule-validation
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: prometheus
+    permissions:
+      path_write:
+      - deploy/prometheus/*
+      - deploy/grafana/*
+      - deploy/otel/*
+      bash_allow:
+      - promtool check*
+      - promtool test*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/observability-eng/AGENTS.md
+      opencode_json: roles/observability-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  physics-sim-eng:
+    title: Physics & Simulation Engineer
+    domain: gamedev
+    department: Game Development
+    rig: game-dev-and-sim-rig
+    pod: engine
+    session: engine-physics-sim-eng@game-dev-and-sim-rig
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - engine-systems-eng
+    - game-systems-dev
+    - system-architect
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: collision-broadphase-optimization
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/engine/physics/*
+      - tests/engine/physics/*
+      bash_allow:
+      - cargo test physics*
+      - ctest -R physics*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/physics-sim-eng/AGENTS.md
+      opencode_json: roles/physics-sim-eng/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  product-director:
+    title: Product Director / Head of Product
+    domain: executive
+    department: Executive & Product Management
+    rig: executive-and-architecture
+    pod: exec
+    session: exec-product-director@executive-and-architecture
+    pod_lead: false
+    reports_to:
+      role: exec-director
+      address: exec-exec-director@executive-and-architecture
+      same_rig: true
+    collaborators:
+    - exec-director
+    - tpm-scrum-lead
+    - ux-research-analyst
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: brainstorming
+        source: superpowers
+      - id: writing-plans
+        source: superpowers
+      role_local:
+      - id: epic-roadmap-authoring
+        source: heretek-crew
+    mcp:
+    - server: github
+      toolset: issues
+      readonly: true
+    - server: memory
+    permissions:
+      path_write:
+      - docs/product/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/product-director/AGENTS.md
+      opencode_json: roles/product-director/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  python-backend-spec:
+    title: Python Backend & Systems Specialist
+    domain: languages
+    department: Specialized Language Engineers
+    rig: fullstack-and-web-studio
+    pod: build
+    session: build-python-backend-spec@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - data-pipeline-eng
+    - dba-specialist
+    - system-architect
+    - tpm-scrum-lead
+    - vector-rag-spec
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: systematic-debugging
+        source: superpowers
+      - id: test-driven-development
+        source: superpowers
+      - id: modern-python
+        source: tob
+      - id: property-based-testing
+        source: tob
+      role_local:
+      - id: fastapi-async-development
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: context7
+    permissions:
+      path_write:
+      - app/*
+      - tests/*
+      - pyproject.toml
+      bash_allow:
+      - pytest*
+      - ruff*
+      - mypy*
+      - uv run pytest*
+      - uv run ruff*
+      - uv run mypy*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/python-backend-spec/AGENTS.md
+      opencode_json: roles/python-backend-spec/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  release-qa-officer:
+    title: Release QA & Acceptance Sign-off Officer
+    domain: qa
+    department: Quality Assurance & Verification
+    rig: qa-and-verification-gauntlet
+    pod: qa
+    session: qa-release-qa-officer@qa-and-verification-gauntlet
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - exec-director
+    - product-director
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared:
+      - id: code-review
+        source: heretek-crew
+      - id: requesting-code-review
+        source: superpowers
+      - id: tdd
+        source: heretek-crew
+      - id: verification-before-completion
+        source: superpowers
+      - id: finishing-a-development-branch
+        source: superpowers
+      - id: find-bugs
+        source: sentry
+      role_local:
+      - id: release-readiness-audit
+        source: heretek-crew
+    mcp:
+    - server: github
+      toolset: pull_requests
+      readonly: true
+    permissions:
+      path_write:
+      - docs/releases/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/release-qa-officer/AGENTS.md
+      opencode_json: roles/release-qa-officer/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  rust-systems-spec:
+    title: Rust Systems Specialist
+    domain: languages
+    department: Specialized Language Engineers
+    rig: systems-and-mobile-foundry
+    pod: systems
+    session: systems-rust-systems-spec@systems-and-mobile-foundry
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cpp-lowlevel-eng
+    - system-architect
+    - tpm-scrum-lead
+    - ts-node-fullstack
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared:
+      - id: systematic-debugging
+        source: superpowers
+      - id: test-driven-development
+        source: superpowers
+      - id: rust-review
+        source: tob
+      - id: cargo-fuzz
+        source: tob
+      role_local:
+      - id: rust-async-service-hardening
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: context7
+    permissions:
+      path_write:
+      - crates/*
+      - src/*
+      - tests/*
+      - Cargo.toml
+      - Cargo.lock
+      bash_allow:
+      - cargo build*
+      - cargo test*
+      - cargo clippy*
+      - cargo check*
+      - cargo audit*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/rust-systems-spec/AGENTS.md
+      opencode_json: roles/rust-systems-spec/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  sabotage-qa-tester:
+    title: Adversarial Red-Proof Sabotage Tester
+    domain: qa
+    department: Quality Assurance & Verification
+    rig: qa-and-verification-gauntlet
+    pod: qa
+    session: qa-sabotage-qa-tester@qa-and-verification-gauntlet
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - release-qa-officer
+    - system-architect
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: requesting-code-review
+        source: superpowers
+      - id: verification-before-completion
+        source: superpowers
+      - id: mutation-testing
+        source: tob
+      - id: property-based-testing
+        source: tob
+      role_local:
+      - id: adversarial-mutation-sabotage
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - tests/chaos/*
+      - docs/qa/*
+      bash_allow:
+      - npx stryker run*
+      - cargo mutants*
+      - mutmut run*
+      - npm test*
+      - pytest*
+      - cargo test*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/sabotage-qa-tester/AGENTS.md
+      opencode_json: roles/sabotage-qa-tester/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  sre-incident-eng:
+    title: Site Reliability Engineer (SRE)
+    domain: cloud-sre
+    department: Cloud, Platform & Site Reliability
+    rig: cloud-sre-and-data-platform
+    pod: sre
+    session: sre-sre-incident-eng@cloud-sre-and-data-platform
+    pod_lead: true
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - cloud-platform-eng
+    - exec-director
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared: []
+      role_local:
+      - id: blameless-incident-triage-and-postmortem
+        source: heretek-crew
+    mcp:
+    - server: prometheus
+    permissions:
+      path_write:
+      - docs/incidents/*
+      - docs/runbooks/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/sre-incident-eng/AGENTS.md
+      opencode_json: roles/sre-incident-eng/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  static-analysis-lead:
+    title: Code Style & Static Analysis Lead
+    domain: qa
+    department: Quality Assurance & Verification
+    rig: qa-and-verification-gauntlet
+    pod: qa
+    session: qa-static-analysis-lead@qa-and-verification-gauntlet
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - release-qa-officer
+    - system-architect
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: code-review
+        source: heretek-crew
+      - id: semgrep
+        source: tob
+      - id: semgrep-rule-creator
+        source: tob
+      - id: semgrep-rule-variant-creator
+        source: tob
+      - id: codeql
+        source: tob
+      - id: sarif-parsing
+        source: tob
+      role_local:
+      - id: custom-semgrep-rule-authoring
+        source: heretek-crew
+    mcp:
+    - server: semgrep
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - '*.eslintrc.json'
+      - '*eslint.config.js'
+      - rules/*
+      - biome.json
+      - ruff.toml
+      bash_allow:
+      - semgrep --config*
+      - npx biome check*
+      - ruff check*
+      - cargo clippy*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/static-analysis-lead/AGENTS.md
+      opencode_json: roles/static-analysis-lead/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  system-architect:
+    title: System Architect
+    domain: executive
+    department: Executive & Product Management
+    rig: executive-and-architecture
+    pod: exec
+    session: exec-system-architect@executive-and-architecture
+    pod_lead: false
+    reports_to:
+      role: exec-director
+      address: exec-exec-director@executive-and-architecture
+      same_rig: true
+    collaborators:
+    - exec-director
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: xhigh
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: brainstorming
+        source: superpowers
+      - id: writing-plans
+        source: superpowers
+      - id: executing-plans
+        source: superpowers
+      role_local:
+      - id: madr-architecture-decision
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: context7
+    permissions:
+      path_write:
+      - docs/adr/*
+      - docs/architecture/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/system-architect/AGENTS.md
+      opencode_json: roles/system-architect/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  tech-artist-pipeline:
+    title: Technical Artist & Asset Pipeline Lead
+    domain: gamedev
+    department: Game Development
+    rig: game-dev-and-sim-rig
+    pod: gameplay
+    session: gameplay-tech-artist-pipeline@game-dev-and-sim-rig
+    pod_lead: false
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - game-systems-dev
+    - graphics-shader-eng
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: gltf-asset-optimization
+        source: heretek-crew
+    mcp: []
+    permissions:
+      path_write:
+      - assets/*
+      - tools/asset-pipeline/*
+      bash_allow:
+      - gltf-transform*
+      - node tools/asset-pipeline/*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/tech-artist-pipeline/AGENTS.md
+      opencode_json: roles/tech-artist-pipeline/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  tech-docs-lead:
+    title: Technical Documentation Lead
+    domain: executive
+    department: Executive & Product Management
+    rig: executive-and-architecture
+    pod: delivery
+    session: delivery-tech-docs-lead@executive-and-architecture
+    pod_lead: false
+    reports_to:
+      role: product-director
+      address: exec-product-director@executive-and-architecture
+      same_rig: true
+    collaborators:
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared:
+      - id: doc-coauthoring
+        source: anthropic
+      role_local:
+      - id: docs-as-code-synchronization
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - docs/*
+      - docs/*.md
+      bash_allow:
+      - markdownlint*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/tech-docs-lead/AGENTS.md
+      opencode_json: roles/tech-docs-lead/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  threat-modeler:
+    title: Threat Modeling & Hardening Engineer
+    domain: security
+    department: Defensive Security, Binary Analysis & Forensics
+    rig: defensive-sec-and-red-team
+    pod: blue
+    session: blue-threat-modeler@defensive-sec-and-red-team
+    pod_lead: true
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - exec-director
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: xhigh
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared:
+      - id: security-audit
+        source: heretek-crew
+      - id: entry-point-analyzer
+        source: tob
+      - id: audit-context-building
+        source: tob
+      role_local:
+      - id: stride-threat-modeling
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: github
+      toolset: repos
+      readonly: true
+    permissions:
+      path_write:
+      - docs/security/threat-models/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/threat-modeler/AGENTS.md
+      opencode_json: roles/threat-modeler/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  tpm-scrum-lead:
+    title: Technical Product Manager / Scrum Lead
+    domain: executive
+    department: Executive & Product Management
+    rig: executive-and-architecture
+    pod: delivery
+    session: delivery-tpm-scrum-lead@executive-and-architecture
+    pod_lead: true
+    reports_to:
+      role: product-director
+      address: exec-product-director@executive-and-architecture
+      same_rig: true
+    collaborators:
+    - e2e-browser-qa
+    - product-director
+    - rust-systems-spec
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 3600
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      - openrig-user
+      - forming-an-openrig-mental-model
+      - agent-operated-workflows
+      shared:
+      - id: dispatching-parallel-agents
+        source: superpowers
+      - id: git-flow
+        source: heretek-crew
+      role_local:
+      - id: planning-with-files
+        source: heretek-crew
+      - id: sprint-ticket-decomposition
+        source: heretek-crew
+    mcp:
+    - server: github
+      toolset: issues
+      readonly: true
+    - server: memory
+    permissions:
+      path_write:
+      - docs/sprints/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/tpm-scrum-lead/AGENTS.md
+      opencode_json: roles/tpm-scrum-lead/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  ts-node-fullstack:
+    title: TypeScript / Node Fullstack Engineer
+    domain: languages
+    department: Specialized Language Engineers
+    rig: fullstack-and-web-studio
+    pod: build
+    session: build-ts-node-fullstack@fullstack-and-web-studio
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - dba-specialist
+    - design-system-eng
+    - system-architect
+    - tpm-scrum-lead
+    - ui-ux-designer
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared:
+      - id: nextjs-dev
+        source: heretek-crew
+      - id: systematic-debugging
+        source: superpowers
+      - id: tailwind-ui
+        source: heretek-crew
+      - id: test-driven-development
+        source: superpowers
+      - id: typescript-astro
+        source: heretek-crew
+      - id: react-best-practices
+        source: vercel
+      - id: receiving-code-review
+        source: superpowers
+      role_local:
+      - id: end-to-end-type-safe-fullstack
+        source: heretek-crew
+    mcp:
+    - server: codebase-memory
+    - server: context7
+    permissions:
+      path_write:
+      - src/*
+      - package.json
+      bash_allow:
+      - npm run build*
+      - npm test*
+      - npx tsc*
+      - npx vitest*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/ts-node-fullstack/AGENTS.md
+      opencode_json: roles/ts-node-fullstack/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lsp-extension@1.4.0
+    - pi-ast-grep@0.1.0
+    model: opencode-go/muse-spark-1.3-contributor:high
+  ui-ux-designer:
+    title: UI/UX Designer & Prototyper
+    domain: web-design
+    department: Web & UI/UX Design
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-ui-ux-designer@fullstack-and-web-studio
+    pod_lead: true
+    reports_to:
+      role: tpm-scrum-lead
+      address: delivery-tpm-scrum-lead@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - a11y-specialist
+    - design-system-eng
+    - product-director
+    - ts-node-fullstack
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      - messaging-the-human
+      - orienting-to-an-inherited-seat
+      - session-compaction-and-restore
+      shared:
+      - id: tailwind-ui
+        source: heretek-crew
+      - id: typescript-astro
+        source: heretek-crew
+      - id: frontend-design
+        source: anthropic
+      - id: web-design-guidelines
+        source: vercel
+      role_local:
+      - id: tailwind-ui-prototyping
+        source: heretek-crew
+    mcp:
+    - server: chrome-devtools
+    - server: playwright
+    permissions:
+      path_write:
+      - src/components/*
+      - src/assets/*
+      bash_allow:
+      - npm run build*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/ui-ux-designer/AGENTS.md
+      opencode_json: roles/ui-ux-designer/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  ux-research-analyst:
+    title: User Research & Feedback Analyst
+    domain: executive
+    department: Executive & Product Management
+    rig: fullstack-and-web-studio
+    pod: design
+    session: design-ux-research-analyst@fullstack-and-web-studio
+    pod_lead: false
+    reports_to:
+      role: product-director
+      address: exec-product-director@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - a11y-specialist
+    - product-director
+    - tpm-scrum-lead
+    permission_policy: builtin:locked
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: feedback-clustering-analysis
+        source: heretek-crew
+    mcp:
+    - server: duckdb
+    - server: github
+      toolset: issues
+      readonly: true
+    permissions:
+      path_write:
+      - docs/research/*
+      bash_allow:
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/ux-research-analyst/AGENTS.md
+      opencode_json: roles/ux-research-analyst/opencode/opencode.json
+    readonly_charter: true
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
+  vector-rag-spec:
+    title: Vector Search & RAG Specialist
+    domain: data-ai
+    department: Data & AI Systems
+    rig: cloud-sre-and-data-platform
+    pod: ml
+    session: ml-vector-rag-spec@cloud-sre-and-data-platform
+    pod_lead: false
+    reports_to:
+      role: system-architect
+      address: exec-system-architect@executive-and-architecture
+      same_rig: false
+    collaborators:
+    - mlops-serving-eng
+    - python-backend-spec
+    - system-architect
+    - tpm-scrum-lead
+    permission_policy: builtin:standard
+    thinking: high
+    heartbeat_sec: 0
+    skills:
+      openrig_core:
+      - openrig-operating-model
+      - mission-slice-sop
+      - delegating-work
+      - queue-handoff
+      - refocusing
+      - seat-continuity-and-handover
+      shared: []
+      role_local:
+      - id: rag-retrieval-evaluation
+        source: heretek-crew
+    mcp:
+    - server: qdrant
+    - server: codebase-memory
+    permissions:
+      path_write:
+      - src/rag/*
+      - tests/rag/*
+      bash_allow:
+      - pytest tests/rag*
+      - rig whoami*
+      - rig ps*
+      - rig queue *
+      - rig send *
+      - rig capture *
+      - rig transcript *
+      - git status*
+      - git diff --stat*
+      - git diff --name-only*
+      - git log --oneline*
+      - git show --stat*
+    source:
+      charter: roles/vector-rag-spec/AGENTS.md
+      opencode_json: roles/vector-rag-spec/opencode/opencode.json
+    readonly_charter: false
+    pi_packages:
+    - '@gotgenes/pi-permission-system@41.0.0'
+    model: opencode-go/muse-spark-1.3-contributor:high
