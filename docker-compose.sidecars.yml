@@ -18,8 +18,9 @@ services:
     image: tecnativa/docker-socket-proxy:0.5.0
     profiles: ["qa-testing"]
     # HR-7.2 (fail-closed): every Tecnativa toggle pinned explicitly to "0".
-    # Unset toggles fall back to upstream image defaults (unverified), so the
-    # full set is enumerated here per tecnativa/docker-socket-proxy:0.5.0 README.
+    # Unset toggles fall back to upstream image defaults — EVENTS, PING and
+    # VERSION default to 1 upstream, so all three are denied here. The 20-key
+    # set is enumerated per tecnativa/docker-socket-proxy:0.5.0 README/haproxy.cfg.
     environment:
       POST: "0"
       BUILD: "0"
@@ -39,6 +40,8 @@ services:
       CONFIGS: "0"
       SECRETS: "0"
       PLUGINS: "0"
+      EVENTS: "0"
+      VERSION: "0"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
