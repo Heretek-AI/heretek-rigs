@@ -1,0 +1,44 @@
+{
+  "$id": "https://openrig.dev/schemas/bundle-behaviour/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "openrig.bundle-behaviour/v1 (heretek-rigs restored baseline)",
+  "type": "object",
+  "required": ["schema", "state", "identity", "team", "posture", "toldFiles"],
+  "properties": {
+    "schema": {"const": "openrig.bundle-behaviour/v1"},
+    "state": {"type": "string"},
+    "identity": {
+      "type": "object",
+      "required": ["source", "configurationId", "packageDigest"],
+      "properties": {
+        "source": {"type": "object"},
+        "configurationId": {"type": "string", "minLength": 1},
+        "packageDigest": {
+          "type": "object",
+          "required": ["algorithm", "value", "coverage"],
+          "properties": {
+            "algorithm": {"const": "sha256"},
+            "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+            "coverage": {"const": "openrig.package-digest/v1"}
+          },
+          "additionalProperties": true
+        },
+        "assembler": {"type": "object"},
+        "generator": {"type": "object"},
+        "compatibility": {"type": "object"},
+        "statedProvenance": {"type": "object"},
+        "integrity": {"type": "object"}
+      },
+      "additionalProperties": true
+    },
+    "team": {"type": "array"},
+    "posture": {"type": "array"},
+    "toldFiles": {"type": "array"},
+    "alsoRuns": {"type": "array"},
+    "writes": {"type": "array"},
+    "outsideAddresses": {"type": "array"},
+    "needs": {"type": "array"},
+    "unknownBeforeLaunch": {"type": "array"}
+  },
+  "additionalProperties": true
+}

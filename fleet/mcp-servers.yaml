@@ -4,7 +4,10 @@
 #   @TOOLS@    -> $HERETEK_TOOLS   (default ~/.local/share/heretek-rigs/tools; npm MCP servers live in @TOOLS@/mcp)
 #   @SECRETS@  -> $HERETEK_SECRETS (default ~/.config/heretek-rigs/secrets; every file mode 0600)
 #   @SEAT@     -> the seat's state dir ($OPENRIG_HOME/state/pi/<pod>-<member>@<rig>)
-# Secrets are NEVER literal values here. A secret value is always a whole-value command: "!cat @SECRETS@/<file>".
+# Secrets are NEVER literal values here. A secret value is a command-backed reference:
+#   - whole-value: "!cat @SECRETS@/<file>" (auth.json key, most envs, most headers), or
+#   - Authorization header: "!echo Bearer $(cat @SECRETS@/<file>)" (GitHub only; file holds the bare token).
+# Plain "@SECRETS@/<file>" file-path envs (e.g. AWS_CONFIG_FILE, KUBECONFIG) are also allowed.
 # Pi runs that command itself when it connects, so the secret never enters rig.yaml env:, git, or the seat's env.
 #
 # status:

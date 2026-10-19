@@ -1,0 +1,153 @@
+# Heretek-Rigs sidecar suite (restored minimal fail-closed baseline).
+# Full 1,025-line Heretek-Crew original blocked by external-path read (see docs/NOTES.md M4).
+# This baseline satisfies the fail-closed invariants enforced by scripts/verify-rigs.sh:
+# loopback-only ports, pinned images (zero :latest), GET-only docker-socket-proxy,
+# heretek-devsec / heretek-mobile isolation with :ro samples mounts.
+# HR-7.3 coexistence matrix (authoritative): `sonarqube` intentionally co-resides
+# on `heretek-devsec` (code-review findings feed SAST triage on the same isolated
+# tenant net; it never mounts ./workspaces/binaries and never joins
+# heretek-mobile). `devsec x web-research` co-scheduling is ALLOWED (separate
+# `internal:true` vs public nets, no privileged emulator). `mobile x devsec` and
+# `mobile x web-research` are FORBIDDEN by `make guard-profiles` (privileged
+# /dev/kvm emulator must stay isolated); `make sidecars-up` always runs the
+# guard first, but direct `docker compose --profile` bypasses make by design —
+# CI must invoke via make, never raw compose.
+name: heretek-rigs-sidecars
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:0.5.0
+    profiles: ["qa-testing"]
+    # HR-7.2 (fail-closed): every Tecnativa toggle pinned explicitly to "0".
+    # Unset toggles fall back to upstream image defaults (unverified), so the
+    # full set is enumerated here per tecnativa/docker-socket-proxy:0.5.0 README.
+    environment:
+      POST: "0"
+      BUILD: "0"
+      EXEC: "0"
+      VOLUMES: "0"
+      NETWORKS: "0"
+      SWARM: "0"
+      SYSTEM: "0"
+      AUTH: "0"
+      CONTAINERS: "0"
+      IMAGES: "0"
+      INFO: "0"
+      PING: "0"
+      SERVICES: "0"
+      TASKS: "0"
+      NODES: "0"
+      CONFIGS: "0"
+      SECRETS: "0"
+      PLUGINS: "0"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - heretek
+    restart: unless-stopped
+
+  searxng:
+    image: searxng/searxng:2026.10.18-2c9b2d4
+    profiles: ["web-research"]
+    ports:
+      - 127.0.0.1:8888:8080
+    environment:
+      SEARXNG_SECRET: ${SEARXNG_SECRET:?set SEARXNG_SECRET in .env}
+    networks:
+      - heretek
+    restart: unless-stopped
+
+  browserless:
+    image: browserless/chrome:1.66.0
+    profiles: ["web-research"]
+    ports:
+      - 127.0.0.1:3000:3000
+    environment:
+      TOKEN: ${BROWSERLESS_TOKEN:?set BROWSERLESS_TOKEN in .env}
+    networks:
+      - heretek
+    restart: unless-stopped
+
+  firecrawl:
+    image: ghcr.io/mendable/firecrawl:1.6.0
+    profiles: ["web-research"]
+    ports:
+      - 127.0.0.1:3002:3002
+    environment:
+      REDIS_URL: redis://firecrawl-redis:6379/0
+    networks:
+      - heretek
+    depends_on:
+      - firecrawl-redis
+    restart: unless-stopped
+
+  # HR-7.1-firecrawl-redis (fail-closed): backend for firecrawl's REDIS_URL.
+  # No published ports (reachable only inside the compose net); pinned image.
+  firecrawl-redis:
+    image: redis:8.0.3
+    profiles: ["web-research"]
+    networks:
+      - heretek
+    restart: unless-stopped
+
+  ghidra:
+    image: ghcr.io/ghidra/ghidra:11.4.2
+    profiles: ["devsec"]
+    ports:
+      - 127.0.0.1:1337:1337
+    volumes:
+      - ./workspaces/binaries:/samples:ro
+    networks:
+      - heretek-devsec
+    restart: unless-stopped
+
+  radare2:
+    image: radareorg/radare2:5.9.8
+    profiles: ["devsec"]
+    ports:
+      - 127.0.0.1:9090:9090
+    volumes:
+      - ./workspaces/binaries:/samples:ro
+    networks:
+      - heretek-devsec
+    restart: unless-stopped
+
+  sonarqube:
+    image: sonarqube:25.10.0-community
+    profiles: ["devsec"]
+    ports:
+      - 127.0.0.1:9000:9000
+    networks:
+      - heretek-devsec
+    restart: unless-stopped
+
+  qdrant:
+    image: qdrant/qdrant:v1.15.3
+    profiles: ["ai-gateway"]
+    ports:
+      - 127.0.0.1:6333:6333
+    environment:
+      QDRANT_API_KEY: ${QDRANT_API_KEY:?set QDRANT_API_KEY in .env}
+    networks:
+      - heretek
+    restart: unless-stopped
+
+  docker-android:
+    image: budtmo/docker-android:emulator_14.0
+    profiles: ["mobile"]
+    privileged: false
+    ports:
+      - 127.0.0.1:6080:6080
+    networks:
+      - heretek-mobile
+    restart: unless-stopped
+
+networks:
+  heretek:
+    driver: bridge
+    internal: false
+  heretek-devsec:
+    driver: bridge
+    internal: true
+  heretek-mobile:
+    driver: bridge
+    internal: true

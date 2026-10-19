@@ -428,7 +428,109 @@ omni:
     from_rig: defensive-sec-and-red-team
   - pod: red
     from_rig: defensive-sec-and-red-team
-  member_fragments: every role in roles (51), attached with rig add into a compatible pod
+  member_fragments:
+  - role: a11y-specialist
+    pod: design
+  - role: ai-red-teamer
+    pod: red
+  - role: analytics-metrics-eng
+    pod: data
+  - role: android-mobile-spec
+    pod: mobile
+  - role: api-contract-tester
+    pod: qa
+  - role: appsec-engineer
+    pod: blue
+  - role: binary-reverse-eng
+    pod: red
+  - role: brand-copy-spec
+    pod: design
+  - role: cache-streaming-eng
+    pod: data
+  - role: cloud-platform-eng
+    pod: platform
+  - role: cloud-sec-auditor
+    pod: blue
+  - role: compliance-auditor
+    pod: blue
+  - role: cpp-lowlevel-eng
+    pod: systems
+  - role: data-pipeline-eng
+    pod: data
+  - role: dba-specialist
+    pod: data
+  - role: dependency-patcher
+    pod: platform
+  - role: design-system-eng
+    pod: design
+  - role: e2e-browser-qa
+    pod: qa
+  - role: engine-systems-eng
+    pod: engine
+  - role: exec-director
+    pod: exec
+  - role: fe-perf-eng
+    pod: design
+  - role: firmware-sec-analyst
+    pod: red
+  - role: game-ai-dev
+    pod: gameplay
+  - role: game-systems-dev
+    pod: gameplay
+  - role: git-drift-coord
+    pod: delivery
+  - role: go-backend-eng
+    pod: build
+  - role: graphics-shader-eng
+    pod: engine
+  - role: ios-mobile-spec
+    pod: mobile
+  - role: java-kotlin-eng
+    pod: build
+  - role: k8s-orchestrator
+    pod: platform
+  - role: load-stress-tester
+    pod: qa
+  - role: mlops-serving-eng
+    pod: ml
+  - role: mobile-web-eng
+    pod: design
+  - role: observability-eng
+    pod: sre
+  - role: physics-sim-eng
+    pod: engine
+  - role: product-director
+    pod: exec
+  - role: python-backend-spec
+    pod: build
+  - role: release-qa-officer
+    pod: qa
+  - role: rust-systems-spec
+    pod: systems
+  - role: sabotage-qa-tester
+    pod: qa
+  - role: sre-incident-eng
+    pod: sre
+  - role: static-analysis-lead
+    pod: qa
+  - role: system-architect
+    pod: exec
+  - role: tech-artist-pipeline
+    pod: gameplay
+  - role: tech-docs-lead
+    pod: delivery
+  - role: threat-modeler
+    pod: blue
+  - role: tpm-scrum-lead
+    pod: delivery
+  - role: ts-node-fullstack
+    pod: build
+  - role: ui-ux-designer
+    pod: design
+  - role: ux-research-analyst
+    pod: design
+  - role: vector-rag-spec
+    pod: ml
   summary: Master composable 51-agent omni-fleet topology booting a 3-seat command center with 15 pod fragments and 51 member
     fragments for dynamic scaling.
   permission_policy: builtin:standard

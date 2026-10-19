@@ -1,0 +1,18 @@
+{
+  "$id": "https://openrig.dev/schemas/agent-manifest/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "openrig.agent-manifest/v1 (heretek-rigs restored baseline)",
+  "type": "object",
+  "required": ["name", "version"],
+  "properties": {
+    "name": {"type": "string"},
+    "version": {"const": "1.0"},
+    "description": {"type": "string"},
+    "defaults": {"type": "object"},
+    "imports": {"type": "array"},
+    "profiles": {"type": "object"},
+    "resources": {"type": "object"},
+    "startup": {"type": "object"}
+  },
+  "additionalProperties": true
+}

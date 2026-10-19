@@ -1,0 +1,31 @@
+{
+  "$id": "https://openrig.dev/schemas/registry-entry/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "openrig.registry-entry/v1 (heretek-rigs restored baseline)",
+  "type": "object",
+  "required": ["schema", "slug", "name", "source", "configurations", "status"],
+  "properties": {
+    "schema": {"const": "openrig.registry-entry/v1"},
+    "slug": {"type": "string"},
+    "name": {"type": "string"},
+    "summary": {"type": "string"},
+    "source": {"type": "object"},
+    "configurations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "packageDigest", "behaviour"],
+        "properties": {
+          "id": {"type": "string"},
+          "packageDigest": {"type": "object"},
+          "behaviour": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "review": {"type": "object"},
+    "status": {"type": "string"}
+  },
+  "additionalProperties": true
+}

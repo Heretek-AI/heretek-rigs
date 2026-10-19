@@ -1,0 +1,19 @@
+{
+  "$id": "https://openrig.dev/schemas/bundle-common/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "openrig.bundle-common/v1 (heretek-rigs restored baseline)",
+  "type": "object",
+  "properties": {
+    "configurationId": {"type": "string"},
+    "packageDigest": {
+      "type": "object",
+      "required": ["algorithm", "value", "coverage"],
+      "properties": {
+        "algorithm": {"const": "sha256"},
+        "value": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "coverage": {"const": "openrig.package-digest/v1"}
+      }
+    }
+  },
+  "additionalProperties": true
+}

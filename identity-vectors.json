@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "notice": "Pinned digest test vectors for heretek-rigs (HR-3.3). These vectors pin the UTF-16 code-unit sort order, the JCS-shaped canonical form, and the package-digest coverage string that scripts/generate-rigs.py and scripts/verify-rigs.sh must agree on. scripts/verify-rigs.sh replays every vector and fails closed on mismatch.",
+  "vectors": {
+    "utf16_configuration_id": {
+      "description": "configurationId joins k=v pairs sorted by UTF-16 code units (A=65 < a=97 < b=98).",
+      "input": {
+        "b": "pi",
+        "A": "pi",
+        "a": "pi"
+      },
+      "expected": "A=pi,a=pi,b=pi"
+    },
+    "jcs_canonical_form": {
+      "description": "Canonical JSON of {b:2,a:1} under sort_keys + compact separators (RFC 8785 shape for float-free bodies).",
+      "input": {
+        "b": 2,
+        "a": 1
+      },
+      "expected": "{\"a\":1,\"b\":2}"
+    },
+    "package_digest_coverage": {
+      "description": "Coverage string every packageDigest must carry.",
+      "expected": "openrig.package-digest/v1"
+    },
+    "package_digest_algorithm": {
+      "description": "Hash algorithm every packageDigest must use.",
+      "expected": "sha256"
+    }
+  }
+}

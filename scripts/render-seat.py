@@ -1,0 +1,482 @@
+#!/usr/bin/env python3
+"""render-seat.py — Render one Pi seat's isolated agentDir for OpenRig + OpenCode Go.
+
+Renders into $OPENRIG_HOME/state/pi/<pod>-<member>@<rig>/agent/ (all files mode 0600):
+  1. auth.json: command-backed API key ("!cat <SECRETS>/opencode-go.key"), never a literal secret.
+  2. models.json: OpenCode Go provider definition (api: openai-responses, model: muse-spark-1.3-contributor).
+  3. mcp.json: Pi built-in MCP config from fleet/mcp-servers.yaml with @TOOLS@, @SECRETS@, @SEAT@ resolved.
+  4. settings.json: defaultProvider, defaultModel, defaultThinkingLevel, defaultTools, packages, quietStartup.
+  5. extensions/pi-permission-system/config.json: fail-closed @gotgenes/pi-permission-system@41.0.0 rules with
+     mandatory "*..*": "deny" placed LAST in path_write and path, read-only AST/LSP tools allowed where configured,
+     and mutating AST/LSP tools (code_rewrite, lsp_rename, lsp_code_actions) explicitly denied.
+  6. AGENTS.md: Role charter from specs/agents/<domain>/<role>/guidance/role.md plus seat address & escalation block
+     (avoiding OpenRig's shared-<cwd> guidance_merge collision).
+"""
+
+import os
+import shutil
+import sys
+
+try:
+    import yaml
+except ImportError:
+    if shutil.which("uv") and not os.environ.get("_HERETEK_UV_REEXEC"):
+        os.environ["_HERETEK_UV_REEXEC"] = "1"
+        os.execvp(
+            "uv",
+            [
+                "uv",
+                "run",
+                "--quiet",
+                "--with",
+                "pyyaml",
+                "--with",
+                "jsonschema",
+                "python3",
+                *sys.argv,
+            ],
+        )
+    raise
+
+import argparse
+import json
+import re
+from pathlib import Path
+
+USAGE = """usage: render-seat.py --role <role-id> --rig <rig-id> --pod <pod-id> [options]
+  --member <id>            member id in the rig (default: the role id)
+  --fleet <file>           default fleet/fleet.yaml
+  --mcp <file>             default fleet/mcp-servers.yaml
+  --charter <file>         default specs/agents/<domain>/<role>/guidance/role.md
+  --out <dir>              default $OPENRIG_HOME/state/pi/<pod>-<member>@<rig>/agent
+  --model-provider <p>     default opencode-go (tests use: mock)
+  --model-id <id>          default muse-spark-1.3-contributor (tests use: mock-model)
+  --allow-missing-secrets  write servers whose secret files are missing with "enabled": false
+  --dry-run                print the rendered files as JSON instead of writing them
+  --help"""
+
+READONLY_AST_LSP_TOOLS = [
+    "ast_grep",
+    "ast_search",
+    "code_overview",
+    "lsp_diagnostics",
+    "lsp_hover",
+    "lsp_definition",
+    "lsp_references",
+    "lsp_symbols",
+    "lsp_completions",
+]
+
+MUTATING_AST_LSP_TOOLS = [
+    "code_rewrite",
+    "lsp_rename",
+    "lsp_code_actions",
+]
+
+
+def die(msg: str) -> None:
+    print(f"error: {msg}", file=sys.stderr)
+    sys.exit(2)
+
+
+def build_seat_files(
+    role_id: str,
+    rig_id: str,
+    pod_id: str,
+    member_id: str,
+    fleet_data: dict,
+    mcp_catalog: dict,
+    tools_dir: str,
+    secrets_dir: str,
+    seat_dir: str,
+    charter_text: str,
+    model_provider: str = "opencode-go",
+    model_id: str = "muse-spark-1.3-contributor",
+    allow_missing_secrets: bool = False,
+    check_secret_fs: bool = True,
+) -> dict:
+    if role_id not in fleet_data.get("roles", {}):
+        die(f"unknown role {role_id}")
+    role = fleet_data["roles"][role_id]
+
+    for ident in (pod_id, member_id):
+        if re.search(r"[.@]", ident):
+            die(f"pod/member ids must not contain '.' or '@': {ident}")
+
+    session = f"{pod_id}-{member_id}@{rig_id}"
+    pps_pkg = str(
+        Path(tools_dir) / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+    )
+
+    def secret_ok(filename: str) -> bool:
+        if not check_secret_fs:
+            return False
+        p = Path(secrets_dir) / filename
+        if not p.exists():
+            return False
+        mode = p.stat().st_mode & 0o777
+        if mode & 0o077:
+            die(f"{p} is mode {oct(mode)[2:]}; run: chmod 600 {p}")
+        return True
+
+    def subst(val):
+        if isinstance(val, str):
+            return (
+                val.replace("@TOOLS@", tools_dir)
+                .replace("@SECRETS@", secrets_dir)
+                .replace("@SEAT@", seat_dir)
+            )
+        return val
+
+    files = {}
+
+    # 1. auth.json & models.json
+    if model_provider == "opencode-go":
+        has_key = secret_ok("opencode-go.key")
+        if not has_key and not allow_missing_secrets:
+            die(f"missing {Path(secrets_dir) / 'opencode-go.key'} (chmod 600)")
+        files["auth.json"] = {
+            "opencode-go": {
+                "type": "api_key",
+                "key": f"!cat {Path(secrets_dir) / 'opencode-go.key'}",
+            }
+        }
+        files["models.json"] = {
+            "providers": {
+                "opencode-go": {
+                    "api": "openai-responses",
+                    "baseUrl": "https://opencode.ai/inference/go/v1",
+                    "models": [
+                        {
+                            "id": "muse-spark-1.3-contributor",
+                            "name": "Muse Spark 1.3 Contributor",
+                            "reasoning": True,
+                            "input": ["text", "image"],
+                            "thinkingLevelMap": {
+                                "off": None,
+                                "minimal": "minimal",
+                                "low": "low",
+                                "medium": "medium",
+                                "high": "high",
+                                "xhigh": "xhigh",
+                                "max": None,
+                            },
+                            "contextWindow": 1048576,
+                            "maxTokens": 131072,
+                            "cost": {
+                                "input": 0.10,
+                                "output": 0.20,
+                                "cacheRead": 0.002,
+                                "cacheWrite": 0,
+                            },
+                            "compat": {
+                                "supportsDeveloperRole": True,
+                                "sendSessionIdHeader": True,
+                                "supportsLongCacheRetention": True,
+                                "sessionAffinityFormat": "openai-nosession",
+                            },
+                        }
+                    ],
+                }
+            }
+        }
+
+    # 2. mcp.json
+    mcp_servers = {}
+    mcp_allow = {"*": "deny"}
+    deferred = False
+    for b in role.get("mcp", []):
+        srv_name = b["server"]
+        if srv_name not in mcp_catalog:
+            die(f"role {role_id} binds unknown MCP server {srv_name}")
+        s = mcp_catalog[srv_name]
+        need = s.get("required_secrets", [])
+        missing = [f for f in need if not secret_ok(f)]
+        toolset = b.get("toolset", "")
+        entry = {
+            "description": subst(s["description"]).replace("{toolset}", toolset),
+            "exposure": s["exposure"],
+        }
+        if s["transport"] == "http":
+            entry["url"] = s["url_template"].replace("{toolset}", toolset or "repos")
+            entry["headers"] = {k: subst(v) for k, v in s.get("headers", {}).items()}
+        else:
+            entry["command"] = subst(s["command"])
+            entry["args"] = [subst(x) for x in s.get("args", [])]
+            if any(str(x).startswith("!") for x in entry["args"]):
+                die(f"{srv_name}: Pi never expands !command in args")
+            if "env" in s:
+                entry["env"] = {k: subst(v) for k, v in s["env"].items()}
+
+        for opt_sec in s.get("optional_secrets", []):
+            if not secret_ok(opt_sec) and "env" in entry:
+                for k in list(entry["env"].keys()):
+                    if opt_sec in str(entry["env"][k]):
+                        del entry["env"][k]
+
+        if missing:
+            if not allow_missing_secrets:
+                missing_paths = ", ".join(str(Path(secrets_dir) / f) for f in missing)
+                die(f"{srv_name} needs {missing_paths}")
+            entry["enabled"] = False
+            if check_secret_fs:
+                print(
+                    f"warn: {session}: {srv_name} disabled, missing secrets: {', '.join(missing)}",
+                    file=sys.stderr,
+                )
+
+        mcp_servers[srv_name] = entry
+        mcp_allow[srv_name] = "allow"
+        if s["exposure"] == "deferred":
+            deferred = True
+
+    files["mcp.json"] = {"mcpServers": mcp_servers}
+
+    # 3. settings.json
+    tools = ["read", "grep", "find", "ls", "bash", "edit", "write"]
+    if deferred:
+        tools.append("tool_search")
+
+    packages = [pps_pkg]
+    role_pkgs = role.get("pi_packages", ["@gotgenes/pi-permission-system@41.0.0"])
+    has_ast_lsp = any(
+        p.startswith(("pi-lsp-extension", "pi-ast-grep")) for p in role_pkgs
+    )
+    for pkg in role_pkgs:
+        if pkg.startswith("@gotgenes/pi-permission-system"):
+            continue
+        pkg_name = (
+            pkg.split("@")[0]
+            if not pkg.startswith("@")
+            else "@" + pkg[1:].split("@")[0]
+        )
+        candidate = Path(tools_dir) / "pi-packages/node_modules" / pkg_name
+        if candidate.exists():
+            packages.append(str(candidate))
+
+    files["settings.json"] = {
+        "defaultProvider": model_provider,
+        "defaultModel": model_id,
+        "defaultThinkingLevel": role["thinking"],
+        "defaultTools": tools,
+        "packages": packages,
+        "quietStartup": True,
+    }
+
+    # 4. extensions/pi-permission-system/config.json
+    # Last matching rule wins inside each map; guards MUST go LAST.
+    path_write = {"*": "deny"}
+    for g in role["permissions"]["path_write"]:
+        path_write[g] = "allow"
+    for guard_k in (
+        ".git/*",
+        "*/.git/*",
+        "AGENTS.md",
+        "*/AGENTS.md",
+        ".pi/*",
+        "*/.pi/*",
+        ".agents/*",
+        "*/.agents/*",
+        "fleet/*",
+        "scripts/*",
+        "*..*",
+    ):
+        path_write.pop(guard_k, None)
+        path_write[guard_k] = "deny"
+
+    bash_map = {"*": "deny"}
+    for p in role["permissions"]["bash_allow"]:
+        # HR-5.5 (fail-closed): never emit a shell-metachar allowlist entry —
+        # `; & | $` backticks, parens, newlines, redirections (`>`, `<`),
+        # backslash, `!`, `#`, `~`, braces, brackets, `?`, or CR could chain
+        # out of a trailing-* prefix under prefix-glob matcher semantics.
+        if re.search(r"[;&|$`()\n><\\!#~{}\[\]?\r]", p) or "$(" in p:
+            die(f"{role_id}: bash_allow pattern contains shell metachar: {p!r}")
+        # HR-5.5-render-output-allow (fail-closed): `--output=` smuggles a file
+        # write past path_write under prefix-glob matcher semantics — reject at
+        # generation time, not only in the verifier (direct render-seat.py use
+        # must never materialize the escape).
+        if "--output" in p:
+            die(
+                f"{role_id}: bash_allow pattern contains forbidden --output write-escape: {p!r}"
+            )
+        bash_map[p] = "allow"
+
+    permission = {
+        "*": "deny",
+        "read": "allow",
+        "grep": "allow",
+        "find": "allow",
+        "ls": "allow",
+        "write": "allow",
+        "edit": "allow",
+    }
+    if has_ast_lsp:
+        for t_ro in READONLY_AST_LSP_TOOLS:
+            permission[t_ro] = "allow"
+    for t_mut in MUTATING_AST_LSP_TOOLS:
+        permission[t_mut] = "deny"
+    if deferred:
+        permission["tool_search"] = "allow"
+
+    permission["bash"] = bash_map
+    permission["path"] = {
+        "*": "allow",
+        "*.env": "deny",
+        "*.env.*": "deny",
+        "*.env.example": "allow",
+        "*.pem": "deny",
+        "*.key": "deny",
+        "*id_rsa*": "deny",
+        "*kubeconfig*": "deny",
+        "*/secrets/*": "deny",
+        # HR-5.3 (fail-closed): explicit denies for every secret-filename suffix
+        # in fleet/mcp-servers.yaml so coverage never depends on the secrets
+        # dir containing a `/secrets/` segment (default $HERETEK_SECRETS has none).
+        "*.pat": "deny",
+        "*.uri": "deny",
+        "*.profile": "deny",
+        "*.region": "deny",
+        "*.host": "deny",
+        "*.password": "deny",
+        "*.credentials": "deny",
+        "*.config": "deny",
+        # HR-5.3 (fail-closed): credential-bearing URL/user filename suffixes
+        # (e.g. prometheus.url, clickhouse.user) must never be readable even
+        # outside any */secrets/* path.
+        "*.url": "deny",
+        "*.user": "deny",
+        "*..*": "deny",
+    }
+    permission["path_write"] = path_write
+    permission["mcp"] = mcp_allow
+    permission["external_directory"] = "deny"
+
+    files["extensions/pi-permission-system/config.json"] = {
+        "promptTimeoutMs": 60000,
+        "permission": permission,
+    }
+
+    # 5. AGENTS.md: role charter + seat block (never use guidance_merge on shared cwd)
+    esc = role.get("reports_to")
+    esc_line = (
+        f'- Escalate with: `rig send {esc["address"]} "<message>"` ({esc["role"]}{", same rig" if esc.get("same_rig") else ", other rig"}).'
+        if esc
+        else "- You are the top of the escalation chain; escalate to the human."
+    )
+    writable_str = (
+        ", ".join(f"`{g}`" for g in role["permissions"]["path_write"]) or "none"
+    )
+    addr_block = "\n".join(
+        [
+            "## Seat",
+            "",
+            f"- You are `{role_id}` in seat `{session}` (rig `{rig_id}`, pod `{pod_id}`).",
+            f"- Model: {model_provider}/{model_id}, thinking {role['thinking']}. Recorded policy: {role['permission_policy']}.",
+            esc_line,
+            f"- Writable paths: {writable_str}. Everything else is read-only.",
+            "",
+        ]
+    )
+    files["AGENTS.md"] = charter_text.rstrip() + "\n\n" + addr_block
+    return files
+
+
+def main() -> None:
+    if "--help" in sys.argv or "-h" in sys.argv:
+        print(USAGE)
+        sys.exit(0)
+
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--role")
+    parser.add_argument("--rig")
+    parser.add_argument("--pod")
+    parser.add_argument("--member")
+    parser.add_argument("--fleet", default="fleet/fleet.yaml")
+    parser.add_argument("--mcp", default="fleet/mcp-servers.yaml")
+    parser.add_argument("--charter")
+    parser.add_argument("--out")
+    parser.add_argument("--model-provider", default="opencode-go")
+    parser.add_argument("--model-id", default="muse-spark-1.3-contributor")
+    parser.add_argument("--allow-missing-secrets", action="store_true")
+    parser.add_argument("--dry-run", action="store_true")
+    args, unknown = parser.parse_known_args()
+    if unknown:
+        die(f"unknown arguments: {' '.join(unknown)}\n{USAGE}")
+    for req in ("role", "rig", "pod"):
+        if not getattr(args, req):
+            die(f"--{req} is required\n{USAGE}")
+
+    home = Path.home()
+    openrig_home = Path(
+        os.environ.get("OPENRIG_HOME", str(home / ".openrig"))
+    ).resolve()
+    tools_dir = str(
+        Path(
+            os.environ.get(
+                "HERETEK_TOOLS", str(home / ".local/share/heretek-rigs/tools")
+            )
+        ).resolve()
+    )
+    secrets_dir = str(
+        Path(
+            os.environ.get(
+                "HERETEK_SECRETS", str(home / ".config/heretek-rigs/secrets")
+            )
+        ).resolve()
+    )
+
+    fleet_data = yaml.safe_load(Path(args.fleet).read_text())
+    mcp_catalog = yaml.safe_load(Path(args.mcp).read_text())["servers"]
+    if args.role not in fleet_data.get("roles", {}):
+        die(f"unknown role {args.role}")
+    role = fleet_data["roles"][args.role]
+    member_id = args.member or args.role
+    session = f"{args.pod}-{member_id}@{args.rig}"
+    seat_dir = str(openrig_home / "state/pi" / session)
+    out_dir = Path(args.out).resolve() if args.out else Path(seat_dir) / "agent"
+    charter_path = (
+        Path(args.charter)
+        if args.charter
+        else Path("specs/agents") / role["domain"] / args.role / "guidance/role.md"
+    )
+    if not charter_path.exists():
+        die(f"missing charter {charter_path}")
+
+    files = build_seat_files(
+        role_id=args.role,
+        rig_id=args.rig,
+        pod_id=args.pod,
+        member_id=member_id,
+        fleet_data=fleet_data,
+        mcp_catalog=mcp_catalog,
+        tools_dir=tools_dir,
+        secrets_dir=secrets_dir,
+        seat_dir=seat_dir,
+        charter_text=charter_path.read_text(),
+        model_provider=args.model_provider,
+        model_id=args.model_id,
+        allow_missing_secrets=args.allow_missing_secrets,
+        check_secret_fs=True,
+    )
+
+    if args.dry_run:
+        print(json.dumps(files, indent=2, ensure_ascii=False))
+        return
+
+    for rel, body in files.items():
+        p = out_dir / rel
+        p.parent.mkdir(parents=True, exist_ok=True)
+        content = (
+            body
+            if isinstance(body, str)
+            else json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+        )
+        p.write_text(content)
+        os.chmod(p, 0o600)
+    (Path(seat_dir) / "sessions").mkdir(parents=True, exist_ok=True)
+    print(f"rendered {session} -> {out_dir}")
+
+
+if __name__ == "__main__":
+    main()

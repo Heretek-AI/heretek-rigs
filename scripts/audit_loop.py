@@ -19,6 +19,7 @@ Features:
 Usage:
   python3 scripts/audit_loop.py [--required-passes 3] [--max-iterations 15] [--model opencode-go/muse-spark-1.3-contributor] [--self-test]
 """
+
 import argparse
 import datetime
 import json
@@ -58,27 +59,54 @@ def run_verify_gate(repo_root: Path) -> Tuple[bool, str]:
     return proc.returncode == 0, combined.strip()
 
 
-def evaluate_audit_status(report_text: str, agent_output: str, gate_passed: bool) -> Tuple[str, str]:
+def evaluate_audit_status(
+    report_text: str, agent_output: str, gate_passed: bool
+) -> Tuple[str, str]:
     """Deterministically classify audit outcome (fail-closed)."""
     if not gate_passed:
         return STATUS_FINDINGS_DETECTED, "verify-rigs.sh gate failed"
 
     combined = f"{report_text}\n{agent_output}"
     if STATUS_FINDINGS_DETECTED in combined:
-        return STATUS_FINDINGS_DETECTED, "Explicit STATUS: FINDINGS_DETECTED sentinel present"
+        return (
+            STATUS_FINDINGS_DETECTED,
+            "Explicit STATUS: FINDINGS_DETECTED sentinel present",
+        )
 
-    open_finding_headers = re.findall(r"^###\s+HR-[A-Za-z0-9._-]+:", report_text, flags=re.MULTILINE)
+    # HR-8.3: scan the combined report+agent output (not report_text alone) for
+    # open finding headers, and match ledger BROKEN/PARTIAL rows with or without
+    # numeric claim IDs on the UNSTRIPPED text so fenced-only rows still trip.
+    open_finding_headers = re.findall(
+        r"^###\s+HR-[A-Za-z0-9._-]+:", combined, flags=re.MULTILINE
+    )
     if open_finding_headers:
-        return STATUS_FINDINGS_DETECTED, f"Report contains {len(open_finding_headers)} finding section(s)"
+        return (
+            STATUS_FINDINGS_DETECTED,
+            f"Report contains {len(open_finding_headers)} finding section(s)",
+        )
 
-    broken_claims = re.findall(r"\|\s*Claim\s+\d+\.\d+[^|]*\|\s*(BROKEN|PARTIAL)\s*\|", report_text)
+    # HR-8.3: match any "| <claim> | BROKEN|PARTIAL |" ledger row
+    # case-insensitively without requiring the literal word "Claim" or a
+    # numeric ID, on the raw combined text (fenced rows count as findings).
+    broken_claims = re.findall(
+        r"\|[^\n]*\|\s*(BROKEN|PARTIAL)\s*\|", combined, flags=re.IGNORECASE
+    )
     if broken_claims:
-        return STATUS_FINDINGS_DETECTED, f"Claim Ledger contains {len(broken_claims)} BROKEN/PARTIAL claim(s)"
+        return (
+            STATUS_FINDINGS_DETECTED,
+            f"Claim Ledger contains {len(broken_claims)} BROKEN/PARTIAL claim(s)",
+        )
 
     if STATUS_NO_FINDINGS in combined:
-        return STATUS_NO_FINDINGS, "Verified STATUS: NO_FINDINGS with 0 open findings and green verify-rigs.sh"
+        return (
+            STATUS_NO_FINDINGS,
+            "Verified STATUS: NO_FINDINGS with 0 open findings and green verify-rigs.sh",
+        )
 
-    return STATUS_FINDINGS_DETECTED, "Missing deterministic STATUS: NO_FINDINGS sentinel (fail-closed)"
+    return (
+        STATUS_FINDINGS_DETECTED,
+        "Missing deterministic STATUS: NO_FINDINGS sentinel (fail-closed)",
+    )
 
 
 def invoke_opencode_agent(
@@ -121,7 +149,13 @@ def invoke_opencode_agent(
 def run_self_test(repo_root: Path) -> int:
     """Verify prompt presence, evaluator fail-closed invariants, and verify-rigs.sh gate."""
     print(f"[{utc_now()}] Running audit_loop.py --self-test in {repo_root}...")
-    for req in [IMPLEMENTATION_PROMPT_FILE, AUDIT_PROMPT_FILE, REMEDIATION_PROMPT_FILE, "fleet/fleet.yaml", "fleet/mcp-servers.yaml"]:
+    for req in [
+        IMPLEMENTATION_PROMPT_FILE,
+        AUDIT_PROMPT_FILE,
+        REMEDIATION_PROMPT_FILE,
+        "fleet/fleet.yaml",
+        "fleet/mcp-servers.yaml",
+    ]:
         p = repo_root / req
         if not p.exists() or p.stat().st_size < 500:
             print(f"  [FAIL] Missing or stub file: {p}", file=sys.stderr)
@@ -134,9 +168,13 @@ def run_self_test(repo_root: Path) -> int:
         if not gate_ok:
             print(f"  [FAIL] verify-rigs.sh failed:\n{gate_out}", file=sys.stderr)
             return 1
-        print("  [PASS] ./scripts/verify-rigs.sh passed all static, schema, digest, and security checks")
+        print(
+            "  [PASS] ./scripts/verify-rigs.sh passed all static, schema, digest, and security checks"
+        )
     else:
-        print("  [INFO] ./scripts/verify-rigs.sh not yet generated (pre-implementation state); verifying evaluator invariants")
+        print(
+            "  [INFO] ./scripts/verify-rigs.sh not yet generated (pre-implementation state); verifying evaluator invariants"
+        )
 
     clean_report = (
         "# AUDIT_REPORT_FINDINGS: heretek-rigs\n"
@@ -152,7 +190,9 @@ def run_self_test(repo_root: Path) -> int:
         f"\n{STATUS_NO_FINDINGS}\n"
     )
     status_lie, _ = evaluate_audit_status(dirty_report_lie, "", True)
-    assert status_lie == STATUS_FINDINGS_DETECTED, "Parser failed to catch false NO_FINDINGS with ### HR- header!"
+    assert status_lie == STATUS_FINDINGS_DETECTED, (
+        "Parser failed to catch false NO_FINDINGS with ### HR- header!"
+    )
 
     broken_claim_lie = (
         "# AUDIT_REPORT_FINDINGS: heretek-rigs\n"
@@ -160,24 +200,65 @@ def run_self_test(repo_root: Path) -> int:
         f"\n{STATUS_NO_FINDINGS}\n"
     )
     status_broken, _ = evaluate_audit_status(broken_claim_lie, "", True)
-    assert status_broken == STATUS_FINDINGS_DETECTED, "Parser failed to catch BROKEN claim in ledger!"
+    assert status_broken == STATUS_FINDINGS_DETECTED, (
+        "Parser failed to catch BROKEN claim in ledger!"
+    )
+
+    # HR-8.3: bare "| 2.1 | broken |" rows and fenced rows must also trip the evaluator.
+    for extra in (
+        "# R\n| 2.1 | BROKEN | x |\nSTATUS: NO_FINDINGS\n",
+        "# R\n| 2.1 | broken | x |\nSTATUS: NO_FINDINGS\n",
+        "# R\n```\n| 2.1 | BROKEN | x |\n```\nSTATUS: NO_FINDINGS\n",
+    ):
+        s, _ = evaluate_audit_status(extra, "", True)
+        assert s == STATUS_FINDINGS_DETECTED, f"Parser missed ledger row: {extra!r}"
 
     status_gate_fail, _ = evaluate_audit_status(clean_report, "", False)
-    assert status_gate_fail == STATUS_FINDINGS_DETECTED, "Parser failed to reject NO_FINDINGS when verify gate failed!"
+    assert status_gate_fail == STATUS_FINDINGS_DETECTED, (
+        "Parser failed to reject NO_FINDINGS when verify gate failed!"
+    )
 
-    print("  [PASS] Fail-closed sentinel evaluator verified against 4 adversarial test vectors")
+    print(
+        "  [PASS] Fail-closed sentinel evaluator verified against 7 adversarial test vectors"
+    )
     print("SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.")
     return 0
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Run OpenCode adversarial audit/remediation loop until 3x STATUS: NO_FINDINGS.")
-    parser.add_argument("--repo-root", default=".", help="Path to heretek-rigs repository root")
-    parser.add_argument("--required-passes", type=int, default=3, help="Consecutive STATUS: NO_FINDINGS passes required (default: 3)")
-    parser.add_argument("--max-iterations", type=int, default=15, help="Maximum audit/remediation iterations before aborting (default: 15)")
-    parser.add_argument("--model", default=DEFAULT_MODEL, help=f"OpenCode model ID (default: {DEFAULT_MODEL})")
-    parser.add_argument("--run-implementation-first", action="store_true", help="Run PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md before starting audit loop")
-    parser.add_argument("--self-test", action="store_true", help="Run deterministic self-test without live OpenCode CLI invocation")
+    parser = argparse.ArgumentParser(
+        description="Run OpenCode adversarial audit/remediation loop until 3x STATUS: NO_FINDINGS."
+    )
+    parser.add_argument(
+        "--repo-root", default=".", help="Path to heretek-rigs repository root"
+    )
+    parser.add_argument(
+        "--required-passes",
+        type=int,
+        default=3,
+        help="Consecutive STATUS: NO_FINDINGS passes required (default: 3)",
+    )
+    parser.add_argument(
+        "--max-iterations",
+        type=int,
+        default=15,
+        help="Maximum audit/remediation iterations before aborting (default: 15)",
+    )
+    parser.add_argument(
+        "--model",
+        default=DEFAULT_MODEL,
+        help=f"OpenCode model ID (default: {DEFAULT_MODEL})",
+    )
+    parser.add_argument(
+        "--run-implementation-first",
+        action="store_true",
+        help="Run PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md before starting audit loop",
+    )
+    parser.add_argument(
+        "--self-test",
+        action="store_true",
+        help="Run deterministic self-test without live OpenCode CLI invocation",
+    )
     parser.add_argument("--dry-run", action="store_true", help="Alias for --self-test")
     args = parser.parse_args()
 
@@ -189,7 +270,9 @@ def main() -> int:
     logs_dir.mkdir(parents=True, exist_ok=True)
 
     if args.run_implementation_first:
-        print(f"[{utc_now()}] Phase 0: Executing {IMPLEMENTATION_PROMPT_FILE} with {args.model}...")
+        print(
+            f"[{utc_now()}] Phase 0: Executing {IMPLEMENTATION_PROMPT_FILE} with {args.model}..."
+        )
         invoke_opencode_agent(
             repo_root,
             repo_root / IMPLEMENTATION_PROMPT_FILE,
@@ -202,7 +285,9 @@ def main() -> int:
     ledger = []
 
     for iteration in range(1, args.max_iterations + 1):
-        print(f"\n[{utc_now()}] === Audit Iteration {iteration}/{args.max_iterations} (Consecutive Passes: {consecutive_passes}/{args.required_passes}) ===")
+        print(
+            f"\n[{utc_now()}] === Audit Iteration {iteration}/{args.max_iterations} (Consecutive Passes: {consecutive_passes}/{args.required_passes}) ==="
+        )
 
         _, audit_out = invoke_opencode_agent(
             repo_root,
@@ -217,24 +302,32 @@ def main() -> int:
         report_text = report_path.read_text() if report_path.exists() else ""
 
         status, reason = evaluate_audit_status(report_text, audit_out, gate_ok)
-        ledger.append({
-            "iteration": iteration,
-            "timestamp": utc_now(),
-            "status": status,
-            "reason": reason,
-            "verify_gate": gate_ok,
-        })
+        ledger.append(
+            {
+                "iteration": iteration,
+                "timestamp": utc_now(),
+                "status": status,
+                "reason": reason,
+                "verify_gate": gate_ok,
+            }
+        )
         (logs_dir / "loop-ledger.json").write_text(json.dumps(ledger, indent=2) + "\n")
 
         if status == STATUS_NO_FINDINGS:
             consecutive_passes += 1
-            print(f"[{utc_now()}] PASS {consecutive_passes}/{args.required_passes}: {reason}")
+            print(
+                f"[{utc_now()}] PASS {consecutive_passes}/{args.required_passes}: {reason}"
+            )
             if consecutive_passes >= args.required_passes:
-                print(f"\n[{utc_now()}] SUCCESS: Achieved {args.required_passes} consecutive {STATUS_NO_FINDINGS} passes!")
+                print(
+                    f"\n[{utc_now()}] SUCCESS: Achieved {args.required_passes} consecutive {STATUS_NO_FINDINGS} passes!"
+                )
                 return 0
         else:
             consecutive_passes = 0
-            print(f"[{utc_now()}] {STATUS_FINDINGS_DETECTED} ({reason}) — triggering remediation pass...")
+            print(
+                f"[{utc_now()}] {STATUS_FINDINGS_DETECTED} ({reason}) — triggering remediation pass..."
+            )
             invoke_opencode_agent(
                 repo_root,
                 repo_root / REMEDIATION_PROMPT_FILE,
@@ -243,7 +336,10 @@ def main() -> int:
                 logs_dir / f"iter-{iteration:02d}-remediation.log",
             )
 
-    print(f"\n[{utc_now()}] FAILED: Reached max iterations ({args.max_iterations}) without achieving {args.required_passes} consecutive passes.", file=sys.stderr)
+    print(
+        f"\n[{utc_now()}] FAILED: Reached max iterations ({args.max_iterations}) without achieving {args.required_passes} consecutive passes.",
+        file=sys.stderr,
+    )
     return 1
 
 

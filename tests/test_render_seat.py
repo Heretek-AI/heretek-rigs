@@ -1,0 +1,226 @@
+#!/usr/bin/env python3
+"""Unit tests for scripts/render-seat.py output contract (no daemon, no network)."""
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+RENDER_SCRIPT = REPO_ROOT / "scripts/render-seat.py"
+
+
+class TestRenderSeat(unittest.TestCase):
+    def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.secrets = Path(self.tmp_dir.name) / "secrets"
+        self.secrets.mkdir(mode=0o700)
+        key_file = self.secrets / "opencode-go.key"
+        key_file.write_text("dummy")
+        os.chmod(key_file, 0o600)
+        self.env = {
+            **os.environ,
+            "HERETEK_SECRETS": str(self.secrets),
+            "HERETEK_TOOLS": "/opt/hr-tools",
+            "OPENRIG_HOME": "/tmp/hr-openrig",
+        }
+
+    def tearDown(self):
+        self.tmp_dir.cleanup()
+
+    def render(self, *args):
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                *args,
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return json.loads(proc.stdout)
+
+    def test_appsec_auth_is_command_backed_key(self):
+        f = self.render(
+            "--role",
+            "appsec-engineer",
+            "--rig",
+            "defensive-sec-and-red-team",
+            "--pod",
+            "blue",
+        )
+        self.assertEqual(
+            f["auth.json"],
+            {
+                "opencode-go": {
+                    "type": "api_key",
+                    "key": f"!cat {self.secrets / 'opencode-go.key'}",
+                }
+            },
+        )
+
+    def test_appsec_settings_pin_model_thinking_and_permission_package(self):
+        s = self.render(
+            "--role",
+            "appsec-engineer",
+            "--rig",
+            "defensive-sec-and-red-team",
+            "--pod",
+            "blue",
+        )["settings.json"]
+        self.assertEqual(s["defaultProvider"], "opencode-go")
+        self.assertEqual(s["defaultModel"], "muse-spark-1.3-contributor")
+        self.assertEqual(s["defaultThinkingLevel"], "high")
+        self.assertEqual(
+            s["packages"],
+            ["/opt/hr-tools/pi-packages/node_modules/@gotgenes/pi-permission-system"],
+        )
+        self.assertIn("tool_search", s["defaultTools"])
+
+    def test_appsec_permission_config_fails_closed_and_ends_path_write_with_dot_dot_guard(
+        self,
+    ):
+        c = self.render(
+            "--role",
+            "appsec-engineer",
+            "--rig",
+            "defensive-sec-and-red-team",
+            "--pod",
+            "blue",
+        )["extensions/pi-permission-system/config.json"]
+        self.assertEqual(c["permission"]["*"], "deny")
+        self.assertEqual(c["permission"]["bash"]["*"], "deny")
+        self.assertEqual(c["permission"]["external_directory"], "deny")
+        self.assertEqual(c["promptTimeoutMs"], 60000)
+        keys = list(c["permission"]["path_write"].keys())
+        self.assertEqual(keys[0], "*")
+        self.assertEqual(keys[-1], "*..*")
+        self.assertEqual(
+            keys,
+            [
+                "*",
+                "docs/security/advisories/*",
+                ".git/*",
+                "*/.git/*",
+                "AGENTS.md",
+                "*/AGENTS.md",
+                ".pi/*",
+                "*/.pi/*",
+                ".agents/*",
+                "*/.agents/*",
+                "fleet/*",
+                "scripts/*",
+                "*..*",
+            ],
+        )
+        self.assertEqual(
+            c["permission"]["path_write"]["docs/security/advisories/*"], "allow"
+        )
+        self.assertEqual(
+            c["permission"]["mcp"],
+            {"*": "deny", "semgrep": "allow", "codebase-memory": "allow"},
+        )
+        self.assertEqual(c["permission"]["ast_grep"], "allow")
+        self.assertEqual(c["permission"]["code_rewrite"], "deny")
+        self.assertEqual(c["permission"]["lsp_rename"], "deny")
+        self.assertEqual(c["permission"]["lsp_code_actions"], "deny")
+        # HR-5.3: credential-bearing URL/user suffixes must be denied too.
+        self.assertEqual(c["permission"]["path"]["*.url"], "deny")
+        self.assertEqual(c["permission"]["path"]["*.user"], "deny")
+        self.assertNotIn('"ask"', json.dumps(c))
+
+    def test_product_director_github_readonly_and_disabled_without_pat(self):
+        m = self.render(
+            "--role",
+            "product-director",
+            "--rig",
+            "executive-and-architecture",
+            "--pod",
+            "exec",
+        )["mcp.json"]["mcpServers"]
+        self.assertEqual(
+            m["github"]["url"], "https://api.githubcopilot.com/mcp/x/issues/readonly"
+        )
+        self.assertEqual(m["github"]["enabled"], False)
+        self.assertRegex(
+            m["github"]["headers"]["Authorization"],
+            r"^!echo Bearer \$\(cat .*github\.pat\)$",
+        )
+
+    def test_missing_secret_without_allow_missing_secrets_is_hard_error(self):
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "product-director",
+                "--rig",
+                "executive-and-architecture",
+                "--pod",
+                "exec",
+                "--dry-run",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"github needs .*github\.pat")
+
+    def test_world_readable_key_file_is_refused(self):
+        key_file = self.secrets / "opencode-go.key"
+        os.chmod(key_file, 0o644)
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "appsec-engineer",
+                "--rig",
+                "defensive-sec-and-red-team",
+                "--pod",
+                "blue",
+                "--dry-run",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        os.chmod(key_file, 0o600)
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"is mode 644; run: chmod 600")
+
+    def test_ids_with_dots_are_refused(self):
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "appsec-engineer",
+                "--rig",
+                "x",
+                "--pod",
+                "blue.team",
+                "--dry-run",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"must not contain")
+
+
+if __name__ == "__main__":
+    unittest.main()

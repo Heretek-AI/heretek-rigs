@@ -1,0 +1,37 @@
+{
+  "$id": "https://openrig.dev/schemas/bundle-configurations/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "openrig.bundle-configurations/v1 (heretek-rigs restored baseline)",
+  "type": "object",
+  "required": ["schema", "recommended", "seats", "presets"],
+  "properties": {
+    "schema": {"const": "openrig.bundle-configurations/v1"},
+    "recommended": {"type": "string"},
+    "seats": {
+      "type": "object",
+      "patternProperties": {
+        "^.+$": {
+          "type": "object",
+          "required": ["runtimes"],
+          "properties": {
+            "runtimes": {"type": "object"}
+          },
+          "additionalProperties": true
+        }
+      }
+    },
+    "presets": {
+      "type": "object",
+      "required": ["recommended", "all-omp"],
+      "properties": {
+        "recommended": {"type": "object"},
+        "all-omp": {"type": "object"},
+        "all-pi": {"type": "object"},
+        "all-claude": {"type": "object"},
+        "all-codex": {"type": "object"}
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

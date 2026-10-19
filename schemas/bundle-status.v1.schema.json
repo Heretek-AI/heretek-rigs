@@ -1,0 +1,14 @@
+{
+  "$id": "https://openrig.dev/schemas/bundle-status/v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "openrig.status-rule/v1 (heretek-rigs restored baseline)",
+  "type": "object",
+  "required": ["generated", "listings", "harnessChecks", "bodyDigest"],
+  "properties": {
+    "generated": {"type": "object"},
+    "listings": {"type": "object"},
+    "harnessChecks": {"type": "object"},
+    "bodyDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  },
+  "additionalProperties": true
+}

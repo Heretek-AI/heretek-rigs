@@ -95,7 +95,8 @@ All generated bundle and registry artifacts validate against the 6 official Open
    - Hash every file inside `rigs/<rig>/` except `bundle.yaml`, `.DS_Store`, `Thumbs.db`, and `.gitkeep`.
    - Sort relative POSIX paths by UTF-16 code units, format each line as `f"{json.dumps(path, ensure_ascii=False)}\t{sha256_hex}\n"`, and compute lowercase hex SHA-256 over the UTF-8 concatenation.
 3. **`registry/status.json` `bodyDigest` (`openrig.status-rule/v1`, RFC 8785 JCS)**:
-   - Remove the top-level `bodyDigest` key, serialize the remaining object via RFC 8785 JSON Canonicalization Scheme (`json.dumps(body, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")`), and compute lowercase hex SHA-256.
+   - Remove the top-level `bodyDigest` key, canonicalize the remaining object via the explicit `jcs_canonicalize()` in `scripts/generate-rigs.py:120-152` (UTF-16 code-unit key sort via `utf16_key`, compact `(",", ":")` separators, fail-closed float/`unsupported-type` die), and compute lowercase hex SHA-256 over the UTF-8 bytes.
+   - The verifier mirrors the same canonicalizer (`scripts/verify-rigs.sh` V5 `_jcs_canonicalize`), enforces float-reject + ASCII-only fail-closed gates plus the `{"b":2,"a":1} -> {"a":1,"b":2}` canonical-form known-answer and `identity-vectors.json` replay. Non-ASCII bodies fail closed until full Unicode JCS fixtures are vendored (see HR-3.2).
 
 ---
 
