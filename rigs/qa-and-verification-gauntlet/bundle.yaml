@@ -28,7 +28,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: e2e-browser-qa
   version: '1.0'
   path: agents/e2e-browser-qa
@@ -39,7 +39,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: api-contract-tester
   version: '1.0'
   path: agents/api-contract-tester
@@ -50,7 +50,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: load-stress-tester
   version: '1.0'
   path: agents/load-stress-tester
@@ -61,7 +61,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: sabotage-qa-tester
   version: '1.0'
   path: agents/sabotage-qa-tester
@@ -72,7 +72,7 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 - name: static-analysis-lead
   version: '1.0'
   path: agents/static-analysis-lead
@@ -83,14 +83,14 @@ agents:
     version: '1.0'
     path: agents/_shared
     original_ref: local:../_shared
-    hash: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    hash: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
 integrity:
   algorithm: sha256
   files:
     CULTURE.md: 138469da9119bebdc81c706e748d38989504a0b2f281619470763b81c492c833
     README.md: f8b1db6ddc665bcfbb8f83f853de161b02cd1732afa175de66dd8b0b24803ad7
     SETUP.md: b1f8d7a7cc331cea50c208da35e433a02a6ecdb1397a7016df28c648d0ab4ccf
-    agents/_shared/agent.yaml: c429d28a5a5f8a7c18c86f0c8a3b8c7c42a58555f6aef77c56b36cba5db488eb
+    agents/_shared/agent.yaml: 954498133668f5209742225f02a415b2c0d478a521220ab3ec4aeb2d9c261c50
     agents/_shared/skills/address-sanitizer/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/address-sanitizer/SKILL.md: eb9ea8210fa55d50477fbe52993a704e320c88739c10d619864b6ce377ebce25
     agents/_shared/skills/address-sanitizer/agents/openai.yaml: cbad1378f4912a71dec8c1c9307b806f787c559e751a5fd1926028f1c0c2e7b5
@@ -456,6 +456,14 @@ integrity:
     agents/_shared/skills/spec-to-code-compliance/resources/DIVERGENCE_RUBRIC.md: c7192803ae5c489501788ae5be56a5dd36b3f0b64f88982bf41f69a4245303f1
     agents/_shared/skills/spec-to-code-compliance/resources/DOMAIN_NOTES.md: 435459c75d21208ea73a6cda7dfc6910efc468a903f62e20f4837d5bd8b92c4a
     agents/_shared/skills/spec-to-code-compliance/resources/WORKED_EXAMPLE.md: 7b9ff43b20ba83e1ce934bc9161b14ce58617b65a9ae9c4583026dbf0299e927
+    agents/_shared/skills/subagent-driven-development/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
+    agents/_shared/skills/subagent-driven-development/SKILL.md: 8dde5589ee083fb4999106d116f01c8fdaf3116a8a9813fdedeb80329de49046
+    agents/_shared/skills/subagent-driven-development/implementer-prompt.md: 81dd9d5a3fb0b09b96b5829f03b9796842f3199ef7591d1ba1c2db2a515f64d0
+    agents/_shared/skills/subagent-driven-development/re-review-prompt.md: 0828a5e9cbb12ba49f14621dd8c3953c48c0fc383e75bb5494f055ed0d6d824f
+    agents/_shared/skills/subagent-driven-development/scripts/review-package: f9275175b2276b1d5fdb1bae0bedaadd2a950659b7c6f311ea37ff85e1861b1f
+    agents/_shared/skills/subagent-driven-development/scripts/sdd-workspace: 4fd9770e7a49b6bde488c0e92bac1b3bd01fcbdaf8f06b6c4efbe3a1abd99f86
+    agents/_shared/skills/subagent-driven-development/scripts/task-brief: cc563538e09abf719b34ddf4b2fa7a65cf3b301729039dbfa923cb060f729146
+    agents/_shared/skills/subagent-driven-development/task-reviewer-prompt.md: bfed55c8f19d0ff6ed57b0fe09127c92890e9311c6c73917129598826bf9ebe8
     agents/_shared/skills/supply-chain-risk-auditor/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/supply-chain-risk-auditor/SKILL.md: a1254b7f8d3a1731a9a7e1f9cd6c67b59cf84ed6ef7c7fb455db9a14c528ceb4
     agents/_shared/skills/supply-chain-risk-auditor/agents/openai.yaml: 7d79ce0a77aaa1e2c72939b02b285b13a84d9da85ffb965a9d1489c358cd27ab
@@ -546,50 +554,50 @@ integrity:
     agents/api-contract-tester/agent.yaml: bb2a4587f5053d7d6ab6ec8eff5954010d594139e51d1fe49d0e7ef68beadca5
     agents/api-contract-tester/guidance/role.md: 32f5d3587c259babf75290cb50f36168180afa4bf256f14c4d08b9f418ad3764
     agents/api-contract-tester/runtime/mcp.json: ed607a2e16e22c3ee05c5bfb03efd774c5996ddd6bcc02dc4068b04f0ce97a53
-    agents/api-contract-tester/runtime/pi-permission-config.json: 8d13d9c661979604dbd8d0a9ed54c1f46989ac051138b940498841cc9b5500a2
+    agents/api-contract-tester/runtime/pi-permission-config.json: 1db105e4fca7bdfbfb8a287809da2c6dc15456921f7241bb9303786cf7ccf4f5
     agents/api-contract-tester/runtime/pi-settings.json: ed0f22e6beec11ce958f1cf0f206b4f0d7b899a77cbb1aba8f3d042caa7423e9
-    agents/api-contract-tester/runtime/policy-enforcement.json: c04e0359a09662063ce18f92382d3d1afa8bc83b934a8def20a4f6d76d05835b
+    agents/api-contract-tester/runtime/policy-enforcement.json: eed601dcc5be16accc20fb51e1e7184f3c81c1d27498ffa32ba9ba94ba92b4ab
     agents/api-contract-tester/skills/dotnet-expert/SKILL.md: b93c7eca84fa4047cbaeeaf11f98ee475072b288e1f1abfadf4275a4d9e5fc5d
     agents/api-contract-tester/skills/openapi-contract-verification/SKILL.md: 2d431d4acd244004d833c8078f79116dc425f372587edb5432028ad35cc6667b
     agents/api-contract-tester/startup/context.md: a763394ebcf20dafd74a3c2c267675236f66a31e07a1faea01994d38fca6d6cf
     agents/e2e-browser-qa/agent.yaml: 308e30a62d592223a410e6fe56b5b79a32f4ccafbbb8025cbbe1874a2545743a
     agents/e2e-browser-qa/guidance/role.md: 80ee5a901e255eabb448bced05e1f569ebfa240d360003b37595055a6fbf6134
     agents/e2e-browser-qa/runtime/mcp.json: b8901696164e5f3687c52d2c535c6eb1976a3b7da8d126667982311c9fdd26c1
-    agents/e2e-browser-qa/runtime/pi-permission-config.json: c373357179f095a97eeab81538c47ac68024cba21ff071e6134906f06196ffd8
+    agents/e2e-browser-qa/runtime/pi-permission-config.json: 4345b2be27cd8fe752c298077625b6b2eb0f47b73cabf6f47141168cba0f3e08
     agents/e2e-browser-qa/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/e2e-browser-qa/runtime/policy-enforcement.json: 56b63ae38e71014855132399c7961394267ebcefeb44be9ded3e2b351c0df2fb
+    agents/e2e-browser-qa/runtime/policy-enforcement.json: 64ffb30c3ba3537b0487effe8eb4f4ef33b3c78636ac937d8d5cfb1b580df0ed
     agents/e2e-browser-qa/skills/playwright-page-object-automation/SKILL.md: 7f99a2942401aea95d619dac3506f0798bf6d6ce5a9ddc808d4e1fe44a229512
     agents/e2e-browser-qa/startup/context.md: 19122b3a8eb4ae8ab30361a1879b728ffd51e24975a473c1f8dfe81036879ede
     agents/load-stress-tester/agent.yaml: 1dd2812e60cdb206fe527d12e7144ba011565d4751a302bb71b8a2990dd164fb
     agents/load-stress-tester/guidance/role.md: 01d041d20bf4f67726d7e98f35d19867f0c857e31178274c33e0b427db07085b
     agents/load-stress-tester/runtime/mcp.json: 7faeea8baccd14457c385d0c49b0d8f54c2af1532da3abab2df5c3ca3c5409c3
-    agents/load-stress-tester/runtime/pi-permission-config.json: 558a3ba3448b186caffabd9c3e23687c22cea02c190c0de38a67599d8a1935e4
+    agents/load-stress-tester/runtime/pi-permission-config.json: a0e90f062f6eb709e7d19af06aaca5440b0946c56d0073adc65abdc618c8e7f3
     agents/load-stress-tester/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/load-stress-tester/runtime/policy-enforcement.json: d8da108f78f0ba525b451de80e91c77738288d0fbf517cb8baab45765df1a3f9
+    agents/load-stress-tester/runtime/policy-enforcement.json: 8463f1d9baa4dacd262a356484d017c1e13af7af1daf66a388f43cc04f719c45
     agents/load-stress-tester/skills/k6-stress-scenario-execution/SKILL.md: 71404e4329cfcb33ba242f1f2a8c4739f5a3a7fb4ea797d783b0bcaf09e098d3
     agents/load-stress-tester/startup/context.md: 0733efbc298eb8d7cea20c1355c5c73031a62dfa3b0f48bd2f68e762bc87f135
     agents/release-qa-officer/agent.yaml: 25f3081d3390b5e0bff4b8155f20e1a8a35ca5b2ff2f23e2cddd0d3b885e3973
     agents/release-qa-officer/guidance/role.md: 63f7805ef7afe9ec5cc7cd0ebcfd55e922309a52ab1076672650e1e8fea3f57e
     agents/release-qa-officer/runtime/mcp.json: db13352b96cce4daedcc7a709d0132b21fc1d410864a3c0a944406c09136111c
-    agents/release-qa-officer/runtime/pi-permission-config.json: 2b67684a4b2381e5711cc7be4f011fa8790b0c761ec6a8f65c04a44fd6977624
+    agents/release-qa-officer/runtime/pi-permission-config.json: dd438aa2c2f01601e5d0f4432e51c293b62f6881fef722538132481e8e531b41
     agents/release-qa-officer/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/release-qa-officer/runtime/policy-enforcement.json: e37b6f7f273a086f4f712054b7d2bd447746d3c3afb49e9e6500932dea7016bc
+    agents/release-qa-officer/runtime/policy-enforcement.json: 0d1bd7e3b53b15b5ab79a84431daa3683c26eab9f9e3289cbca33be39aa259fe
     agents/release-qa-officer/skills/release-readiness-audit/SKILL.md: fc6b50b111e8c2e7d866b59a9487abd1ab6e34ca9c624062ed83a3caab559e3b
     agents/release-qa-officer/startup/context.md: d7f47254dc8169d92b6e2a72e533be21edd1bf438245c81732dc12c0e423db11
     agents/sabotage-qa-tester/agent.yaml: 02e9a539a9c13c5ce65b7d7e779915b48a5e7952e34544628efcd5b6b3978559
     agents/sabotage-qa-tester/guidance/role.md: 68a04b5488608679d5ce7fe93e984db79d5b9f36f79e0e4ecd4b7935b1534666
     agents/sabotage-qa-tester/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/sabotage-qa-tester/runtime/pi-permission-config.json: a42cb28cabec90907909728e9949e1102ce256974d4d6cd3fafbef421b573aa2
+    agents/sabotage-qa-tester/runtime/pi-permission-config.json: 3f9df1145ffdd4755e8b10a2cd4ad4e5a33230f85a2fee3e07cc0fd2fdefb2cd
     agents/sabotage-qa-tester/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/sabotage-qa-tester/runtime/policy-enforcement.json: 5a8da7640de343b93cf49e85ce2506c784a8496a2c2278439266f7e729b5c553
+    agents/sabotage-qa-tester/runtime/policy-enforcement.json: 65d92b174f110584ff3752bb5d1e7e641ed46d1763d2eeb27f1bd38927feeef4
     agents/sabotage-qa-tester/skills/adversarial-mutation-sabotage/SKILL.md: 568c2b9e72557f924a199bdff4f7adb5f0601df270db8348211d53c4cd3f2322
     agents/sabotage-qa-tester/startup/context.md: e8b82b9c1c5261084da19d579af5bdc5df8843787e21c4dc07264ba5e240c7fb
     agents/static-analysis-lead/agent.yaml: 36de71d15b3b192a368e0cf70df5d1fa016722aee0b13c8b006ab6344d57d551
     agents/static-analysis-lead/guidance/role.md: 9bc0dcb7e913537eb8fac40265827585cb31a3ccdcfdced11bf156f0cc0fdf38
     agents/static-analysis-lead/runtime/mcp.json: dff664dd98151d63624d7036dcbc6ace995af2c99eab34d3071d4f1eec990858
-    agents/static-analysis-lead/runtime/pi-permission-config.json: b37bb122b05de9cbad85984463795872ad0f3ad2855b3fb16148cc56d1860ca4
+    agents/static-analysis-lead/runtime/pi-permission-config.json: 0120e3729adacafde944d7f47901096261e41e25efd4bc7e686178a1563233f7
     agents/static-analysis-lead/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/static-analysis-lead/runtime/policy-enforcement.json: 00f6254e906b110bb2d6c087681ddca8810e1416d5abfd507b434d39dbbd83f0
+    agents/static-analysis-lead/runtime/policy-enforcement.json: e2ac4585d192d13291221970060f593c8306010b2594f5a26065c47c697fc16f
     agents/static-analysis-lead/skills/custom-semgrep-rule-authoring/SKILL.md: 4b81e04d2f97890f180e168535920d5f41b3ace81018a75dce92b6b1b5354f19
     agents/static-analysis-lead/startup/context.md: 5735e2e6d487e7725444ef667c8cae08c06c5f89b285f0450aa7ea9dd35fdd79
     configurations.yaml: c0619d573bf3d9a8ef07911cfecbcef7e866e1a5a171cf978c0c4d79d59fe774

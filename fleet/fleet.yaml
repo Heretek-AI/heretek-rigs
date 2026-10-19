@@ -2857,6 +2857,8 @@ roles:
         source: superpowers
       - id: writing-plans
         source: superpowers
+      - id: subagent-driven-development
+        source: superpowers
       role_local:
       - id: epic-roadmap-authoring
         source: heretek-crew
@@ -3353,6 +3355,8 @@ roles:
       - id: writing-plans
         source: superpowers
       - id: executing-plans
+        source: superpowers
+      - id: subagent-driven-development
         source: superpowers
       role_local:
       - id: madr-architecture-decision

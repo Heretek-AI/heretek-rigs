@@ -1,0 +1,83 @@
+{
+  "$id": "heretek.rigspec-keys.pinned/v1",
+  "description": "Pinned RigSpec key allowlists exported from @openrig/cli@0.6.11 packages/daemon/src/domain/rigspec-schema.ts. Verifier diffs its hardcoded sets against this file fail-closed; refresh on upstream bump.",
+  "provenance": {
+    "package": "@openrig/cli@0.6.11",
+    "commit": "379f0a0d",
+    "source_file": "packages/daemon/src/domain/rigspec-schema.ts",
+    "vendored_source": "schemas/rigspec-schema.pinned.ts",
+    "vendored_sha256": "aba91294c372373162112e63535041ebca1f8b47cebbeda38af032d84c144b22",
+    "upstream_tarball": {
+      "package": "@openrig/cli@0.6.11",
+      "tarball_sha256": "289dc0073cb9e50ced92653e5faae063c27d005eb97fa190f036594d214267f6",
+      "refreshed_at": "2026-10-19T00:00:00Z",
+      "recipe": "On a networked shell host: npm pack @openrig/cli@0.6.11 && sha256sum openrig-cli-0.6.11.tgz; record the 64-hex digest in tarball_sha256 (or place the tarball at schemas/openrig-cli-0.6.11.tgz and re-run python3 scripts/generate-rigs.py to attest it); then diff the extracted rigspec-schema.ts key sets against RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS and update all three local copies together"
+    },
+    "exported_from": [
+      "PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md \u00a74 verified facts (M0-M4 excerpts)",
+      "gemini/prompt_spoonfeeder_opencode_implementation.md:102-106 (Section 4.2 OpenRig Validator Key Allowlists)",
+      "gemini/openrig_muse_go_architecture.md:154-157",
+      "docs/OPENRIG_MUSE_GO_ARCHITECTURE.md:18-19 (rigspec-schema.ts:12-20 runtime enum ground truth)"
+    ],
+    "refresh": "npm pack @openrig/cli@0.6.11 && tar -xzf openrig-cli-0.6.11.tgz package/daemon/assets || git -C <openrig-checkout> show 379f0a0d:packages/daemon/src/domain/rigspec-schema.ts, then diff RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS and update this file + scripts/verify-rigs.sh together"
+  },
+  "keys": {
+    "RIG_KEYS": [
+      "version",
+      "name",
+      "summary",
+      "culture_file",
+      "permission_policy",
+      "managed_blocks",
+      "docs",
+      "startup",
+      "services",
+      "workspace",
+      "pods",
+      "edges",
+      "non_interruptive",
+      "env"
+    ],
+    "POD_KEYS": [
+      "id",
+      "label",
+      "summary",
+      "continuity_policy",
+      "startup",
+      "members",
+      "edges"
+    ],
+    "MEMBER_KEYS": [
+      "id",
+      "label",
+      "agent_ref",
+      "profile",
+      "runtime",
+      "codex_config_profile",
+      "model",
+      "effort",
+      "role",
+      "permission_policy",
+      "cwd",
+      "restore_policy",
+      "compaction_strategy",
+      "mechanic",
+      "startup",
+      "session_source",
+      "starter_ref",
+      "env"
+    ],
+    "EDGE_KEYS": [
+      "kind",
+      "from",
+      "to"
+    ],
+    "EDGE_KINDS": [
+      "delegates_to",
+      "spawned_by",
+      "can_observe",
+      "collaborates_with",
+      "escalates_to"
+    ]
+  }
+}

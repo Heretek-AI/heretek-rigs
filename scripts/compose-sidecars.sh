@@ -50,7 +50,10 @@ fi
 # Tokenize on whitespace/commas and match whole tokens only (HR-7.3-wrapper-substring:
 # the old `*"mobile"*` substring test disagreed with the Makefile space/comma
 # patterns and would false-positive on a hypothetical `automobile` profile).
-_normalized="${PROFILES//,/ }"
+# HR-7.3-guard-tab-separation: normalize the full whitespace class (tab, CR,
+# newline, VT, FF) plus commas before splitting, mirroring the Makefile
+# `tr '\t\r\n\v\f,'` guard so newline-class bypasses fail closed on both paths.
+_normalized="$(printf '%s' "$PROFILES" | tr '\t\r\n\v\f,' '      ')"
 _has_mobile=0; _has_blocker=0
 for _tok in ${_normalized}; do
   case "${_tok}" in

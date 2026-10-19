@@ -36,7 +36,11 @@
       "*`*": "deny",
       "*$*": "deny",
       "*(*": "deny",
-      "*)*": "deny"
+      "*)*": "deny",
+      "* -p*": "deny",
+      "*--patch*": "deny",
+      "*--full-diff*": "deny",
+      "*--textconv*": "deny"
     },
     "path": {
       "*": "allow",

@@ -101,6 +101,8 @@ resources:
     path: skills/skill-scanner
   - id: spec-to-code-compliance
     path: skills/spec-to-code-compliance
+  - id: subagent-driven-development
+    path: skills/subagent-driven-development
   - id: supply-chain-risk-auditor
     path: skills/supply-chain-risk-auditor
   - id: systematic-debugging

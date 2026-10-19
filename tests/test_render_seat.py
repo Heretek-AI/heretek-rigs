@@ -101,6 +101,10 @@ class TestRenderSeat(unittest.TestCase):
         # HR-5.5-prefix-escape: terminal bash denies must be present LAST so
         # live --output/chaining suffixes cannot escape an allowed prefix.
         # HR-5.5-enforcement-gap: `&`/backtick/`$`/parens denies added.
+        # HR-5.5-git-patch-read-bypass: patch-output flag denies added (`-p`,
+        # `--patch`, `--full-diff`, `--textconv`) so `git log -p` / `git show
+        # --patch` past a `fleet/*` read-deny are denied even on allowed
+        # git prefixes.
         for _td in (
             "*--output*",
             "*;*",
@@ -112,6 +116,10 @@ class TestRenderSeat(unittest.TestCase):
             "*$*",
             "*(*",
             "*)*",
+            "* -p*",
+            "*--patch*",
+            "*--full-diff*",
+            "*--textconv*",
         ):
             self.assertEqual(c["permission"]["bash"][_td], "deny")
         self.assertEqual(c["permission"]["external_directory"], "deny")
