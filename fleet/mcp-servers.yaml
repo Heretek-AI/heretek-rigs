@@ -54,7 +54,7 @@ servers:
     exposure: deferred
     description: GitHub read-only ({toolset} toolset) for the fleet's repositories.
   memory:
-    pin: npm:@modelcontextprotocol/server-memory@1.0.0
+    pin: npm:@modelcontextprotocol/server-memory@2.0.0
     source: https://github.com/modelcontextprotocol/servers
     license: SEE LICENSE IN LICENSE (MIT upstream)
     status: run-verified
@@ -224,6 +224,21 @@ servers:
     required_secrets: [prometheus.url]
     exposure: deferred
     description: PromQL queries and metric discovery against the team Prometheus.
+  grafana:
+    pin: oci:docker.io/grafana/mcp-grafana:2.0.2
+    source: https://github.com/grafana/mcp-grafana
+    license: Apache-2.0
+    status: registry-verified  # tag 2.0.2 exists on GH releases + Docker Hub (fetch 2026-10-20); #14 row 31/32/36
+    note: mcp-grafana client is Apache-2.0; the Grafana server itself is AGPL-3.0 — client use only, no server redistribution.
+    transport: stdio
+    command: docker
+    args: ["run", "-i", "--rm", "--network", "bridge", "-e", "GRAFANA_URL", "-e", "GRAFANA_SERVICE_ACCOUNT_TOKEN", "grafana/mcp-grafana:2.0.2"]
+    env:
+      GRAFANA_URL: "!cat @SECRETS@/grafana.url"
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: "!cat @SECRETS@/grafana.token"
+    required_secrets: [grafana.url, grafana.token]
+    exposure: deferred
+    description: Grafana dashboards, datasources, alerting and incident context for SRE seats.
   clickhouse:
     pin: pypi:mcp-clickhouse==0.7.0
     source: https://github.com/ClickHouse/mcp-clickhouse
