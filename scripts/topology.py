@@ -76,6 +76,9 @@ class Report:
 def validate(fleet, mcp_cat, lock, rep):
     roles = fleet["roles"]
     sessions = {d["session"] for d in roles.values()}
+    # Command-pod seats are also reachable at their omni-fleet address.
+    for m in fleet.get("omni", {}).get("core_pod", {}).get("members", []):
+        sessions.add(f"command-{m}@{fleet.get('omni', {}).get('id', 'heretek-omni-fleet')}")
 
     # 1. reports_to resolves to a real seat session
     for rid, d in sorted(roles.items()):
