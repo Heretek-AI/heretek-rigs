@@ -1,8 +1,7 @@
 # heretek-rigs Docker build context exclusions.
 # Keep the image reproducible and free of session data / secrets / VCS weight.
 
-# NOTE: .git is intentionally INCLUDED (public repo; generate-rigs.py needs a
-# clean checkout to bake resolvedCommit provenance at build time).
+.git/
 .gitignore
 
 # Session transcripts -- MUST NEVER ship in a published image
