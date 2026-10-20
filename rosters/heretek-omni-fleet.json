@@ -366,7 +366,7 @@
       ],
       "use_when": "Need Engine & Systems Programmer (Game Development) expertise.",
       "why": "Equipped with cache-conscious-ecs-design and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
-      "caveat": "Writes scoped to src/engine/*, tests/engine/*."
+      "caveat": "Writes scoped to src/engine/*, tests/engine/*, build.sh, CMakePresets.json, CMakeLists.txt."
     },
     {
       "seat": "exec-exec-director@executive-and-architecture",

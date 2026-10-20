@@ -1775,6 +1775,9 @@ roles:
       path_write:
       - src/engine/*
       - tests/engine/*
+      - build.sh
+      - CMakePresets.json
+      - CMakeLists.txt
       bash_allow:
       - cargo bench*
       - cargo test engine*

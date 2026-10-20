@@ -561,11 +561,11 @@ integrity:
     agents/_shared/skills/yara-rule-authoring/scripts/yara_rules.py: 59eca803ddecc9f12ce4f7bdeef40af8568e566604c93319df8630279f84f38c
     agents/_shared/skills/yara-rule-authoring/workflows/rule-development.md: 2b562b3389cd4b33c0990322eb051dd7efda16202a6d7228fd6ec5afcc8a36b1
     agents/engine-systems-eng/agent.yaml: 8624285eef1ae2e5a4600da9422ad818fc5f176ab51ddafdee252740304314f4
-    agents/engine-systems-eng/guidance/role.md: b1743e8e25afed4c306c1dd61d760794291c12fddf2cf2ff8526095cf8e773ea
+    agents/engine-systems-eng/guidance/role.md: 1da0b074a491331570a3052f80be477a9b646133f9972bada6075171f3693cc4
     agents/engine-systems-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/engine-systems-eng/runtime/pi-permission-config.json: 059338f272c71a80ab171ca5e26610c50b24ec68be99de209bc4d1216fe2525e
+    agents/engine-systems-eng/runtime/pi-permission-config.json: 3a6412c8b3d568c1e2809e44a8706608dcf7c94e65099d06d3b00af4da9941f5
     agents/engine-systems-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/engine-systems-eng/runtime/policy-enforcement.json: f57fdf54877148967e21b4203d0d36bf9d33d426a8b131f8f52e0b431ca09b62
+    agents/engine-systems-eng/runtime/policy-enforcement.json: c09fb10f34133b6d6d780b6ba2cc30202d6ec1084fc7273286d6d950b322ad00
     agents/engine-systems-eng/skills/cache-conscious-ecs-design/SKILL.md: d8f4b69cd8cd1b2f65b8bde5f3aa52c2f28ff9e133bddf93bea19b16c647bb39
     agents/engine-systems-eng/startup/context.md: e100474ddb2db8006eb3fe30ad6392571f3156e63d87f25b93c6d62577d18c4a
     agents/game-ai-dev/agent.yaml: ccacc1e8e01dcb435c5bf6ebe8bc75a7fb5f01aabc6e08c47c22404e05d54753
