@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: 5716ff7e9a04c575f80adbf85aaebc09ffe22edfa655a00d5a555483f2abb74a
+    value: 98bca485273eae396472d15fd3c91953588825b9020a28dd402b8ef9fe3f2c8b
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.11

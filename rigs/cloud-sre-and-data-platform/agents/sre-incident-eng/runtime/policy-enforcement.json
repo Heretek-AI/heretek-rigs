@@ -98,7 +98,8 @@
     },
     "mcp": {
       "*": "deny",
-      "prometheus": "allow"
+      "prometheus": "allow",
+      "grafana": "allow"
     },
     "external_directory": "deny"
   }
