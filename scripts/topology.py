@@ -124,7 +124,13 @@ def validate(fleet, mcp_cat, lock, rep):
     for rig in list(fleet["rigs"]) + [fleet.get("omni", {})]:
         if not rig.get("id"):
             continue
-        ry = yaml.safe_load(open(os.path.join(ROOT, "rigs", rig["id"], "rig.yaml")))
+        rig_path = os.path.join(ROOT, "rigs", rig["id"], "rig.yaml")
+        try:
+            with open(rig_path) as fh:
+                ry = yaml.safe_load(fh)
+        except (OSError, yaml.YAMLError) as err:
+            rep.fail(f"rig.yaml unreadable: {rig['id']}: {err}")
+            continue
         disk_members = {}
         for pod in ry.get("pods", []):
     try:
