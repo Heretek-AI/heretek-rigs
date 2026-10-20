@@ -561,13 +561,13 @@ integrity:
     agents/_shared/skills/yara-rule-authoring/scripts/yara_rules.py: 59eca803ddecc9f12ce4f7bdeef40af8568e566604c93319df8630279f84f38c
     agents/_shared/skills/yara-rule-authoring/workflows/rule-development.md: 2b562b3389cd4b33c0990322eb051dd7efda16202a6d7228fd6ec5afcc8a36b1
     agents/exec-director/agent.yaml: d079eca866d691113fdc7e79374598343fff929319fa32a5130a6b41a664a8f0
-    agents/exec-director/guidance/role.md: 3c3907488a2fb7462661139a04cd1f3013f8b8f86465b833b8c1866ecc3dc74e
+    agents/exec-director/guidance/role.md: 598ba69463d1dc0f4f3cb66c7783e1fb8ce215ad9f4396a6388031662d71ab2b
     agents/exec-director/runtime/mcp.json: a8eee8c8642d8778dfe4a50b28701b04560214e5375e8599247fc83776ce8ce9
     agents/exec-director/runtime/pi-permission-config.json: fac3c03bba9c3191c1ccf43421fb5387ecd1d0009d7cd3edacdd2436524f3d90
     agents/exec-director/runtime/pi-settings.json: 42d649c0faf44344ef1bf015109a153ecc1872de08d993f58ee266683574f784
     agents/exec-director/runtime/policy-enforcement.json: 93838ded61cb738849c917ecde9886a41b364ff37715d927a4992a2682f278d9
-    agents/exec-director/skills/executive-okr-decomposition/SKILL.md: 3de0bb5e99231483c74f3b19c05f6502ec6635e55868572d0645092a991cac41
-    agents/exec-director/startup/context.md: 94ce669419ef6fc84c7ea6fbb595b7581054a7cfe6299f4e29f2d5d1545d69a9
+    agents/exec-director/skills/executive-okr-decomposition/SKILL.md: 01c687a19decb159bf703a466713fef6b149a8a556de4466e52fcac239f349ac
+    agents/exec-director/startup/context.md: 50add0155c5659568f6b2e3cc9c9382d4ae7b2092eb4f09519b0eadc62f421f1
     agents/git-drift-coord/agent.yaml: 027b8dce7cc4e77da1a1c66899e32f74c63c3dda9b0a74e7a97d7276095e25bf
     agents/git-drift-coord/guidance/role.md: 0052858c9d323d051aa8bd2134a2945ec28763e2486c65604190518b66a1f1ea
     agents/git-drift-coord/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04

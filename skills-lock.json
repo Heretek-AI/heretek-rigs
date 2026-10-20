@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "skills": {
+    "rigs": {
+      "source": "mvschwarz/openrig",
+      "ref": "v0.6.12",
+      "sourceType": "github",
+      "skillPath": "skills/rigs/SKILL.md",
+      "computedHash": "4badfe79e2c169268854a8f1c3523c1cea637319a904e4e6fcbfc242bc93ee58"
+    }
+  }
+}
