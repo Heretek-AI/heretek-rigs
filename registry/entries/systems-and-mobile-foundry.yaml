@@ -6,7 +6,7 @@ summary: Low-level Rust and C++ systems programming paired with native Android (
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/systems-and-mobile-foundry
-  resolvedCommit: 99b4420c6a2e50749c8bb0b3a8d02186b9aa2b41
+  resolvedCommit: a00efa6b6518c78548899b57867a3c1efce17195
   requestedRef: main
 configurations:
 - id: mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: f6cb83210cd2005473a6543e52b4e23405ea5a2ad678a0031ade31c289f48486
+    value: d76ddd8ae7bb618bce01b0728c74822768a6dc0916f33d9d961a49fe8cfa32d8
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.11

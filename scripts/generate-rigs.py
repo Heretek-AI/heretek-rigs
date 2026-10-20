@@ -331,6 +331,11 @@ def build_charter(rid: str, r: dict, crew_dir: Path) -> str:
             "- Work arrives as openrig queue items and `rig send` messages; follow `queue-handoff` and `mission-slice-sop`.",
             f"- Escalate blockers to {esc}.",
             f"- Writes are confined to: {writable}. A denial from pi-permission-system is final: hand off, never work around it.",
+            "- A denial reports one blocked command and one rule -- never a capability. Never conclude a tool is unavailable from a single denial.",
+            "- One command per `bash` call: no chaining (`;`), pipes (`|`), or redirection (`>`, `<`). A chained command is denied for the chain, not for its parts -- retry the exact command bare before reporting a block.",
+            "- `rig`/`queue`/`send` access is via `bash` allow-listed commands, not `tool_search` (no rig MCP tools exist). An empty `tool_search` proves nothing about rights.",
+            "- Before reporting a blocked capability: retry bare, then read `extensions/pi-permission-system/logs/pi-permission-system-permission-review.jsonl` and quote its `command` and `matchedPattern` verbatim. Evidence is raw output, never paraphrase.",
+            "- Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.",
             f"- Verification commands you may run: {verif_cmds}.",
             f"- Wake policy: {wake}.",
             "",
@@ -620,7 +625,7 @@ def generate_all(
 
         (adir / "startup").mkdir(parents=True, exist_ok=True)
         (adir / "startup/context.md").write_text(
-            f"You are {rid} ({r['title']}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list`) before starting work.\n"
+            f"You are {rid} ({r['title']}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list`) before starting work. If a tool call is denied, retry the exact command bare and quote the denial verbatim -- never paraphrase denials or infer tool-wide bans.\n"
         )
 
         # Render static runtime reference artifacts in runtime/
@@ -736,6 +741,8 @@ def generate_all(
             "# Heretek Fleet Culture & Operating Constitution",
             "",
             "- Evidence over assertion: every claim of done carries the command that proves it and its output (`verification-before-completion`).",
+            "- A denial names one command and one rule: retry the exact command bare (one command per `bash` call, never chained) and quote `command` + `matchedPattern` from the permission review log before claiming a capability is missing.",
+            "- Delivery claims carry queue item ids (`qitem-...`); without one the work is `PENDING_DISPATCH`, never `DISPATCHED`.",
             "- Zero stubs, fail closed, least privilege. A permission denial from `@gotgenes/pi-permission-system@41.0.0` is a hand-off, never a puzzle to work around.",
             "- Small slices: one queue item, one verifiable outcome. Hand off with `rig queue` and state what is next.",
             "- Secrets never appear in messages, `rig.yaml` `env:`, files, transcripts, or command lines; they resolve exclusively via `0600` command-backed `!cat` references.",

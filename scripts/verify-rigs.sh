@@ -618,6 +618,14 @@ for rid, rdir in sorted(discovered_roles.items()):
     _declared_pw = set((r_fleet.get("permissions", {}) or {}).get("path_write") or [])
     if not _rendered_pw_allows <= _declared_pw:
         fail(f"{rid}: rendered path_write allows exceed fleet-declared path_write (surplus={sorted(_rendered_pw_allows - _declared_pw)[:5]})")
+    # HR-queue-surface (fail-closed): every seat's rendered bash map must keep
+    # the six rig allows. Seats coordinate via bash-invoked `rig` commands (no
+    # rig MCP tools exist); a renderer regression silently dropping the rig
+    # surface would leave seats unable to queue/send with a fully green gate.
+    # The subset check above pins the ceiling; this pins the floor.
+    for _rv in ("rig whoami", "rig ps", "rig queue", "rig send", "rig capture", "rig transcript"):
+        if not any(_k == _rv or _k.startswith(_rv + " ") or _k.startswith(_rv + "*") for _k, _v in _bash_map.items() if _v == "allow"):
+            fail(f"{rid}: rendered bash map missing rig allow for '{_rv}*'")
 
     if rid in READONLY_16_ROLES:
         for g in r_fleet["permissions"]["path_write"]:
