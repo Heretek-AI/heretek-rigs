@@ -127,9 +127,10 @@ def validate(fleet, mcp_cat, lock, rep):
         ry = yaml.safe_load(open(os.path.join(ROOT, "rigs", rig["id"], "rig.yaml")))
         disk_members = {}
         for pod in ry.get("pods", []):
-            for m in pod.get("members", []):
-                mid = m["id"] if isinstance(m, dict) else m
-                disk_members[mid] = pod["id"]
+    try:
+        validate(fleet, mcp_cat, lock, rep)
+    except Exception as e:  # fail-closed: malformed catalog must not traceback
+        rep.fail(f"validator crashed on malformed input: {e!r}")
         fleet_members = {r: d["pod"] for r, d in roles.items() if d.get("rig") == rig["id"]}
         for mid, pod in sorted(fleet_members.items()):
             if mid not in disk_members:
