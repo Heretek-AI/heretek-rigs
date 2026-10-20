@@ -54,18 +54,15 @@ jobs:
       - name: Summary
         id: summary
         run: |
-          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          read nodes edges seats advisories < <(python3 - <<'PY'
           import json
           g = json.load(open('topology-out/graph.json'))
           from collections import Counter
           t = Counter(n['type'] for n in g['nodes'])
-          print(f"nodes={len(g['nodes'])}")
-          print(f"edges={len(g['edges'])}")
-          print(f"seats={t.get('seat',0)}")
           adv = [l[2:] for l in open('topology-out/advisory.md') if l.startswith('- ')]
-          print(f"advisories={len(adv)}")
+          print(len(g['nodes']), len(g['edges']), t.get('seat',0), len(adv))
           PY
-          read nodes edges seats advisories < <(python3 - <<'PY'
+          )
           import json
           from collections import Counter
           g = json.load(open('topology-out/graph.json'))
