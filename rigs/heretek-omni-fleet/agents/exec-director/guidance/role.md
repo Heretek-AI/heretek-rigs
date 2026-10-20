@@ -48,6 +48,7 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `openrig-user`
 - `forming-an-openrig-mental-model`
 - `agent-operated-workflows`
+- `brainstorming`
 - `dispatching-parallel-agents`
 - `executive-okr-decomposition`
 
