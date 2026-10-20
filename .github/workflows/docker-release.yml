@@ -59,9 +59,9 @@ jobs:
             exit 1
           fi
           if make guard-profiles SIDECAR_PROFILES="mobile web-research"; then
-            echo "error: guard-profiles accepted mobile with web-research" >&2
-            exit 1
-          fi
+      - run: |
+          if make guard-profiles SIDECAR_PROFILES="mobile devsec"; then echo "guard accepted mobile+devsec" >&2; exit 1; fi
+          if make guard-profiles SIDECAR_PROFILES="mobile web-research"; then echo "guard accepted mobile+web-research" >&2; exit 1; fi
           make guard-profiles SIDECAR_PROFILES="web-research"
 
   build:
