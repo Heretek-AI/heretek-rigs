@@ -145,12 +145,18 @@ services:
     restart: unless-stopped
 
 networks:
+  # Explicit `name:` keys so network names are deterministic regardless of the
+  # Compose project name. External containers (e.g. the heretek-rigs fleet
+  # image) join with `--network heretek`.
   heretek:
+    name: heretek
     driver: bridge
     internal: false
   heretek-devsec:
+    name: heretek-devsec
     driver: bridge
     internal: true
   heretek-mobile:
+    name: heretek-mobile
     driver: bridge
     internal: true
