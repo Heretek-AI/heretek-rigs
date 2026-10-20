@@ -68,6 +68,12 @@ expect deny  bash  '{"command":"git status\nevil"}' "bash chaining with newline 
 # commit above makes these probes decisive (pre-fix they allow AND succeed).
 expect deny  bash  '{"command":"git log --oneline -p -- fleet/fleet.yaml"}' "bash git log -p patch exfil past fleet/* read-deny"
 expect deny  bash  '{"command":"git show --stat --patch HEAD -- fleet/fleet.yaml"}' "bash git show --patch past fleet/* read-deny"
+# HR-5.5-tab-p-suffix-gap (fail-closed): tab-separated -p plus the two
+# unprobed patch flags must deny even on allowed git prefixes (JSON `\t`
+# decodes to TAB, so this probes the `"*\t-p*"` terminal deny).
+expect deny  bash  '{"command":"git log --oneline\t-p -- fleet/fleet.yaml"}' "bash git log tab-separated -p patch exfil past fleet/* read-deny"
+expect deny  bash  '{"command":"git log --oneline --full-diff -- fleet/fleet.yaml"}' "bash git log --full-diff past fleet/* read-deny"
+expect deny  bash  '{"command":"git show --textconv HEAD -- fleet/fleet.yaml"}' "bash git show --textconv past fleet/* read-deny"
 # Anti-over-block: path-scoped git without patch flags must stay allowed.
 expect allow bash  '{"command":"git log --oneline -- fleet/fleet.yaml"}' "bash git log --oneline path-scoped without patch flag"
 expect allow bash  '{"command":"git status --short"}' "bash git status"

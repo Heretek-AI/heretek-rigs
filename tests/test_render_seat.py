@@ -117,6 +117,7 @@ class TestRenderSeat(unittest.TestCase):
             "*(*",
             "*)*",
             "* -p*",
+            "*\t-p*",
             "*--patch*",
             "*--full-diff*",
             "*--textconv*",

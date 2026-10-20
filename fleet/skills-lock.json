@@ -343,6 +343,12 @@
       "tree": "sha256:b5295fdd7d884e8af6a8cefb019e841ffd12681b02308183a0753a8100623192",
       "license_file": "LICENSE (copied from source root)"
     },
+    "using-superpowers": {
+      "source": "obra/superpowers@bb92a77",
+      "path": "skills/using-superpowers",
+      "tree": "sha256:1403e7978a16bef5ccb230006ba1fafcc165fcced2fe0b41ba1c6387e5b5b6ad",
+      "license_file": "LICENSE (copied from source root)"
+    },
     "variant-analysis": {
       "source": "trailofbits/skills@5c99c03",
       "path": "plugins/variant-analysis/skills/variant-analysis",

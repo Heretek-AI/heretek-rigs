@@ -9685,3 +9685,421 @@ replaced with literals, no secrets/`OPENRIG_*` in `rig.yaml` `env:`, no proxy
 `AUDIT_REPORT_FINDINGS.md` left untouched; `scripts/audit_loop.py` must spawn
 the next triad audit (expect `STATUS: NO_FINDINGS` on re-audit: all three HR
 IDs remediated and gate green).
+
+## 2026-10-20 — Automated remediation pass (PROMPT_FLEET_AUDIT_REMEDIATION.md, HR-6.1-using-superpowers-prose-ref + HR-5.5-tab-p-suffix-gap)
+
+Execution context: OpenCode file-tool-only run. Reading order followed:
+`AUDIT_REPORT_FINDINGS.md` → `docs/OPENRIG_MUSE_GO_ARCHITECTURE.md` →
+`PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md` (M0–M4 excerpts, toolchain
+files authoritative) → `fleet/fleet.yaml` + `fleet/mcp-servers.yaml` +
+`scripts/generate-rigs.py` + `scripts/render-seat.py` +
+`scripts/verify-rigs.sh` + `scripts/gate-role.sh` + `tests/test_render_seat.py`
++ `identity-vectors.json` + `PROMPT_ADVERSARIAL_FLEET_AUDIT.md`.
+`default.shell` probes (`python3 ./scripts/generate-rigs.py`, then `true`)
+each returned
+`{"type":"permission.rejected","message":"This non-interactive run cannot ask the user for permission..."}`
+(2 attempts, 0 blind retries; stop per hard rule 4 well before 3). Therefore
+`python3 scripts/generate-rigs.py`, `./scripts/verify-rigs.sh --check-only`,
+`./scripts/bootstrap-pi-seats.sh --all --dry-run`, and
+`python3 ./scripts/audit_loop.py --self-test` could NOT be executed here, and
+the regen that materializes the two fixes below (64th skill + 15th terminal
+deny across all 51 seats + refreshed digests) is PENDING on a shell host. No
+`STATUS: NO_FINDINGS` claimed here; `scripts/audit_loop.py` must spawn the
+next triad audit after the gate turns green. Every finding re-verified by
+`Read`/`Grep` per the Cardinal Rule. `AUDIT_REPORT_FINDINGS.md` untouched.
+
+### Reproduction (Proof commands re-run via file tools)
+
+- HR-6.1: `Read specs/agents/_shared/skills/executing-plans/SKILL.md:47-51`
+  → line 50 `` `../using-superpowers/references/` `` verbatim;
+  `Read specs/agents/_shared/skills/` → 63 entries, no `using-superpowers*`;
+  `Grep using-superpowers fleet/` → zero lock hits (only the 1
+  `specs/.../SKILL.md:50` prose hit repo-wide); `Read
+  .scratch/vendor/obra_superpowers/skills/` → 15 entries INCLUDING
+  `using-superpowers/` (with `references/` holding `pi-tools.md` et al),
+  confirming the ref is a valid upstream sibling omitted from the vendored
+  subset. Gate blind spot CONFIRMED: `verify-rigs.sh:337-356` checks only
+  `REQUIRED ... superpowers:<id>` refs and `\.\./([a-z0-9-]+)/scripts/`
+  paths — a `../<id>/references/` prose ref escapes both. REPRODUCED.
+- HR-5.5: `Read specs/agents/security/threat-modeler/runtime/pi-permission-config.json:28-41`
+  (sampled shape; full 51-seat re-read NOT RUN — shell blocked) +
+  `Read render-seat.py:398-414` terminal tuple ending `* -p*` (space-anchored)
+  + `Read verify-rigs.sh:558-567` sortedness-only order gate +
+  `Read gate-role.sh:69-70` only `-p`/`--patch` probes. Tab bypass, 2/4-flag
+  probe gap, and order-gate weakness all CONFIRMED on disk. REPRODUCED.
+
+### P3 — HR-6.1-using-superpowers-prose-ref (FIXED in source; regen pending)
+
+- Root cause: `executing-plans` is vendored full-fidelity from
+  `obra/superpowers@bb92a77`, whose upstream tree contains the
+  `using-superpowers/` sibling (with the per-platform `references/`,
+  including `pi-tools.md` relevant to our Pi runtime). The fleet's shared
+  bindings never pulled that sibling into the vendored subset (63 skills),
+  so the upstream prose pointer at SKILL.md:50 dangles and the gate's two
+  patterns both miss the `../<id>/references/` shape.
+- Files modified (canonical catalog + generator-side gate, never the
+  generated leaf — hard rule 1):
+  - `fleet/fleet.yaml` (system-architect `shared:`): added
+    `- id: using-superpowers / source: superpowers` with an
+    `HR-6.1-using-superpowers-prose-ref` comment. System-architect is the
+    only role binding `executing-plans`; the generator unions it into the
+    shared pool, so the next regen vendors 64 skills, extends
+    `fleet/skills-lock.json` (new tree-hash entry), `_shared/agent.yaml`
+    `resources.skills`, and system-architect `uses.skills`. No
+    `builtin:locked` touched, no upstream file edited (fidelity preserved).
+  - `scripts/verify-rigs.sh`: count gate `63 → 64` (lock + disk +
+    header comment); new fail-closed sibling-doc-ref block scans every
+    `specs/agents/_shared/skills/*/SKILL.md`, strips fenced code blocks
+    (so `typescript-astro` ```astro code samples with
+    `'../components/...'` never false-positive), and fails on any
+    `../([a-z0-9-]+)/` ref with no vendored sibling directory. Verified by
+    reading that all other current SKILL.md-root `../` refs resolve
+    (`subagent-driven-development` → `requesting-code-review`,
+    `executing-plans` → `subagent-driven-development`,
+    `requesting-code-review`) or are fenced.
+  - `scripts/generate-rigs.py` docstring: `63 → 64` shared skills.
+  - `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` (§Beta focus, §Beta methodology,
+    Domain 6 header + Claim 6.1): `63 → 64`, with the `using-superpowers`
+    sibling named as required by the `executing-plans`
+    `../using-superpowers/references/` pointer plus the every-`../<id>/`-resolves
+    invariant.
+- Verification (TO RUN on shell host):
+  `HERETEK_RIGS_ALLOW_DIRTY=1 python3 scripts/generate-rigs.py`
+  (expect `... 64 shared skills ...`);
+  `ls specs/agents/_shared/skills | wc -l` → 64;
+  `grep -rn "using-superpowers" specs/agents/_shared/skills/ fleet/` →
+  lock entry + vendored dir + fleet binding;
+  `./scripts/verify-rigs.sh --check-only` → exit 0;
+  sabotage (scratch copy: `rm -rf specs/agents/_shared/skills/using-superpowers`)
+  → gate exits 1 via the new sibling-doc-ref block (hard-rule-2 style
+  proof). Could NOT execute here (`permission.rejected`).
+- Status: HARDENED in source; REGEN + EXECUTION PENDING shell.
+
+### P3 — HR-5.5-tab-p-suffix-gap (FIXED in source; regen + live-pi proof pending)
+
+- Root cause: three legs, all confirmed on disk: (1) the patch-deny
+  `"* -p*"` anchors on a literal space, so
+  `git log --oneline<TAB>-p -- fleet/fleet.yaml` matches the
+  `git log --oneline*` allow but no deny under last-match-wins
+  substring-glob semantics (`--patch`/`--full-diff`/`--textconv` denies
+  need no space anchor and already cover tab separators); (2)
+  `gate-role.sh` probes only 2/4 patch flags (`-p`, `--patch`);
+  (3) `verify-rigs.sh` asserts terminal denies are sorted relative to
+  each other, not that no `allow` follows them.
+- Files modified:
+  - `scripts/render-seat.py`: added `"*\t-p*"` to the terminal-deny
+    tuple (after `"* -p*"`) + comment documenting the tab gap (JSON
+    `\t` decodes to TAB at match time). Fleet allows verified
+    metachar-free, so the clean fleet renders unchanged except the added
+    deny; all 51 seats gain a 15th terminal deny on regen.
+  - `scripts/verify-rigs.sh`: `_TERMINAL_BASH_DENIES` gains `"*\t-p*"`;
+    order gate gains a terminality assert (`max(allow_idx) >
+    min(term_idx)` → fail: no allow may follow the terminal-deny block,
+    a hand-injected trailing allow flips the gate); renderer-emit check
+    gains `'"*\t-p*"'`.
+  - `scripts/gate-role.sh`: added tab-separated
+    `git log --oneline\t-p` deny probe (JSON `\t` → TAB) plus the two
+    missing flag probes (`git log --oneline --full-diff`,
+    `git show --textconv HEAD`) — 4/4 patch flags now live-probed.
+  - `tests/test_render_seat.py`: expected terminal denies gain
+    `"*\t-p*"`.
+  - `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` Claim 5.5: terminal-deny list
+    gains `"*\t-p*"` + the no-allow-follows-the-block invariant.
+- Verification (TO RUN on shell host):
+  `python3 scripts/generate-rigs.py` then
+  `bash scripts/gate-role.sh threat-modeler` → tab `-p`,
+  `--full-diff`, `--textconv` probes all `ok ... deny`, anti-overblock
+  allows (`git log --oneline -- fleet/fleet.yaml` modulo the documented
+  `fleet/*` path-deny over-block, `git status --short`) still allow;
+  `./scripts/verify-rigs.sh --check-only` → exit 0;
+  sabotage trio in a scratch copy (delete `"*\t-p*"` from one seat's
+  `pi-permission-config.json`; append a trailing `"zzz-evil*": "allow"`
+  after the terminal block; drop the tab probe expectation) → each flips
+  the gate 0→1. Live matcher semantics (`\t` glob support in
+  `@gotgenes/pi-permission-system@41.0.0`) decided by the hostile-corpus
+  run through installed `pi`. Could NOT execute here.
+- Status: HARDENED in source; REGEN + LIVE PROOF PENDING shell/pi.
+
+### Sabotage coverage note (remediation hard rule 2)
+
+This audit's Sabotage Results table reports every invariant as UNVERIFIABLE
+(shell blocked, subjects present but live runs blocked) — none as survived
+(`Caught? = No`) — so no rule-2 reactive check was triggered. Proactively,
+this pass adds fail-closed gate coverage for both findings' exact gaps:
+the `../<id>/`-doc-ref sibling gate (HR-6.1) and the tab-deny + 4/4-probe +
+terminality gate (HR-5.5). Scratch-copy sabotage proofs for both are
+specified above and MUST be run on a shell host (delete-vendored-sibling →
+exit 1; delete-tab-deny / trailing-allow → exit 1).
+
+### Verification gate (all BLOCKED here — exact commands + verbatim outputs)
+
+```bash
+python3 scripts/generate-rigs.py
+# -> NOT RUN: {"type":"permission.rejected","message":"This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action."}
+./scripts/verify-rigs.sh --check-only
+# -> NOT RUN: same permission.rejected (gate never probed beyond the generate attempt + `true` probe; 0 blind retries per hard rule 4)
+./scripts/bootstrap-pi-seats.sh --all --dry-run
+# -> NOT RUN: same permission.rejected (not retried — same error class)
+python3 ./scripts/audit_loop.py --self-test
+# -> NOT RUN: same permission.rejected (not retried — same error class)
+python3 scripts/generate-rigs.py  # second run idempotency
+# -> NOT RUN: same permission.rejected
+```
+
+Deterministic idempotency (`git diff` after second generate) UNTESTABLE here.
+Hard-rule stop condition NOT triggered (2 shell attempts, 0 blind retries on
+same fix). Pre-regen gate state is INTENTIONALLY red-by-design: fleet
+declares 64 skills / 15 terminal denies while disk still carries 63 skills /
+14 denies until the shell host regens — fail-closed, not a regression.
+No security check weakened or skipped, no `builtin:locked` touched, no
+`*..*` deny removed (still LAST in both maps), no
+`code_rewrite/lsp_rename/lsp_code_actions` deny removed, no `guidance_merge`
+introduced into `agent.yaml` `startup.files`, no `!cat` replaced with
+literals, no secrets/`OPENRIG_*` in `rig.yaml` `env:`, no proxy `0->1`, no
+`0.0.0.0`, no `:latest`, no symlinks, no generated leaf hand-edited (all
+edits are canonical catalog / toolchain / prompt-claim / unit-test; digests
+recompute on regen).
+`AUDIT_REPORT_FINDINGS.md` left untouched; `scripts/audit_loop.py` must spawn
+the next triad audit after a shell host regens (expect 64 skills), turns the
+full gate + `--check-idempotent` green, runs the two sabotage trios above,
+and commits.
+
+## 2026-10-20 — Automated remediation pass (PROMPT_FLEET_AUDIT_REMEDIATION.md, HR-6.1-using-superpowers-prose-ref P3 + HR-5.5-tab-p-suffix-gap P3 — verify-only, regen-blocked)
+
+Execution context: OpenCode file-tool-only run. Reading order followed strictly:
+`AUDIT_REPORT_FINDINGS.md` (114 lines, `STATUS: FINDINGS_DETECTED`) →
+`docs/OPENRIG_MUSE_GO_ARCHITECTURE.md` (`:1-30` pins + verdict table) →
+`PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md` (`:1-30` mission + hard rules) →
+`fleet/fleet.yaml` + `fleet/mcp-servers.yaml` + `scripts/generate-rigs.py` +
+`scripts/render-seat.py` + `scripts/verify-rigs.sh` + `scripts/gate-role.sh` +
+`scripts/seed-rig.py` + `scripts/bootstrap-pi-seats.sh` + `scripts/audit_loop.py` +
+`docker-compose.sidecars.yml` + `Makefile` + `identity-vectors.json` + `schemas/` +
+`specs/agents/_shared/skills/executing-plans/SKILL.md`.
+`default.shell` probes (directory probe, `echo blocked` probe, then the mandated
+`python3 ./scripts/generate-rigs.py` gate probe) each returned
+`{"type":"permission.rejected","message":"This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action."}`
+(3 attempts, 0 blind retries; stop per hard rule 4). Therefore
+`python3 scripts/generate-rigs.py`, `./scripts/verify-rigs.sh --check-only`,
+`./scripts/bootstrap-pi-seats.sh --all --dry-run`, and
+`python3 ./scripts/audit_loop.py --self-test` could NOT be executed here. No
+`STATUS: NO_FINDINGS` claimed; shell-capable host must run the gate. Every HR
+finding re-verified by `Read`/`Grep`/`Glob` per the Cardinal Rule (no claim counted
+as VERIFIED by reading alone). `AUDIT_REPORT_FINDINGS.md` left untouched.
+
+### Reproduction (exact Proof commands re-run via file tools — both findings REPRODUCED)
+
+- HR-6.1: `Grep using-superpowers specs/agents/_shared/skills/executing-plans` →
+  `SKILL.md:50` `` `../using-superpowers/references/` `` verbatim;
+  `Read specs/agents/_shared/skills/` → 63 entries, no `using-superpowers*`;
+  `Grep using-superpowers fleet/skills-lock.json` → zero hits (63 `"source"`
+  entries, no `using-superpowers` key);
+  `Grep using-superpowers fleet/` → only `fleet.yaml:3361-3362,3366`
+  (fail-closed comment + `- id: using-superpowers / source: superpowers` live
+  binding under `system-architect` `skills.shared`);
+  `Read .scratch/vendor/obra_superpowers/skills/` → 15 entries INCLUDING
+  `using-superpowers/`, so the upstream sibling exists and the prose ref is
+  valid-but-unvendored. Gate blind spot already closed in source:
+  `verify-rigs.sh:357-385` sibling-doc-ref block (fence-strip + `../([a-z0-9-]+)/`
+  match, `fail()` at `:385`). REPRODUCED as staged-binding-without-regen.
+- HR-5.5: `Read specs/agents/languages/go-backend-eng/runtime/policy-enforcement.json:50-63` →
+  14 denies (`"* -p*": "deny"` at `:60` immediately followed by
+  `"*--patch*": "deny"` at `:61`, no `"*\t-p*"` line);
+  `Read scripts/render-seat.py:402-419` → 15-tuple ending
+  `"* -p*", "*\t-p*", "*--patch*", ...` (`:413-414` verbatim);
+  `Read scripts/verify-rigs.sh:587-603` → `_TERMINAL_BASH_DENIES` requires all 15
+  incl `"*\t-p*"` (`:587`) with terminality assert (`:597-603`);
+  `Read scripts/gate-role.sh:69-76` → tab `-p` + `--full-diff` + `--textconv`
+  deny probes present. Disk carries 14/15 denies; renderer+verifier require 15.
+  REPRODUCED as stale generated tree failing its own fail-closed gate.
+- Sabotage table (`AUDIT_REPORT_FINDINGS.md:80-94`): all 12 rows
+  `NOT RUN (shell blocked)` — none reports `Caught? = No`, so hard-rule-2
+  reactive check NOT triggered.
+
+### P3 — HR-6.1-using-superpowers-prose-ref (no source change this pass; regen pending)
+
+- Root cause: fleet's canonical binding (`fleet.yaml:3366`) stages the 64th shared
+  skill but `python3 scripts/generate-rigs.py` has not been re-run since it landed,
+  so lock (63 entries) + disk (`specs/agents/_shared/skills/`, 63 dirs) +
+  `_shared/agent.yaml` (63 ids) disagree with the source of truth. Prior
+  2026-10-20 pass already made the fail-closed source fixes (fleet binding +
+  `verify-rigs.sh:357-385` sibling gate + `generate-rigs.py` docstring `63 → 64` +
+  prompt Claim 6.1 `63 → 64`); re-verified present by reading above. No further
+  canonical defect found.
+- Files modified: none (hard rule 1 forbids hand-editing generated leaves —
+  that would desync `configurationId`/`packageDigest`/`bodyDigest`; the fix is
+  regen on a shell host).
+- Verification (TO RUN on shell host):
+  `python3 scripts/generate-rigs.py` (expect 64 shared skills);
+  `grep -rn "using-superpowers" specs/agents/_shared/skills/ fleet/` resolves to
+  lock entry + vendored dir + fleet binding;
+  `./scripts/verify-rigs.sh --check-only` → exit 0.
+  Could NOT execute here — `default.shell permission.rejected` (verbatim below).
+- Status: SOURCE HARDENED (prior pass); REGEN PENDING shell.
+
+### P3 — HR-5.5-tab-p-suffix-gap (no source change this pass; regen + live proof pending)
+
+- Root cause: same stale-regen class — `render-seat.py:402-419` already emits the
+  `"*\t-p*"` 15th terminal deny, `verify-rigs.sh:587-603` already requires it
+  with the no-allow-after-block assert, and `gate-role.sh:69-76` already probes
+  tab/`--full-diff`/`--textconv`, but all 102 checked-in permission files still
+  carry 14 denies (representative `go-backend-eng:60-63` verbatim above).
+  `generate-rigs.py:629-644` calls order-preserving `write_json`, so regen emits
+  the TAB deny into all 102 files. Prior 2026-10-20 pass made these source fixes;
+  re-verified present by reading above. No further canonical defect found.
+- Files modified: none (regen-only fix; hand-editing the 102 JSON leaves is
+  forbidden by hard rule 1).
+- Verification (TO RUN on shell host): `python3 scripts/generate-rigs.py`
+  (expect only permission files changed);
+  repo-wide TAB-deny present in all 102 files;
+  `./scripts/verify-rigs.sh --check-only` → exit 0;
+  `bash scripts/gate-role.sh threat-modeler` → tab/`-p`/`--patch`/`--full-diff`/
+  `--textconv` all deny with path-scoped allows still allow.
+  Could NOT execute here — `default.shell permission.rejected`.
+- Status: SOURCE HARDENED (prior pass); REGEN + LIVE `pi` MATCHER PROOF PENDING.
+
+### Sabotage coverage note (remediation hard rule 2)
+
+This audit's Sabotage Results table reports every invariant as UNVERIFIABLE
+(shell blocked) — none as survived (`Caught? = No`) — so no rule-2 reactive check
+was triggered. Both findings' exact gaps already carry fail-closed gate coverage
+from the prior 2026-10-20 pass (sibling-doc-ref block HR-6.1; tab-deny + 4/4-probe
++ terminality block HR-5.5), re-verified present this pass.
+
+### Verification gate (mandated step 3 — all BLOCKED here, exact commands + verbatim outputs)
+
+```bash
+python3 scripts/generate-rigs.py
+# -> NOT RUN: {"type":"permission.rejected","message":"This non-interactive run cannot ask the user for permission, so the request was rejected. Continue without this action."}
+./scripts/verify-rigs.sh --check-only
+# -> NOT RUN: same permission.rejected (gate-probe already rejected; not retried per hard rule 4)
+./scripts/bootstrap-pi-seats.sh --all --dry-run
+# -> NOT RUN: same permission.rejected (not retried — same error class)
+python3 ./scripts/audit_loop.py --self-test
+# -> NOT RUN: same permission.rejected
+python3 scripts/generate-rigs.py  # second run idempotency
+# -> NOT RUN: same permission.rejected
+```
+
+Deterministic idempotency (`git diff` after second generate) UNTESTABLE here.
+Hard-rule stop condition NOT triggered (3 shell attempts, 0 blind retries on same
+fix). No security check weakened or skipped, no `builtin:locked` touched, no
+`*..*` deny removed (still last in both maps), no
+`code_rewrite/lsp_rename/lsp_code_actions` deny removed, no `guidance_merge`
+introduced into `agent.yaml` `startup.files`, no `!cat` replaced with literals,
+no secrets/`OPENRIG_*` in `rig.yaml` `env:`, no proxy `0→1`, no `0.0.0.0`, no
+`:latest`, no symlink, no generated leaf hand-edited.
+`AUDIT_REPORT_FINDINGS.md` left untouched; `scripts/audit_loop.py` must spawn the
+next triad audit after a shell host regens (expect 64 skills + 15 denies), turns
+the full gate + `--check-idempotent` green, runs the two sabotage trios, and commits.
+
+## 2026-10-20 — EXECUTED remediation pass (build mode, shell available; gate GREEN 22/0)
+
+Execution context: OpenCode interactive session, build mode — `default.shell`
+available. Reading order followed: `AUDIT_REPORT_FINDINGS.md` (114 lines,
+`STATUS: FINDINGS_DETECTED`, 2 P3 findings) → `docs/OPENRIG_MUSE_GO_ARCHITECTURE.md`
+→ `PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md` → `fleet/fleet.yaml` +
+`fleet/mcp-servers.yaml` + `scripts/generate-rigs.py` + `scripts/render-seat.py` +
+`scripts/verify-rigs.sh` + `scripts/gate-role.sh` + `scripts/audit_loop.py` +
+`docker-compose.sidecars.yml` + `Makefile` + `identity-vectors.json` + `schemas/`.
+
+### Reproduction (Proof commands executed, both findings REPRODUCED pre-regen)
+
+- `ls specs/agents/_shared/skills | wc -l` → `63`, no `using-superpowers`;
+  `grep -c using-superpowers fleet/skills-lock.json` → `0` hits on the id
+  (63 `"source"` entries); `fleet.yaml:3366` live binding present.
+  HR-6.1 REPRODUCED as staged-binding-without-regen.
+- `python3 -c` JSON-key probe on
+  `specs/agents/languages/go-backend-eng/runtime/policy-enforcement.json` →
+  `has TAB key: False`; `render-seat.py:414` emits `"*\t-p*"` (backslash-t
+  source → TAB at runtime); `verify-rigs.sh:587` requires 15 denies incl TAB.
+  HR-5.5 REPRODUCED as stale generated tree (14/15 denies on disk).
+
+### P3 — HR-6.1-using-superpowers-prose-ref (REMEDIATED by regen; no new source edit)
+
+- Root cause: fleet's canonical `system-architect` binding
+  (`fleet.yaml:3366` `- id: using-superpowers / source: superpowers`, added by
+  the prior 2026-10-20 pass along with the `verify-rigs.sh:357-385`
+  sibling-doc-ref gate) was never materialized — lock + disk + digests still
+  reflected the 63-skill subset although vendor
+  `.scratch/vendor/obra_superpowers/skills/using-superpowers/` exists.
+- Files modified: none this pass (canonical catalog + gate already correct).
+- Fix executed: `HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py`
+  → `wrote 51 specialist AgentSpecs, 64 shared skills, 8 RigBundles, Roster, and Registry views ...`
+  (ALLOW_DIRTY still records the real HEAD SHA `99b4420c`, never the
+  `SYNTHETIC-` fallback; dirty flag is due to this pass's own uncommitted
+  source fixes + `.opencode/opencode-loop/` session logs, not a provenance gap).
+  Post-regen: `ls specs/agents/_shared/skills | wc -l` → `64`,
+  `using-superpowers` present on disk, lock carries the 64th entry.
+- Sabotage proof (fail-closed): `mv specs/agents/_shared/skills/using-superpowers /tmp/opencode/...`
+  → `./scripts/verify-rigs.sh --check-only` → `EXIT:1` with
+  `[FAIL] Shared skill count mismatch (expected 64)`,
+  `[FAIL] shared skill using-superpowers: missing directory ...`,
+  `[FAIL] shared skill executing-plans: doc ref ../using-superpowers/ has no vendored sibling skill directory ...`;
+  restored → `EXIT:0`. (Hard rule 2 satisfied: gate catches the invariant.)
+- Status: FIXED (regen materialized; gate green).
+
+### P3 — HR-5.5-tab-p-suffix-gap (REMEDIATED by regen + 1-line verifier-literal fix)
+
+- Root cause (two legs): (1) stale tree — all 102 permission files carried 14
+  terminal denies while renderer + verifier required 15 (`"*\t-p*"`); regen
+  emits the TAB deny via the order-preserving `write_json` path.
+  (2) Real gate bug found during this executed pass: `verify-rigs.sh:1149`
+  (renderer-emit check) tested `'"*\t-p*"'` — a Python literal that evaluates
+  to a real TAB — against `render-seat.py` source text, which contains the
+  2-byte `backslash-t` escape. Post-regen the gate reported
+  `SUMMARY: 22 checks passed, 1 failed` with
+  `[FAIL] scripts/render-seat.py must emit terminal "*<TAB>-p*" bash deny`
+  even though the renderer was correct (all 51 seats validated, TAB key present
+  in parsed JSON). One-line fail-closed correction, no check removed:
+  `scripts/verify-rigs.sh:1149` `'"*\t-p*"'` → `'"*\\t-p*"'` (match the source
+  encoding; runtime TAB semantics unchanged — line 587 still compares TAB keys
+  against parsed JSON, and the generated JSON carries a real TAB key).
+- Files modified: `scripts/verify-rigs.sh` (1 line, renderer-emit literal only).
+  `scripts/render-seat.py` untouched (already correct; a sabotage probe that
+  deleted its tab line tripped `tests/test_render_seat.py` → gate `EXIT:1`,
+  then the renderer was restored byte-identical and the gate returned to green —
+  no residual drift: `git diff --stat scripts/render-seat.py` → 5 insertions,
+  matching the prior pass's fix).
+- Fix executed: same regen as HR-6.1; post-regen probe:
+  `has TAB key: True` (`'*\t-p*'` in `permission.bash`), 64 skills.
+- Sabotage proofs (fail-closed, order-preserving edits): delete TAB deny from
+  both `policy-enforcement.json` + `pi-permission-config.json`
+  → `EXIT:1` with `[FAIL] go-backend-eng: permission bash must contain terminal
+  deny '*<TAB>-p*': deny`; restored → `EXIT:0`. (Single-file delete trips the
+  specs↔seat parity check first — also `EXIT:1`, defense in depth.)
+- Status: FIXED (regen materialized + verifier literal corrected; gate green).
+
+### Verification gate (mandated step 3 — EXECUTED, verbatim)
+
+```bash
+HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py
+# -> wrote 51 specialist AgentSpecs, 64 shared skills, 8 RigBundles, Roster, and Registry views under /home/john/Projects/heretek-rig-workspace/heretek-rigs
+./scripts/verify-rigs.sh --check-only
+# -> SUMMARY: 22 checks passed, 0 failed. EXIT:0
+./scripts/bootstrap-pi-seats.sh --all --dry-run
+# -> EXIT:2 error: missing /home/john/.config/heretek-rigs/secrets/opencode-go.key (chmod 600)
+#    (specified HR-4.2 strict-default behavior: fail-closed without secrets, not a finding)
+./scripts/bootstrap-pi-seats.sh --all --dry-run --allow-missing-secrets
+# -> EXIT:0 bootstrap-pi-seats: [DRY-RUN] would provision 54 Pi seat directories under /home/john/.openrig/state/pi
+python3 ./scripts/audit_loop.py --self-test
+# -> SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution. EXIT:0
+#    (self-test internally re-runs verify-rigs.sh → passed; 7/7 adversarial vectors classified)
+HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py  # second run
+# -> wrote 51 ... / git status diff before-vs-after EMPTY → IDEMPOTENT: zero additional changes
+```
+
+Sabotage trio summary: tab-deny delete → `EXIT:1` → restore `EXIT:0`;
+vendored-sibling delete → `EXIT:1` (count + sibling-doc-ref FAILs) → restore `EXIT:0`;
+renderer tab-line delete → `EXIT:1` (unit-test FAIL) → restored byte-identical → `EXIT:0`.
+
+Hard-rule compliance: no security check weakened or skipped (1-line verifier fix
+corrects a false-positive literal; the check still fails closed — proven by the
+trio above); no `builtin:locked` touched; no `*..*` deny moved (still last);
+no `code_rewrite/lsp_rename/lsp_code_actions` deny removed; no `guidance_merge`
+introduced; no `!cat` replaced; no proxy `0→1`; no `0.0.0.0`; no `:latest`;
+no symlink; no generated leaf hand-edited (all 359 modified tracked files flow
+from `generate-rigs.py`; 60 untracked entries are `.opencode/opencode-loop/`
+session logs only).
+`AUDIT_REPORT_FINDINGS.md` left untouched; `scripts/audit_loop.py` must now spawn
+the next triad audit, which should confirm `STATUS: NO_FINDINGS` (gate 22/0,
+self-test passed, regen idempotent).
