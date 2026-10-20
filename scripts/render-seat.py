@@ -309,7 +309,15 @@ def build_seat_files(
     packages = [pps_pkg]
     role_pkgs = role.get("pi_packages", ["@gotgenes/pi-permission-system@41.0.0"])
     has_ast_lsp = any(
-        p.startswith(("pi-lsp-extension", "pi-ast-grep")) for p in role_pkgs
+        p.startswith(
+            (
+                "pi-lsp-extension",
+                "pi-ast-grep",
+                "@narumitw/pi-lsp",
+                "@nicknisi/pi-ast-grep",
+            )
+        )
+        for p in role_pkgs
     )
     for pkg in role_pkgs:
         if pkg.startswith("@gotgenes/pi-permission-system"):

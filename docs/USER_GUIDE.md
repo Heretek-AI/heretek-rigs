@@ -219,6 +219,14 @@ rig capture exec-exec-director@executive-and-architecture
 rig transcript exec-exec-director@executive-and-architecture
 ```
 
+> **Operator relays must be authenticated (issue #9).** `rig send` issued from outside
+> a managed seat arrives with no sender identity, so seats hold it as UNVERIFIED.
+> Never relay a human decision with raw `rig send` — use
+> `scripts/send-authenticated.sh`, which files the relay as a signed queue item
+> (`rig queue create --destination <session> --body-file <file>`) self-identified as
+> operator-relayed with its human-ref grounding, UTC timestamp, and verbatim-relay
+> statement. It never claims seat origin. See `--help` for the full contract.
+
 ### How Seats Handle Permission Denials & Escalations
 
 Every seat is governed by the **Heretek Fleet Culture** (`CULTURE.md`) and `@gotgenes/pi-permission-system@41.0.0`:
