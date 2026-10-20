@@ -258,7 +258,7 @@ def build_graph(fleet, mcp_cat, lock):
             edges.append({"from": sid, "to": f"pkg:{p}", "kind": "loads", "scope": rid})
         rt = d.get("reports_to")
         if rt:
-            edges.append({"from": sid, "to": f"addr:{rt['address']}", "kind": "reports_to", "scope": rid})
+            edges.append({"from": sid, "to": f"seat:{rt['address']}", "kind": "reports_to", "scope": rid})
         for c in d.get("collaborators", []) or []:
             if c in roles:
                 cd = roles[c]
