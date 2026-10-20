@@ -1381,6 +1381,7 @@ roles:
       - cmake*
       - ninja*
       - ctest*
+      - ./build.sh*
       - clang-tidy*
       - rig whoami*
       - rig ps*

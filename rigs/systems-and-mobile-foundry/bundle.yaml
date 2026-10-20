@@ -548,11 +548,11 @@ integrity:
     agents/android-mobile-spec/skills/jetpack-compose-state-hoisting/SKILL.md: e58f6a4bed687afc3fa4b7a37dfaa571a430000099dbdb5c52af385e9edc8379
     agents/android-mobile-spec/startup/context.md: d1d3f0c0a1273bf3a07003d7d074d061f50373565cbae888ead55cd84557e856
     agents/cpp-lowlevel-eng/agent.yaml: 39e66b5d2f688af893784467f139c964358345074fa03c50255702548726f742
-    agents/cpp-lowlevel-eng/guidance/role.md: 700f7025a99ddee0654c5b9dcd7c1cd10c78df7f5e58c191e4a5036a2f51f04d
+    agents/cpp-lowlevel-eng/guidance/role.md: f45ada08bea884d62255c1cf17f8fd34cba6528860b43bb6d2557e82412b30a1
     agents/cpp-lowlevel-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: a6ee438e3ee657c31049ee05b6351d8f9abec237d311500a31565cc02f8e1f3c
+    agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: 40c39f1a2c0f956e8340c9eb4c7f69d4ae6cc7c283ef2fcb1b64da65c8202ea4
     agents/cpp-lowlevel-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: 5e2efa64484c3e8eacce03aad8929756a6a14c685e37761131b1d2df1629a998
+    agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: 1f6e6ba9eb705c81ea1ae9dad7dd8bf1b5078434ec23502259a413fb0fccd2a6
     agents/cpp-lowlevel-eng/skills/modern-cpp-sanitizer-verification/SKILL.md: 6d6c0fca870a4ae666f968e147b95c95305b63d6385b9ca8944fb720a35f1b91
     agents/cpp-lowlevel-eng/startup/context.md: ac1cc2a01d5de615586644c74e65a96ae456d28458c6239a481c7eaa4c4bad16
     agents/ios-mobile-spec/agent.yaml: 75e4f2e963b5aa609cb5083b9ae1223fab4703d3ecd7cf76bbe4474ab4ca371f

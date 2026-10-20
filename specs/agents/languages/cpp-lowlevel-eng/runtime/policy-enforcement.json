@@ -35,6 +35,7 @@
       "cmake*": "allow",
       "ninja*": "allow",
       "ctest*": "allow",
+      "./build.sh*": "allow",
       "clang-tidy*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
