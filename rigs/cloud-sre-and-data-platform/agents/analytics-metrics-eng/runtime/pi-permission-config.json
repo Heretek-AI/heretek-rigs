@@ -92,7 +92,8 @@
     "mcp": {
       "*": "deny",
       "codebase-memory": "allow",
-      "clickhouse": "allow"
+      "clickhouse": "allow",
+      "grafana": "allow"
     },
     "external_directory": "deny"
   }
