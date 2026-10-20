@@ -50,6 +50,7 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `agent-operated-workflows`
 - `dispatching-parallel-agents`
 - `git-flow`
+- `systematic-debugging`
 - `planning-with-files`
 - `sprint-ticket-decomposition`
 

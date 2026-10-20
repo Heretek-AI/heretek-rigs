@@ -33,6 +33,7 @@ profiles:
       - heretek-shared:openrig-user
       - heretek-shared:forming-an-openrig-mental-model
       - heretek-shared:agent-operated-workflows
+      - heretek-shared:brainstorming
       - heretek-shared:dispatching-parallel-agents
       - executive-okr-decomposition
       guidance: []
