@@ -83,7 +83,9 @@ jobs:
           name: fleet-topology
           path: topology-out/
           retention-days: 30
-      - run: gh pr comment ${{ github.event.pull_request.number }} --body "${{ steps.summary.outputs.report }}"
+      - run: gh pr comment "$PR_NUMBER" --body "$REPORT"
         if: github.event_name == 'pull_request'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPORT: ${{ steps.summary.outputs.report }}
