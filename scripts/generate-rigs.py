@@ -53,8 +53,8 @@ import re
 import subprocess
 from pathlib import Path
 
-OPENRIG_VERSION = "0.6.11"
-OPENRIG_COMMIT = "379f0a0d"
+OPENRIG_VERSION = "0.6.13"
+OPENRIG_COMMIT = "9eeb2e42"
 # HR-3.3: fallback placeholder used ONLY when git resolution is impossible
 # (e.g. source tarball without .git); generate_all() resolves the real commit
 # via `git rev-parse HEAD` first and fails closed on dirty/missing checkouts.
@@ -285,14 +285,17 @@ def build_charter(rid: str, r: dict, crew_dir: Path) -> str:
         + [s["id"] for s in r["skills"]["shared"]]
         + [s["id"] for s in r["skills"]["role_local"]]
     )
-    bound_servers = {b["server"] if isinstance(b, dict) else b for b in (r.get("mcp") or [])}
+    bound_servers = {
+        b["server"] if isinstance(b, dict) else b for b in (r.get("mcp") or [])
+    }
     has_writable_memory = "memory" in bound_servers
     has_graph_memory = "codebase-memory" in bound_servers
     # Steelman framing stays away from security boundaries: seats that audit,
     # red-team, or gate releases must treat their invariants as non-negotiable,
     # never as trade-offs to balance.
     steelman_ok = r.get("rig") != "defensive-sec-and-red-team" and rid not in {
-        "sabotage-qa-tester", "static-analysis-lead",
+        "sabotage-qa-tester",
+        "static-analysis-lead",
     }
     # Moment-of-action skill triggers (Web P6): only pointers to bound skills.
     _TRIGGERS = (
@@ -384,7 +387,7 @@ def build_charter(rid: str, r: dict, crew_dir: Path) -> str:
             "- Before reporting a blocked capability: retry bare, then read `extensions/pi-permission-system/logs/pi-permission-system-permission-review.jsonl` and quote its `command` and `matchedPattern` verbatim. Evidence is raw output, never paraphrase.",
             "- Provenance: every `qitem-...` id, commit SHA, digest, exit code, and log quote must come from a live tool result in the current turn. Unexecuted or denied checks are marked `BLOCKED` or `UNVERIFIED:` -- never guessed, never synthesized.",
             "- On a tool error or denial: log the failed call once, without self-critique or apology filler; never repeat an identical denied call; finish all unblocked slice work first; escalate only the blocked remainder.",
-            "- Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare \"Done.\", no persuasion modifiers (\"honestly\", \"should pass\").",
+            '- Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare "Done.", no persuasion modifiers ("honestly", "should pass").',
             "- Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.",
             *(
                 [
@@ -426,7 +429,7 @@ def generate_all(
     # rigspec-schema.ts SHA-256 anchor at generation time so the verifier has
     # a 4th independent value beyond the three local-local copies. Shell hosts
     # refresh the vendored bytes themselves via the JSON provenance recipe
-    # (`npm pack @openrig/cli@0.6.11 ... show 379f0a0d:...rigspec-schema.ts`);
+    # (`npm pack @openrig/cli@0.6.13 ... show 9eeb2e42:...rigspec-schema.ts`);
     # the hash here attests the vendored bytes as committed. An identical
     # 3-copy key edit without updating the vendored bytes still flips the
     # verifier (hash mismatch).
@@ -445,13 +448,13 @@ def generate_all(
         die(f"HR-2.1 vendored_sha256 refresh failed: {_e}")
     # HR-2.1-pinned-still-local (fail-closed): provenance.upstream_tarball is
     # NEVER derived from local bytes here. Its tarball_sha256 is recorded by a
-    # human running `npm pack @openrig/cli@0.6.11` on a networked shell host
+    # human running `npm pack @openrig/cli@0.6.13` on a networked shell host
     # (see the provenance recipe in schemas/rigspec-keys.pinned.json); the
     # verifier fails while it is absent/placeholder. If a vendored
-    # schemas/openrig-cli-0.6.11.tgz is present, attest its bytes now so the
+    # schemas/openrig-cli-0.6.13.tgz is present, attest its bytes now so the
     # record and the vendored bytes stay synchronized across regens.
     try:
-        _tgz_path = root / "schemas/openrig-cli-0.6.11.tgz"
+        _tgz_path = root / "schemas/openrig-cli-0.6.13.tgz"
         _pinned_json_p2 = root / "schemas/rigspec-keys.pinned.json"
         if _tgz_path.exists() and _pinned_json_p2.exists():
             _tsha = hashlib.sha256(_tgz_path.read_bytes()).hexdigest()
@@ -631,7 +634,7 @@ def generate_all(
                 shutil.copy2(lic_file, dst_sdir / "LICENSE")
         lock["skills"][sid] = {
             "source": (
-                "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills"
+                f"npm:@openrig/cli@{OPENRIG_VERSION} daemon/assets/plugins/openrig-core/skills"
                 if src == "openrig-core"
                 else f"{pins[src]['repo']}@{pins[src]['sha']}"
             ),
@@ -682,7 +685,7 @@ def generate_all(
 
         (adir / "startup").mkdir(parents=True, exist_ok=True)
         (adir / "startup/context.md").write_text(
-            f"You are {rid} ({r['title']}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list`) before starting work. If a tool call is denied, retry the exact command bare and quote the denial verbatim -- never paraphrase denials or infer tool-wide bans. Close turns with a factual receipt (artifacts + verification results), never bare \"Done.\". Mark work `PENDING_DISPATCH` until a `qitem-...` id exists.\n"
+            f'You are {rid} ({r["title"]}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list`) before starting work. If a tool call is denied, retry the exact command bare and quote the denial verbatim -- never paraphrase denials or infer tool-wide bans. Close turns with a factual receipt (artifacts + verification results), never bare "Done.". Mark work `PENDING_DISPATCH` until a `qitem-...` id exists.\n'
         )
 
         # Render static runtime reference artifacts in runtime/
@@ -802,7 +805,7 @@ def generate_all(
             "- Classify denials before reacting: terminal syntax/flag guard means the invocation was bad (retry bare once); path/scope guard means hand off that path (the tool stays live); locked-tool means only that tool is denied. Denials are non-sticky.",
             "- Provenance: ids, SHAs, digests, exit codes, and log quotes come only from live tool results this turn; anything unexecuted is `BLOCKED` or `UNVERIFIED:`. Evidence is raw output, never paraphrase.",
             "- Delivery claims carry queue item ids (`qitem-...`); without one the work is `PENDING_DISPATCH`, never `DISPATCHED`.",
-            "- Close turns with a factual receipt (artifacts, verification + exit status, successor item); never bare \"Done.\".",
+            '- Close turns with a factual receipt (artifacts, verification + exit status, successor item); never bare "Done.".',
             "- Zero stubs, fail closed, least privilege. A permission denial from `@gotgenes/pi-permission-system@41.0.0` is a hand-off, never a puzzle to work around.",
             "- Small slices: one queue item, one verifiable outcome. Hand off with `rig queue` and state what is next.",
             "- Secrets never appear in messages, `rig.yaml` `env:`, files, transcripts, or command lines; they resolve exclusively via `0600` command-backed `!cat` references.",
