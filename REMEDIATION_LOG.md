@@ -10103,3 +10103,59 @@ session logs only).
 `AUDIT_REPORT_FINDINGS.md` left untouched; `scripts/audit_loop.py` must now spawn
 the next triad audit, which should confirm `STATUS: NO_FINDINGS` (gate 22/0,
 self-test passed, regen idempotent).
+
+## 2026-10-20 00:26 UTC — Build-mode remediation pass (zero open findings, live gate executed)
+
+Execution context: build mode with working shell (`default.shell` approved).
+HEAD `9e805ade8de9f54540ca6ca2174b955a0a629607` (merge of `remediate/audit-hr-6.1-5.5-regen`).
+Current `AUDIT_REPORT_FINDINGS.md` records zero open findings: prior P3s
+`HR-6.1-using-superpowers-prose-ref` and `HR-5.5-tab-p-suffix-gap` were already
+remediated in-tree by PR #3 and confirmed FIXED by the triad + cross-examiners.
+No code change was required or applied this pass (canonical catalog, generator,
+renderer, verifier, compose, and Makefile all left untouched).
+
+### Verification gate (executed live, verbatim)
+```bash
+./scripts/verify-rigs.sh --check-only
+# -> SUMMARY: 22 checks passed, 0 failed. EXIT:0
+python3 ./scripts/audit_loop.py --self-test
+# -> SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution. EXIT:0
+./scripts/bootstrap-pi-seats.sh --all --dry-run --allow-missing-secrets
+# -> [DRY-RUN] would provision 54 Pi seat directories under /home/john/.openrig/state/pi. EXIT:0
+HERETEK_RIGS_ALLOW_DIRTY=1 python3 scripts/generate-rigs.py --check-idempotent
+# -> wrote 51 specialist AgentSpecs, 64 shared skills, 8 RigBundles, Roster, and Registry views (x2)
+# -> idempotence check passed (two consecutive runs byte-identical). EXIT:0
+```
+(Plain `generate-rigs.py --check-idempotent` without the flag correctly refuses
+on a dirty checkout — fail-closed by design; `EXIT:0` with refusal message.)
+
+### Tree hygiene (no functional diff)
+- `HERETEK_RIGS_ALLOW_DIRTY=1` regen emitted the known 16-file provenance-only
+  rotation (`resolvedCommit`/`canonicalUrl` 99b4420→9e805ad in `registry/entries/*`
+  + `registry/views/*/behaviour.json`, zero content bytes); reverted via
+  `git checkout -- registry/` per the single-bake bound (committing it would only
+  re-lag provenance — infinite regress).
+- Restored two pre-existing tracked-session deletions
+  (`.opencode/opencode-loop/loop.log`, `.opencode/.../ses_ead24b8....json`) via
+  `git checkout --`; they were deleted before this session, not by remediation.
+- Pre-existing untracked `docs/evidence/`, `docs/reports/` left alone (not mine).
+- Final `git status --porcelain`: only `M AUDIT_REPORT_FINDINGS.md` (the audit
+  deliverable itself); verifier re-run post-cleanup still 22/0.
+
+### Finding mapping
+- HR-6.1-using-superpowers-prose-ref (was P3): root cause already fixed in HEAD
+  (sibling vendored + lock + 9 bindings); files modified this pass: none;
+  verify: gate 22/0 + idempotent regen. Status: REMAINS FIXED.
+- HR-5.5-tab-p-suffix-gap (was P3): root cause already fixed in HEAD (15th deny
+  materialized in all artifacts); files modified this pass: none; verify: gate
+  22/0. Status: REMAINS FIXED.
+
+Hard-rule compliance: no check weakened or skipped; no `builtin:locked` touched;
+no `*..*` deny moved; no `code_rewrite/lsp_rename/lsp_code_actions` deny removed;
+no `guidance_merge`; no `!cat` replaced; no proxy `0→1`; no `0.0.0.0`;
+no `:latest`; no symlink; no generated leaf hand-edited.
+`AUDIT_REPORT_FINDINGS.md` left untouched by this pass (audit-owned).
+Next step per the loop: `scripts/audit_loop.py` spawns the next triad audit on a
+clean checkout, which with shell + network available can mark claims VERIFIED,
+run the 12 sabotage targets + upstream attestations, and legitimately reach
+`STATUS: NO_FINDINGS`.
