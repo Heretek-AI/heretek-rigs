@@ -1837,6 +1837,8 @@ roles:
       - forming-an-openrig-mental-model
       - agent-operated-workflows
       shared:
+      - id: brainstorming
+        source: superpowers
       - id: dispatching-parallel-agents
         source: superpowers
       role_local:
@@ -3626,6 +3628,8 @@ roles:
         source: superpowers
       - id: git-flow
         source: heretek-crew
+      - id: systematic-debugging
+        source: superpowers
       role_local:
       - id: planning-with-files
         source: heretek-crew

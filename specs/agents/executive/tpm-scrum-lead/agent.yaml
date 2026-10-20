@@ -36,6 +36,7 @@ profiles:
       - heretek-shared:agent-operated-workflows
       - heretek-shared:dispatching-parallel-agents
       - heretek-shared:git-flow
+      - heretek-shared:systematic-debugging
       - planning-with-files
       - sprint-ticket-decomposition
       guidance: []

@@ -22,7 +22,7 @@ agents:
   version: '1.0'
   path: agents/exec-director
   original_ref: local:agents/exec-director
-  hash: d079eca866d691113fdc7e79374598343fff929319fa32a5130a6b41a664a8f0
+  hash: 0299ffad054c61edeb9ad18369d6a7bfef8578749ff22dda3b7f28cf144d6171
   import_entries:
   - name: heretek-shared
     version: '1.0'
@@ -33,7 +33,7 @@ agents:
   version: '1.0'
   path: agents/tpm-scrum-lead
   original_ref: local:agents/tpm-scrum-lead
-  hash: 3212bda984360266f3dca9b56f313531afb4ff8be0955a04da70d89f60add7cf
+  hash: 56a1d8ff9268977e8587ac8aaa24557cd43b93ffc5a8d26a7eb028e53eceb81e
   import_entries:
   - name: heretek-shared
     version: '1.0'
@@ -688,8 +688,8 @@ integrity:
     agents/engine-systems-eng/runtime/policy-enforcement.json: c09fb10f34133b6d6d780b6ba2cc30202d6ec1084fc7273286d6d950b322ad00
     agents/engine-systems-eng/skills/cache-conscious-ecs-design/SKILL.md: d8f4b69cd8cd1b2f65b8bde5f3aa52c2f28ff9e133bddf93bea19b16c647bb39
     agents/engine-systems-eng/startup/context.md: e100474ddb2db8006eb3fe30ad6392571f3156e63d87f25b93c6d62577d18c4a
-    agents/exec-director/agent.yaml: d079eca866d691113fdc7e79374598343fff929319fa32a5130a6b41a664a8f0
-    agents/exec-director/guidance/role.md: 938facee49787ab73daf163d41472b7edbccc3bf41020ff99a21f8d087a452ce
+    agents/exec-director/agent.yaml: 0299ffad054c61edeb9ad18369d6a7bfef8578749ff22dda3b7f28cf144d6171
+    agents/exec-director/guidance/role.md: aad0fc147a7c6a087c96f256fb0cf554e6389d01baec6cad173a0077f61c06ec
     agents/exec-director/runtime/mcp.json: a8eee8c8642d8778dfe4a50b28701b04560214e5375e8599247fc83776ce8ce9
     agents/exec-director/runtime/pi-permission-config.json: fac3c03bba9c3191c1ccf43421fb5387ecd1d0009d7cd3edacdd2436524f3d90
     agents/exec-director/runtime/pi-settings.json: 42d649c0faf44344ef1bf015109a153ecc1872de08d993f58ee266683574f784
@@ -905,8 +905,8 @@ integrity:
     agents/threat-modeler/runtime/policy-enforcement.json: 57efda023c37ed5759823193aa1c1b4bce29d1336fd73f838edc8236be8ce443
     agents/threat-modeler/skills/stride-threat-modeling/SKILL.md: 7f7bdbb8aa2cab064c18573e9a946bffa9f7dd21f0fb254dd4a175ff9a4a3053
     agents/threat-modeler/startup/context.md: fe4581cf5d500ef592a21453148e3c7e9dfe6009113d94b2caf70aa2e2e13fba
-    agents/tpm-scrum-lead/agent.yaml: 3212bda984360266f3dca9b56f313531afb4ff8be0955a04da70d89f60add7cf
-    agents/tpm-scrum-lead/guidance/role.md: 36fbee57e8668bf292b7f24ea1dc8cf25627e59a36c6236c1fc068e6121502a4
+    agents/tpm-scrum-lead/agent.yaml: 56a1d8ff9268977e8587ac8aaa24557cd43b93ffc5a8d26a7eb028e53eceb81e
+    agents/tpm-scrum-lead/guidance/role.md: 398506a203a6d654d5b52392b9f2e8c6ebf43636eea8cd01fb0656cb6f5990a4
     agents/tpm-scrum-lead/runtime/mcp.json: a8eee8c8642d8778dfe4a50b28701b04560214e5375e8599247fc83776ce8ce9
     agents/tpm-scrum-lead/runtime/pi-permission-config.json: 0b60fea90ec7cd729ddb9966dfe3e6ebc023ad112248487268b696413e0d38b0
     agents/tpm-scrum-lead/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be

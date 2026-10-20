@@ -54,7 +54,7 @@ servers:
     exposure: deferred
     description: GitHub read-only ({toolset} toolset) for the fleet's repositories.
   memory:
-    pin: npm:@modelcontextprotocol/server-memory@1.0.0
+    pin: npm:@modelcontextprotocol/server-memory@2.0.0
     source: https://github.com/modelcontextprotocol/servers
     license: SEE LICENSE IN LICENSE (MIT upstream)
     status: run-verified

@@ -375,6 +375,7 @@
         "executive",
         "exec-director",
         "executive-okr-decomposition",
+        "brainstorming",
         "dispatching-parallel-agents"
       ],
       "engagement": [
@@ -382,7 +383,7 @@
         "review"
       ],
       "use_when": "Need Director / CEO-Delegate (Executive & Product Management) expertise.",
-      "why": "Equipped with executive-okr-decomposition, dispatching-parallel-agents and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "why": "Equipped with executive-okr-decomposition, brainstorming, dispatching-parallel-agents and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
       "caveat": "Read-only/docs-only charter (writes confined to docs/executive/*)."
     },
     {
@@ -881,7 +882,8 @@
         "planning-with-files",
         "sprint-ticket-decomposition",
         "dispatching-parallel-agents",
-        "git-flow"
+        "git-flow",
+        "systematic-debugging"
       ],
       "engagement": [
         "consult",
