@@ -8,6 +8,10 @@
 #   - Third-party actions pinned to full commit SHAs (repo policy).
 name: topology
 
+concurrency:
+  group: topology-${{ github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: [main]
