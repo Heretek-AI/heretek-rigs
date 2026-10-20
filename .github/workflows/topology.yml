@@ -1,0 +1,75 @@
+# topology: fleet wiring gates + rendered topography on every push/PR.
+#
+#   - scripts/topology.py --check-only logic is fail-closed: unresolvable
+#     reports_to, unknown collaborators/skills/servers/packages, rig.yaml <->
+#     fleet drift, fragment mismatch, and bad edge endpoints all exit 1.
+#   - SVGs + graph.json + matrix.md upload as artifacts; a summary lands as a
+#     PR comment. Orphan / omni-divergence findings are advisory (WARN only).
+#   - Third-party actions pinned to full commit SHAs (repo policy).
+name: topology
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "fleet/**"
+      - "scripts/topology.py"
+      - "rigs/**/rig.yaml"
+      - "rigs/heretek-omni-fleet/members/**"
+      - "specs/**"
+      - "Makefile"
+      - ".github/workflows/topology.yml"
+  pull_request:
+    paths:
+      - "fleet/**"
+      - "scripts/topology.py"
+      - "rigs/**/rig.yaml"
+      - "rigs/heretek-omni-fleet/members/**"
+      - "specs/**"
+      - "Makefile"
+      - ".github/workflows/topology.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  wiring:
+    name: Wiring gates + topography
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends graphviz
+      - run: pip install --quiet pyyaml
+      - run: make topology OUT=topology-out
+      - name: Summary
+        id: summary
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          g = json.load(open('topology-out/graph.json'))
+          from collections import Counter
+          t = Counter(n['type'] for n in g['nodes'])
+          print(f"nodes={len(g['nodes'])}")
+          print(f"edges={len(g['edges'])}")
+          print(f"seats={t.get('seat',0)}")
+          adv = [l[2:] for l in open('topology-out/advisory.md') if l.startswith('- ')]
+          print(f"advisories={len(adv)}")
+          PY
+          {
+            echo 'report<<EOF'
+            echo "Wiring gates: PASS (referential integrity holds)"
+            echo "Nodes: ${{ steps.summary.outputs.nodes }} | Edges: ${{ steps.summary.outputs.edges }} | Seats: ${{ steps.summary.outputs.seats }}"
+            echo "Advisory (non-blocking): ${{ steps.summary.outputs.advisories }}"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: fleet-topology
+          path: topology-out/
+          retention-days: 30
+      - run: gh pr comment ${{ github.event.pull_request.number }} --body "${{ steps.summary.outputs.report }}"
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

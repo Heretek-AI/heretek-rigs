@@ -372,6 +372,24 @@ make gate ROLE=exec-director
 make gate ROLE=go-backend-eng
 ```
 
+### Fleet Wiring & Topography (`make topology`)
+
+To verify every cross-reference in the catalog and render the whole hierarchy:
+
+```bash
+make topology OUT=/tmp/heretek-topology
+```
+
+`scripts/topology.py` fail-closed checks that every `reports_to.address` resolves to
+a real seat, every `collaborators[]` / skill / MCP / package reference exists on
+disk and in the lockfiles, every `rig.yaml` member matches `fleet.yaml` (and vice
+versa), all 51 member fragments are present, and all 53 edge endpoints exist with no
+self-edges. It then renders `graph.json` (226 nodes, 1034 edges), an org-chart SVG
+(15 pods + command), per-rig agent SVGs, per-rig seat×resource bipartite SVGs, and a
+51-row `matrix.md`. Orphan skills/servers and omni-divergent `reports_to` addresses
+are reported as advisory warnings only. The `.github/workflows/topology.yml` CI job
+runs this on every push/PR and uploads the renderings as artifacts.
+
 ## 9. Complete Command Reference (`Makefile` & Scripts)
 
 ### `Makefile` Targets
@@ -386,6 +404,7 @@ make gate ROLE=go-backend-eng
 | `make bootstrap-seats` | Run `bash ./scripts/bootstrap-pi-seats.sh --all` (strict secret checking; provisions all 54 default boot seats). |
 | `make seed RIG=<rig-id>` | Seed one rig in degraded-allowed mode: `python3 ./scripts/seed-rig.py rigs/$(RIG)/rig.yaml --allow-missing-secrets`. |
 | `make gate ROLE=<role-id>` | Live-test one role's permission config against `mock-openai.mjs` and `pi`: `bash ./scripts/gate-role.sh $(ROLE)`. |
+| `make topology OUT=<dir>` | Referential wiring gates + rendered topography (`graph.json`, org/rig/bipartite SVGs, 51-row matrix). |
 | `make guard-profiles` | Fail-closed check refusing `SIDECAR_PROFILES` that combine `mobile` with `devsec` or `web-research`. |
 | `make sidecars-up SIDECAR_PROFILES="..."` | Run `guard-profiles` then start the specified profiles in `docker-compose.sidecars.yml` (`up -d`). |
 | `make sidecars-down` | Stop sidecar containers while preserving named volumes (`docker compose -f docker-compose.sidecars.yml down`). |
