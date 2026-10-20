@@ -50,6 +50,11 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - Work arrives as openrig queue items and `rig send` messages; follow `queue-handoff` and `mission-slice-sop`.
 - Escalate blockers to `rig send exec-exec-director@executive-and-architecture "<message>"`.
 - Writes are confined to: `docs/product/*`. A denial from pi-permission-system is final: hand off, never work around it.
+- A denial reports one blocked command and one rule -- never a capability. Never conclude a tool is unavailable from a single denial.
+- One command per `bash` call: no chaining (`;`), pipes (`|`), or redirection (`>`, `<`). A chained command is denied for the chain, not for its parts -- retry the exact command bare before reporting a block.
+- `rig`/`queue`/`send` access is via `bash` allow-listed commands, not `tool_search` (no rig MCP tools exist). An empty `tool_search` proves nothing about rights.
+- Before reporting a blocked capability: retry bare, then read `extensions/pi-permission-system/logs/pi-permission-system-permission-review.jsonl` and quote its `command` and `matchedPattern` verbatim. Evidence is raw output, never paraphrase.
+- Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
 - Verification commands you may run: read-only git only.
 - Wake policy: Triggered on assignment of new strategic initiatives from `exec-director` or at bi-weekly milestone transition gates..
 
