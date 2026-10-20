@@ -117,8 +117,10 @@ def validate(fleet, mcp_cat, lock, rep):
             if p not in ALLOWED_PI_PACKAGES:
                 rep.fail(f"unlisted pi_package: {rid} -> {p}")
 
-    # 6. rig.yaml members match fleet (both directions)
-    for rig in fleet["rigs"]:
+    # 6. rig.yaml members match fleet (both directions), including the omni rig
+    for rig in list(fleet["rigs"]) + [fleet.get("omni", {})]:
+        if not rig.get("id"):
+            continue
         ry = yaml.safe_load(open(os.path.join(ROOT, "rigs", rig["id"], "rig.yaml")))
         disk_members = {}
         for pod in ry.get("pods", []):
