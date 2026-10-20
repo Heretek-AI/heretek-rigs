@@ -80,3 +80,19 @@ The schema pin rollback is covered by the same regen; the tarball record returns
 - The npm postinstall (`check-abi.mjs`, better-sqlite3 ABI check) was **not executed** because the host's npm `allowScripts` policy blocks it. The daemon start in the relaunch phase is the ABI proof; if it fails, reinstall with `--allow-scripts=@openrig/cli`.
 - `min_cli_version`/`min_daemon_version` in generated bundles is now `0.6.13`; a host still on 0.6.11 will fail closed at launch — intentional.
 - Freshness: this ledger is dated 2026-10-20. Re-check `npm view @openrig/cli version` at merge time.
+
+## 8. Live wrapper finding (fix/self-send-auth-0.6.13, 2026-10-20)
+
+`scripts/send-authenticated.sh` (pre-patch) invoked `rig queue create --destination <session> --body-file <file>` with no `--source`. Against CLI 0.6.13 outside a managed seat this fails closed:
+
+- `--source is required when OPENRIG_SESSION_NAME is not set`
+
+A direct retry with the new flags succeeded:
+
+- `rig queue create --source 'operator' --destination '...' --summary '...' --body-file <f>`
+
+and the seat saw `From: operator`, claimed and closed the item. 0.6.13 also warns when `--summary` is omitted.
+
+Patch (scripts/send-authenticated.sh only): added `--source <session>` (default `operator`, recorded as `claimed:v1` — a claim, not proof) and `--summary <text>` (default deterministic `Operator relay (grounded: <human-ref>) at <UTC>`); both are passed on every `queue create` so the 0.6.13 fail-closed and warning never fire. Dry-run prints the exact new invocation with `%q` quoting. `--help` and the header document the 0.6.13 requirement. Never-invoke-`rig send` and never-claim-seat-origin rules unchanged.
+
+Live proof of the patched wrapper: `qitem-20261020194128-151843c3600dfc35` to `command-tpm-scrum-lead@heretek-omni-fleet` (sourceSession `operator`), seat transcript ACK: "Received `qitem-20261020194128-151843c3600dfc35` with From: operator, body shows "[OPERATOR RELAY — NOT A SEAT MESSAGE]" — acknowledgement only." Seat claimed → done (closureReason no-follow-on); queue list afterwards empty.
