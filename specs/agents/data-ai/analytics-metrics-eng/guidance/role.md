@@ -29,6 +29,7 @@
 
 - `codebase-memory`: tools are named `mcp__codebase_memory__<tool>`.
 - `clickhouse`: tools are named `mcp__clickhouse__<tool>`.
+- `grafana`: tools are named `mcp__grafana__<tool>`.
 
 Read calibration for the `codebase-memory` graph: cite which file or symbol a constraint came from; never present graph retrieval as live verification.
 
