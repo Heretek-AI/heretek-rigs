@@ -8,8 +8,8 @@ Reads canonical source of truth from:
     getsentry/skills@f57ada2, anthropics/skills@dbd4588, vercel-labs/agent-skills@063bee9, and openrig-core skills.
 
 Generates (with zero symlinks and 100% `rig bundle check` containment):
-  1. fleet/skills-lock.json (tree SHA-256 + license provenance for all 63 shared skills)
-  2. specs/agents/_shared/ (heretek-shared AgentSpec v1.0 + 63 vendored skill dirs)
+  1. fleet/skills-lock.json (tree SHA-256 + license provenance for all 64 shared skills)
+  2. specs/agents/_shared/ (heretek-shared AgentSpec v1.0 + 64 vendored skill dirs)
   3. specs/agents/<domain>/<role>/ (51 AgentSpecs v1.0, guidance/role.md, startup/context.md,
      runtime/{pi-settings,mcp,policy-enforcement}.json, and role-local skills/*/SKILL.md)
   4. rigs/<rig>/ (7 static rigs + heretek-omni-fleet with rig.yaml, CULTURE.md, README.md, SETUP.md,

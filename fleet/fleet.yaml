@@ -3358,6 +3358,13 @@ roles:
         source: superpowers
       - id: subagent-driven-development
         source: superpowers
+      # HR-6.1-using-superpowers-prose-ref (fail-closed): executing-plans
+      # SKILL.md points at `../using-superpowers/references/` (per-platform
+      # references incl pi-tools.md). The sibling must be vendored so the
+      # ref resolves; the generator unions this into the shared pool
+      # (fleet/skills-lock.json + specs/agents/_shared/skills/).
+      - id: using-superpowers
+        source: superpowers
       role_local:
       - id: madr-architecture-decision
         source: heretek-crew

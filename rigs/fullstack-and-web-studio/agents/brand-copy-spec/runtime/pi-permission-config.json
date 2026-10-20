@@ -35,6 +35,7 @@
       "*(*": "deny",
       "*)*": "deny",
       "* -p*": "deny",
+      "*\t-p*": "deny",
       "*--patch*": "deny",
       "*--full-diff*": "deny",
       "*--textconv*": "deny"

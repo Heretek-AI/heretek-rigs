@@ -117,6 +117,8 @@ resources:
     path: skills/typescript-astro
   - id: using-git-worktrees
     path: skills/using-git-worktrees
+  - id: using-superpowers
+    path: skills/using-superpowers
   - id: variant-analysis
     path: skills/variant-analysis
   - id: verification-before-completion

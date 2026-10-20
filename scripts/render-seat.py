@@ -395,6 +395,10 @@ def build_seat_files(
     # prefix. Blast radius stays capped at tracked content — secrets live
     # untracked in $HERETEK_SECRETS (4.3/4.4) and the `*.env`/`*id_rsa*`
     # direct-read denies still hold.
+    # HR-5.5-tab-p-suffix-gap (fail-closed): `* -p*` is space-anchored, so a
+    # tab-separated `git log --oneline<TAB>-p` matches the allow but no deny
+    # under last-match-wins substring-glob semantics. The `"*\t-p*"` tab
+    # variant closes the gap (JSON `\t` decodes to TAB at match time).
     for _deny_pat in (
         "*--output*",
         "*;*",
@@ -407,6 +411,7 @@ def build_seat_files(
         "*(*",
         "*)*",
         "* -p*",
+        "*\t-p*",
         "*--patch*",
         "*--full-diff*",
         "*--textconv*",

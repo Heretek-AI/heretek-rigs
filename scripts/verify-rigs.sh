@@ -3,7 +3,7 @@
 #
 # Verifies:
 #   V1. 100% Role Parity & Skill Lock: All 51 canonical roles from Heretek-Crew exist in fleet/fleet.yaml and
-#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 63 locked shared skills.
+#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 64 locked shared skills.
 #   V2. OpenRig AgentSpec v1.0 & RigSpec v0.2 Structural Conformance: Exact key allowlists, pod-local vs cross-pod
 #       edge rules, topological DAG cycle checks, and byte-for-byte parity between specs/agents/ and rigs/*/agents/.
 #   V3. OpenRig Bundle Check Parity: Zero symlinks in specs/ or rigs/, all referenced files inside each rig
@@ -248,10 +248,10 @@ else:
     fail(f"Role inventory mismatch: missing={missing}, extra={extra}")
 
 shared_skills_dir = root / "specs/agents/_shared/skills"
-if len(skills_lock.get("skills", {})) == 63 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 63:
-    ok("All 63 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
+if len(skills_lock.get("skills", {})) == 64 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 64:
+    ok("All 64 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
 else:
-    fail("Shared skill count mismatch (expected 63)")
+    fail("Shared skill count mismatch (expected 64)")
 # HR-6.1-thin-superpowers-wording (fail-closed): counts alone cannot prove
 # full-fidelity obra/superpowers@bb92a77 directories. Enforce per-skill
 # tree-hash (recomputed from disk vs fleet/skills-lock.json), SKILL.md
@@ -354,6 +354,35 @@ for _skd61 in sorted(shared_skills_dir.iterdir()):
         for _rel61 in set(re.findall(r"\.\./([a-z0-9-]+)/scripts/", _sht61)):
             if not (shared_skills_dir / _rel61 / "scripts").is_dir():
                 fail(f"shared skill {_skd61.name}: script {_sh61.name} calls ../{_rel61}/scripts/ with no vendored sibling scripts directory")
+# HR-6.1-using-superpowers-prose-ref (fail-closed): vendored skill docs must
+# not point at a sibling that is not provisioned. Every `../<id>/` doc ref
+# outside fenced code blocks in specs/agents/_shared/skills/*/SKILL.md
+# (e.g. executing-plans pointing at `../using-superpowers/references/`)
+# must resolve to a vendored sibling skill directory on disk — otherwise the
+# verifier stays green while the doc dangles (same class as the fixed SDD
+# gap: the old gate only checked REQUIRED `superpowers:` refs and
+# `../<id>/scripts/` paths, so a `../<id>/references/` prose ref escaped).
+# Fenced code blocks are stripped first so intra-skill code samples (e.g.
+# typescript-astro `import ... from '../components/...'` inside ```astro
+# fences) never false-positive. A dangling prose ref must flip the gate;
+# the shell host resolves it by re-running python3 scripts/generate-rigs.py
+# after the fleet binding lands (system-architect shared `using-superpowers`,
+# obra/superpowers@bb92a77).
+for _skd69 in sorted(shared_skills_dir.iterdir()):
+    if not _skd69.is_dir():
+        continue
+    _skm69 = _skd69 / "SKILL.md"
+    if not _skm69.exists():
+        continue
+    try:
+        _skt69 = _skm69.read_text()
+    except Exception as _e:
+        fail(f"shared skill {_skd69.name}: unreadable SKILL.md for sibling-doc-ref check: {_e}")
+        continue
+    _unfenced69 = re.sub(r"```.*?```", "", _skt69, flags=re.DOTALL)
+    for _rel69 in set(re.findall(r"\.\./([a-z0-9-]+)/", _unfenced69)):
+        if not (shared_skills_dir / _rel69).is_dir():
+            fail(f"shared skill {_skd69.name}: doc ref ../{_rel69}/ has no vendored sibling skill directory (vendor obra/superpowers skills/{_rel69} via a fleet binding and re-run python3 scripts/generate-rigs.py)")
 
 for rid, rdir in sorted(discovered_roles.items()):
     r_fleet = fleet["roles"][rid]
@@ -555,7 +584,7 @@ for rid, rdir in sorted(discovered_roles.items()):
     # direct-read denies hold).
     _bash_map = perm.get("bash", {})
     _bash_keys = list(_bash_map.keys())
-    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*--patch*", "*--full-diff*", "*--textconv*")
+    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*")
     for _td in _TERMINAL_BASH_DENIES:
         if _bash_map.get(_td) != "deny":
             fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
@@ -565,6 +594,13 @@ for rid, rdir in sorted(discovered_roles.items()):
     _term_idx = [_bash_keys.index(_t) for _t in _TERMINAL_BASH_DENIES if _t in _bash_keys]
     if _term_idx != sorted(_term_idx):
         fail(f"{rid}: permission bash terminal denies out of order (got {_bash_keys})")
+    # HR-5.5-tab-p-suffix-gap (fail-closed): sortedness alone lets a
+    # hand-injected allow AFTER the deny block survive (it would win
+    # last-match-wins). No allow key may follow the terminal-deny block:
+    # every terminal deny must sit after every allow.
+    _allow_idx = [_i for _i, _k in enumerate(_bash_keys) if _bash_map.get(_k) == "allow"]
+    if _allow_idx and _term_idx and max(_allow_idx) > min(_term_idx):
+        fail(f"{rid}: permission bash terminal denies must come after all role allows, no allow may follow them (got {_bash_keys})")
     # HR-5.5-rendered-allow-superset-gap (fail-closed): rendered allow-sets
     # must be subsets of the fleet-declared allow-sets. The guards above only
     # assert denies are present — a hand-injected `"zzz-evil/*": "allow"`
@@ -1110,7 +1146,7 @@ if '"*--output*"' not in _seed_text:
 # HR-5.5-git-patch-read-bypass (fail-closed): the renderer must emit the
 # patch-output flag denies LAST so `git log -p` / `git show --patch` cannot
 # exfiltrate file contents past path read-denies on allowed git prefixes.
-for _ptd in ('"* -p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"'):
+for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"'):
     if _ptd not in _seed_text:
         fail(f"scripts/render-seat.py must emit terminal {_ptd} bash deny")
 # HR-4.2 (fail-closed opt-in): when HERETEK_REQUIRE_SEATS=1, assert sampled
