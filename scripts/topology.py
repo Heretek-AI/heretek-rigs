@@ -373,7 +373,10 @@ def main():
         print("topology: 1 blocking failure(s)")
         sys.exit(1)
     rep = Report()
-    validate(fleet, mcp_cat, lock, rep)
+    try:
+        validate(fleet, mcp_cat, lock, rep)
+    except Exception as e:  # fail-closed: malformed catalog/rig data
+        rep.fail(f"catalog malformed during validation: {type(e).__name__}: {e}")
     for msg in rep.blocking:
         print(f"FAIL {msg}")
     if not rep.ok():
