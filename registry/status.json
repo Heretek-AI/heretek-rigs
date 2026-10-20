@@ -204,7 +204,7 @@
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "c77abb9ccbbb5f55d4f80f7e8c82cf86cbfd88c3498cddc6ae295f1dda819e69",
+                  "value": "c59a3d6308bc7e1604493e94f817826448bc6c83447386f1e297187c1ed6139d",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -231,5 +231,5 @@
       }
     }
   },
-  "bodyDigest": "647b2b2caf4dbb2e6234552338af442b0acab719876bdf1c553a39b634d86b50"
+  "bodyDigest": "2599b490f21fe1fe35731d24ac39e508997d43407d8f87e35c2ff6391e1ad0fc"
 }
