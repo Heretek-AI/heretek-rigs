@@ -137,7 +137,11 @@ def validate(fleet, mcp_cat, lock, rep):
         validate(fleet, mcp_cat, lock, rep)
     except Exception as e:  # fail-closed: malformed catalog must not traceback
         rep.fail(f"validator crashed on malformed input: {e!r}")
-        fleet_members = {r: d["pod"] for r, d in roles.items() if d.get("rig") == rig["id"]}
+        if rig["id"] == fleet.get("omni", {}).get("id"):
+            fleet_members = {m: fleet["omni"]["core_pod"]["id"]
+                             for m in fleet["omni"]["core_pod"].get("members", [])}
+        else:
+            fleet_members = {r: d["pod"] for r, d in roles.items() if d.get("rig") == rig["id"]}
         for mid, pod in sorted(fleet_members.items()):
             if mid not in disk_members:
                 rep.fail(f"fleet role missing from rig.yaml: {rig['id']} lacks {mid}")
