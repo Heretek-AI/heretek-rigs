@@ -382,10 +382,10 @@ def main():
     graph = build_graph(fleet, mcp_cat, lock)
     json.dump(graph, open(os.path.join(args.out, "graph.json"), "w"), indent=1)
     print(f"topology: graph.json ({len(graph['nodes'])} nodes, {len(graph['edges'])} edges)")
-    if not args.no_svg and shutil.which("dot") is None:
+    have_dot = not args.no_svg and shutil.which("dot") is not None
+    if not args.no_svg and not have_dot:
         print("topology: graphviz `dot` not found; skipping SVG render")
-        return
-    if not args.no_svg:
+    if have_dot:
         render_orgchart(fleet, os.path.join(args.out, "org-chart"))
         for rig in fleet["rigs"]:
             render_rig(fleet, rig["id"], os.path.join(args.out, f"rig-{rig['id']}"))
