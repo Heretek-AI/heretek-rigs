@@ -83,7 +83,7 @@ jobs:
           context: .
           file: docker/Dockerfile
           target: ${{ matrix.target }}
-          platforms: ${{ matrix.platform }}
+          platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           build-args: |
             INSTALL_R2MCP=${{ matrix.target == 'full' && 'true' || 'false' }}
