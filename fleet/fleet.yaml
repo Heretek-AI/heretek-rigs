@@ -1780,6 +1780,8 @@ roles:
       - cargo test engine*
       - cmake --build*
       - ctest*
+      - cmake --version*
+      - clang --version*
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -2805,6 +2807,8 @@ roles:
       bash_allow:
       - cargo test physics*
       - ctest -R physics*
+      - cargo --version*
+      - ctest --version*
       - rig whoami*
       - rig ps*
       - rig queue *

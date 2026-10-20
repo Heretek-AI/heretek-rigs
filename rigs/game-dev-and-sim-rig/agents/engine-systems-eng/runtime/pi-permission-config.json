@@ -27,6 +27,8 @@
       "cargo test engine*": "allow",
       "cmake --build*": "allow",
       "ctest*": "allow",
+      "cmake --version*": "allow",
+      "clang --version*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",

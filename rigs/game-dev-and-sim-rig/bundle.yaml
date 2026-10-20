@@ -561,11 +561,11 @@ integrity:
     agents/_shared/skills/yara-rule-authoring/scripts/yara_rules.py: 59eca803ddecc9f12ce4f7bdeef40af8568e566604c93319df8630279f84f38c
     agents/_shared/skills/yara-rule-authoring/workflows/rule-development.md: 2b562b3389cd4b33c0990322eb051dd7efda16202a6d7228fd6ec5afcc8a36b1
     agents/engine-systems-eng/agent.yaml: 8624285eef1ae2e5a4600da9422ad818fc5f176ab51ddafdee252740304314f4
-    agents/engine-systems-eng/guidance/role.md: 1667d2ebd2173e01f23e8cf8e905ef93eedf2849a978c693199aab4efee2d2d9
+    agents/engine-systems-eng/guidance/role.md: fe6a1ae85d58f79fa48fa014bb24e5df7df35cc43458256038a5275e22c6781e
     agents/engine-systems-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/engine-systems-eng/runtime/pi-permission-config.json: 8d2af497c26b697c7451f04b5807439a12525fac8724556986956abb300f5336
+    agents/engine-systems-eng/runtime/pi-permission-config.json: 059338f272c71a80ab171ca5e26610c50b24ec68be99de209bc4d1216fe2525e
     agents/engine-systems-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/engine-systems-eng/runtime/policy-enforcement.json: 82a536659329c00dc00c4b68538f201f88c8c7a5cc50bfde0b7c447fdf20ca96
+    agents/engine-systems-eng/runtime/policy-enforcement.json: f57fdf54877148967e21b4203d0d36bf9d33d426a8b131f8f52e0b431ca09b62
     agents/engine-systems-eng/skills/cache-conscious-ecs-design/SKILL.md: d8f4b69cd8cd1b2f65b8bde5f3aa52c2f28ff9e133bddf93bea19b16c647bb39
     agents/engine-systems-eng/startup/context.md: 051048282a61b2c7e8b919740badc0cf98e521ebf60ea916bcaed68312be7eaa
     agents/game-ai-dev/agent.yaml: ccacc1e8e01dcb435c5bf6ebe8bc75a7fb5f01aabc6e08c47c22404e05d54753
@@ -593,11 +593,11 @@ integrity:
     agents/graphics-shader-eng/skills/shader-compilation-and-validation/SKILL.md: 97aecd3994cd1c630d485ed836dd68d95cad1118f80b005b9cbd4680c941f3b8
     agents/graphics-shader-eng/startup/context.md: 1605d00ad12562068acb3d132ab5aa20c889f67a39d2daba04c5be0192d983c9
     agents/physics-sim-eng/agent.yaml: 172b5ed0e039624098cc6590a13599a482716fbc9e5f7fad2ed0b8dfc9171567
-    agents/physics-sim-eng/guidance/role.md: 251a0705b7b2caa4ad36bcb8c6f1407610ba0a255c3ca90753cf4a05135d3352
+    agents/physics-sim-eng/guidance/role.md: 158f3ff5d98234d7695638a7dff3e1a1315f5f79de086ff443eca01520ba96be
     agents/physics-sim-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/physics-sim-eng/runtime/pi-permission-config.json: 019ee5e2c8cdd9cdd93fa1eb424fb0252487e33f7a3957dbbc5ee56efd49e644
+    agents/physics-sim-eng/runtime/pi-permission-config.json: 7b87c16b7de6e251be986343b1adc9af7fe0b43f39ada00ed42f205e1973378e
     agents/physics-sim-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/physics-sim-eng/runtime/policy-enforcement.json: c41cb677e82de6b028d8ef0e3e72d3c35dd7de58f5340247f502e99997744122
+    agents/physics-sim-eng/runtime/policy-enforcement.json: c36bde40a89e3d576590edaa8b30f03a94dec67f5aaa8df80aa4996112216ce2
     agents/physics-sim-eng/skills/collision-broadphase-optimization/SKILL.md: 7df3d11a480b25775c0c7381f105a959a7d70f032e4b79c705e3186a95f079a5
     agents/physics-sim-eng/startup/context.md: 55c52d7ff5180217827e33e91aeb8a0ebaadc391d6d274c8ee82cfbe7dcf2b26
     agents/tech-artist-pipeline/agent.yaml: 7417fcd011e1879cecf8a301c6ba0aaf658d48ca12a05807df09a3ace40ab77d

@@ -54,7 +54,7 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `rig`/`queue`/`send` access is via `bash` allow-listed commands, not `tool_search` (no rig MCP tools exist). An empty `tool_search` proves nothing about rights.
 - Before reporting a blocked capability: retry bare, then read `extensions/pi-permission-system/logs/pi-permission-system-permission-review.jsonl` and quote its `command` and `matchedPattern` verbatim. Evidence is raw output, never paraphrase.
 - Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
-- Verification commands you may run: `cargo bench*`, `cargo test engine*`, `cmake --build*`, `ctest*`.
+- Verification commands you may run: `cargo bench*`, `cargo test engine*`, `cmake --build*`, `ctest*`, `cmake --version*`, `clang --version*`.
 - Wake policy: Triggered on engine subsystem tasks, memory leak reports, or CPU frame-time profiling alerts..
 
 ## 7. Non-Negotiables
