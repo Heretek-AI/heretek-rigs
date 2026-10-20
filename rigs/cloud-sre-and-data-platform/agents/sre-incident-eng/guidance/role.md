@@ -28,6 +28,7 @@
 ## 4. MCP Servers & Tool Access
 
 - `prometheus`: tools are named `mcp__prometheus__<tool>`.
+- `grafana`: tools are named `mcp__grafana__<tool>`.
 
 ## 5. Skills
 

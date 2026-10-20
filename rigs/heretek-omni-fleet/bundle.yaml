@@ -548,11 +548,11 @@ integrity:
     agents/ai-red-teamer/skills/testing-prompt-injection-in-rag-pipelines/SKILL.md: a67bd9fa2545a18c89b19e4c0805ad8c265b6042f20a0e5ccc0e73b5a4bc5ae0
     agents/ai-red-teamer/startup/context.md: 516a91840f0f457629566451d0abe1003f4d6aaebaa03c365acc065ce30c50ab
     agents/analytics-metrics-eng/agent.yaml: 338adde4b99a5f094ea6123553173a83d4966bbf9fc15c9be193c4403ebe1e47
-    agents/analytics-metrics-eng/guidance/role.md: 489d499ab2cc26f8204798fc636b761ea45a72eacc08227b6f2fa994bdb13091
-    agents/analytics-metrics-eng/runtime/mcp.json: dcc25e47c4334888a8aaf9a0a702aeba095b16d62f8937b9e51458dc812d84ef
-    agents/analytics-metrics-eng/runtime/pi-permission-config.json: c36775ca09c3cb77a90bde56d89604f54dcd5b31a9de876d85ad6dee040cabd7
+    agents/analytics-metrics-eng/guidance/role.md: ad379d5111f1ade0c46ec9e27133082b7b4d8f3ff4f3e46d93613072cbeaec8d
+    agents/analytics-metrics-eng/runtime/mcp.json: 88f11238703d47066545df2ee908c14d016a75d8cb8196470669e505b7700bf7
+    agents/analytics-metrics-eng/runtime/pi-permission-config.json: 7a5cee2c95bbefea349028ea7f7da94efa4172fc8367a47f5da776d6ab9be1b5
     agents/analytics-metrics-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/analytics-metrics-eng/runtime/policy-enforcement.json: 7ea5aca90cb91504b889ade73862a3ba509f5e1d2b4c0efaf5f5e0f890714df1
+    agents/analytics-metrics-eng/runtime/policy-enforcement.json: 6dbec842e93ed1d8e58f8c069bee87cc9463fe32449952936cec7ff4277b6b39
     agents/analytics-metrics-eng/skills/clickhouse-schema-and-aggregation-optimization/SKILL.md: d142343caf7ef2934478aa944e4182dd839045eda94906f82c7149da09952623
     agents/analytics-metrics-eng/startup/context.md: 027d606e2500392c5fac710f064fda6e93a497323e6e6c009a5be72252979573
     agents/android-mobile-spec/agent.yaml: 82ae4293abfa0a668c33f3ab42b12b2cbc9500f2b9f920af98ea3860c504170b
@@ -660,7 +660,7 @@ integrity:
     agents/dependency-patcher/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
     agents/dependency-patcher/runtime/pi-permission-config.json: 693eb6cb761099c007c263f0798e02a306d518a71ce079f33dd9b1fa7a7ea873
     agents/dependency-patcher/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/dependency-patcher/runtime/policy-enforcement.json: 117eea64a74352d61bb1495782b812ff9740bbc8401c5881f620040a334fe3f0
+    agents/dependency-patcher/runtime/policy-enforcement.json: 577899248f7bf08902fc5da67e812f315e98f5d621e79763d6d1239cbaad02f7
     agents/dependency-patcher/skills/automated-lockfile-patching/SKILL.md: 4495da482d777cfce34ba492086c5130c2b935b670fbdbb3530f8efdefadb705
     agents/dependency-patcher/startup/context.md: add6a1d9c88ecae50d4e2c7a0cf82dad816c5a4f123585cb280a7e40f894c1ab
     agents/design-system-eng/agent.yaml: 6781f6bbd0c54f163e645dc495d50039bd44c13c0e6897f881899c57ef83fa9d
@@ -802,11 +802,11 @@ integrity:
     agents/mobile-web-eng/skills/mobile-viewport-emulation-audit/SKILL.md: bca98f5d9b88166dab460488db45ebb96263db1f1907028cbb33c88b6cab2d8e
     agents/mobile-web-eng/startup/context.md: a787cffc9eced547c0b1e833628df363e9666c729ca4814352a5eeaf4633b804
     agents/observability-eng/agent.yaml: 9af98694529c15c845d3cdda9596b3c0be5657d62d5667ba4887fb8946a291c4
-    agents/observability-eng/guidance/role.md: 61d1dafbfef63a13ac434011a4ee4e5f6b135816b60e42b274ba3c5d0f39b7b2
-    agents/observability-eng/runtime/mcp.json: 3c971773f081d7d977b84cf7b6d8baf0a8366d07ed9b2e943d3d45e33dd7c5a9
-    agents/observability-eng/runtime/pi-permission-config.json: d5bae2138533c9f86f96b25b8a2a54b0cd9e5c780d8b0d3b669bbfb8434ee34a
+    agents/observability-eng/guidance/role.md: 25cd9459df8f2904ba8888a4aa034918a82c1c47edc88149cfa71c2195f9c01c
+    agents/observability-eng/runtime/mcp.json: 7dbd5374d42b7946f9898c006f55921e3c09c98d72b5de7922077fa5d7c08706
+    agents/observability-eng/runtime/pi-permission-config.json: a8c5445a6b272e7964ade616d7343a1f22af1a4e84dd3bca3b983c2c5398ffc9
     agents/observability-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/observability-eng/runtime/policy-enforcement.json: 257e594c40f7dd40c0ca11ee07a2037b125051ff15a20ec3a06530c6a8593b2d
+    agents/observability-eng/runtime/policy-enforcement.json: 28d910f346a0138096d4806bc9eacd884a75d3393e9ac68ed1d4466e07218dbb
     agents/observability-eng/skills/prometheus-rule-validation/SKILL.md: 640ecafcdb9a694eb9718f8587351739a40aded5d30c7cf23a2820ba9e6347d0
     agents/observability-eng/startup/context.md: b65e2da67e0416ac1cf02e7bb60c02b5260233cc61932877ba3e7ab96465677e
     agents/physics-sim-eng/agent.yaml: 172b5ed0e039624098cc6590a13599a482716fbc9e5f7fad2ed0b8dfc9171567
@@ -858,11 +858,11 @@ integrity:
     agents/sabotage-qa-tester/skills/adversarial-mutation-sabotage/SKILL.md: 568c2b9e72557f924a199bdff4f7adb5f0601df270db8348211d53c4cd3f2322
     agents/sabotage-qa-tester/startup/context.md: 6479a1f79d1c628067612fbcbe68c154f7bd7b4a06705dc0ebacb4eec8ec49d3
     agents/sre-incident-eng/agent.yaml: 54645d26e75e2f4b38de0cbcdd739f500f594f7803ba5ba0c949f9bd099c7d5f
-    agents/sre-incident-eng/guidance/role.md: 6195a33ea6faf6099fd94e5be5ad260615e54f865a9b30c8acfc78bdb653a2fe
-    agents/sre-incident-eng/runtime/mcp.json: 9204205ddc81553e9b576f00a782fab384e03cf3aaaec2e19a00a1dc4bc3d9e8
-    agents/sre-incident-eng/runtime/pi-permission-config.json: 69a1d067cb49127c2875cbfd708e8716e7a5727d2fea5ee32f4bed3528f83c07
+    agents/sre-incident-eng/guidance/role.md: 0fbfd646afc1efb5d5b6bb786ad527021643c45978d07d013ee2fff553d0adb2
+    agents/sre-incident-eng/runtime/mcp.json: c7dfdb7cf87275481c61fb01515b669c3cc0de16fa0cdd571dfcc001b496b24a
+    agents/sre-incident-eng/runtime/pi-permission-config.json: f4a69bbada80d99574c6dc5481ae50ecb161a18e9b54b4c319df2675113f5014
     agents/sre-incident-eng/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/sre-incident-eng/runtime/policy-enforcement.json: 853162d771b2172a7b37b8caf688b65f3071cecc73bc03b3c2bc8a74ce235f61
+    agents/sre-incident-eng/runtime/policy-enforcement.json: ead7f27cfa776be5b48121de833001398980ca9537140cf02e59e028a44e71be
     agents/sre-incident-eng/skills/blameless-incident-triage-and-postmortem/SKILL.md: 8eaeeaf872e87bce263319354b7c84933d4458bcd0dcb9a4757f5cf48e460e7c
     agents/sre-incident-eng/startup/context.md: 77dea99968c88351685ee025866f313d1c6ee3bede36b18c9dd9f0e52676b978
     agents/static-analysis-lead/agent.yaml: 36de71d15b3b192a368e0cf70df5d1fa016722aee0b13c8b006ab6344d57d551
