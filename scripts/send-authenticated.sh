@@ -1,25 +1,36 @@
 #!/usr/bin/env bash
 # Send an operator decision/relay as an authenticated queue item (issue #9 workaround).
-# usage: scripts/send-authenticated.sh --destination <seat-session> (--body-file <file> | --message <text>) --human-ref <text> [--dry-run] [--help]
-# Never invokes `rig send`: delivery is always `rig queue create --destination <session> --body-file <file>`,
+# usage: scripts/send-authenticated.sh --destination <seat-session> (--body-file <file> | --message <text>) --human-ref <text> [--source <session>] [--summary <text>] [--dry-run] [--help]
+# Never invokes `rig send`: delivery is always `rig queue create --source <session> --destination <session> --summary <text> --body-file <file>`,
 # whose queue-item ID is the verifiable identity seats can trust (raw `rig send` from outside a
 # managed seat arrives with no sender identity, so seats hold it as UNVERIFIED).
+# CLI 0.6.13 requires --source outside a managed seat (fails closed with
+# `--source is required when OPENRIG_SESSION_NAME is not set`); it is recorded as
+# claimed:v1 — a self-declared claim, NOT proof of seat origin. This script NEVER
+# claims seat origin: default --source is `operator`, overridable only to another
+# operator-side label, never to a seat identity.
+# Default --summary is deterministic from human-ref + UTC timestamp; --summary is
+# always passed so the 0.6.13 omission warning never fires.
 set -euo pipefail
 
 DESTINATION=""
 BODY_FILE=""
 MESSAGE=""
 HUMAN_REF=""
+SOURCE="operator"
+SUMMARY=""
 DRY_RUN=0
 
 usage() {
   cat <<'USAGE' >&2
-usage: scripts/send-authenticated.sh --destination <seat-session> (--body-file <file> | --message <text>) --human-ref <text> [--dry-run] [--help]
+usage: scripts/send-authenticated.sh --destination <seat-session> (--body-file <file> | --message <text>) --human-ref <text> [--source <session>] [--summary <text>] [--dry-run] [--help]
 
   --destination <seat-session>  Required. Queue destination seat-session (form <pod>-<member>@<rig>).
   --body-file <file>            Required unless --message is given. File whose content is relayed verbatim.
   --message <text>              Required unless --body-file is given. Inline text relayed verbatim (written to a temp file).
   --human-ref <text>            Required. Decision-record path or prior queue-item ID this relay is grounded in.
+  --source <session>            Optional (default: operator). Declared source recorded as claimed:v1 (a claim, not proof). CLI 0.6.13 requires it outside a managed seat.
+  --summary <text>              Optional (default: deterministic "Operator relay (grounded: <human-ref>) at <UTC>"). Always passed to `rig queue create` so the 0.6.13 warning never fires.
   --dry-run                     Print the exact `rig queue create` invocation plus the fully rendered body; execute nothing.
   --help                        Print full help and exit 0.
 USAGE
@@ -27,11 +38,11 @@ USAGE
 
 print_help() {
   cat <<'HELP'
-send-authenticated.sh — file a human decision / operator relay as a signed queue item.
+send-authenticated.sh — file a human decision / operator relay as a queue-recorded relay item.
 
 Purpose: deliver operator-relayed content to a seat through the authenticated queue
-channel (`rig queue create --destination <session> --body-file <file>`) INSTEAD of raw
-`rig send`. The queue item's own ID is its verifiable identity; the seat can trust,
+channel (`rig queue create --source <session> --destination <session> --summary <text> --body-file <file>`) INSTEAD of raw
+`rig send`. The queue item's own ID is a durable reference the seat can quote and verify against the queue itself; the seat can trust,
 quote, and act on it without the UNVERIFIED hold applied to anonymous relays.
 
 Background (issue #9): `rig send` issued from outside a managed seat arrives with no
@@ -40,6 +51,16 @@ and must not act on them directly. The proven workaround (2026-10-20, unblocked 
 in ~9 seconds) is re-delivering the same content as an authenticated queue item via
 `rig queue create --destination <session> --body-file <file>`. This script codifies
 that exact pattern so operators never hand-roll it (and never fall back to raw send).
+
+CLI 0.6.13 requirement: outside a managed seat (no OPENRIG_SESSION_NAME),
+`rig queue create` fails closed with `--source is required when
+OPENRIG_SESSION_NAME is not set`. This script therefore always passes
+`--source` (default `operator`, overridable via --source) and always passes
+`--summary` (default deterministic from human-ref + UTC timestamp, overridable
+via --summary) so the 0.6.13 omission warning never fires. The --source value
+is recorded by the daemon as claimed:v1 — a self-declared claim, NOT proof of
+origin. It exists so the seat sees `From: operator`, never so the operator can
+impersonate a seat.
 
 Never-forge-identity rule (fail-closed): the delivered body is ALWAYS self-identified
 as operator-relayed (sender role "operator relay", the --human-ref grounding, a UTC
@@ -71,6 +92,12 @@ while [[ $# -gt 0 ]]; do
     --human-ref)
       [[ $# -ge 2 ]] || { usage; exit 2; }
       HUMAN_REF="$2"; shift 2 ;;
+    --source)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      SOURCE="$2"; shift 2 ;;
+    --summary)
+      [[ $# -ge 2 ]] || { usage; exit 2; }
+      SUMMARY="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     --help|-h) print_help; exit 0 ;;
     *) echo "error: unknown argument: $1" >&2; usage; exit 2 ;;
@@ -90,6 +117,12 @@ fi
 if [[ -z "$BODY_FILE" && -z "$MESSAGE" ]]; then
   echo "error: one of --body-file <file> or --message <text> is required" >&2; usage; exit 2
 fi
+if [[ -z "$SOURCE" ]]; then
+  echo "error: --source <session> must not be empty (default: operator)" >&2; usage; exit 2
+fi
+if [[ "$SOURCE" == *"@"* ]]; then
+  echo "error: --source must be an operator-side label, not a seat session (contains '@'): $SOURCE" >&2; usage; exit 2
+fi
 
 PAYLOAD=""
 if [[ -n "$BODY_FILE" ]]; then
@@ -102,6 +135,9 @@ else
 fi
 
 STAMP="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+if [[ -z "$SUMMARY" ]]; then
+  SUMMARY="Operator relay (grounded: $HUMAN_REF) at $STAMP"
+fi
 STAGE_DIR="$(mktemp -d)"
 STAGED="$STAGE_DIR/relay-body.txt"
 if [[ "$DRY_RUN" -eq 0 ]]; then
@@ -122,11 +158,11 @@ fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   printf 'dry-run: would execute:\n'
-  printf '  rig queue create --destination %s --body-file %s\n' "$DESTINATION" "$STAGED"
-  printf 'dry-run: rendered body (%s):\n' "$STAGED"
+  printf '  rig queue create --source %q --destination %q --summary %q --body-file %q\n' "$SOURCE" "$DESTINATION" "$SUMMARY" "$STAGED"
+  printf 'dry-run: rendered body (%q):\n' "$STAGED"
   cat "$STAGED"
-  printf 'dry-run: staged body retained at %s; no queue item created.\n' "$STAGED"
+  printf 'dry-run: staged body retained at %q; no queue item created.\n' "$STAGED"
   exit 0
 fi
 
-rig queue create --destination "$DESTINATION" --body-file "$STAGED"
+rig queue create --source "$SOURCE" --destination "$DESTINATION" --summary "$SUMMARY" --body-file "$STAGED"
