@@ -36,11 +36,12 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
 
 jobs:
   wiring:
     name: Wiring gates + topography
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
