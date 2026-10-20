@@ -12,4 +12,4 @@ description: Decomposes high-level strategic company objectives into departmenta
    - Key Results: 3 to 5 quantitative, verifiable metrics with target deadlines.
 4. Verify resource feasibility against departmental budget allocations.
 5. Create or update the executive roadmap in `docs/executive/OKRS.md`.
-6. Emit structured delegation tickets to openrig targeting `product-director` (for delivery milestones) and `system-architect` (for technical feasibility and ADRs).
+6. Emit structured delegation tickets to Paperclip targeting `product-director` (for delivery milestones) and `system-architect` (for technical feasibility and ADRs).
