@@ -74,8 +74,12 @@ expect deny  bash  '{"command":"git show --stat --patch HEAD -- fleet/fleet.yaml
 expect deny  bash  '{"command":"git log --oneline\t-p -- fleet/fleet.yaml"}' "bash git log tab-separated -p patch exfil past fleet/* read-deny"
 expect deny  bash  '{"command":"git log --oneline --full-diff -- fleet/fleet.yaml"}' "bash git log --full-diff past fleet/* read-deny"
 expect deny  bash  '{"command":"git show --textconv HEAD -- fleet/fleet.yaml"}' "bash git show --textconv past fleet/* read-deny"
-# Anti-over-block: path-scoped git without patch flags must stay allowed.
-expect allow bash  '{"command":"git log --oneline -- fleet/fleet.yaml"}' "bash git log --oneline path-scoped without patch flag"
+# Anti-over-block: path-scoped git without patch flags must stay allowed on a
+# non-denied path (README.md is outside every `path` deny rule for all roles).
+expect allow bash  '{"command":"git log --oneline -- README.md"}' "bash git log --oneline path-scoped without patch flag"
+# Bash+path interaction: file arguments to allowed commands are still policed
+# against the `path` map, so scoping an allowed prefix to a denied path denies.
+expect deny  bash  '{"command":"git log --oneline -- fleet/fleet.yaml"}' "bash git log path-scoped to fleet/* (path-arg policing)"
 expect allow bash  '{"command":"git status --short"}' "bash git status"
 if [[ "$FIRST" != "-" ]]; then
   expect allow write "{\"path\":\"${FIRST}gate-probe.txt\",\"content\":\"x\"}" "write inside ${FIRST}"
