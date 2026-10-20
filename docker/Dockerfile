@@ -15,7 +15,6 @@ ARG NODE_VERSION=22.22.1
 ARG UV_VERSION=0.13.3
 ARG OPENRIG_VERSION=0.6.11
 ARG PI_VERSION=1.3.0
-ARG PLAYWRIGHT_NPM_TAG=1
 
 # ---------------------------------------------------------------- builder ---
 FROM ${BASE_IMAGE} AS builder
@@ -130,16 +129,20 @@ FROM slim AS full
 USER root
 RUN ldconfig
 # Debian radare2 (r2mcp shells out to r2/rabin2) + Playwright Chromium for the
-# browser MCP servers. Pinned indirectly: radare2 via bookworm snapshot at
-# build time; Chromium via playwright@<major> browser pin for mcp@0.0.83.
-ARG PLAYWRIGHT_NPM_TAG
+# browser MCP servers. Chromium follows the Playwright revision bundled with
+# the pinned @playwright/mcp installation.
 RUN set -eux; \
     r2 -v
 COPY --from=builder --chown=heretek:heretek /opt/heretek/tools/bin/r2mcp /opt/heretek/tools/bin/r2mcp
+RUN set -eux; \
+    PLAYWRIGHT_CLI="$(node -p "require('path').dirname(require.resolve('playwright/package.json', { paths: ['${HERETEK_TOOLS}/mcp/node_modules/@playwright/mcp'] }))")/cli.js"; \
+    node "${PLAYWRIGHT_CLI}" install-deps chromium; \
+    rm -rf /var/lib/apt/lists/*
 USER heretek
 # Stable symlink: chrome-launcher honors $CHROME_PATH (must be the binary itself).
 RUN set -eux; \
-    npx -y "playwright@${PLAYWRIGHT_NPM_TAG}" install chromium; \
+    PLAYWRIGHT_CLI="$(node -p "require('path').dirname(require.resolve('playwright/package.json', { paths: ['${HERETEK_TOOLS}/mcp/node_modules/@playwright/mcp'] }))")/cli.js"; \
+    node "${PLAYWRIGHT_CLI}" install chromium; \
     CHROME_BIN="$(echo "$HOME"/.cache/ms-playwright/chromium-*/chrome-linux*/chrome | head -n 1)"; \
     test -x "${CHROME_BIN}"; \
     ln -sfn "${CHROME_BIN}" "$HOME/.cache/ms-playwright/chromium-chrome"; \
@@ -148,7 +151,7 @@ ENV CHROME_PATH=/home/heretek/.cache/ms-playwright/chromium-chrome
 RUN set -eux; \
     test -x /opt/heretek/tools/bin/r2mcp; \
     /opt/heretek/tools/bin/r2mcp -h >/dev/null 2>&1 || true; \
-    test -x "${CHROME_PATH}"
+    "${CHROME_PATH}" --headless --no-sandbox --disable-gpu --dump-dom about:blank >/dev/null
 USER heretek
 WORKDIR /opt/heretek/heretek-rigs
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

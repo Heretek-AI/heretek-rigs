@@ -425,7 +425,7 @@ Public multi-arch images (`linux/amd64`, `linux/arm64`) are published by
 | :--- | :--- | :--- |
 | `:latest` (slim) | `rig` 0.6.11, `pi` 1.3.0, permission system + AST/LSP packages, 8 npm MCP servers, uvx PyPI MCP servers | ~3.5 GB (dominated by the upstream `codebase-memory-mcp` 330 MB Go binary, tree-sitter WASM grammars, and the Node 22 toolchain) |
 | `:full` | slim + Playwright Chromium (+`CHROME_PATH` for chrome-devtools-mcp), source-built radare2 6.2.4, compiled `r2mcp -R` | ~4.7 GB |
-| `:vX.Y.Z` / `:vX.Y.Z-full`, `:sha-<commit>` / `:sha-<commit>-full` | Pinned releases (provenance + SBOM attestations) | — |
+| `:sha-<commit>` / `:sha-<commit>-full` | Pinned releases (provenance + SBOM attestations) | — |
 
 ### Run contract (all required)
 
@@ -443,7 +443,8 @@ Public multi-arch images (`linux/amd64`, `linux/arm64`) are published by
 4. **No `rig ui open` in-container** (no browser). Use `rig tui`,
    `rig terminal open <rig> --window`, or plain `tmux attach`.
 5. **Sidecars stay siblings**: join the deterministic `heretek` network
-   (`--network heretek`) to reach loopback-published sidecars.
+   (`--network heretek`) to reach sidecars by service name and container port.
+   Host clients use `127.0.0.1` and the published host port.
 
 ```bash
 # Interactive shell, auto-seed + auto-launch executive rig against ./my-project
@@ -468,8 +469,12 @@ docker compose exec fleet rig tui
 ```
 
 The fleet service joins the external `heretek` network (named deterministically via
-`name: heretek` in `docker-compose.sidecars.yml`), so seats reach sidecars at
-`127.0.0.1:<port>` exactly as on a host install. Start sidecars first with
+`name: heretek` in `docker-compose.sidecars.yml`). Host clients use
+`127.0.0.1:<published-port>`; clients inside fleet use
+`<service-name>:<container-port>` for sidecars on the shared network. Configure
+each client's endpoint accordingly; joining the network does not rewrite MCP
+bindings. The current catalog has no SearXNG MCP binding, and its Qdrant MCP uses
+`QDRANT_LOCAL_PATH` for local storage. Start sidecars first with
 `make sidecars-up SIDECAR_PROFILES="..."` on the host (or a second compose file).
 
 ### Which MCP servers work in-container

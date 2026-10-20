@@ -1,7 +1,8 @@
 # Fleet + sidecar pairing for heretek-rigs.
 # The fleet container joins the deterministic `heretek` bridge network
 # (named via `name: heretek` in docker-compose.sidecars.yml) so seats can
-# reach loopback-published sidecars (searxng :8888, qdrant :6333, ...).
+# reach sidecars by service name and container port on that network.
+# Host clients use 127.0.0.1 and the published host port instead.
 #
 #   Fluids first:  cp .env.example .env   # no -- fill SEARXNG_SECRET etc.
 #   Slim image:    HERETEK_IMAGE=ghcr.io/heretek-ai/heretek-rigs:latest

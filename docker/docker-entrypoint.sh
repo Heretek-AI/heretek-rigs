@@ -7,7 +7,7 @@
 #      0644 modes, or ..data symlinks -- all of which render-seat.py rejects
 #      fail-closed. Each mounted file is dereferenced into a fresh regular file
 #      owned by the runtime UID with mode 0600 before seeding.
-#   2. Gated seat seeding: seeds once per OPENRIG_HOME (marker file), or when
+#   2. Gated seat seeding: seeds each target once per OPENRIG_HOME, or when
 #      HERETEK_SEED=1. Never logs secret values -- only basenames.
 #   3. Daemon lifecycle under tini (PID 1 reaper): starts the OpenRig daemon
 #      and FAILS LOUDLY if it will not start (a daemon-less container is useless).
@@ -47,9 +47,9 @@ if [ -d "${HERETEK_SECRET_MOUNT}" ]; then
   shopt -u nullglob
 fi
 
-# 2. Seed seats: always when HERETEK_SEED=1, never when 0, once-per-home on auto.
+# 2. Seed seats: always when HERETEK_SEED=1, never when 0, once-per-target on auto.
 OPENRIG_HOME_DIR="${OPENRIG_HOME:-$HOME/.openrig}"
-seed_marker="${OPENRIG_HOME_DIR}/.heretek-seeded"
+seed_marker="${OPENRIG_HOME_DIR}/.heretek-seeded-${HERETEK_RIG:-all}"
 do_seed=0
 case "${HERETEK_SEED}" in
   1) do_seed=1 ;;

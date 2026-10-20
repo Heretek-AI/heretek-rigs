@@ -1,6 +1,6 @@
 # docker-release: multi-arch heretek-rigs fleet images -> ghcr.io (public).
 #
-# Pipeline: verify-fleet (host gate) -> build (buildx matrix slim/full x
+# Pipeline: verify-fleet (host gate) -> build (slim/full matrix, each publishing
 # amd64/arm64, provenance max + SBOM) -> smoke (in-container gates) -> attest.
 # All third-party actions are pinned to full commit SHAs (repo policy).
 name: docker-release
@@ -54,19 +54,24 @@ jobs:
       - run: ./scripts/verify-rigs.sh --check-only
       - run: python3 ./scripts/audit_loop.py --self-test
       - run: |
-          ! make guard-profiles SIDECAR_PROFILES="mobile devsec"
-          ! make guard-profiles SIDECAR_PROFILES="mobile web-research"
+          if make guard-profiles SIDECAR_PROFILES="mobile devsec"; then
+            echo "error: guard-profiles accepted mobile with devsec" >&2
+            exit 1
+          fi
+          if make guard-profiles SIDECAR_PROFILES="mobile web-research"; then
+            echo "error: guard-profiles accepted mobile with web-research" >&2
+            exit 1
+          fi
           make guard-profiles SIDECAR_PROFILES="web-research"
 
   build:
-    name: Build ${{ matrix.target }} (${{ matrix.platform }})
+    name: Build ${{ matrix.target }}
     needs: verify-fleet
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         target: [slim, full]
-        platform: [linux/amd64, linux/arm64]
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
       - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3
@@ -90,13 +95,14 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ matrix.target == 'full' && 'full' || 'latest' }}
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
-          cache-from: type=gha,scope=${{ matrix.target }}-${{ matrix.platform }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.target }}-${{ matrix.platform }}
+          cache-from: type=gha,scope=${{ matrix.target }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
           provenance: mode=max
           sbom: true
       - uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
         if: github.event_name != 'pull_request'
         with:
+          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           subject-digest: ${{ steps.push.outputs.digest }}
           push-to-registry: true
 
@@ -110,9 +116,16 @@ jobs:
       matrix:
         target: [slim, full]
     container:
-      image: ghcr.io/${{ github.repository }}:${{ matrix.target == 'full' && 'full' || 'latest' }}
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
       options: --user 1000:1000
+    defaults:
+      run:
+        working-directory: /opt/heretek/heretek-rigs
     env:
+      HOME: /home/heretek
       GATE_TIMEOUT: 120
       HERETEK_SEED: "0"
       HERETEK_START_DAEMON: "0"
