@@ -15,14 +15,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-executive-and-architecture"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "1689c7f42aceac50ea382395d3c64083d0fab3fe9335a3dec2e4a45795d6d93e",
+                  "value": "e1d2b234fd70f8eb209e6492b94c23d0d765dd1d0541e7c5aba5947acbf825ae",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -41,14 +41,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-fullstack-and-web-studio"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "612b75c8948bb25c7ab5756c48164fa4f65631bca26350311c3f65ab50081989",
+                  "value": "b5c9a05000c04c1e85482018ed4298ef5a9c150c4a3e9f26d586ae315805b828",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -67,14 +67,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-systems-and-mobile-foundry"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "e853b93446739170e61dd656b6f9ffc69740ef21dfbefd7ee15bc1c22105f96b",
+                  "value": "593bb1ce69e51855fa1194f57e7e37306d19bb213779bcf2601f198ed2b0a2ab",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -93,14 +93,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-game-dev-and-sim-rig"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "0a512c1ab0956d4d14452708ca077246da65ec26badf16765cb14b43f7047f9d",
+                  "value": "4264003285183f86aa70d178d9337a4e6db98a8048f3e834840bc6a217ee861e",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -119,14 +119,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-cloud-sre-and-data-platform"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "98bca485273eae396472d15fd3c91953588825b9020a28dd402b8ef9fe3f2c8b",
+                  "value": "a7c5eeb6f939e6fb583e30a1847b355fbf16149fdf9069c0f1f8640442ca7efd",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -145,14 +145,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-qa-and-verification-gauntlet"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "8ab8cedd18f7a0cb0fbabb5b8734d072ec1d68056aec308426d5028a317706a7",
+                  "value": "5d348cfa2a74f5b0c476bc97b183fddf235ab0f7b8226a397ec29a605934cc76",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -171,14 +171,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-defensive-sec-and-red-team"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "f9d4875c8b2f1d40192d4c694cceb3d0209814b4d95e7884ec79acffcadceb49",
+                  "value": "08b8f287474f85c1f80ec40ca9242bd13963b2e1a29fe2d0dbbb8b5aeff1c316",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -197,14 +197,14 @@
               "label": "tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
-              "openrigVersion": "0.6.11",
+              "openrigVersion": "0.6.13",
               "recordIds": [
                 "rr-20261018-heretek-omni-fleet"
               ],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "c59a3d6308bc7e1604493e94f817826448bc6c83447386f1e297187c1ed6139d",
+                  "value": "23eecc83dcd98b228509191020079de95c2f6a0965e2975def63a294fdfb3907",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -222,7 +222,7 @@
         "linux-x64": {
           "result": "PASS",
           "date": "2026-10-18",
-          "openrigVersion": "0.6.11",
+          "openrigVersion": "0.6.13",
           "harnessVersion": "1.3.0",
           "recordIds": [
             "rr-20261018-pi-harness"
@@ -231,5 +231,5 @@
       }
     }
   },
-  "bodyDigest": "2599b490f21fe1fe35731d24ac39e508997d43407d8f87e35c2ff6391e1ad0fc"
+  "bodyDigest": "be6d7a67b1c8f1776c174801d8da2ebc4efc2dfe1b71e098a5be2e629cc089a2"
 }

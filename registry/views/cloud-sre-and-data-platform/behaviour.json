@@ -5,27 +5,27 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/cloud-sre-and-data-platform",
-      "resolvedCommit": "aec6b81cde6f375d79e951cd7e3034aaddbf4195",
+      "resolvedCommit": "e1c43b0d5e8010670c50cbdcadd2c3137d8be3e5",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/aec6b81cde6f375d79e951cd7e3034aaddbf4195/rigs/cloud-sre-and-data-platform"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/e1c43b0d5e8010670c50cbdcadd2c3137d8be3e5/rigs/cloud-sre-and-data-platform"
     },
     "configurationId": "data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "98bca485273eae396472d15fd3c91953588825b9020a28dd402b8ef9fe3f2c8b",
+      "value": "a7c5eeb6f939e6fb583e30a1847b355fbf16149fdf9069c0f1f8640442ca7efd",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {
-      "openrigVersion": "0.6.11",
-      "commit": "379f0a0d"
+      "openrigVersion": "0.6.13",
+      "commit": "9eeb2e42"
     },
     "generator": {
-      "openrigVersion": "0.6.11",
-      "commit": "379f0a0d"
+      "openrigVersion": "0.6.13",
+      "commit": "9eeb2e42"
     },
     "compatibility": {
-      "minDaemonVersion": "0.6.11",
-      "minCliVersion": "0.6.11"
+      "minDaemonVersion": "0.6.13",
+      "minCliVersion": "0.6.13"
     },
     "statedProvenance": {
       "notes": "Heretek-Rigs cloud-sre-and-data-platform v1.0.0"

@@ -6,7 +6,7 @@ catalog and enforced at runtime by Pi's permission system.
 
 | Stack | Pin |
 |---|---|
-| Orchestration | `@openrig/cli@0.6.11` (binary `rig`) |
+| Orchestration | `@openrig/cli@0.6.13` (binary `rig`) |
 | Agent runtime | `@earendil-works/pi-coding-agent@1.3.0` (binary `pi`) |
 | Permission enforcement | `@gotgenes/pi-permission-system@41.0.0` (fail-closed, `*..*` terminal deny) |
 | Model | `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1` |
@@ -32,8 +32,8 @@ access. See `AUDIT_REPORT_FINDINGS.md` and `REMEDIATION_LOG.md`.
 ## Quickstart
 
 ```bash
-# 0. Prerequisites: rig 0.6.11, pi 1.3.0, Python 3.10+ (pyyaml, jsonschema), tmux 3.2+
-npm install -g @openrig/cli@0.6.11 @earendil-works/pi-coding-agent@1.3.0
+# 0. Prerequisites: rig 0.6.13, pi 1.3.0, Python 3.10+ (pyyaml, jsonschema), tmux 3.2+
+npm install -g @openrig/cli@0.6.13 @earendil-works/pi-coding-agent@1.3.0
 
 # 1. Secrets (0700 dir, 0600 files; strict mode refuses anything else)
 mkdir -p -m 700 ~/.config/heretek-rigs/secrets

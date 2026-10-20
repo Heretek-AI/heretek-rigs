@@ -35,7 +35,7 @@ unprovable step honestly marked.
 
 ## 2. The upstream gap (stated honestly)
 
-What `rig launch --help` *claims* (verified daemon-down, `@openrig/cli@0.6.11`):
+What `rig launch --help` *claims* (verified daemon-down, `@openrig/cli@0.6.13`):
 
 > `launch [options] <rigId> [nodeRef]` — "Launch or relaunch a node in a
 > running rig"
