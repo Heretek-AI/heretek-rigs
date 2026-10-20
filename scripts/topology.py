@@ -131,15 +131,22 @@ def validate(fleet, mcp_cat, lock, rep):
         except (OSError, yaml.YAMLError) as err:
             rep.fail(f"rig.yaml unreadable: {rig['id']}: {err}")
             continue
+    # 6. rig.yaml members match fleet (both directions), including the omni rig
+    for rig in list(fleet["rigs"]) + [fleet.get("omni", {})]:
+        if not rig.get("id"):
+            continue
+        ry = yaml.safe_load(open(os.path.join(ROOT, "rigs", rig["id"], "rig.yaml")))
         disk_members = {}
         for pod in ry.get("pods", []):
-    try:
-        validate(fleet, mcp_cat, lock, rep)
-    except Exception as e:  # fail-closed: malformed catalog must not traceback
-        rep.fail(f"validator crashed on malformed input: {e!r}")
+            for m in pod.get("members", []):
+                mid = m["id"] if isinstance(m, dict) else m
+                disk_members[mid] = pod["id"]
         if rig["id"] == fleet.get("omni", {}).get("id"):
-            fleet_members = {m: fleet["omni"]["core_pod"]["id"]
-                             for m in fleet["omni"]["core_pod"].get("members", [])}
+            core_pod = fleet["omni"]["core_pod"]
+            fleet_members = {
+                m["id"] if isinstance(m, dict) else m: core_pod["id"]
+                for m in core_pod.get("members", [])
+            }
         else:
             fleet_members = {r: d["pod"] for r, d in roles.items() if d.get("rig") == rig["id"]}
         for mid, pod in sorted(fleet_members.items()):
