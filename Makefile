@@ -13,7 +13,7 @@ SIDECAR_PROFILES ?=
 RIG_BIN := $(shell command -v rig 2>/dev/null || true)
 
 .DEFAULT_GOAL := help
-.PHONY: help generate idempotent verify test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop
+.PHONY: help generate idempotent verify test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions
 
 help: ## List all documented Heretek-Rigs targets.
 	@echo "Heretek-Rigs — 51-Agent OpenRig + Pi + OpenCode Go Fleet"
@@ -41,6 +41,9 @@ seed: ## Seed one rig before launch: make seed RIG=defensive-sec-and-red-team
 
 gate: ## Gate-test one role against mock OpenAI + pi-permission-system: make gate ROLE=appsec-engineer
 	bash ./scripts/gate-role.sh $(ROLE)
+
+audit-sessions: ## Detect misattributed denials + false delivery claims: make audit-sessions WORKSPACE=/path/to/seat-workspace
+	python3 ./scripts/audit_sessions.py --workspace $(WORKSPACE)
 
 guard-profiles: ## Fail-closed guard: refuse co-scheduling --profile mobile with devsec or web-research.
 	@norm="$$(printf '%s' "$(SIDECAR_PROFILES)" | tr '\t\r\n\v\f,' '      ')"; \

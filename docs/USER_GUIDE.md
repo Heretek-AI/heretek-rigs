@@ -372,6 +372,20 @@ make gate ROLE=exec-director
 make gate ROLE=go-backend-eng
 ```
 
+### Live Seat Audit (`make audit-sessions`)
+
+To scan running seats for misattributed permission denials (assistant claims a
+tool-wide ban while the review log shows a unit-scoped deny and the config allows
+the capability) and false delivery claims (`DISPATCHED` with no `qitem-` id):
+
+```bash
+make audit-sessions WORKSPACE=/path/to/seat-workspace
+```
+
+Findings are leads for operator review (exit 1 when any exist), not verdicts:
+assistant-text matching is heuristic, and delivery flags do not cross-check live
+queue state. Scans every seat under `OPENRIG_HOME/state/pi`, including archived rigs.
+
 ## 9. Complete Command Reference (`Makefile` & Scripts)
 
 ### `Makefile` Targets
@@ -386,6 +400,7 @@ make gate ROLE=go-backend-eng
 | `make bootstrap-seats` | Run `bash ./scripts/bootstrap-pi-seats.sh --all` (strict secret checking; provisions all 54 default boot seats). |
 | `make seed RIG=<rig-id>` | Seed one rig in degraded-allowed mode: `python3 ./scripts/seed-rig.py rigs/$(RIG)/rig.yaml --allow-missing-secrets`. |
 | `make gate ROLE=<role-id>` | Live-test one role's permission config against `mock-openai.mjs` and `pi`: `bash ./scripts/gate-role.sh $(ROLE)`. |
+| `make audit-sessions` | Detect misattributed denials + false delivery claims in live seats (`OPENRIG_HOME/state/pi` + workspace docs). |
 | `make guard-profiles` | Fail-closed check refusing `SIDECAR_PROFILES` that combine `mobile` with `devsec` or `web-research`. |
 | `make sidecars-up SIDECAR_PROFILES="..."` | Run `guard-profiles` then start the specified profiles in `docker-compose.sidecars.yml` (`up -d`). |
 | `make sidecars-down` | Stop sidecar containers while preserving named volumes (`docker compose -f docker-compose.sidecars.yml down`). |
