@@ -74,7 +74,7 @@
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "a9d78ed64e9367ce3840f51eb40aefaf412e78fb75caefddb16cd57c8d7ace0c",
+                  "value": "e853b93446739170e61dd656b6f9ffc69740ef21dfbefd7ee15bc1c22105f96b",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -204,7 +204,7 @@
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "ba0c6d476a1cb8bae1693eb93816c15ce81e61467ebd587f50040d04f63600a3",
+                  "value": "2b7a70477bd157c7e034cf944f56bb7f3efea47d15366f2077e79f3c3312eddb",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -231,5 +231,5 @@
       }
     }
   },
-  "bodyDigest": "9f2583f14f5054390bfb11228daf90bf71c1446b014dc2fbd0c49487f92262e4"
+  "bodyDigest": "7c5d184de1e470305cc6bc8e4772d84356027d1368cab489160a7f33366a9ad3"
 }
