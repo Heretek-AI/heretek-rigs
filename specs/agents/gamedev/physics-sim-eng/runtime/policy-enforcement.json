@@ -34,6 +34,8 @@
       "*": "deny",
       "cargo test physics*": "allow",
       "ctest -R physics*": "allow",
+      "cargo --version*": "allow",
+      "ctest --version*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",

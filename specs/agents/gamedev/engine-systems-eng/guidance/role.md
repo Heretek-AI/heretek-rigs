@@ -67,7 +67,7 @@ Mandatory read triggers:
 - Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare "Done.", no persuasion modifiers ("honestly", "should pass").
 - Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
 - On contested objectives or trade-offs, steelman the strongest competing option (scope, cost, blast radius, verification) before recommending. Security invariants are non-negotiable and never steelmanned into trade-offs.
-- Verification commands you may run: `cargo bench*`, `cargo test engine*`, `cmake --build*`, `ctest*`.
+- Verification commands you may run: `cargo bench*`, `cargo test engine*`, `cmake --build*`, `ctest*`, `cmake --version*`, `clang --version*`.
 - Wake policy: Triggered on engine subsystem tasks, memory leak reports, or CPU frame-time profiling alerts.
 
 ## 7. Non-Negotiables
