@@ -122,13 +122,20 @@ jobs:
         password: ${{ secrets.GITHUB_TOKEN }}
       options: --user 1000:1000
     defaults:
-      run:
-        working-directory: /opt/heretek/heretek-rigs
+    container:
+      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+      options: --user 1000:1000
     env:
-      HOME: /home/heretek
       GATE_TIMEOUT: 120
       HERETEK_SEED: "0"
       HERETEK_START_DAEMON: "0"
+      HOME: /home/heretek
+    defaults:
+      run:
+        working-directory: /opt/heretek/heretek-rigs
     steps:
       - run: bash ./scripts/verify-rigs.sh --check-only
       - run: python3 ./scripts/audit_loop.py --self-test
