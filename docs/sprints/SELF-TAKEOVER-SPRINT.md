@@ -22,6 +22,9 @@ Status 15:56Z: ST-5 DONE (accepted), ST-6 DONE (accepted). ST-1 BLOCKED 15:58Z
 Status 16:10Z: ST-1 LANDED at 5c35a73 (operator-applied, 22/0; sabotage grafana
 binding explicitly NOT applied, in SELF-TAKEOVER-ST1.md). ST-2/3/4 UNBLOCKED
 under proposal rules, serialized. ST-2P dispatched 16:11Z.
+Status 17:25Z: ST-2 LANDED at 5c5b46e (24 pins, 22 seats, 22/0; web-access 0.44.0,
+rows 40-41 on e2e plus api-contract-tester, red seats REFUSED; ledger
+SELF-TAKEOVER-ST2.md). ST-3P dispatched 17:25Z. ST-4 queued behind ST-3.
 
 ### ST-1 (B1, unblocked) — Grafana binding for load-stress-tester + sabotage-qa-tester pi_packages bump
 - Context & user story: B1 merged to main (grafana catalog entry +
@@ -123,8 +126,16 @@ under proposal rules, serialized. ST-2P dispatched 16:11Z.
 - GWT: given ST-1 landed, when the batch regens, then verify reads 22/0 and no
   seat loses rendered allows. DoD: ledger + commit-request item.
 
-### ST-3 (B3) — context7 cross-rig bump 4.4.2→4.4.4 — QUEUED behind ST-2P
-- Target (reserved): `exec-system-architect@heretek-omni-fleet` (after ST-6).
+### ST-3 (B3) — context7 cross-rig bump 4.4.2→4.4.4 — PROPOSAL RETURNED (ST-3P)
+- Target: `exec-system-architect@heretek-omni-fleet` (ST-3P proposal author;
+  row `qitem-20261021172535-07271ba8de94e598`, dispatched 17:25Z).
+- VERDICT 17:26Z — CANNOT-STATE package `docs/architecture/ST-3-PROPOSAL-2026-10-21.md`
+  (verified on disk): hunk unstated (`fleet/mcp-servers.yaml` unreadable, verbatim
+  `fleet/*` denial); sequencing verified at HEAD via git show --stat (ST-1/ST-2
+  untouched mcp-servers.yaml); blast radius re-verified via mirrors (6 consumers,
+  mcp.json line 9 + command line 12); freshness UNVERIFIED (operator must re-check
+  at merge); consumer smoke tests recommended post-bump. Return row
+  `qitem-20261021172610-dd51a792` closed done/no-follow-on.
 - Blast radius: 6 consumers x 4 rigs (B5 ledger list). Dedicated catalog batch,
   freshness re-check at execution. GWT: given all consumers render, when bumped,
   then verify 22/0 with zero consumer breakage. DoD: ledger + commit-request item.

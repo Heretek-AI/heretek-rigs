@@ -5,9 +5,9 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/qa-and-verification-gauntlet",
-      "resolvedCommit": "5c35a735437127f7bf514a67134efa7694aa38e7",
+      "resolvedCommit": "5c5b46e88ae7939d816358774907efecf9091b7a",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/5c35a735437127f7bf514a67134efa7694aa38e7/rigs/qa-and-verification-gauntlet"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/5c5b46e88ae7939d816358774907efecf9091b7a/rigs/qa-and-verification-gauntlet"
     },
     "configurationId": "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi",
     "packageDigest": {
