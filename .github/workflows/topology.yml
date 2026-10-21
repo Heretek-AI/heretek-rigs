@@ -1,4 +1,5 @@
-# topology: fleet wiring gates + rendered topography on every push/PR.
+# topology: fleet wiring gates + rendered topography on push to main
+# (path-scoped), pull_request (path-scoped), and manual workflow_dispatch.
 #
 #   - scripts/topology.py --check-only logic is fail-closed: unresolvable
 #     reports_to, unknown collaborators/skills/servers/packages, rig.yaml <->

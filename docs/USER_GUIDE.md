@@ -396,7 +396,9 @@ self-edges. It then renders `graph.json`, an org-chart SVG
 (15 pods + command), per-rig agent SVGs, per-rig seat×resource bipartite SVGs, and a
 51-row `matrix.md`. Orphan skills/servers and omni-divergent `reports_to` addresses
 are reported as advisory warnings only. The `.github/workflows/topology.yml` CI job
-runs this on every push/PR and uploads the renderings as artifacts.
+runs this on push to `main` limited to the listed paths, on pull requests limited
+to the listed paths, and on manual `workflow_dispatch`, and uploads the SVGs +
+`graph.json` + `matrix.md` as artifacts (30-day retention).
 
 ### Live Seat Audit (`make audit-sessions`)
 
