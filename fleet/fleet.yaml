@@ -1,5 +1,5 @@
 # Canonical Source of Truth for the 51 Heretek-Rigs Specialist Seats & 8 OpenRig Bundles.
-# Synthesized from Heretek-AI/Heretek-Crew@5ffb1fc, @openrig/cli@0.6.11, @earendil-works/pi-coding-agent@1.3.0,
+# Synthesized from Heretek-AI/Heretek-Crew@5ffb1fc, @openrig/cli@0.6.13, @earendil-works/pi-coding-agent@1.3.0,
 # and @gotgenes/pi-permission-system@41.0.0.
 # Do NOT hand-edit generated files in specs/, rigs/, rosters/, or registry/; edit this file and run:
 #   python3 scripts/generate-rigs.py
@@ -597,6 +597,7 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-btw@0.8.0
     model: opencode-go/muse-spark-1.3-contributor:high
   ai-red-teamer:
     title: Adversarial AI Red-Teamer
@@ -709,6 +710,7 @@ roles:
     mcp:
     - server: codebase-memory
     - server: clickhouse
+    - server: grafana
     permissions:
       path_write:
       - migrations/clickhouse/*
@@ -805,6 +807,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-web-access@0.44.0
     model: opencode-go/muse-spark-1.3-contributor:high
   api-contract-tester:
     title: API & Contract Testing Specialist
@@ -874,6 +877,7 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-web-access@0.44.0
     model: opencode-go/muse-spark-1.3-contributor:high
   appsec-engineer:
     title: Application Security (AppSec) Engineer
@@ -1074,6 +1078,7 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-btw@0.8.0
     model: opencode-go/muse-spark-1.3-contributor:high
   cache-streaming-eng:
     title: Cache & Streaming Systems Engineer
@@ -1262,6 +1267,7 @@ roles:
     readonly_charter: true
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-mcp-adapter@5.4.0
     model: opencode-go/muse-spark-1.3-contributor:high
   compliance-auditor:
     title: Compliance & License Auditor
@@ -1327,6 +1333,7 @@ roles:
     readonly_charter: true
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-btw@0.8.0
     model: opencode-go/muse-spark-1.3-contributor:high
   cpp-lowlevel-eng:
     title: C++ Systems & Low-Level Engineer
@@ -1381,6 +1388,7 @@ roles:
       - cmake*
       - ninja*
       - ctest*
+      - ./build.sh*
       - clang-tidy*
       - rig whoami*
       - rig ps*
@@ -1430,7 +1438,9 @@ roles:
       - queue-handoff
       - refocusing
       - seat-continuity-and-handover
-      shared: []
+      shared:
+      - id: supabase-postgres-best-practices
+        source: supabase
       role_local:
       - id: duckdb-dbt-pipeline-execution
         source: heretek-crew
@@ -1492,7 +1502,11 @@ roles:
       - messaging-the-human
       - orienting-to-an-inherited-seat
       - session-compaction-and-restore
-      shared: []
+      shared:
+      - id: supabase-postgres-best-practices
+        source: supabase
+      - id: prisma-postgres-setup
+        source: prisma
       role_local:
       - id: zero-downtime-migration-audit
         source: heretek-crew
@@ -1598,8 +1612,8 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
-    - pi-lsp-extension@1.4.0
-    - pi-ast-grep@0.1.0
+    - '@narumitw/pi-lsp@0.49.10'
+    - '@nicknisi/pi-ast-grep@0.3.1'
     model: opencode-go/muse-spark-1.3-contributor:high
   design-system-eng:
     title: Design System Engineer
@@ -1668,6 +1682,8 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-lens@4.4.4
+    - pi-mcp-adapter@5.4.0
     model: opencode-go/muse-spark-1.3-contributor:high
   e2e-browser-qa:
     title: End-to-End Browser Automation Engineer
@@ -1734,6 +1750,7 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-web-access@0.44.0
     model: opencode-go/muse-spark-1.3-contributor:high
   engine-systems-eng:
     title: Engine & Systems Programmer
@@ -1775,11 +1792,16 @@ roles:
       path_write:
       - src/engine/*
       - tests/engine/*
+      - build.sh
+      - CMakePresets.json
+      - CMakeLists.txt
       bash_allow:
       - cargo bench*
       - cargo test engine*
       - cmake --build*
       - ctest*
+      - cmake --version*
+      - clang --version*
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -1799,6 +1821,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - '@ff-labs/pi-fff@0.11.0'
     model: opencode-go/muse-spark-1.3-contributor:high
   exec-director:
     title: Director / CEO-Delegate
@@ -1830,6 +1853,8 @@ roles:
       - forming-an-openrig-mental-model
       - agent-operated-workflows
       shared:
+      - id: brainstorming
+        source: superpowers
       - id: dispatching-parallel-agents
         source: superpowers
       role_local:
@@ -1926,6 +1951,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-lens@4.4.4
     model: opencode-go/muse-spark-1.3-contributor:high
   firmware-sec-analyst:
     title: Firmware & Embedded Security Analyst
@@ -2051,6 +2077,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - '@ff-labs/pi-fff@0.11.0'
     model: opencode-go/muse-spark-1.3-contributor:high
   game-systems-dev:
     title: Game Systems & Gameplay Programmer
@@ -2118,6 +2145,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - '@ff-labs/pi-fff@0.11.0'
     model: opencode-go/muse-spark-1.3-contributor:high
   git-drift-coord:
     title: Git & Worktree Drift Coordinator
@@ -2256,6 +2284,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-lens@4.4.4
     model: opencode-go/muse-spark-1.3-contributor:high
   graphics-shader-eng:
     title: Graphics & Shader Engineer
@@ -2321,6 +2350,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-lens@4.4.4
     model: opencode-go/muse-spark-1.3-contributor:high
   ios-mobile-spec:
     title: Mobile iOS Specialist
@@ -2387,6 +2417,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-web-access@0.44.0
     model: opencode-go/muse-spark-1.3-contributor:high
   java-kotlin-eng:
     title: Java / Kotlin Enterprise Engineer
@@ -2551,6 +2582,7 @@ roles:
     mcp:
     - server: k6
     - server: codebase-memory
+    - server: grafana
     permissions:
       path_write:
       - tests/load/*
@@ -2704,6 +2736,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-web-access@0.44.0
     model: opencode-go/muse-spark-1.3-contributor:high
   observability-eng:
     title: Observability & Telemetry Engineer
@@ -2739,6 +2772,7 @@ roles:
     mcp:
     - server: codebase-memory
     - server: prometheus
+    - server: grafana
     permissions:
       path_write:
       - deploy/prometheus/*
@@ -2805,6 +2839,8 @@ roles:
       bash_allow:
       - cargo test physics*
       - ctest -R physics*
+      - cargo --version*
+      - ctest --version*
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -3114,6 +3150,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-lens@4.4.4
     model: opencode-go/muse-spark-1.3-contributor:high
   sabotage-qa-tester:
     title: Adversarial Red-Proof Sabotage Tester
@@ -3183,8 +3220,8 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
-    - pi-lsp-extension@1.4.0
-    - pi-ast-grep@0.1.0
+    - '@narumitw/pi-lsp@0.49.10'
+    - '@nicknisi/pi-ast-grep@0.3.1'
     model: opencode-go/muse-spark-1.3-contributor:high
   sre-incident-eng:
     title: Site Reliability Engineer (SRE)
@@ -3223,6 +3260,7 @@ roles:
         source: heretek-crew
     mcp:
     - server: prometheus
+    - server: grafana
     permissions:
       path_write:
       - docs/incidents/*
@@ -3451,6 +3489,7 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-mcp-adapter@5.4.0
     model: opencode-go/muse-spark-1.3-contributor:high
   tech-docs-lead:
     title: Technical Documentation Lead
@@ -3576,6 +3615,7 @@ roles:
     readonly_charter: true
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-btw@0.8.0
     model: opencode-go/muse-spark-1.3-contributor:high
   tpm-scrum-lead:
     title: Technical Product Manager / Scrum Lead
@@ -3615,6 +3655,8 @@ roles:
         source: superpowers
       - id: git-flow
         source: heretek-crew
+      - id: systematic-debugging
+        source: superpowers
       role_local:
       - id: planning-with-files
         source: heretek-crew
@@ -3694,6 +3736,10 @@ roles:
         source: vercel
       - id: receiving-code-review
         source: superpowers
+      - id: prisma-client-api
+        source: prisma
+      - id: supabase
+        source: supabase
       role_local:
       - id: end-to-end-type-safe-fullstack
         source: heretek-crew
@@ -3728,6 +3774,7 @@ roles:
     - '@gotgenes/pi-permission-system@41.0.0'
     - pi-lsp-extension@1.4.0
     - pi-ast-grep@0.1.0
+    - pi-mcp-adapter@5.4.0
     model: opencode-go/muse-spark-1.3-contributor:high
   ui-ux-designer:
     title: UI/UX Designer & Prototyper
@@ -3798,6 +3845,8 @@ roles:
     readonly_charter: false
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lens@4.4.4
+    - pi-btw@0.8.0
     model: opencode-go/muse-spark-1.3-contributor:high
   ux-research-analyst:
     title: User Research & Feedback Analyst
@@ -3856,6 +3905,7 @@ roles:
     readonly_charter: true
     pi_packages:
     - '@gotgenes/pi-permission-system@41.0.0'
+    - pi-lens@4.4.4
     model: opencode-go/muse-spark-1.3-contributor:high
   vector-rag-spec:
     title: Vector Search & RAG Specialist

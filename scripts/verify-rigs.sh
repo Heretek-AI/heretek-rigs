@@ -3,7 +3,7 @@
 #
 # Verifies:
 #   V1. 100% Role Parity & Skill Lock: All 51 canonical roles from Heretek-Crew exist in fleet/fleet.yaml and
-#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 64 locked shared skills.
+#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 68 locked shared skills.
 #   V2. OpenRig AgentSpec v1.0 & RigSpec v0.2 Structural Conformance: Exact key allowlists, pod-local vs cross-pod
 #       edge rules, topological DAG cycle checks, and byte-for-byte parity between specs/agents/ and rigs/*/agents/.
 #   V3. OpenRig Bundle Check Parity: Zero symlinks in specs/ or rigs/, all referenced files inside each rig
@@ -145,14 +145,14 @@ EDGE_KEYS = {"kind", "from", "to"}
 EDGE_KINDS = {"delegates_to", "spawned_by", "can_observe", "collaborates_with", "escalates_to"}
 
 # HR-2.1-schema-drift (fail-closed): the RIG/POD/MEMBER/EDGE key sets above are
-# a copy of the pinned @openrig/cli@0.6.11 rigspec-schema.ts export in
+# a copy of the pinned @openrig/cli@0.6.13 rigspec-schema.ts export in
 # schemas/rigspec-keys.pinned.json plus the vendored bytes in
 # schemas/rigspec-schema.pinned.ts. Diff them here so any upstream bump or
 # local drift flips the gate instead of silently desyncing. A sabotage adding,
 # removing, or renaming one pinned key must exit 1. The vendored .ts file must
 # exist: editing both local copies identically without updating the vendored
 # bytes still fails (upstream-hash attestation; refresh from the real
-# @openrig/cli@0.6.11 rigspec-schema.ts per the JSON provenance recipe).
+# @openrig/cli@0.6.13 rigspec-schema.ts per the JSON provenance recipe).
 # HR-2.1-pinned-self-referential: the three-way local-local diff alone passes
 # an identical 3-copy edit. The 4th anchor below (SHA-256 of the vendored
 # bytes, refreshed at generation time into the JSON provenance) fails closed
@@ -164,32 +164,32 @@ try:
     for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
         _pinned_set = set(_pinned_keys.get(_name, []))
         if _live != _pinned_set:
-            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.6.11 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.6.13 rigspec-schema.ts)")
     _anchored = _pinned_doc.get("provenance", {}).get("vendored_sha256", "")
     if not re.fullmatch(r"[0-9a-f]{64}", str(_anchored or "")):
-        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.6.11 rigspec-schema.ts per provenance recipe)")
+        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.6.13 rigspec-schema.ts per provenance recipe)")
     else:
         _actual_ts_hash = hashlib.sha256((root / "schemas/rigspec-schema.pinned.ts").read_bytes()).hexdigest()
         if _actual_ts_hash != _anchored:
-            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.6.11 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.6.13 rigspec-schema.ts)")
     # HR-2.1-pinned-still-local (fail-closed): the vendored_sha256 anchor above
     # is refreshed FROM the local vendored bytes at generation time, so an
     # identical edit of all three local copies followed by a generator refresh
     # still passes. The upstream tarball anchor below is NEVER derived from
     # local bytes — it is recorded by a human running `npm pack
-    # @openrig/cli@0.6.11` on a networked shell host per the provenance recipe,
+    # @openrig/cli@0.6.13` on a networked shell host per the provenance recipe,
     # and the gate fails while it is absent/placeholder so the gap stays
     # visible instead of silently self-consistent.
     _upstream = _pinned_doc.get("provenance", {}).get("upstream_tarball", {})
     _tb_sha = str(_upstream.get("tarball_sha256", "") or "")
     if not re.fullmatch(r"[0-9a-f]{64}", _tb_sha):
-        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.6.11` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
+        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.6.13` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
     else:
-        _tgz = root / "schemas/openrig-cli-0.6.11.tgz"
+        _tgz = root / "schemas/openrig-cli-0.6.13.tgz"
         if _tgz.exists():
             _actual_tgz = hashlib.sha256(_tgz.read_bytes()).hexdigest()
             if _actual_tgz != _tb_sha:
-                fail(f"schemas/openrig-cli-0.6.11.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.6.11`)")
+                fail(f"schemas/openrig-cli-0.6.13.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.6.13`)")
 except Exception as _e:
     fail(f"schemas/rigspec-keys.pinned.json unreadable for schema-drift check: {_e}")
 try:
@@ -197,11 +197,11 @@ try:
     for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
         _m = re.search(rf"export const {_name} = \[(.*?)\] as const", _vendored_ts, flags=re.DOTALL)
         if not _m:
-            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.6.11 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.6.13 rigspec-schema.ts)")
             continue
         _vendored_set = set(re.findall(r'"([^"]+)"', _m.group(1)))
         if _live != _vendored_set:
-            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.6.11 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.6.13 rigspec-schema.ts)")
 except Exception as _e:
     fail(f"schemas/rigspec-schema.pinned.ts unreadable for schema-drift check: {_e}")
 
@@ -248,10 +248,10 @@ else:
     fail(f"Role inventory mismatch: missing={missing}, extra={extra}")
 
 shared_skills_dir = root / "specs/agents/_shared/skills"
-if len(skills_lock.get("skills", {})) == 64 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 64:
-    ok("All 64 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
+if len(skills_lock.get("skills", {})) == 68 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 68:
+    ok("All 68 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
 else:
-    fail("Shared skill count mismatch (expected 64)")
+    fail("Shared skill count mismatch (expected 68)")
 # HR-6.1-thin-superpowers-wording (fail-closed): counts alone cannot prove
 # full-fidelity obra/superpowers@bb92a77 directories. Enforce per-skill
 # tree-hash (recomputed from disk vs fleet/skills-lock.json), SKILL.md
@@ -618,6 +618,14 @@ for rid, rdir in sorted(discovered_roles.items()):
     _declared_pw = set((r_fleet.get("permissions", {}) or {}).get("path_write") or [])
     if not _rendered_pw_allows <= _declared_pw:
         fail(f"{rid}: rendered path_write allows exceed fleet-declared path_write (surplus={sorted(_rendered_pw_allows - _declared_pw)[:5]})")
+    # HR-queue-surface (fail-closed): every seat's rendered bash map must keep
+    # the six rig allows. Seats coordinate via bash-invoked `rig` commands (no
+    # rig MCP tools exist); a renderer regression silently dropping the rig
+    # surface would leave seats unable to queue/send with a fully green gate.
+    # The subset check above pins the ceiling; this pins the floor.
+    for _rv in ("rig whoami", "rig ps", "rig queue", "rig send", "rig capture", "rig transcript"):
+        if not any(_k == _rv or _k.startswith(_rv + " ") or _k.startswith(_rv + "*") for _k, _v in _bash_map.items() if _v == "allow"):
+            fail(f"{rid}: rendered bash map missing rig allow for '{_rv}*'")
 
     if rid in READONLY_16_ROLES:
         for g in r_fleet["permissions"]["path_write"]:

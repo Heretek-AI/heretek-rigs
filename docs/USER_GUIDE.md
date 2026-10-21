@@ -1,6 +1,6 @@
 # Heretek-Rigs Operator & User Guide
 
-Welcome to the operator manual for **`heretek-rigs`** — the 51-agent, 8-rig software engineering fleet built on **OpenRig v0.6.11** (`rig`), **Pi Coding Agent v1.3.0** (`pi`), **`@gotgenes/pi-permission-system@41.0.0`**, and **OpenCode Go** (`opencode-go/muse-spark-1.3-contributor:high`).
+Welcome to the operator manual for **`heretek-rigs`** — the 51-agent, 8-rig software engineering fleet built on **OpenRig v0.6.13** (`rig`), **Pi Coding Agent v1.3.0** (`pi`), **`@gotgenes/pi-permission-system@41.0.0`**, and **OpenCode Go** (`opencode-go/muse-spark-1.3-contributor:high`).
 
 This guide walks you through installing prerequisites, provisioning zero-leak secrets, seeding isolated seat directories, launching and operating domain rigs, dynamically scaling the `heretek-omni-fleet` command center, running Docker sidecars safely, customizing the fleet catalog, and troubleshooting common issues.
 
@@ -11,18 +11,18 @@ This guide walks you through installing prerequisites, provisioning zero-leak se
 | Component | Required Version | Purpose |
 | :--- | :--- | :--- |
 | **Operating System** | Linux or macOS (WSL2 on Windows) | Host environment for OpenRig daemon, `tmux` sessions, and Docker sidecars. |
-| **Node.js & npm** | Node.js `22.x` or `24.x` (`>=22.19.0`) | Required by `@openrig/cli@0.6.11` (`better-sqlite3` ABI) and `@earendil-works/pi-coding-agent@1.3.0`. (Node 20 is unsupported.) |
+| **Node.js & npm** | Node.js `22.x` or `24.x` (`>=22.19.0`) | Required by `@openrig/cli@0.6.13` (`better-sqlite3` ABI) and `@earendil-works/pi-coding-agent@1.3.0`. (Node 20 is unsupported.) |
 | **tmux** | `3.2+` | Terminal multiplexer backing all OpenRig agent seats. |
 | **Python 3** | `3.10+` with `pyyaml` and `jsonschema` (or `uv`) | Runs `generate-rigs.py`, `render-seat.py`, `seed-rig.py`, `verify-rigs.sh`, and `audit_loop.py`. All scripts automatically fall back to `uv run --with pyyaml --with jsonschema` if `uv` is installed. |
 | **Docker & Compose** | Docker Engine + `docker compose` v2 | Optional for core rig launch; required when starting supporting sidecar profiles (`docker-compose.sidecars.yml`) or the `terraform` MCP container. |
 
 ### Step 1: Install OpenRig CLI (`rig`) and Pi Coding Agent (`pi`)
 
-Install the exact pinned versions of the OpenRig CLI (`@openrig/cli@0.6.11`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@1.3.0`) globally:
+Install the exact pinned versions of the OpenRig CLI (`@openrig/cli@0.6.13`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@1.3.0`) globally:
 
 ```bash
-npm install -g @openrig/cli@0.6.11 @earendil-works/pi-coding-agent@1.3.0
-rig --version   # Expect: 0.6.11 (379f0a0d)
+npm install -g @openrig/cli@0.6.13 @earendil-works/pi-coding-agent@1.3.0
+rig --version   # Expect: 0.6.13 (9eeb2e42)
 pi --version    # Expect: 1.3.0
 ```
 
@@ -219,6 +219,14 @@ rig capture exec-exec-director@executive-and-architecture
 rig transcript exec-exec-director@executive-and-architecture
 ```
 
+> **Operator relays must be authenticated (issue #9).** `rig send` issued from outside
+> a managed seat arrives with no sender identity, so seats hold it as UNVERIFIED.
+> Never relay a human decision with raw `rig send` — use
+> `scripts/send-authenticated.sh`, which files the relay as a signed queue item
+> (`rig queue create --destination <session> --body-file <file>`) self-identified as
+> operator-relayed with its human-ref grounding, UTC timestamp, and verbatim-relay
+> statement. It never claims seat origin. See `--help` for the full contract.
+
 ### How Seats Handle Permission Denials & Escalations
 
 Every seat is governed by the **Heretek Fleet Culture** (`CULTURE.md`) and `@gotgenes/pi-permission-system@41.0.0`:
@@ -354,7 +362,7 @@ Never hand-edit files under `specs/`, `rigs/`, `rosters/`, or `registry/`. Becau
 To modify a role's permissions, skills, thinking level, or MCP bindings:
 1. Edit `fleet/fleet.yaml` or `fleet/mcp-servers.yaml`.
 2. Ensure your git working tree is clean (or set `HERETEK_RIGS_ALLOW_DIRTY=1` during local development so `resolve_heretek_commit()` allows provenance baking on a dirty worktree).
-3. Ensure the pinned upstream checkouts exist in `.scratch/vendor/` (`obra_superpowers@bb92a77`, `trailofbits_skills@5c99c03`, `getsentry_skills@f57ada2`, `anthropics_skills@dbd4588`, `vercel-labs_agent-skills@063bee9`, plus `Heretek-Crew@5ffb1fc` and `@openrig/cli@0.6.11`).
+3. Ensure the pinned upstream checkouts exist in `.scratch/vendor/` (`obra_superpowers@bb92a77`, `trailofbits_skills@5c99c03`, `getsentry_skills@f57ada2`, `anthropics_skills@dbd4588`, `vercel-labs_agent-skills@063bee9`, plus `Heretek-Crew@5ffb1fc` and `@openrig/cli@0.6.13`).
 4. Run the deterministic generator and idempotency gate:
    ```bash
    HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py
@@ -390,6 +398,20 @@ self-edges. It then renders `graph.json` (226 nodes, 1034 edges), an org-chart S
 are reported as advisory warnings only. The `.github/workflows/topology.yml` CI job
 runs this on every push/PR and uploads the renderings as artifacts.
 
+### Live Seat Audit (`make audit-sessions`)
+
+To scan running seats for misattributed permission denials (assistant claims a
+tool-wide ban while the review log shows a unit-scoped deny and the config allows
+the capability) and false delivery claims (`DISPATCHED` with no `qitem-` id):
+
+```bash
+make audit-sessions WORKSPACE=/path/to/seat-workspace
+```
+
+Findings are leads for operator review (exit 1 when any exist), not verdicts:
+assistant-text matching is heuristic, and delivery flags do not cross-check live
+queue state. Scans every seat under `OPENRIG_HOME/state/pi`, including archived rigs.
+
 ## 9. Complete Command Reference (`Makefile` & Scripts)
 
 ### `Makefile` Targets
@@ -405,6 +427,7 @@ runs this on every push/PR and uploads the renderings as artifacts.
 | `make seed RIG=<rig-id>` | Seed one rig in degraded-allowed mode: `python3 ./scripts/seed-rig.py rigs/$(RIG)/rig.yaml --allow-missing-secrets`. |
 | `make gate ROLE=<role-id>` | Live-test one role's permission config against `mock-openai.mjs` and `pi`: `bash ./scripts/gate-role.sh $(ROLE)`. |
 | `make topology OUT=<dir>` | Referential wiring gates + rendered topography (`graph.json`, org/rig/bipartite SVGs, 51-row matrix). |
+| `make audit-sessions` | Detect misattributed denials + false delivery claims in live seats (`OPENRIG_HOME/state/pi` + workspace docs). |
 | `make guard-profiles` | Fail-closed check refusing `SIDECAR_PROFILES` that combine `mobile` with `devsec` or `web-research`. |
 | `make sidecars-up SIDECAR_PROFILES="..."` | Run `guard-profiles` then start the specified profiles in `docker-compose.sidecars.yml` (`up -d`). |
 | `make sidecars-down` | Stop sidecar containers while preserving named volumes (`docker compose -f docker-compose.sidecars.yml down`). |

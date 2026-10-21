@@ -1,6 +1,6 @@
 # Heretek-Rigs Operations & Verification Makefile
 #
-# Target Framework: OpenRig v0.6.11 (CLI binary: `rig`)
+# Target Framework: OpenRig v0.6.13 (CLI binary: `rig`)
 # Primary Harness:  Pi Coding Agent v1.3.0 (`pi --mode rpc --no-approve`)
 # Enforcement:      @gotgenes/pi-permission-system@41.0.0 ("*..*": "deny" guard)
 # Primary Model:    opencode-go/muse-spark-1.3-contributor:high (OpenCode Go)
@@ -13,7 +13,7 @@ SIDECAR_PROFILES ?=
 RIG_BIN := $(shell command -v rig 2>/dev/null || true)
 
 .DEFAULT_GOAL := help
-.PHONY: help generate idempotent verify test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop topology
+.PHONY: help generate idempotent verify test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology
 
 help: ## List all documented Heretek-Rigs targets.
 	@echo "Heretek-Rigs — 51-Agent OpenRig + Pi + OpenCode Go Fleet"
@@ -41,6 +41,9 @@ seed: ## Seed one rig before launch: make seed RIG=defensive-sec-and-red-team
 
 gate: ## Gate-test one role against mock OpenAI + pi-permission-system: make gate ROLE=appsec-engineer
 	bash ./scripts/gate-role.sh $(ROLE)
+
+audit-sessions: ## Detect misattributed denials + false delivery claims: make audit-sessions [WORKSPACE=/path/to/seat-workspace]
+	python3 ./scripts/audit_sessions.py $(if $(WORKSPACE),--workspace $(WORKSPACE))
 
 topology: ## Render fleet wiring (graph.json, SVGs, matrix) + fail-closed referential gates: make topology OUT=/tmp/topo
 	python3 ./scripts/topology.py --out $(or $(OUT),/tmp/heretek-topology)

@@ -30,6 +30,8 @@ profiles:
       - heretek-shared:messaging-the-human
       - heretek-shared:orienting-to-an-inherited-seat
       - heretek-shared:session-compaction-and-restore
+      - heretek-shared:supabase-postgres-best-practices
+      - heretek-shared:prisma-postgres-setup
       - zero-downtime-migration-audit
       guidance: []
       subagents: []

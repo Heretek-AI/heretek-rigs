@@ -6,7 +6,8 @@
   "pi_packages": [
     "@gotgenes/pi-permission-system@41.0.0",
     "pi-lsp-extension@1.4.0",
-    "pi-ast-grep@0.1.0"
+    "pi-ast-grep@0.1.0",
+    "pi-mcp-adapter@5.4.0"
   ],
   "promptTimeoutMs": 60000,
   "permission": {

@@ -5,27 +5,27 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/heretek-omni-fleet",
-      "resolvedCommit": "99b4420c6a2e50749c8bb0b3a8d02186b9aa2b41",
+      "resolvedCommit": "96f3a96e2cf8a28a968d11176c5a497a07c4d925",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/99b4420c6a2e50749c8bb0b3a8d02186b9aa2b41/rigs/heretek-omni-fleet"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/96f3a96e2cf8a28a968d11176c5a497a07c4d925/rigs/heretek-omni-fleet"
     },
     "configurationId": "command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "c936ce5827cd38cd417c30b94b0e4a4e53e5168abb8843918e247f2773cfc3b0",
+      "value": "d1f0c86a2eab17b484f9f552e22fef6f5e4b5e9b03caef7810b8e41187a9a3ba",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {
-      "openrigVersion": "0.6.11",
-      "commit": "379f0a0d"
+      "openrigVersion": "0.6.13",
+      "commit": "9eeb2e42"
     },
     "generator": {
-      "openrigVersion": "0.6.11",
-      "commit": "379f0a0d"
+      "openrigVersion": "0.6.13",
+      "commit": "9eeb2e42"
     },
     "compatibility": {
-      "minDaemonVersion": "0.6.11",
-      "minCliVersion": "0.6.11"
+      "minDaemonVersion": "0.6.13",
+      "minCliVersion": "0.6.13"
     },
     "statedProvenance": {
       "notes": "Heretek-Rigs heretek-omni-fleet v1.0.0"

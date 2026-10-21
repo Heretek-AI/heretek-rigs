@@ -38,6 +38,8 @@ profiles:
       - heretek-shared:typescript-astro
       - heretek-shared:react-best-practices
       - heretek-shared:receiving-code-review
+      - heretek-shared:prisma-client-api
+      - heretek-shared:supabase
       - end-to-end-type-safe-fullstack
       guidance: []
       subagents: []

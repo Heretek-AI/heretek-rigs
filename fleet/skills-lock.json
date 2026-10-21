@@ -8,7 +8,7 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "agent-operated-workflows": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "agent-operated-workflows",
       "tree": "sha256:fc525896c38725df2da1e88eedefd393ba1ed6af3940e9f6b2f7c952e42e3cd4",
       "license_file": "LICENSE (copied from source root)"
@@ -56,9 +56,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "delegating-work": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "delegating-work",
-      "tree": "sha256:aa2edce0ad8461b0728555bfe28998b8cb39af0c261c151d0ef0168f25561d22",
+      "tree": "sha256:813381e4e12ca590709b8c8dd247633dcc5383761db992f69ad6dc93968c84f8",
       "license_file": "LICENSE (copied from source root)"
     },
     "dispatching-parallel-agents": {
@@ -110,9 +110,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "forming-an-openrig-mental-model": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "forming-an-openrig-mental-model",
-      "tree": "sha256:bc1d803eeefda33ef84549d33d6291542d73b8fa5fb6ed2fbf0748704eaaf57e",
+      "tree": "sha256:fc508a86cd29ddd92300f501af0507b35b91f77b455d2137f81fb5ee0165ce99",
       "license_file": "LICENSE (copied from source root)"
     },
     "fp-check": {
@@ -146,15 +146,15 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "messaging-the-human": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "messaging-the-human",
       "tree": "sha256:ec59bd0182b532c10a93afc75f04814c8d39656a42e693bf6ad49626c189a5d5",
       "license_file": "LICENSE (copied from source root)"
     },
     "mission-slice-sop": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "mission-slice-sop",
-      "tree": "sha256:db119eb13ff4f14d5140e53f4c1bbd7e74c387b300576e3d9dcf9273de77b8cc",
+      "tree": "sha256:7b89c5e46dd8385b792759086f277ab31f1306c7d24976138e70c94c03f29cb3",
       "license_file": "LICENSE (copied from source root)"
     },
     "modern-python": {
@@ -176,21 +176,33 @@
       "license_file": "none (see SKILL.md frontmatter)"
     },
     "openrig-operating-model": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "openrig-operating-model",
       "tree": "sha256:49f111f54f08ade6887b956b4cea55041ab5240b055b277c7515980939185668",
       "license_file": "LICENSE (copied from source root)"
     },
     "openrig-user": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "openrig-user",
-      "tree": "sha256:78275a1e5c57ced2d7b2d0cb8d70ba2522769ae98f5f386c6ee5168545dccdf2",
+      "tree": "sha256:758b547abcf734177be27acea40388a3cc05a91d35e00fe2bebc48d0b2c25645",
       "license_file": "LICENSE (copied from source root)"
     },
     "orienting-to-an-inherited-seat": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "orienting-to-an-inherited-seat",
-      "tree": "sha256:57099e5940f8f0b43427f8d030fa9edc201bdfb719aae4a7b799f9e21c12e90b",
+      "tree": "sha256:25668b9dce8e41918b51ba8e3ed19b3d82168a949a58c9920ea745527a7cf3dd",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "prisma-client-api": {
+      "source": "prisma/skills@ba3f9d7",
+      "path": "prisma-client-api",
+      "tree": "sha256:a503c26dcb3fa5ec973b2194c5dd83c23a8c07edcd7cddbfa9096090a11f4409",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "prisma-postgres-setup": {
+      "source": "prisma/skills@ba3f9d7",
+      "path": "prisma-postgres-setup",
+      "tree": "sha256:f2a6b82a72f6d092b721173b71b647b0499cf62db4bf0a20f00fe7bc284b361d",
       "license_file": "LICENSE (copied from source root)"
     },
     "property-based-testing": {
@@ -200,9 +212,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "queue-handoff": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "queue-handoff",
-      "tree": "sha256:03d6e0ec6dceb21ea921225d24fa1abd72421c784b4380f9e5464511e3012cb0",
+      "tree": "sha256:ac867c593b4abb031a3e4013981bb84db5024a3615969a53d627d71ce22eb619",
       "license_file": "LICENSE (copied from source root)"
     },
     "react-best-practices": {
@@ -218,9 +230,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "refocusing": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "refocusing",
-      "tree": "sha256:9fdef33db9250825e46a34c112117fb929c98b7f5faca02eba8bb869a0c04e25",
+      "tree": "sha256:ffa4c7f97906f377ac47c38e2783ce3bad79c41fd2ea81552e39096861f60d56",
       "license_file": "LICENSE (copied from source root)"
     },
     "requesting-code-review": {
@@ -242,7 +254,7 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "seat-continuity-and-handover": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "seat-continuity-and-handover",
       "tree": "sha256:ba1fd96624ad4da585b8a068690f9cdfc17a23ce9eb66daa7744c5558e82d5cc",
       "license_file": "LICENSE (copied from source root)"
@@ -278,9 +290,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "session-compaction-and-restore": {
-      "source": "npm:@openrig/cli@0.6.11 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
       "path": "session-compaction-and-restore",
-      "tree": "sha256:bdc6e3518726690e2959cd8af8d0e6d2380a9761c1eda7ff70954fb26d02f930",
+      "tree": "sha256:655e4c70e1f4d221ebc7234a500d3c9f97ad83fe9caf382d1c82fca11eb5c705",
       "license_file": "LICENSE (copied from source root)"
     },
     "skill-scanner": {
@@ -299,6 +311,18 @@
       "source": "obra/superpowers@bb92a77",
       "path": "skills/subagent-driven-development",
       "tree": "sha256:725b12d836ac91f03fcdc9bdd446c44dccf1f82717f367cd0fa1fcee93d12c5a",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "supabase": {
+      "source": "supabase/agent-skills@c9be0e9",
+      "path": "skills/supabase",
+      "tree": "sha256:cd0df38f180e25103afb9abc1689ecd6330140d0bf8e305c957cde50d7c93f31",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills@c9be0e9",
+      "path": "skills/supabase-postgres-best-practices",
+      "tree": "sha256:4aa365f9adddebdfd7ebfdc114b6fc120973dd0a1107939ea85e38995aaeda2d",
       "license_file": "LICENSE (copied from source root)"
     },
     "supply-chain-risk-auditor": {

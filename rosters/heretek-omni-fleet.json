@@ -265,7 +265,8 @@
       "capabilities": [
         "data-ai",
         "data-pipeline-eng",
-        "duckdb-dbt-pipeline-execution"
+        "duckdb-dbt-pipeline-execution",
+        "supabase-postgres-best-practices"
       ],
       "engagement": [
         "implement",
@@ -273,7 +274,7 @@
         "review"
       ],
       "use_when": "Need Data Pipeline & ETL Engineer (Data & AI Systems) expertise.",
-      "why": "Equipped with duckdb-dbt-pipeline-execution and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "why": "Equipped with duckdb-dbt-pipeline-execution, supabase-postgres-best-practices and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
       "caveat": "Writes scoped to dbt/*, pipelines/*."
     },
     {
@@ -282,7 +283,9 @@
       "capabilities": [
         "cloud-sre",
         "dba-specialist",
-        "zero-downtime-migration-audit"
+        "zero-downtime-migration-audit",
+        "supabase-postgres-best-practices",
+        "prisma-postgres-setup"
       ],
       "engagement": [
         "implement",
@@ -290,7 +293,7 @@
         "review"
       ],
       "use_when": "Need Database Administrator (DBA) (Cloud, Platform & Site Reliability) expertise.",
-      "why": "Equipped with zero-downtime-migration-audit and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "why": "Equipped with zero-downtime-migration-audit, supabase-postgres-best-practices, prisma-postgres-setup and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
       "caveat": "Writes scoped to migrations/*, docs/db/*."
     },
     {
@@ -366,7 +369,7 @@
       ],
       "use_when": "Need Engine & Systems Programmer (Game Development) expertise.",
       "why": "Equipped with cache-conscious-ecs-design and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
-      "caveat": "Writes scoped to src/engine/*, tests/engine/*."
+      "caveat": "Writes scoped to src/engine/*, tests/engine/*, build.sh, CMakePresets.json, CMakeLists.txt."
     },
     {
       "seat": "exec-exec-director@executive-and-architecture",
@@ -375,6 +378,7 @@
         "executive",
         "exec-director",
         "executive-okr-decomposition",
+        "brainstorming",
         "dispatching-parallel-agents"
       ],
       "engagement": [
@@ -382,7 +386,7 @@
         "review"
       ],
       "use_when": "Need Director / CEO-Delegate (Executive & Product Management) expertise.",
-      "why": "Equipped with executive-okr-decomposition, dispatching-parallel-agents and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "why": "Equipped with executive-okr-decomposition, brainstorming, dispatching-parallel-agents and builtin:locked posture on opencode-go/muse-spark-1.3-contributor:high.",
       "caveat": "Read-only/docs-only charter (writes confined to docs/executive/*)."
     },
     {
@@ -881,7 +885,8 @@
         "planning-with-files",
         "sprint-ticket-decomposition",
         "dispatching-parallel-agents",
-        "git-flow"
+        "git-flow",
+        "systematic-debugging"
       ],
       "engagement": [
         "consult",
@@ -904,7 +909,9 @@
         "test-driven-development",
         "typescript-astro",
         "react-best-practices",
-        "receiving-code-review"
+        "receiving-code-review",
+        "prisma-client-api",
+        "supabase"
       ],
       "engagement": [
         "implement",
