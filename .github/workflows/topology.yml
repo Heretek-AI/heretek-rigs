@@ -42,6 +42,7 @@ jobs:
     name: Wiring gates + topography
     permissions:
       contents: read
+      pull-requests: write
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
@@ -58,14 +59,6 @@ jobs:
           import json
           g = json.load(open('topology-out/graph.json'))
           from collections import Counter
-          t = Counter(n['type'] for n in g['nodes'])
-          adv = [l[2:] for l in open('topology-out/advisory.md') if l.startswith('- ')]
-          print(len(g['nodes']), len(g['edges']), t.get('seat',0), len(adv))
-          PY
-          )
-          import json
-          from collections import Counter
-          g = json.load(open('topology-out/graph.json'))
           t = Counter(n['type'] for n in g['nodes'])
           adv = [l[2:] for l in open('topology-out/advisory.md') if l.startswith('- ')]
           print(len(g['nodes']), len(g['edges']), t.get('seat',0), len(adv))
