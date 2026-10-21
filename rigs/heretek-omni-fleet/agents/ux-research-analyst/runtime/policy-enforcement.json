@@ -4,7 +4,8 @@
   "readonly_charter": true,
   "harness": "@gotgenes/pi-permission-system@41.0.0",
   "pi_packages": [
-    "@gotgenes/pi-permission-system@41.0.0"
+    "@gotgenes/pi-permission-system@41.0.0",
+    "pi-lens@4.4.4"
   ],
   "promptTimeoutMs": 60000,
   "permission": {

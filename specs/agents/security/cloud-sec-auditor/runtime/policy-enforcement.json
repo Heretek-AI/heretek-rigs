@@ -4,7 +4,8 @@
   "readonly_charter": true,
   "harness": "@gotgenes/pi-permission-system@41.0.0",
   "pi_packages": [
-    "@gotgenes/pi-permission-system@41.0.0"
+    "@gotgenes/pi-permission-system@41.0.0",
+    "pi-mcp-adapter@5.4.0"
   ],
   "promptTimeoutMs": 60000,
   "permission": {

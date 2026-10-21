@@ -93,7 +93,8 @@
     "mcp": {
       "*": "deny",
       "k6": "allow",
-      "codebase-memory": "allow"
+      "codebase-memory": "allow",
+      "grafana": "allow"
     },
     "external_directory": "deny"
   }

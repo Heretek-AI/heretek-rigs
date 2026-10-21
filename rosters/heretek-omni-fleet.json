@@ -265,7 +265,8 @@
       "capabilities": [
         "data-ai",
         "data-pipeline-eng",
-        "duckdb-dbt-pipeline-execution"
+        "duckdb-dbt-pipeline-execution",
+        "supabase-postgres-best-practices"
       ],
       "engagement": [
         "implement",
@@ -273,7 +274,7 @@
         "review"
       ],
       "use_when": "Need Data Pipeline & ETL Engineer (Data & AI Systems) expertise.",
-      "why": "Equipped with duckdb-dbt-pipeline-execution and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "why": "Equipped with duckdb-dbt-pipeline-execution, supabase-postgres-best-practices and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
       "caveat": "Writes scoped to dbt/*, pipelines/*."
     },
     {
@@ -282,7 +283,9 @@
       "capabilities": [
         "cloud-sre",
         "dba-specialist",
-        "zero-downtime-migration-audit"
+        "zero-downtime-migration-audit",
+        "supabase-postgres-best-practices",
+        "prisma-postgres-setup"
       ],
       "engagement": [
         "implement",
@@ -290,7 +293,7 @@
         "review"
       ],
       "use_when": "Need Database Administrator (DBA) (Cloud, Platform & Site Reliability) expertise.",
-      "why": "Equipped with zero-downtime-migration-audit and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
+      "why": "Equipped with zero-downtime-migration-audit, supabase-postgres-best-practices, prisma-postgres-setup and builtin:standard posture on opencode-go/muse-spark-1.3-contributor:high.",
       "caveat": "Writes scoped to migrations/*, docs/db/*."
     },
     {
@@ -906,7 +909,9 @@
         "test-driven-development",
         "typescript-astro",
         "react-best-practices",
-        "receiving-code-review"
+        "receiving-code-review",
+        "prisma-client-api",
+        "supabase"
       ],
       "engagement": [
         "implement",

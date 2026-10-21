@@ -562,6 +562,18 @@ def generate_all(
             "sha": "063bee9",
             "repo": "vercel-labs/agent-skills",
         },
+        "supabase": {
+            "dir": (vendor_dir / "supabase_agent-skills").resolve(),
+            "sha": "c9be0e9",
+            "repo": "supabase/agent-skills",
+            "subdir": "skills",
+        },
+        "prisma": {
+            "dir": (vendor_dir / "prisma_skills").resolve(),
+            "sha": "ba3f9d7",
+            "repo": "prisma/skills",
+            "subdir": ".",
+        },
     }
     for k, p in pins.items():
         if not p["dir"].exists():
@@ -590,7 +602,8 @@ def generate_all(
                 if (cand / "SKILL.md").exists():
                     return cand
             die(f"heretek-crew skill {skill_id} not found")
-        cand = p["dir"] / "skills" / skill_id
+        subdir = p.get("subdir", "skills")
+        cand = p["dir"] / subdir / skill_id
         if not (cand / "SKILL.md").exists():
             die(f"{src} skill {skill_id} not found at {cand}")
         return cand
