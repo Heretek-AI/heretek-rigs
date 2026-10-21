@@ -13,6 +13,28 @@
       "exposure": "deferred",
       "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
       "args": []
+    },
+    "grafana": {
+      "description": "Grafana dashboards, datasources, alerting and incident context for SRE seats.",
+      "exposure": "deferred",
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--network",
+        "bridge",
+        "-e",
+        "GRAFANA_URL",
+        "-e",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN",
+        "grafana/mcp-grafana:2.0.2"
+      ],
+      "env": {
+        "GRAFANA_URL": "!cat @SECRETS@/grafana.url",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "!cat @SECRETS@/grafana.token"
+      },
+      "enabled": false
     }
   }
 }

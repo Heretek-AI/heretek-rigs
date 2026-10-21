@@ -778,11 +778,11 @@ integrity:
     agents/k8s-orchestrator/skills/helm-chart-security-hardening/SKILL.md: 577578cf6f3539f62894e91a4b0ecf04bdcf76b3a450e0906eb850bfa6520e4a
     agents/k8s-orchestrator/startup/context.md: caabd107263c67670797fac6cc4506d11a35448024d98f83caea04fa68e8acbc
     agents/load-stress-tester/agent.yaml: 1dd2812e60cdb206fe527d12e7144ba011565d4751a302bb71b8a2990dd164fb
-    agents/load-stress-tester/guidance/role.md: a57dce45075c50c9600b1d605c210e94aed40daba6f175257a8f7b231a279d5c
-    agents/load-stress-tester/runtime/mcp.json: 7faeea8baccd14457c385d0c49b0d8f54c2af1532da3abab2df5c3ca3c5409c3
-    agents/load-stress-tester/runtime/pi-permission-config.json: a5bb4fc0ecce34dc069153d615a4af4d06e799e167042eefb25653183c8843ea
+    agents/load-stress-tester/guidance/role.md: 773d08a6207e50a5a97476d18323e1b14d5c4bba5776936eecebc277d5a248e4
+    agents/load-stress-tester/runtime/mcp.json: 3c9c483c3e01b4d94b18fbb89ee54fc9aafe5907507414aa409427cf594234e3
+    agents/load-stress-tester/runtime/pi-permission-config.json: 4413e7e026ed4e0f1e01e3af9e28011637555299f206a2a211486e10eb6897ce
     agents/load-stress-tester/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/load-stress-tester/runtime/policy-enforcement.json: f01f388166ee02c01a2c8d6f2254150dab4caa33dbe889bea52409ef7d898295
+    agents/load-stress-tester/runtime/policy-enforcement.json: 29cc399cab52785d812a47f8269b39ceafdb63c9707753ae456db6b4120d0d37
     agents/load-stress-tester/skills/k6-stress-scenario-execution/SKILL.md: 71404e4329cfcb33ba242f1f2a8c4739f5a3a7fb4ea797d783b0bcaf09e098d3
     agents/load-stress-tester/startup/context.md: e5d15fbe0312cc667e3b716fbe41054b6790aa7e71b23659175e384303e04f1c
     agents/mlops-serving-eng/agent.yaml: 1e9c12a614ddc1ae54f5dfb868e24792540b1b63cd4e873eba0bf33b519f0571
@@ -854,7 +854,7 @@ integrity:
     agents/sabotage-qa-tester/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
     agents/sabotage-qa-tester/runtime/pi-permission-config.json: 9366482e8f32cd4660a3e16c21af56d134fd22e07e1c0fdb85a2e36824626f0d
     agents/sabotage-qa-tester/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/sabotage-qa-tester/runtime/policy-enforcement.json: d73362e5942ce869c3dfa796663d4be8f5396a7958a7e158f6591fdb8f54a752
+    agents/sabotage-qa-tester/runtime/policy-enforcement.json: 581048204fda386825ba3aaa1d383f1952f9ab2b29c3a662c5f2327dfa238726
     agents/sabotage-qa-tester/skills/adversarial-mutation-sabotage/SKILL.md: 568c2b9e72557f924a199bdff4f7adb5f0601df270db8348211d53c4cd3f2322
     agents/sabotage-qa-tester/startup/context.md: 6479a1f79d1c628067612fbcbe68c154f7bd7b4a06705dc0ebacb4eec8ec49d3
     agents/sre-incident-eng/agent.yaml: 54645d26e75e2f4b38de0cbcdd739f500f594f7803ba5ba0c949f9bd099c7d5f
