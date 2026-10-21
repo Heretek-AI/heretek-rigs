@@ -565,7 +565,7 @@ integrity:
     agents/api-contract-tester/runtime/mcp.json: ed607a2e16e22c3ee05c5bfb03efd774c5996ddd6bcc02dc4068b04f0ce97a53
     agents/api-contract-tester/runtime/pi-permission-config.json: 0f6d50642de1e0ca74050eee672b7e1c5ab12daf9193b76761bd7f3fba245390
     agents/api-contract-tester/runtime/pi-settings.json: ed0f22e6beec11ce958f1cf0f206b4f0d7b899a77cbb1aba8f3d042caa7423e9
-    agents/api-contract-tester/runtime/policy-enforcement.json: 32afa5e55ed9d4a228377b0edaf1d65eab7978a424437af8a2e0600d7e020cc2
+    agents/api-contract-tester/runtime/policy-enforcement.json: ca634c0714ae17a9822f0ff66f59c11f2767d43b3fb1e5764f5083d4424dbbe3
     agents/api-contract-tester/skills/dotnet-expert/SKILL.md: b93c7eca84fa4047cbaeeaf11f98ee475072b288e1f1abfadf4275a4d9e5fc5d
     agents/api-contract-tester/skills/openapi-contract-verification/SKILL.md: 2d431d4acd244004d833c8078f79116dc425f372587edb5432028ad35cc6667b
     agents/api-contract-tester/startup/context.md: 61484843c735f9c34f40d3b594a32edbde56acd5ac92cebdb0a975b82d9d6793
@@ -574,7 +574,7 @@ integrity:
     agents/e2e-browser-qa/runtime/mcp.json: b8901696164e5f3687c52d2c535c6eb1976a3b7da8d126667982311c9fdd26c1
     agents/e2e-browser-qa/runtime/pi-permission-config.json: eb22888be5bc526e0875202373222cc1aab0d5bf053b6896a53c6c491eedfb1f
     agents/e2e-browser-qa/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/e2e-browser-qa/runtime/policy-enforcement.json: d1f9ed0e6134aa625325128132f0cb47389ff27d9b899478aec9e70d837cc39b
+    agents/e2e-browser-qa/runtime/policy-enforcement.json: 1adc6c4fe618804f19642287482fcbce6af934ffe74e62d9e330e30410adcd9f
     agents/e2e-browser-qa/skills/playwright-page-object-automation/SKILL.md: 7f99a2942401aea95d619dac3506f0798bf6d6ce5a9ddc808d4e1fe44a229512
     agents/e2e-browser-qa/startup/context.md: 0a4de405db4895973f873f2a6d6ef00531edbd7ebf84595323aa719618e0d4d9
     agents/load-stress-tester/agent.yaml: 1dd2812e60cdb206fe527d12e7144ba011565d4751a302bb71b8a2990dd164fb

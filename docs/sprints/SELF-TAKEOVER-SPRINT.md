@@ -19,6 +19,9 @@ source before editing (fail closed, S02 precedent).
 
 Status 15:56Z: ST-5 DONE (accepted), ST-6 DONE (accepted). ST-1 BLOCKED 15:58Z
 (see ST-1 verdict below) — ST-2/3/4 BLOCKED behind the same gate.
+Status 16:10Z: ST-1 LANDED at 5c35a73 (operator-applied, 22/0; sabotage grafana
+binding explicitly NOT applied, in SELF-TAKEOVER-ST1.md). ST-2/3/4 UNBLOCKED
+under proposal rules, serialized. ST-2P dispatched 16:11Z.
 
 ### ST-1 (B1, unblocked) — Grafana binding for load-stress-tester + sabotage-qa-tester pi_packages bump
 - Context & user story: B1 merged to main (grafana catalog entry +
@@ -101,24 +104,32 @@ Status 15:56Z: ST-5 DONE (accepted), ST-6 DONE (accepted). ST-1 BLOCKED 15:58Z
   No secrets anywhere. Return row `qitem-20261021155543-a434bd4e` closed
   done/no-follow-on.
 
-## Sequenced behind ST-1 commit (same files fleet/mcp-servers.yaml + fleet/fleet.yaml — NO concurrent edits)
+## ST-2/3/4 under proposal rules (serialized on fleet/* files, ST-1 landed 5c35a73)
 
-### ST-2 (B2) — Pi-extension follow-up batch — BLOCKED (same gate as ST-1)
-- Target (reserved): `platform-dependency-patcher@heretek-omni-fleet` (did B1's
-  bump; holds extension context). Dispatches after ST-1 operator commit.
+### ST-2 (B2) — Pi-extension follow-up batch — ACTIVE (ST-2P proposal)
+- Target: `platform-dependency-patcher@heretek-omni-fleet` (ST-2P proposal author;
+  row `qitem-20261021161108-108d8c8e5795762b`, dispatched 16:11Z).
+- VERDICT 16:13Z — ST-2P cannot-state package `st2p-proposal-package-lock.json`
+  (repo root, verified on disk): zero exact hunks, all 7 ledger sections read in
+  full, mirrors re-verified post-ST-1 (grafana present, sabotage new pins present,
+  ST-2 pins absent everywhere), 4 operator decisions pending (pi-web-access
+  0.42.0-vs-0.43.0, B2 rows 40-41 adopting seat, pi-memory/plan-mode scope,
+  red-seat pi-web-access confirm-or-refuse). Out-of-scope exclusions recorded
+  (pi-memory, plan-mode/usage, pi-web-search Rig-1-only). pi-subagents excluded
+  per HR-6.2. Return row `qitem-20261021161344-c4cef038` closed done/no-follow-on.
 - Scope: deferred pins across B2/B3/B5/B6/B7 ledgers (pi-lens, pi-btw,
   pi-web-access, pi-mcp-adapter, pi-fff, pi-memory, plan-mode/usage — re-verify
   each pin + license at execution; `pi-subagents` stays EXCLUDED per HR-6.2).
 - GWT: given ST-1 landed, when the batch regens, then verify reads 22/0 and no
   seat loses rendered allows. DoD: ledger + commit-request item.
 
-### ST-3 (B3) — context7 cross-rig bump 4.4.2→4.4.4 — BLOCKED (same gate as ST-1)
+### ST-3 (B3) — context7 cross-rig bump 4.4.2→4.4.4 — QUEUED behind ST-2P
 - Target (reserved): `exec-system-architect@heretek-omni-fleet` (after ST-6).
 - Blast radius: 6 consumers x 4 rigs (B5 ledger list). Dedicated catalog batch,
   freshness re-check at execution. GWT: given all consumers render, when bumped,
   then verify 22/0 with zero consumer breakage. DoD: ledger + commit-request item.
 
-### ST-4 (B4) — Generator surgery (prisma/supabase/mattpocock pin sources) — BLOCKED (same gate as ST-1)
+### ST-4 (B4) — Generator surgery (prisma/supabase/mattpocock pin sources) — QUEUED behind ST-3
 - Target (reserved): `exec-system-architect@heretek-omni-fleet` (after ST-3).
 - Scope: `pins`-dict surgery + new pinned clones in `scripts/generate-rigs.py`.
   Highest risk; last in sequence. GWT: given new vendor sources, when regen

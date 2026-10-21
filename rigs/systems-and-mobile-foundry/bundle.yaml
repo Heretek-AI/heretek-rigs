@@ -543,7 +543,7 @@ integrity:
     agents/android-mobile-spec/runtime/mcp.json: 437335eea535a4cb115902d9678ab04ba2dec00a4ee894b48d2674089eaf3a96
     agents/android-mobile-spec/runtime/pi-permission-config.json: 494a87c54cf9f714acaa017be43806d66e5b1b620623837e6294bef04949089c
     agents/android-mobile-spec/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/android-mobile-spec/runtime/policy-enforcement.json: c3fe592211245e633c210abc4bea82f87e01f71c21a993ace17869b0e3eddfbb
+    agents/android-mobile-spec/runtime/policy-enforcement.json: b6f7fdf3df284c7fa908b547dcfdb68873e07fc27da97cfd996771a50a27b4e4
     agents/android-mobile-spec/skills/artemis-android-ui-exploration/SKILL.md: cc950f025542a3ab33d1b477c645fd9a1e4247f3cb5e570b7069c26f2ec16fc7
     agents/android-mobile-spec/skills/jetpack-compose-state-hoisting/SKILL.md: e58f6a4bed687afc3fa4b7a37dfaa571a430000099dbdb5c52af385e9edc8379
     agents/android-mobile-spec/startup/context.md: d1d3f0c0a1273bf3a07003d7d074d061f50373565cbae888ead55cd84557e856
@@ -560,7 +560,7 @@ integrity:
     agents/ios-mobile-spec/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
     agents/ios-mobile-spec/runtime/pi-permission-config.json: b161d0b52e6a1efa9af4e67e640b55facd9e2974f0b1d278ddb426cee69073a7
     agents/ios-mobile-spec/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/ios-mobile-spec/runtime/policy-enforcement.json: 9a6de43d0122f81e3ad1ab472138a9c9dc65ee83fec67f534633f4ab5bc945dd
+    agents/ios-mobile-spec/runtime/policy-enforcement.json: cb8e46d446206fbf97b7090ca12d1d0784d8749ad679d47636d0763119e0ff4b
     agents/ios-mobile-spec/skills/swiftui-concurrency-implementation/SKILL.md: 338e848eba55d81424bf475a0087ab64d86b2a1f1de868150f4ad95b26c115e1
     agents/ios-mobile-spec/startup/context.md: 9966a37d6cbfe6ddfd923a0b8f6e460d495a8549d38ae2e39c35be475bb203fa
     agents/rust-systems-spec/agent.yaml: 7af8242a5aeaa61109e387668ab6d8136eeed0c90f797b2efb916a261d215c25
@@ -568,7 +568,7 @@ integrity:
     agents/rust-systems-spec/runtime/mcp.json: f4b1c84549b5099a5ec7db9c69ea685e45a333d7d1b9437c4f504f2274f6a34a
     agents/rust-systems-spec/runtime/pi-permission-config.json: e5440098472f1d467366402546c003ed6d5c7aecc4b0c5a793f5e8a306622b0f
     agents/rust-systems-spec/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/rust-systems-spec/runtime/policy-enforcement.json: 044093cc39e69ffc3a77efb5861bb3ad53c58c95dfb1659c692d7b2059cf8abb
+    agents/rust-systems-spec/runtime/policy-enforcement.json: ce0ba3208b711e245763a5d9cd3d0e916cba344ebfc09cac6a80554ff4e3a5a5
     agents/rust-systems-spec/skills/rust-async-service-hardening/SKILL.md: 045f21f91d4dd6c1f11052713c2954deb4e1970019449209eb7cc47b74e71060
     agents/rust-systems-spec/startup/context.md: e689dbb9d03dacfae596e77e2ff050809248983be7beab6f7606fb1a2a517976
     configurations.yaml: e5addacd5ec2c56e9f4c39b35545661fd3011f70ddf18c271d988e7f68057e61

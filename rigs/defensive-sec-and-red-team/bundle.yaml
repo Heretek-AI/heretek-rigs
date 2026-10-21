@@ -605,7 +605,7 @@ integrity:
     agents/cloud-sec-auditor/runtime/mcp.json: 0c8ddd8e6a54486e8efa4d90348f52a5317b3243560a4f4fe286effad1e5e373
     agents/cloud-sec-auditor/runtime/pi-permission-config.json: 598e7bc3cbd291cee6b7ac7d824f87f398c40ec611163ca094956747263e7cd9
     agents/cloud-sec-auditor/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/cloud-sec-auditor/runtime/policy-enforcement.json: e0f2eda8e269224048a4de4ae460c8746cd5caa3e4e6ac9ed0ce0301d75b7fbd
+    agents/cloud-sec-auditor/runtime/policy-enforcement.json: 049925fcd765bde350f2765b7a5f5f6a0874ca09aa23ddbbb1df07376c3e4a0e
     agents/cloud-sec-auditor/skills/iam-least-privilege-audit/SKILL.md: 7f04f1c4c1db007c2cf3396d65254fcf22c109189c9d03d7a4a7f00c32f9170a
     agents/cloud-sec-auditor/startup/context.md: e2fbb439817e0268fa83977d9abc161820735e94c578ee70ef95ab61fce0af85
     agents/compliance-auditor/agent.yaml: 4d484c8e88530c2e05faae18098799403e9828753cacd442376841fedf550013
@@ -613,7 +613,7 @@ integrity:
     agents/compliance-auditor/runtime/mcp.json: dd4f89175140cea1bffff81659645fd845386f0b48a8b3ba8e99d58df12609fd
     agents/compliance-auditor/runtime/pi-permission-config.json: 7cada5e8da614a63162bd0c21c352f1ad6266db4c860d5d2c53aefaaf19843bd
     agents/compliance-auditor/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/compliance-auditor/runtime/policy-enforcement.json: 53947c316beb7d805bd98c7dfa27dbbfdc8c7c624ba647989175ee865264f8bd
+    agents/compliance-auditor/runtime/policy-enforcement.json: 47275a423bca9f8e343034e3b3f5aa403d0229aed3863577a7a4a3b2ac8ed8bc
     agents/compliance-auditor/skills/sbom-generation-and-license-audit/SKILL.md: 077033137006135c53214a4fd98affb402548c7e3bff7769ef347fa671fc8cdb
     agents/compliance-auditor/startup/context.md: 214515a0e8232076dc58115aa2705976e86f49ddccd63192ae15ab4ce18a30c9
     agents/firmware-sec-analyst/agent.yaml: adf9c39628cf54c2da47c15de7e3a3d3caf36f880dad8f0347392539be6e40e3
@@ -629,7 +629,7 @@ integrity:
     agents/threat-modeler/runtime/mcp.json: ecafd2a6e1b60bc5a3d3bc397326073c930c95630939d8d28d66b407ab237a0d
     agents/threat-modeler/runtime/pi-permission-config.json: 0925a48810789b5b46ac5719b8caaf577a1868c105ab8594a65344799a2d4cfd
     agents/threat-modeler/runtime/pi-settings.json: 42d649c0faf44344ef1bf015109a153ecc1872de08d993f58ee266683574f784
-    agents/threat-modeler/runtime/policy-enforcement.json: 57efda023c37ed5759823193aa1c1b4bce29d1336fd73f838edc8236be8ce443
+    agents/threat-modeler/runtime/policy-enforcement.json: cc2b9ceeaa9ee7b1e440a9cb327c75865e16c14cfc334bca66092bced9c8240b
     agents/threat-modeler/skills/stride-threat-modeling/SKILL.md: 7f7bdbb8aa2cab064c18573e9a946bffa9f7dd21f0fb254dd4a175ff9a4a3053
     agents/threat-modeler/startup/context.md: fe4581cf5d500ef592a21453148e3c7e9dfe6009113d94b2caf70aa2e2e13fba
     configurations.yaml: 20c35e92d8d48958eec90e8d5004784b5c976e93106fc0765c3dfde74b0f076e
