@@ -28,9 +28,16 @@ import yaml
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 ALLOWED_PI_PACKAGES = {
+    "@ff-labs/pi-fff@0.11.0",
     "@gotgenes/pi-permission-system@41.0.0",
-    "pi-lsp-extension@1.4.0",
+    "@narumitw/pi-lsp@0.49.10",
+    "@nicknisi/pi-ast-grep@0.3.1",
     "pi-ast-grep@0.1.0",
+    "pi-btw@0.8.0",
+    "pi-lens@4.4.4",
+    "pi-lsp-extension@1.4.0",
+    "pi-mcp-adapter@5.4.0",
+    "pi-web-access@0.44.0",
 }
 EDGE_KINDS = {"delegates_to", "spawned_by", "can_observe", "collaborates_with", "escalates_to"}
 

@@ -391,8 +391,8 @@ make topology OUT=/tmp/heretek-topology
 `scripts/topology.py` fail-closed checks that every `reports_to.address` resolves to
 a real seat, every `collaborators[]` / skill / MCP / package reference exists on
 disk and in the lockfiles, every `rig.yaml` member matches `fleet.yaml` (and vice
-versa), all 51 member fragments are present, and all 53 edge endpoints exist with no
-self-edges. It then renders `graph.json` (226 nodes, 1034 edges), an org-chart SVG
+versa), all 51 member fragments are present, and every pod edge endpoint exists with no
+self-edges. It then renders `graph.json`, an org-chart SVG
 (15 pods + command), per-rig agent SVGs, per-rig seat×resource bipartite SVGs, and a
 51-row `matrix.md`. Orphan skills/servers and omni-divergent `reports_to` addresses
 are reported as advisory warnings only. The `.github/workflows/topology.yml` CI job
