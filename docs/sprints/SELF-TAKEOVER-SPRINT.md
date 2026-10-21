@@ -25,6 +25,8 @@ under proposal rules, serialized. ST-2P dispatched 16:11Z.
 Status 17:25Z: ST-2 LANDED at 5c5b46e (24 pins, 22 seats, 22/0; web-access 0.44.0,
 rows 40-41 on e2e plus api-contract-tester, red seats REFUSED; ledger
 SELF-TAKEOVER-ST2.md). ST-3P dispatched 17:25Z. ST-4 queued behind ST-3.
+Status 18:05Z: ST-3 LANDED at 96f3a96 (context7 one line, freshness live,
+22/0, 6/6 rendered; ledger SELF-TAKEOVER-ST3.md). ST-4P dispatched 18:05Z.
 
 ### ST-1 (B1, unblocked) — Grafana binding for load-stress-tester + sabotage-qa-tester pi_packages bump
 - Context & user story: B1 merged to main (grafana catalog entry +
@@ -140,7 +142,16 @@ SELF-TAKEOVER-ST2.md). ST-3P dispatched 17:25Z. ST-4 queued behind ST-3.
   freshness re-check at execution. GWT: given all consumers render, when bumped,
   then verify 22/0 with zero consumer breakage. DoD: ledger + commit-request item.
 
-### ST-4 (B4) — Generator surgery (prisma/supabase/mattpocock pin sources) — QUEUED behind ST-3
+### ST-4 (B4) — Generator surgery (prisma/supabase/mattpocock pin sources) — PROPOSAL RETURNED (ST-4P)
+- Target: `exec-system-architect@heretek-omni-fleet` (ST-4P proposal author;
+  row `qitem-20261021180558-1f2fb3fd280b160b`, dispatched 18:05Z).
+- VERDICT 18:06Z — CANNOT-STATE package `docs/architecture/ST-4-PROPOSAL-2026-10-21.md`
+  (verified on disk): all 4 hunks unstated (`scripts/generate-rigs.py` unreadable,
+  verbatim `scripts/*` denial); rollback stated BEFORE action (revert to 96f3a96,
+  remove clones, regen, 22/0, SHA/allow checks, never hand-patch leaves);
+  vendor SHAs/licenses/freshness UNKNOWN (operator must resolve); blast-radius
+  note (51 seats + 8 bundles, one-slice rule). Return row
+  `qitem-20261021180623-07179e1f` closed done/no-follow-on.
 - Target (reserved): `exec-system-architect@heretek-omni-fleet` (after ST-3).
 - Scope: `pins`-dict surgery + new pinned clones in `scripts/generate-rigs.py`.
   Highest risk; last in sequence. GWT: given new vendor sources, when regen

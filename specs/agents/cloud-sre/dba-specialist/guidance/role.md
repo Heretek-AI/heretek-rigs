@@ -45,6 +45,8 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `messaging-the-human`
 - `orienting-to-an-inherited-seat`
 - `session-compaction-and-restore`
+- `supabase-postgres-best-practices`
+- `prisma-postgres-setup`
 - `zero-downtime-migration-audit`
 
 Mandatory read triggers:

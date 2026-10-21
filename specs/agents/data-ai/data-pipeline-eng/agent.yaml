@@ -27,6 +27,7 @@ profiles:
       - heretek-shared:queue-handoff
       - heretek-shared:refocusing
       - heretek-shared:seat-continuity-and-handover
+      - heretek-shared:supabase-postgres-best-practices
       - duckdb-dbt-pipeline-execution
       guidance: []
       subagents: []

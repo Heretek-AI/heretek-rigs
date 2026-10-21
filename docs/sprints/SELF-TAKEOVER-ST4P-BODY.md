@@ -1,0 +1,9 @@
+ST-4P (generator-surgery batch as proposal package, operator-authorized rule 2026-10-21). Full spec: docs/sprints/SELF-TAKEOVER-SPRINT.md section ST-4 plus operator relay qitem-20261021180541-57b61b487a7d12a8 (ST-3 landed 96f3a96, ST-4 unblocked, one slice at a time).
+
+Goal: author ONE proposal file in your writable scope for new vendor sources (prisma skills, supabase skills, mattpocock skills): generator pins-dict surgery plus new pinned clones in scripts/generate-rigs.py. B1 TOOLING-B1-RIG5.md and B4 TOOLING-B4-RIG1.md row 6 record the deferral precedent and the mechanism.
+
+Operator extra requirement for ST-4: state the exact mechanism change AND the rollback (revert plus regen) BEFORE any operator action. This is the highest-blast-radius slice in the program (generator change affects all 51 seats plus 8 bundles); the rollback statement is mandatory, not optional. in the program (generator change affects all 51 seats plus 8 bundles); the rollback statement is mandatory, not optional.
+
+Per-hunk format: target path plus exact hunk with 3-plus context lines old and new quoted verbatim; evidence basis per line (ledger section, allowed-path read, merged commit); UNVERIFIED marks where not directly read; explicit list of what you could NOT check (regen output, verify gate, fleet-wide impact). Never reconstruct generator structure from memory. If any part cannot be stated exactly, state which line and why instead. Approximate diffs will be rejected.
+
+Constraints: write only inside your own scope (docs/adr, docs/architecture); read-only elsewhere; no commits, pushes, merges; no secrets; root AGENTS.md untouched. Sequencing: ST-1 5c35a73, ST-2 5c5b46e, ST-3 96f3a96 all landed; verify against the post-ST-3 tree where readable, else mark UNVERIFIED. Report the proposal path on this item when on disk, or the precise cannot-state verdict with reasons. Source slice: qitem-20261021155313-fe1742ceba05b628.

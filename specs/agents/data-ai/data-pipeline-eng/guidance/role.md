@@ -42,6 +42,7 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `queue-handoff`
 - `refocusing`
 - `seat-continuity-and-handover`
+- `supabase-postgres-best-practices`
 - `duckdb-dbt-pipeline-execution`
 
 Mandatory read triggers:

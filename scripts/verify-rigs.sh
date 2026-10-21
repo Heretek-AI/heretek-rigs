@@ -3,7 +3,7 @@
 #
 # Verifies:
 #   V1. 100% Role Parity & Skill Lock: All 51 canonical roles from Heretek-Crew exist in fleet/fleet.yaml and
-#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 64 locked shared skills.
+#       specs/agents/<domain>/<role>/ with zero Paperclip remnants, valid SKILL.md files, and 68 locked shared skills.
 #   V2. OpenRig AgentSpec v1.0 & RigSpec v0.2 Structural Conformance: Exact key allowlists, pod-local vs cross-pod
 #       edge rules, topological DAG cycle checks, and byte-for-byte parity between specs/agents/ and rigs/*/agents/.
 #   V3. OpenRig Bundle Check Parity: Zero symlinks in specs/ or rigs/, all referenced files inside each rig
@@ -248,10 +248,10 @@ else:
     fail(f"Role inventory mismatch: missing={missing}, extra={extra}")
 
 shared_skills_dir = root / "specs/agents/_shared/skills"
-if len(skills_lock.get("skills", {})) == 64 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 64:
-    ok("All 64 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
+if len(skills_lock.get("skills", {})) == 68 and len(list(shared_skills_dir.glob("*/SKILL.md"))) == 68:
+    ok("All 68 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json")
 else:
-    fail("Shared skill count mismatch (expected 64)")
+    fail("Shared skill count mismatch (expected 68)")
 # HR-6.1-thin-superpowers-wording (fail-closed): counts alone cannot prove
 # full-fidelity obra/superpowers@bb92a77 directories. Enforce per-skill
 # tree-hash (recomputed from disk vs fleet/skills-lock.json), SKILL.md

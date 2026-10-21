@@ -67,6 +67,10 @@ resources:
     path: skills/openrig-user
   - id: orienting-to-an-inherited-seat
     path: skills/orienting-to-an-inherited-seat
+  - id: prisma-client-api
+    path: skills/prisma-client-api
+  - id: prisma-postgres-setup
+    path: skills/prisma-postgres-setup
   - id: property-based-testing
     path: skills/property-based-testing
   - id: queue-handoff
@@ -103,6 +107,10 @@ resources:
     path: skills/spec-to-code-compliance
   - id: subagent-driven-development
     path: skills/subagent-driven-development
+  - id: supabase
+    path: skills/supabase
+  - id: supabase-postgres-best-practices
+    path: skills/supabase-postgres-best-practices
   - id: supply-chain-risk-auditor
     path: skills/supply-chain-risk-auditor
   - id: systematic-debugging

@@ -193,6 +193,18 @@
       "tree": "sha256:25668b9dce8e41918b51ba8e3ed19b3d82168a949a58c9920ea745527a7cf3dd",
       "license_file": "LICENSE (copied from source root)"
     },
+    "prisma-client-api": {
+      "source": "prisma/skills@ba3f9d7",
+      "path": "prisma-client-api",
+      "tree": "sha256:a503c26dcb3fa5ec973b2194c5dd83c23a8c07edcd7cddbfa9096090a11f4409",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "prisma-postgres-setup": {
+      "source": "prisma/skills@ba3f9d7",
+      "path": "prisma-postgres-setup",
+      "tree": "sha256:f2a6b82a72f6d092b721173b71b647b0499cf62db4bf0a20f00fe7bc284b361d",
+      "license_file": "LICENSE (copied from source root)"
+    },
     "property-based-testing": {
       "source": "trailofbits/skills@5c99c03",
       "path": "plugins/property-based-testing/skills/property-based-testing",
@@ -299,6 +311,18 @@
       "source": "obra/superpowers@bb92a77",
       "path": "skills/subagent-driven-development",
       "tree": "sha256:725b12d836ac91f03fcdc9bdd446c44dccf1f82717f367cd0fa1fcee93d12c5a",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "supabase": {
+      "source": "supabase/agent-skills@c9be0e9",
+      "path": "skills/supabase",
+      "tree": "sha256:cd0df38f180e25103afb9abc1689ecd6330140d0bf8e305c957cde50d7c93f31",
+      "license_file": "LICENSE (copied from source root)"
+    },
+    "supabase-postgres-best-practices": {
+      "source": "supabase/agent-skills@c9be0e9",
+      "path": "skills/supabase-postgres-best-practices",
+      "tree": "sha256:4aa365f9adddebdfd7ebfdc114b6fc120973dd0a1107939ea85e38995aaeda2d",
       "license_file": "LICENSE (copied from source root)"
     },
     "supply-chain-risk-auditor": {

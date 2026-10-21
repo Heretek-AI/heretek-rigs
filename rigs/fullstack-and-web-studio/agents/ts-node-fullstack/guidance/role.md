@@ -52,6 +52,8 @@ Load a skill by reading its SKILL.md when the task matches its description.
 - `typescript-astro`
 - `react-best-practices`
 - `receiving-code-review`
+- `prisma-client-api`
+- `supabase`
 - `end-to-end-type-safe-fullstack`
 
 Mandatory read triggers:

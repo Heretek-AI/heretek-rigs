@@ -1438,7 +1438,9 @@ roles:
       - queue-handoff
       - refocusing
       - seat-continuity-and-handover
-      shared: []
+      shared:
+      - id: supabase-postgres-best-practices
+        source: supabase
       role_local:
       - id: duckdb-dbt-pipeline-execution
         source: heretek-crew
@@ -1500,7 +1502,11 @@ roles:
       - messaging-the-human
       - orienting-to-an-inherited-seat
       - session-compaction-and-restore
-      shared: []
+      shared:
+      - id: supabase-postgres-best-practices
+        source: supabase
+      - id: prisma-postgres-setup
+        source: prisma
       role_local:
       - id: zero-downtime-migration-audit
         source: heretek-crew
@@ -3730,6 +3736,10 @@ roles:
         source: vercel
       - id: receiving-code-review
         source: superpowers
+      - id: prisma-client-api
+        source: prisma
+      - id: supabase
+        source: supabase
       role_local:
       - id: end-to-end-type-safe-fullstack
         source: heretek-crew
