@@ -39,6 +39,7 @@ fi
 
 "${RUNNER[@]}" - "${REPO_ROOT}" <<'PY'
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -1336,6 +1337,65 @@ if ut.returncode == 0:
     ok("tests/test_render_seat.py (7/7 unit tests) passed")
 else:
     fail(f"tests/test_render_seat.py failed:\n{ut.stderr}")
+
+print("\n== V7. Regen-Gate Sanctioned-Untracked Allowlist ==")
+# HR-43 (fail-closed consistency, issue #43): the clean-tree gate's
+# sanctioned-untracked allowlist must cover every AGENTS.md blessed stray,
+# every entry must carry its workflow-demand justification comment, and the
+# gate must still refuse synthetic real dirt. Appended at the end — no
+# existing check renumbered or reworded. Exactly one ok() below (22 -> 23).
+_hr43_before = len(failures)
+_gate_spec43 = importlib.util.spec_from_file_location(
+    "regen_gate_hr43", str(root / "scripts/generate-rigs.py")
+)
+_gate43 = importlib.util.module_from_spec(_gate_spec43)
+try:
+    _gate_spec43.loader.exec_module(_gate43)
+except Exception as _e43:
+    fail(f"HR-43: cannot load scripts/generate-rigs.py allowlist source: {_e43}")
+    _gate43 = None
+if _gate43 is not None:
+    # (a) every AGENTS.md blessed stray covered by the allowlist. The strays
+    # are read from the AGENTS.md bullet itself (not hardcoded), so drifting
+    # either side fails this check.
+    _blessed43 = []
+    for _ln43 in (root / "AGENTS.md").read_text().splitlines():
+        if "Leave untracked strays alone" in _ln43:
+            _blessed43 = re.findall(r"`([^`]+)`", _ln43)
+            break
+    if not _blessed43:
+        fail("HR-43: AGENTS.md blessed-stray bullet not found")
+    _allow43 = [d.rstrip("/") for d in getattr(_gate43, "SANCTIONED_UNTRACKED_DIRS", ())]
+    _allow43 += list(getattr(_gate43, "SANCTIONED_UNTRACKED_FILES", ()))
+    for _b43 in _blessed43:
+        if _b43.rstrip("/") not in _allow43:
+            fail(f"HR-43: AGENTS.md blessed stray {_b43!r} not covered by the regen-gate allowlist")
+    # (b) every allowlist entry carries its justification comment: the source
+    # line holding the quoted entry must be immediately preceded by a `#`
+    # comment stating which workflow demand produces the path.
+    _src43 = (root / "scripts/generate-rigs.py").read_text().splitlines()
+    for _e43 in list(getattr(_gate43, "SANCTIONED_UNTRACKED_DIRS", ())) + list(
+        getattr(_gate43, "SANCTIONED_UNTRACKED_FILES", ())
+    ):
+        _idx43 = next(
+            (i for i, _l43 in enumerate(_src43) if f'"{_e43}"' in _l43), None
+        )
+        if _idx43 is None or _idx43 == 0 or not _src43[_idx43 - 1].strip().startswith("#"):
+            fail(f"HR-43: allowlist entry {_e43!r} lacks its justification comment")
+# (c) the gate still refuses synthetic real dirt: the T1/T2 unit fixtures
+# (tracked modification AND non-allowlisted untracked, incl. the
+# tracked-override case) run here, so allowlist drift that weakens refusal
+# fails this block while all pre-existing checks stay green.
+utr43 = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_regen_gate.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if utr43.returncode != 0:
+    fail(f"tests/test_regen_gate.py failed:\n{utr43.stderr}")
+if len(failures) == _hr43_before:
+    ok("Regen-gate sanctioned-untracked allowlist covers AGENTS.md strays with justified entries and refuses synthetic dirt (tests/test_regen_gate.py 9/9)")
 
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:

@@ -1,0 +1,192 @@
+# Red-proof log: wave-43-regen-gate (remediate-43-regen-gate)
+
+Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-43-regen-gate`
+Commits under test: `32c1233` (implementation) + `5748758` (reports) — confirmed via `git log --oneline -3`.
+QA date (UTC): 2026-10-22. All sabotage edits reverted; no commits made by QA.
+
+## 0. Baseline (unmodified tree)
+
+- `make verify` → `SUMMARY: 23 checks passed, 0 failed.` exit 0, plus pre-existing
+  LIVE-HEALTH advisory (WARN heartbeat stale age-unknown ×7, SKIP seat-idleness; sources 4 ok, 1 skipped).
+  Full log: /tmp/qa_verify_full.log (tail quoted in qa report).
+- `make test` → `Ran 58 tests … OK` exit 0.
+- `openspec validate remediate-43-regen-gate` → `Change 'remediate-43-regen-gate' is valid` exit 0.
+- `git status --short` before QA: clean (empty).
+- `git diff 00acda2..HEAD --name-only`: AGENTS.md, Makefile, 2 implementation reports,
+  scripts/generate-rigs.py, scripts/verify-rigs.sh, tests/test_regen_gate.py. No registry/specs/rigs/rosters churn.
+- `git diff 00acda2..HEAD -- registry/` is empty; `resolvedCommit`/`canonicalUrl` hunks over
+  registry/: 0 (the 5 diff-wide `resolvedCommit` mentions are AGENTS.md context + report prose only).
+
+## 1. V1–V6 intact (no renumbering/rewording)
+
+- `git diff 00acda2..HEAD -- scripts/verify-rigs.sh | grep -c "^-[^-]"` → 0 removed lines.
+  Only additions: `import importlib.util` + appended V7 block (exactly one new `ok()`).
+  Command: `git diff 00acda2..HEAD -- scripts/verify-rigs.sh | grep "^-" | grep -v "^---"` → empty.
+- Exit 0 on the unmodified tree (see §0).
+
+## 2. Sabotage A — sanctioned strays only → resolves clean (exit 0, no env override)
+
+- Script: /tmp/qa_rg_sabotage.py (synthetic /tmp git tree; strays: docs/evidence, docs/reports,
+  .agents, .claude, .opencode, .lane, openspec/changes, skills-lock.json, PROMPT_REVIEW.md).
+- `python3 /tmp/qa_rg_sabotage.py` → `A PASS: gate resolves clean exit 0, no env override`
+  (sha == HEAD, stdout == "" and stderr == "" — happy path silent, REQ-RG3). Exit 0.
+- RED-proof direction: the same harness with any dirt added (B/C/D) exits 2, so A is not vacuous.
+
+## 3. Sabotage B — tracked modification amid strays → REFUSES naming M file
+
+- Fixture: sanctioned strays + `M fleet/fleet.yaml`.
+- Result: `code=2`, stderr names `fleet/fleet.yaml` AND carries remediation hint
+  `HERETEK_RIGS_ALLOW_DIRTY=1`. `B PASS`. Exit 0 (harness exit; gate exit 2 asserted inside).
+
+## 4. Sabotage C — non-allowlisted untracked file → REFUSES
+
+- Fixture: strays + `?? scripts/evil-new-helper.py`.
+- Result: `code=2`, stderr names `evil-new-helper`. `C PASS`.
+
+## 5. Sabotage D — committed-then-edited file under allowlisted dir → REFUSES
+
+- Fixture: commit `docs/evidence/kept.md`, then edit (status `M`, not `??`).
+- Result: `code=2`. `D PASS` — allowlist covers untracked only, tracked-override holds (REQ-RG2 scenario).
+
+## 6. Sabotage E — ALLOW_DIRTY=1 with real dirt → bypasses, records real SHA
+
+- Fixture: `M fleet/fleet.yaml` + `?? scripts/evil-new-helper.py`, env `HERETEK_RIGS_ALLOW_DIRTY=1`.
+- Result: resolves, `sha == HEAD` (40-hex, not SYNTHETIC fallback). `E PASS` — escape-hatch
+  semantics byte-identical (bypass + real SHA; no behavior change when set).
+
+## 7. Sabotage F — remove `.claude/` from allowlist → V7 FAILS naming the gap (load-bearing)
+
+- Sabotage: `python3` removed the `".claude/",` line from scripts/generate-rigs.py (live worktree edit).
+- `grep -n claude scripts/generate-rigs.py` → allowlist entry gone (only preset_claude refs remain).
+- `./scripts/verify-rigs.sh --check-only > /tmp/verify_sabotaged.log 2>&1` → exit 1.
+  - `[FAIL] HR-43: AGENTS.md blessed stray '.claude/' not covered by the regen-gate allowlist`
+  - `[FAIL] tests/test_regen_gate.py failed:` (2 unit failures: sanctioned-only + clean-run)
+  - `SUMMARY: 22 checks passed, 2 failed.` — all 22 pre-existing checks stay green; ONLY V7 fails.
+- Proves V7 is load-bearing (CRITICAL-vacuous NOT present).
+- Restore: `git checkout -- scripts/generate-rigs.py` → `grep -n '".claude/"'` → line 84 present.
+  Re-run `./scripts/verify-rigs.sh --check-only` → exit 0, `SUMMARY: 23 checks passed, 0 failed.`
+  `git status --short` → clean (empty) at restore time. Restore proof recorded.
+
+## 8. Sabotage G — C-quoted paths with spaces/special chars → classified correctly
+
+- `G._split_porcelain('?? "docs/evidence/a b.md"')` → blocking=[], ignored=1 (sanctioned, ignored).
+- `G._split_porcelain('?? "scripts/a b.py"')` → blocking=1, ignored=[] (non-sanctioned, blocking).
+- `G._split_porcelain(' M "docs/evidence/a b.md"')` → blocking=1 (status-code-first: tracked edit
+  under allowlisted prefix is dirt even when quoted).
+- Mixed porcelain splits blocking/ignored into the right sections. `G PASS`.
+- RED-proof direction: a classifier that skipped unquoting would misfile `a b.md` as non-matching
+  (blocking) — the implementation unquotes fail-closed (unparseable quoting → blocking).
+
+## 9. Real-regen honesty
+
+- `git diff 00acda2..HEAD --stat -- registry/` → empty (no output).
+- `git diff 00acda2..HEAD -- registry/ | grep -c "resolvedCommit\|canonicalUrl"` → 0.
+- Implementer's T4c claim (real regen with session strays, no env override → REGEN-OK; leaves
+  differed ONLY in baked resolvedCommit/canonicalUrl, then reverted) is consistent with the
+  observed tree: no leftover provenance churn. QA did not re-run a full regen (requires pinned
+  vendor checkouts + crew source); honesty verified via absence of churn, not by re-execution.
+  Noted as evidence-based, not independently reproduced.
+
+## 10. ALLOW_DIRTY + refusal-hint byte-identity
+
+- `grep -n "ALLOW_DIRTY=1 for dev regen" scripts/generate-rigs.py` → line 204 (refusal section).
+  Hint text identical to pre-change: `refusing to bake provenance on a dirty checkout
+  (commit or stash first, or set HERETEK_RIGS_ALLOW_DIRTY=1 for dev regen)`.
+- Bypass condition `if dirty and not allow_dirty` unchanged; only the refuse branch now
+  classifies (blocking → die with two sections; ignored-only → proceed). When ALLOW_DIRTY=1
+  is set, behavior is byte-identical (proceeds, records real HEAD — proven by sabotage E +
+  unit test `test_allow_dirty_bypass_records_real_sha`).
+
+## 11. Check-count consistency (22→23)
+
+- Files naming the count (grep `23 checks\|22 checks` excluding historical docs/evidence+reports):
+  AGENTS.md:15 (23 ✓), AGENTS.md:45 (23 ✓), scripts/verify-rigs.sh V7 ok() message (8/8; SUMMARY
+  computed), README.md:47 (22 — deliberately untouched, see below).
+- Historical references to 22 in docs/evidence, docs/reports, PROMPT_REVIEW_*, USER_GUIDE,
+  architecture/ST-4-PROPOSAL are prior-wave records, out of scope.
+- README.md:47 PASS-WITH-NOTE (not a finding): this change did not edit README.md
+  (absent from diff names), so REQ-RG4's "no stale 22 left behind by this change" holds —
+  README was never touched by this change. Flagged as follow-up for the owning wave.
+
+## 12. Final tree state
+
+- Post-QA `git status --short` shows ONLY allowlisted untracked strays produced by QA itself:
+  `?? docs/evidence/wave-43-regen-gate/` and `?? docs/reports/qa-wave-43-regen-gate.md`
+  (both under sanctioned prefixes; no `M` tracked modifications).
+- No production or test files modified by QA. All sabotage reverted via `git checkout -- <file>`.
+
+## 13. Re-verification of follow-up fixes b5d4487 + 3bfd010 (QA date UTC 2026-10-22)
+
+Commits under test: `b5d4487` (porcelain `.strip()` -> `.rstrip("\n")` + new
+verbatim unit test) + `3bfd010` (V7 label 8/8 -> 9/9), on top of prior
+wave-43 commits. Base for scope review: `00acda2`. Harness: /tmp/qa_wave43_reverify.py
+(synthetic /tmp git trees only; live checkout untouched except sabotage targets below).
+
+### 13.0 Baseline (unmodified tree, both fixes present)
+
+- `make test` -> `Ran 59 tests ... OK` exit 0 (58 prior + 1 new
+  `test_unstaged_first_line_keeps_leading_space_verbatim`).
+- `make verify` -> `SUMMARY: 23 checks passed, 0 failed.` exit 0, plus pre-existing
+  LIVE-HEALTH advisory (WARN heartbeat stale age-unknown x7, SKIP seat-idleness;
+  sources 4 ok, 1 skipped). V7 line shows `(tests/test_regen_gate.py 9/9)`.
+- `openspec validate remediate-43-regen-gate` -> `Change 'remediate-43-regen-gate' is valid` exit 0.
+- `grep -c "    def test_" tests/test_regen_gate.py` -> 9 (matches V7 9/9 label).
+
+### 13.a Porcelain leading-space verbatim (fix b5d4487) — RED-PROOF
+
+- Baseline: synthetic repo, unstaged edit of tracked `fleet/fleet.yaml` (no strays,
+  so the blocking line is FIRST in porcelain output). Raw porcelain first line:
+  `' M fleet/fleet.yaml'`. Gate: exit 2, refusal line `'   M fleet/fleet.yaml'`
+  (2-space refusal indent + verbatim ` M `). `a PASS`.
+- Sabotage: replaced line-192 `).rstrip("\n")` with `).strip()` (live worktree edit;
+  `git diff --stat` showed only `scripts/generate-rigs.py | 2 +-`).
+  - Harness re-run: refusal line `'  M fleet/fleet.yaml'` (stripped, staged-looking).
+    `a-RED PASS` — output visibly mislabels an unstaged edit as staged.
+  - `python3 -m unittest ...test_unstaged_first_line_keeps_leading_space_verbatim` ->
+    `FAILED (failures=1)` exit 1:
+    `AssertionError: '  M fleet/fleet.yaml' != '   M fleet/fleet.yaml'`.
+    Proves the new test guards the fix (not vacuous: green before, RED under sabotage).
+- Restore: `git checkout -- scripts/generate-rigs.py` -> `git status --short` empty,
+  line 192 back to `).rstrip("\n")`, `python3 -m unittest tests.test_regen_gate` ->
+  `Ran 9 tests ... OK`.
+
+### 13.b Staged `M <file>` (no leading space) — no behavior change
+
+- Synthetic repo: unstaged edit + `git add fleet/fleet.yaml`. Raw porcelain first line:
+  `'M  fleet/fleet.yaml'` (staged, no leading space — `.strip()` and `.rstrip("\n")`
+  agree on this input). Gate: exit 2 naming `fleet/fleet.yaml`. `b PASS` — the rstrip
+  change does not alter already-correct lines (only leading-whitespace inputs differ).
+
+### 13.c Sanctioned-only strays — no regression from rstrip change
+
+- Synthetic repo with 5 strays (`docs/evidence/`, `docs/reports/`, `.agents/`,
+  `.claude/`, `.opencode/` forms), no other dirt. Gate: resolves HEAD, stdout/stderr
+  empty (silent happy path). `c PASS` — trailing-newline handling identical for
+  `??`-only output under both spellings.
+
+### 13.d V7 label 9/9 (fix 3bfd010) — label-only, cosmetic
+
+- Baseline: `./scripts/verify-rigs.sh --check-only` shows
+  `[PASS] Regen-gate ... (tests/test_regen_gate.py 9/9)` and
+  `SUMMARY: 23 checks passed, 0 failed.` exit 0; method count is 9 (§13.0).
+- Sabotage: replaced `9/9` with `8/8` in scripts/verify-rigs.sh line 1398 (live edit).
+  Re-run: `[PASS] ... (tests/test_regen_gate.py 8/8)`, `SUMMARY: 23 checks passed,
+  0 failed.` exit 0. Gate still passes on returncode — proves the label is cosmetic
+  display text, not an asserted count (no vacuous-pass risk EITHER way: the real
+  count assertion lives in `python3 -m unittest tests.test_regen_gate`, which V7
+  shells out to and fails on non-zero returncode).
+- Restore: `git checkout -- scripts/verify-rigs.sh` -> `git status --short` empty,
+  line 1398 back to `9/9`, `--check-only` -> 23/0 exit 0. Restore proof recorded.
+
+### 13.e Scope review (`git diff 00acda2..HEAD`)
+
+- `--name-only`: AGENTS.md, Makefile, docs/evidence/.../red-proofs.log,
+  docs/reports/qa-wave-43-regen-gate.md, docs/reports/remediate-43-...-implementation.md,
+  docs/reports/wave-43-regen-gate-implementation.md, docs/reports/wave-43-regen-gate-verification.md,
+  scripts/generate-rigs.py, scripts/verify-rigs.sh, tests/test_regen_gate.py.
+- Per-commit file lists (32c1233, 5748758, 4fe192a, 057c7b6, b5d4487, 3bfd010) union
+  exactly to the above set; b5d4487 touches ONLY generate-rigs.py + test_regen_gate.py;
+  3bfd010 touches ONLY verify-rigs.sh (1 line). No other files changed.
+- `git diff 00acda2..HEAD --stat -- registry/ specs/ rigs/ rosters/` -> empty (0 lines).
+  No generated-leaf or provenance churn.
+- Final `git status --short` -> empty (clean). No commits/merges/pushes by QA.
