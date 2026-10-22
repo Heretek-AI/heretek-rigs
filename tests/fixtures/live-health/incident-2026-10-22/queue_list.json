@@ -1,0 +1,29 @@
+[
+  {
+    "qitemId": "qitem-20261022111416-78213c07c3272cbc",
+    "state": "in-progress",
+    "destinationSession": "design-a11y-specialist@heretek-omni-fleet",
+    "claimedAt": "2026-10-22T11:14:23.647Z",
+    "tsCreated": "2026-10-22T11:14:16.461Z",
+    "tsUpdated": "2026-10-22T11:14:23.647Z",
+    "lastHeartbeat": null
+  },
+  {
+    "qitemId": "qitem-20261022111410-8d4e00317b7b6621",
+    "state": "in-progress",
+    "destinationSession": "design-design-system-eng@heretek-omni-fleet",
+    "claimedAt": "2026-10-22T11:14:15.010Z",
+    "tsCreated": "2026-10-22T11:14:10.918Z",
+    "tsUpdated": "2026-10-22T11:14:15.010Z",
+    "lastHeartbeat": null
+  },
+  {
+    "qitemId": "qitem-20261022111413-ea9f86772c241179",
+    "state": "in-progress",
+    "destinationSession": "design-design-system-eng@heretek-omni-fleet",
+    "claimedAt": "2026-10-22T11:14:18.554Z",
+    "tsCreated": "2026-10-22T11:14:13.995Z",
+    "tsUpdated": "2026-10-22T11:14:18.554Z",
+    "lastHeartbeat": null
+  }
+]

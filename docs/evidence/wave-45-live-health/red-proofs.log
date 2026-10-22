@@ -1,0 +1,221 @@
+# Red-proof log: wave-45-live-health (stage verifier, 2026-10-22 UTC)
+
+Worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-45-live-health
+Commit under test: 761b1ac (`feat(45-live-health): warn-first live-fleet health gate alongside static 22`)
+Skill protocol: red-proof-sabotage, all 7 steps per check (identify, minimal defect,
+inject, run expecting RED/non-zero, restore via `git checkout --`, verify clean status, log).
+
+All sabotage fixtures lived in /tmp/opencode/sab-*/ (scratch, never tracked).
+The single tracked-file mutation (SAB-8) was reverted with `git checkout --` and
+`git status --short` confirmed clean afterwards.
+
+## Baseline (unmodified tree, pre-sabotage)
+
+- `make verify` -> `SUMMARY: 22 checks passed, 0 failed.` (exit 0), followed by
+  `LIVE-HEALTH WARN (advisory, exit 0)` advisory block naming 7 heartbeat-stale
+  sessions + 2 idle-at-prompt holders; pickup/overdue/undelivered PASS on the live
+  fleet; `sources: 5 ok, 0 skipped`; exit 0. Full output: /tmp/opencode/final-verify.txt
+- `make live-health` -> exit 0, same advisory content.
+- `python3 -m unittest tests/test_render_seat.py tests/test_live_health.py`
+  -> `Ran 28 tests ... OK` (exit 0).
+- `openspec validate remediate-45-live-health` -> `Change 'remediate-45-live-health' is valid` (exit 0).
+- Fixture replay: `--fixture-dir tests/fixtures/live-health/incident-2026-10-22
+  --now 2026-10-22T12:05:00Z` -> WARN naming all three row IDs
+  (qitem-20261022111416-78213c07c3272cbc, qitem-20261022111410-8d4e00317b7b6621,
+  qitem-20261022111413-ea9f86772c241179, each 51m), exit 0.
+- Same + `--strict` -> `LIVE-HEALTH FAIL`, exit 2. (An early piped run showed
+  EXIT=0 only because `$?` captured `tail`, not python; direct rerun gave exit 2.
+  Raw output: /tmp/opencode/strict-out.txt)
+- `grep -c "heartbeat_sec: 0" fleet/fleet.yaml` -> `0` (grep exit 1 = no matches; T2 P0 holds).
+- `git diff HEAD --stat -- specs/ rigs/ rosters/ registry/` -> empty (no generated-leaf edits;
+  registry provenance re-lag was reverted per the implementation report).
+- `scripts/verify-rigs.sh` not in commit file list (byte-identical; audit baseline honored).
+
+## SAB-1 — Stuck-row discrimination (REQ-LH5) — RED proven
+- Defect: /tmp/opencode/sab-stuck/queue_overdue.json = copy of incident fixtures
+  plus one row `qitem-stuck-001` with closureRequiredAt 2026-10-22T11:20:00Z (45m
+  before --now 2026-10-22T12:05:00Z, past default T_stuck=30m).
+- Run: `python3 scripts/live-health.py --fixture-dir /tmp/opencode/sab-stuck
+  --now 2026-10-22T12:05:00Z` -> exit 0,
+  `[WARN] stuck-overdue: overdue rows past grace T_stuck=30m: qitem-stuck-001
+  (45m past deadline) | histogram: <=T_stuck(30m)=0, T_stuck-2xT(30m-60m)=1, >2xT(>60m)=0`.
+  Full: /tmp/opencode/sab-stuck-out.txt
+- Same + `--strict` -> `[FAIL] stuck-overdue: ... qitem-stuck-001 (45m past deadline)`,
+  `LIVE-HEALTH FAIL`, exit 2. Full: /tmp/opencode/sab-stuck-strict-out.txt
+- Verdict: gate flips WARN->FAIL on stuck rows and names the ID. NOT vacuous.
+
+## SAB-2 — Empty-queue no-false-positive (REQ-LH4/LH5/LH6) — PASS proven
+- Defect: /tmp/opencode/sab-empty/* = incident fixtures with queue_list,
+  queue_overdue, queue_undelivered emptied to `[]` and transitions to `{}`.
+- Run: exit 0; `[PASS] pickup`, `[PASS] stuck-overdue` (all-zero histogram),
+  `[PASS] undelivered`. Overall banner `LIVE-HEALTH SKIP` (seat-idleness had no
+  sessions to assess -> SKIP; per REQ-LH2 no healthy banner), `sources: 4 ok, 1 skipped`.
+  Full: /tmp/opencode/sab-empty-out.txt
+- Verdict: empty queues PASS without false positives; a SKIP source still blocks
+  any healthy banner. NOT vacuous.
+
+## SAB-3 — Malformed transitions JSON (REQ-LH2 parser break) — SKIP proven
+- Defect: /tmp/opencode/sab-malformed/transitions.json replaced with `{invalid json!!!`.
+- Run: exit 0; `[SKIP] pickup: transitions unreadable for:
+  qitem-20261022111416-..., qitem-20261022111410-..., qitem-20261022111413-...`;
+  `sources: 4 ok, 1 skipped`; banner WARN (heartbeat/idleness), never a healthy PASS.
+  Full: /tmp/opencode/sab-malformed-out.txt
+- Verdict: parser failure degrades to named SKIP, never silent PASS. NOT vacuous.
+
+## SAB-4 — Strict-promotion flag plumbing (REQ-LH7)
+- Incident replay default -> exit 0 WARN; same + `--strict` -> exit 2 FAIL
+  (outputs above). Threshold env tuning also verified: `LH_T_PICKUP_MIN=1`
+  replay prints `effective thresholds: T_pickup_min=1, ...` and names all three
+  rows at 51m.
+- Note: `make live-health` target takes no extra args (`python3 ./scripts/live-health.py`
+  verbatim); `--strict`/env tuning is via direct script invocation, matching docs.
+  Not a spec violation (REQ-LH7 requires tunability, which flags+env provide).
+- Verdict: exit-code contract 0-vs-2 proven on real runs.
+
+## SAB-5 — UNCONFIGURED heartbeat role (REQ-LH3) — RED proven
+- Attempt 1 (void): zeroed one `heartbeat_sec` in a --fleet-file copy — gate in
+  fixture mode correctly prefers the fixture's fleet_heartbeat.json, so output was
+  (correctly) unchanged. This confirmed fixture-replay precedence, not a bypass.
+- Defect (valid): /tmp/opencode/sab-unconfig/fleet_heartbeat.json =
+  `{"a11y-specialist": 0, "design-system-eng": 1800}`.
+- Run: exit 0; `[WARN] heartbeat: UNCONFIGURED heartbeat roles (1): a11y-specialist;
+  stale/missing heartbeat: design-design-system-eng@heretek-omni-fleet (age-unknown)`.
+  Full: /tmp/opencode/sab-unconfig-out.txt
+- Verdict: any zero role is counted+named and caps heartbeat at WARN (never PASS).
+  REQ-LH3 discriminates. NOT vacuous.
+
+## SAB-6 — Dead daemon (REQ-LH2/T6b) — SKIP proven
+- Defect: `RIG_PATH=/nonexistent/rig-binary` (unreachable data source).
+- Run: exit 0; all five sub-checks `[SKIP] ... data source unreachable: rig binary
+  not found ...`; `sources: 0 ok, 5 skipped`; banner
+  `LIVE-HEALTH SKIP: sources unreachable or unconfigured - fleet state unknown,
+  investigate (no passing signal)`. No healthy banner. Full: /tmp/opencode/sab-deaddaemon-out.txt
+- Verdict: dead daemon cannot look healthy. NOT vacuous.
+
+## SAB-7 — Read-only argv audit (REQ-LH8/T6c) — zero mutations proven
+- Setup: /tmp/opencode/fakebin/rig wrapper logging `rig $*` to /tmp/opencode/rig-argv.log
+  then exec'ing the real binary; run `RIG_PATH=/tmp/opencode/fakebin/rig
+  python3 scripts/live-health.py` against the live daemon (exit 0).
+- Observed verbs only: `queue list --json -A --limit 100`,
+  `queue transitions --json <id>` (claimed rows), `queue overdue --json -A`,
+  `queue undelivered --json -A`, `ps --nodes --json --no-cleanup -A`.
+- Zero occurrences of claim/update/block/resolve/handoff/send/watchdog-arming;
+  destructive default avoided via `--no-cleanup`. Full log: /tmp/opencode/rig-argv.log,
+  output: /tmp/opencode/sab-readonly-out.txt
+- Verdict: gate performed zero fleet mutations on a live pass.
+
+## SAB-8 — Production-code mutation vs unit suite (vacuity guard) — RED proven
+- Defect (tracked file, temporary): in scripts/live-health.py
+  `if age > t_pickup_min:` -> `if age > t_pickup_min * 1000000:` (pickup breach never fires).
+- Run: `python3 -m unittest tests/test_live_health.py` -> `Ran 21 tests ... FAILED
+  (failures=2)`, exit 1. Failing: test_claimed_untouched_row_named_with_age
+  (`'PASS' != 'WARN'`) + 1 related. Full: /tmp/opencode/sab-mutation-out.txt
+- Restore: `git checkout -- scripts/live-health.py`; `git status --short` -> clean
+  (empty); sabotage string absent; rerun -> `Ran 21 tests ... OK`, exit 0.
+  Full: /tmp/opencode/post-restore-out.txt
+- Verdict: test suite fails when the asserted condition is violated. NOT vacuous.
+
+## Post-sabotage baseline re-verification
+- After all restores: `make verify` -> `SUMMARY: 22 checks passed, 0 failed.`
+  + WARN advisory, exit 0 (full: /tmp/opencode/final-verify.txt).
+- `git status --short` in worktree -> clean except docs/evidence/ + docs/reports/
+  written by this QA pass (evidence only, no implementation changes).
+
+## Read-only discipline (stage-level)
+- No `rig queue create/send/update`, no seat transcripts/sends, no watchdog arming
+  performed by this verifier. All daemon contact: read-only verbs (see SAB-7 log)
+  plus gate/fixture runs. No qitems attributable to this stage beyond reads.
+
+## Vacuous-check verdict
+- No vacuous checks found. Every acceptance gate (static 22, live-health WARN/FAIL,
+  fixture replay, strict promotion, SKIP-never-PASS, UNCONFIGURED cap, read-only)
+  was proven to discriminate by at least one RED run above.
+
+---
+
+# Re-verification section: review-driven fixes (d1db5e4 + 5724316), 2026-10-22 UTC
+
+Worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-45-live-health
+Commits under test: d1db5e4 (`fix(45-live-health): address PR review - truncation guard,
+pickup semantics, ps allowlist, vacuous audits`) + 5724316 (`docs(45-live-health): fix
+stale test-name and audit-note after pickup-semantics change`), on top of 761b1ac.
+Skill protocol: red-proof-sabotage per new behavior (inject, RED, `git checkout --`
+restore, clean-status proof). Sabotage fixtures in /tmp/opencode/rp45/ (scratch,
+untracked). No commits by this verifier.
+
+## Baseline (unmodified tree, pre-sabotage)
+
+- `python3 -m unittest tests/test_render_seat.py tests/test_live_health.py` ->
+  `Ran 28 tests ... OK`, exit 0.
+- `make verify` -> `SUMMARY: 22 checks passed, 0 failed.` (exit 0) + LIVE-HEALTH
+  advisory block (heartbeat WARN x7 stale, seat-idleness SKIP, rest PASS;
+  `sources: 4 ok, 1 skipped`), exit 0.
+- `openspec validate remediate-45-live-health` -> `Change 'remediate-45-live-health'
+  is valid`, exit 0.
+- Full outputs: /tmp/opencode/rp45/audit/live-out.txt (+ argv log same dir).
+
+## SAB-R1 — Truncation guard in RigClient._q (new behavior) — RED proven
+- Positive: stub rig emitting exactly 100 rows with limit=100 -> `DATASOURCEERROR:
+  rig queue list: 100 rows hit the fetch cap (100); results may be truncated,
+  refusing to report healthy` (probe: /tmp/opencode/rp45/probe_q.py). 99 rows ->
+  `RETURNED 99` (under-limit passes).
+- Gate-level: same at-cap stub through the real entrypoint (`--limit 3`, 3 rows)
+  -> `LIVE-HEALTH SKIP ... sources: 0 ok, 5 skipped`, exit 0 (SKIP, never PASS).
+- Sabotage (tracked, temporary): `if len(result) >= self.limit:` -> `if False:`
+  in scripts/live-health.py -> at-cap probe returns `RETURNED 100` (guard gone,
+  truncated page would flow into PASS-eligible evaluation).
+- Restore: `git checkout -- scripts/live-health.py`; `git status --short` clean.
+- Verdict: full-page truncation can no longer look healthy. NOT vacuous.
+
+## SAB-R2 — Pickup = first-post-claim latency (changed semantics) — RED proven
+- Positive (pure function): no post-claim transition + age 65m -> WARN naming the
+  row; first post-claim transition 5m after claim (within T_pickup=15) -> PASS, no
+  breach; first post-claim transition ~26m after claim (past T_pickup) -> WARN with
+  latency 25.6m (not age-based).
+- Incident replay (FixtureClient, --now 2026-10-22T12:05:00Z): overall WARN, all
+  three 11:14 row IDs named in output.
+- Sabotage (tracked, temporary): faithful revert of evaluate_pickup to the pre-fix
+  `progressed = any(ts > claim_ts ...); if progressed: continue` semantics ->
+  `python3 -m unittest tests.test_live_health.TestPickupEvaluation` ->
+  `Ran 3 tests ... FAILED (failures=1)`, exit 1 (test_late_first_transition_warns:
+  late pickup no longer breaches). NOTE: a naive `and False` variant was tried
+  first and did NOT go red (age fallback still breached) — discarded; the faithful
+  revert above is the valid red-proof.
+- Restore: `git checkout -- scripts/live-health.py`; `git status --short` clean;
+  rerun -> 28 tests OK.
+- Verdict: the new test discriminates the semantic change. NOT vacuous.
+
+## SAB-R3 — ps allowlist pinning (check_allowed) — RED proven
+- Positive: `check_allowed(["ps"])` -> RuntimeError; `check_allowed(["ps",
+  "--nodes", "-A", "--json"])` (no --no-cleanup) -> RuntimeError; full pinned
+  combo `["ps", "--nodes", "-A", "--json", "--no-cleanup"]` -> allowed.
+- Sabotage (tracked, temporary): ps branch reverted to bare `return` -> both
+  unpinned invocations ALLOWED (refusal gone).
+- Restore: `git checkout -- scripts/live-health.py`; `git status --short` clean.
+- Live argv audit (this run): gate issued only `queue list/transitions/overdue/
+  undelivered` + `ps --nodes --json --no-cleanup -A`; zero mutating verbs
+  (full log: /tmp/opencode/rp45/audit/argv.log, output: live-out.txt same dir).
+- Verdict: unpinned `ps` can no longer pass the gatekeeper. NOT vacuous.
+
+## SAB-R4 — Stub-log non-emptiness assertion (test vacuity guard) — RED proven
+- Sabotage (tracked test file, temporary): stub in
+  test_stub_log_shows_no_mutating_verbs changed to NOT log argv (`echo '[]'`
+  only, no `>> log`) -> `python3 -m unittest ...TestReadOnly...` ->
+  `FAILED (failures=1)`, exit 1: `AssertionError: '' is not true : stub log must
+  record at least one command`. (Prior form of this test passed with an empty log,
+  i.e. it could pass while auditing nothing.)
+- Restore: `git checkout -- tests/test_live_health.py`; `git status --short`
+  clean; `TestReadOnly` rerun -> `Ran 2 tests ... OK`.
+- Verdict: the read-only audit test now fails when the stub records nothing.
+  NOT vacuous.
+
+## Post-sabotage baseline re-verification
+- After all restores: `python3 -m unittest tests/test_render_seat.py
+  tests/test_live_health.py` -> `Ran 28 tests ... OK`, exit 0.
+- `git status --short` -> clean except docs/evidence/ + docs/reports/ written by
+  this QA pass (evidence only, no implementation changes).
+
+## Vacuous-check verdict (re-verification scope)
+- No vacuous checks found. All four new review-driven behaviors (truncation guard,
+  pickup latency semantics, ps pinning, stub-log non-emptiness) were proven to
+  discriminate by at least one RED run above.

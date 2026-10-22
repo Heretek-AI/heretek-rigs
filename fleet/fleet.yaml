@@ -556,7 +556,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -621,7 +621,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: xhigh
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -695,7 +695,7 @@ roles:
     - ux-research-analyst
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -754,7 +754,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -828,7 +828,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -899,7 +899,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -974,7 +974,7 @@ roles:
     - system-architect
     permission_policy: builtin:locked
     thinking: xhigh
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1041,7 +1041,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1099,7 +1099,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1157,7 +1157,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1222,7 +1222,7 @@ roles:
     - release-qa-officer
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1288,7 +1288,7 @@ roles:
     - release-qa-officer
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1354,7 +1354,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1430,7 +1430,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1491,7 +1491,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1555,7 +1555,7 @@ roles:
     - sre-incident-eng
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1634,7 +1634,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1706,7 +1706,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1772,7 +1772,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1908,7 +1908,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -1974,7 +1974,7 @@ roles:
     - system-architect
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2037,7 +2037,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2102,7 +2102,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2166,7 +2166,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2231,7 +2231,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2309,7 +2309,7 @@ roles:
     - tech-artist-pipeline
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2375,7 +2375,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2440,7 +2440,7 @@ roles:
     - ts-node-fullstack
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2508,7 +2508,7 @@ roles:
     - sre-incident-eng
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2568,7 +2568,7 @@ roles:
     - sre-incident-eng
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2628,7 +2628,7 @@ roles:
     - vector-rag-spec
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2688,7 +2688,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2758,7 +2758,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2819,7 +2819,7 @@ roles:
     - system-architect
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2881,7 +2881,7 @@ roles:
     - ux-research-analyst
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -2948,7 +2948,7 @@ roles:
     - vector-rag-spec
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3021,7 +3021,7 @@ roles:
     - product-director
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3094,7 +3094,7 @@ roles:
     - ts-node-fullstack
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3172,7 +3172,7 @@ roles:
     - system-architect
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3245,7 +3245,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3304,7 +3304,7 @@ roles:
     - system-architect
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3381,7 +3381,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: xhigh
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3454,7 +3454,7 @@ roles:
     - graphics-shader-eng
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3511,7 +3511,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3570,7 +3570,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: xhigh
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3712,7 +3712,7 @@ roles:
     - ui-ux-designer
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3799,7 +3799,7 @@ roles:
     - ts-node-fullstack
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3871,7 +3871,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:locked
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model
@@ -3932,7 +3932,7 @@ roles:
     - tpm-scrum-lead
     permission_policy: builtin:standard
     thinking: high
-    heartbeat_sec: 0
+    heartbeat_sec: 1800
     skills:
       openrig_core:
       - openrig-operating-model

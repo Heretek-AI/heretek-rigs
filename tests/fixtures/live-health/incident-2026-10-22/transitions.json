@@ -1,0 +1,50 @@
+{
+  "qitem-20261022111416-78213c07c3272cbc": [
+    {
+      "transitionId": 1,
+      "qitemId": "qitem-20261022111416-78213c07c3272cbc",
+      "ts": "2026-10-22T11:14:16.461Z",
+      "state": "pending",
+      "transitionNote": "created"
+    },
+    {
+      "transitionId": 2,
+      "qitemId": "qitem-20261022111416-78213c07c3272cbc",
+      "ts": "2026-10-22T11:14:23.647Z",
+      "state": "in-progress",
+      "transitionNote": "claimed"
+    }
+  ],
+  "qitem-20261022111410-8d4e00317b7b6621": [
+    {
+      "transitionId": 1,
+      "qitemId": "qitem-20261022111410-8d4e00317b7b6621",
+      "ts": "2026-10-22T11:14:10.918Z",
+      "state": "pending",
+      "transitionNote": "created"
+    },
+    {
+      "transitionId": 2,
+      "qitemId": "qitem-20261022111410-8d4e00317b7b6621",
+      "ts": "2026-10-22T11:14:15.010Z",
+      "state": "in-progress",
+      "transitionNote": "claimed"
+    }
+  ],
+  "qitem-20261022111413-ea9f86772c241179": [
+    {
+      "transitionId": 1,
+      "qitemId": "qitem-20261022111413-ea9f86772c241179",
+      "ts": "2026-10-22T11:14:13.995Z",
+      "state": "pending",
+      "transitionNote": "created"
+    },
+    {
+      "transitionId": 2,
+      "qitemId": "qitem-20261022111413-ea9f86772c241179",
+      "ts": "2026-10-22T11:14:18.554Z",
+      "state": "in-progress",
+      "transitionNote": "claimed"
+    }
+  ]
+}
