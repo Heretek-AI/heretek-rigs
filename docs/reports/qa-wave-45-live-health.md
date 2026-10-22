@@ -47,3 +47,42 @@ checks; every gate was red-proven to discriminate. Evidence log at
 `docs/evidence/wave-45-live-health/red-proofs.log`. Nothing committed (coordinator
 commits evidence next); worktree contains no implementation modifications beyond
 the stage commit — only `docs/evidence/` + `docs/reports/` additions from this QA pass.
+
+---
+
+# Re-verification appendix: review-driven fixes (d1db5e4 + 5724316) — QA-CLEAN
+
+- Verifier date (UTC): 2026-10-22. Commits under test: `d1db5e4` (six review
+  fixes) + `5724316` (stale-note touch-up), on top of `761b1ac`. No commits by
+  this verifier; all sabotage reverted (`git status --short` clean except
+  `docs/evidence/` + `docs/reports/`).
+- Evidence: `docs/evidence/wave-45-live-health/red-proofs.log` (new dated section
+  appended at end; original log untouched). Scratch outputs: `/tmp/opencode/rp45/`.
+
+## Per-item verdicts
+
+| # | Check | Result | Exact command + output |
+|---|---|---|---|
+| R1 | Full suite 28 tests OK | PASS | `python3 -m unittest tests/test_render_seat.py tests/test_live_health.py` -> `Ran 28 tests ... OK`, exit 0 |
+| R2 | `make verify` 22/0 + advisory | PASS | -> `SUMMARY: 22 checks passed, 0 failed.`, exit 0; advisory WARN heartbeat (7 stale) + SKIP seat-idleness, `sources: 4 ok, 1 skipped` |
+| R3 | `openspec validate remediate-45-live-health` | PASS | -> `Change 'remediate-45-live-health' is valid`, exit 0 |
+| R4a | Truncation guard: at-cap -> DataSourceError/SKIP, under-limit passes | PASS (RED proven) | Stub 100 rows/limit 100 -> `DATASOURCEERROR: ... hit the fetch cap (100) ... refusing to report healthy`; 99 rows -> `RETURNED 99`; full entrypoint at-cap -> `LIVE-HEALTH SKIP, sources: 0 ok, 5 skipped`. Guard-disabled sabotage -> `RETURNED 100`; restored clean |
+| R4b | Pickup semantics: replay WARNs all 3; within-T passes; no-transition breaches on age | PASS (RED proven) | Replay -> WARN naming all three IDs; 5m-latency row -> PASS; 65m untouched row -> WARN; 26m-late row -> WARN (25.6m latency). Pre-fix-semantics sabotage -> `FAILED (failures=1)`; restored clean |
+| R4c | ps pinning: bare/reduced `ps` refused, pinned combo passes | PASS (RED proven) | `check_allowed(["ps"])` + `["ps","--nodes","-A","--json"]` -> RuntimeError; full pinned combo -> allowed. Bare-return sabotage -> both ALLOWED; restored clean |
+| R4d | Stub-log test non-vacuity | PASS (RED proven) | Silent-stub sabotage -> `AssertionError: '' is not true : stub log must record at least one command`, exit 1; restored clean, `TestReadOnly` OK |
+| R5 | §4 audit-note + test rename consistency | PASS | `grep test_post_claim_transition_clears_breach` -> 0 hits outside logs; tree has `test_late_first_transition_warns` and verification §4 describes it (WARN on late first transition). Behavior matches: 26m-late row breaches with latency, not cleared |
+| R6 | Read-only discipline spot-check (live gate argv audit) | PASS | PATH-shim log shows only `queue list/transitions/overdue/undelivered` + `ps --nodes --json --no-cleanup -A`; mutating-verb grep -> 0 hits; log at `/tmp/opencode/rp45/audit/argv.log` |
+
+## Findings
+
+1. One sabotage attempt (SAB-R2 naive `and False` variant) did not go red because
+   the age fallback still breached — discarded and replaced with the faithful
+   pre-fix-semantics revert, which went red as required. Record of the method,
+   not a finding against the stage.
+2. No vacuous checks. No FAILs on the unmodified tree. No skipped acceptance items.
+
+## Verdict
+
+**QA-CLEAN (re-verification).** Review-driven changes on `d1db5e4` + `5724316`
+pass all acceptance checks; every new behavior was red-proven to discriminate.
+Nothing committed (coordinator commits evidence next).
