@@ -189,7 +189,7 @@ def resolve_heretek_commit(root: Path, allow_synthetic: bool = False) -> str:
             ["git", "-C", str(root), "status", "--porcelain"],
             text=True,
             stderr=subprocess.DEVNULL,
-        ).strip()
+        ).rstrip("\n")
     except Exception:
         dirty = ""
     if dirty and not allow_dirty:

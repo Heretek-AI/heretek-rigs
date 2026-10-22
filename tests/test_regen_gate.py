@@ -127,6 +127,21 @@ class TestRegenGate(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIsNone(sha)
 
+    # REQ-RG3 verbatim fidelity: a FIRST-line unstaged modification keeps its
+    # leading status space in the refusal (whole-output .strip() would turn
+    # ` M ...` into staged-looking `M ...`).
+    def test_unstaged_first_line_keeps_leading_space_verbatim(self):
+        (self.root / "fleet/fleet.yaml").write_text("roles: {changed: true}\n")
+        sha, out, err, code = self.resolve()
+        self.assertEqual(code, 2)
+        self.assertIsNone(sha)
+        lines = err.splitlines()
+        matches = [l for l in lines if l.endswith("fleet/fleet.yaml")]
+        self.assertEqual(len(matches), 1)
+        # 2-space refusal indent + verbatim ` M ` porcelain code (3 spaces
+        # before M). A whole-output .strip() would yield `  M ...` (staged).
+        self.assertEqual(matches[0], "   M fleet/fleet.yaml")
+
     # REQ-RG1: non-allowlisted untracked path refuses with exit 2.
     def test_non_allowlisted_untracked_refuses(self):
         self.write_strays(SANCTIONED_STRAYS)
