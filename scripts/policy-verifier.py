@@ -12,9 +12,10 @@ Two policy-text classes, one invocation (REQ-P1 + REQ-P2, REQ-P3):
     pinned toolchain provides. The authority is a checked-in known-lint
     snapshot (``--known-lints``) carrying the toolchain pin it was taken
     from — never whatever happens to be installed on the runner, so results
-    are deterministic and reviewable as a diff. A mismatch between the
-    snapshot pin and the repo toolchain pin (``--expect-pin`` /
-    ``--pin-file``) fails as a stale snapshot rather than silently passing.
+    are deterministic and reviewable as a diff. ``--pin-file`` defaults to
+    the checked-in toolchain pin, so a mismatch between the snapshot pin
+    and the repo toolchain pin fails as a stale snapshot on EVERY
+    invocation, not only when a pin flag is passed explicitly.
 
 (b) Workflow ``run:`` steps vs package scripts. Every staged
     pipeline/workflow ``run:`` step invoking ``pnpm|npm|yarn <name>`` MUST
@@ -70,6 +71,7 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_KNOWN_LINTS = SCRIPT_DIR / "policy-verifier.known-lints.txt"
+DEFAULT_PIN_FILE = SCRIPT_DIR / "policy-verifier.toolchain-pin"
 
 # REQ-P2: package-manager prefixes whose remainder is a workspace script
 # reference. `npx` is deliberately excluded: it executes binaries, which is
@@ -737,8 +739,10 @@ def main(argv=None):
     )
     pin_group.add_argument(
         "--pin-file",
-        default=None,
-        help="file holding the repo toolchain pin",
+        default=str(DEFAULT_PIN_FILE),
+        help="file holding the repo toolchain pin (default: scripts/ "
+        "policy-verifier.toolchain-pin, so every invocation enforces "
+        "snapshot freshness)",
     )
     parser.add_argument(
         "--staged",
@@ -754,7 +758,7 @@ def main(argv=None):
 
     try:
         expect_pin = args.expect_pin
-        if args.pin_file is not None:
+        if expect_pin is None and args.pin_file is not None:
             expect_pin = read_toolchain_pin(args.pin_file)
         snapshot_pin, known_lints = load_known_lints(args.known_lints)
         if expect_pin is not None and snapshot_pin != expect_pin:

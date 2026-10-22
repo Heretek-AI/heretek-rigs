@@ -15,7 +15,11 @@ line-scanned so every diagnostic carries an exact file:line.
 Covers REQ-P1 (lint-table names vs the checked-in known-lint snapshot with
 stale-pin failure), REQ-P2 (workflow ``run:`` vs staged package scripts plus
 ``cargo`` subcommands/aliases), REQ-P3 (offline, parse-only, fail closed, no
-auto-fix) and REQ-P4 (stage-time ``--staged`` path).
+auto-fix) and REQ-P4 (stage-time ``--staged`` path). The vendored
+``tests/fixtures/policy-verifier/live-corrected-lints.toml`` copy of the real
+live table is scanned with the CHECKED-IN snapshot (F1: full rust + clippy
+sections must exit 0; the stale cast_lossy swap-in must fire only on that
+name), and the default pin-file path is proven enforcing (F2).
 """
 
 import json
@@ -30,6 +34,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "policy-verifier.py"
 CHECKED_IN_SNAPSHOT = REPO_ROOT / "scripts" / "policy-verifier.known-lints.txt"
 CHECKED_IN_PIN = REPO_ROOT / "scripts" / "policy-verifier.toolchain-pin"
+VENDORED_LIVE_TABLE = (
+    REPO_ROOT / "tests" / "fixtures" / "policy-verifier" / "live-corrected-lints.toml"
+)
 
 # Grounded read-only in the live stale state (mission repo, 2026-10-22):
 # the [workspace.lints.clippy] stanza of root-lints-reference.toml with the
@@ -220,6 +227,54 @@ class PolicyVerifierLintTests(unittest.TestCase):
                 "fixture-toolchain-9",
             )
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+
+class PolicyVerifierLiveTableTests(unittest.TestCase):
+    """F1: the complete real live table (vendored read-only copy) vs the
+    CHECKED-IN snapshot — the synthetic clippy-only stanzas above never
+    reproduce the live [workspace.lints.rust] section, so these tests do."""
+
+    def test_vendored_live_corrected_table_passes_checked_in_snapshot(self):
+        """REQ-P1 corrected-live-table scenario: the full vendored live
+        table (both rust and clippy sections) exits 0 against the shipped
+        snapshot — no false positives on unsafe_code/missing_docs."""
+        self.assertTrue(VENDORED_LIVE_TABLE.exists(), f"missing {VENDORED_LIVE_TABLE}")
+        proc = run_verifier(
+            str(VENDORED_LIVE_TABLE), "--known-lints", str(CHECKED_IN_SNAPSHOT)
+        )
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_vendored_live_table_with_stale_cast_lossy_fires_only_that_name(self):
+        """True positive preserved: the vendored live table with the stale
+        cast_lossy name swapped back in fires ONLY on clippy::cast_lossy —
+        the rust names must not false-positive (no masking by the snapshot
+        expansion)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            stale = Path(tmp) / "Cargo.toml"
+            stale.write_text(
+                VENDORED_LIVE_TABLE.read_text().replace(
+                    'cast_possible_truncation = "deny"', 'cast_lossy = "deny"'
+                )
+            )
+            proc = run_verifier(str(stale), "--known-lints", str(CHECKED_IN_SNAPSHOT))
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("clippy::cast_lossy", out)
+            self.assertNotIn("rust::unsafe_code", out)
+            self.assertNotIn("rust::missing_docs", out)
+
+    def test_default_pin_file_enforces_freshness_without_pin_flags(self):
+        """F2/REQ-P3: a snapshot whose pin disagrees with the checked-in
+        toolchain pin fails even when NO pin flag is passed (freshness is
+        the default, not opt-in)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cargo = Path(tmp) / "Cargo.toml"
+            cargo.write_text('[workspace]\nresolver = "2"\n\n' + FIXED_CLIPPY_STANZA)
+            snapshot = write_snapshot(tmp, pin="fixture-toolchain-9")
+            proc = run_verifier(str(cargo), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("STALE", out)
 
 
 class PolicyVerifierWorkflowTests(unittest.TestCase):

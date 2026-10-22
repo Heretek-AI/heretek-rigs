@@ -1,0 +1,23 @@
+# live-corrected-lints.toml — vendored read-only copy of the live corrected
+# lint tables (issue #41, F1 remediation). Transcribed read-only from the
+# mission repo root Cargo.toml [workspace.lints.rust] + [workspace.lints.clippy]
+# sections (the :38 cast_possible_truncation entry the spec names, plus the
+# :28-29 rust entries the shipped snapshot previously omitted). Values are
+# verbatim; trailing comments dropped (they never affect parsing). Test-only:
+# the verifier suite scans THIS file with the CHECKED-IN snapshot — the live
+# mission checkout is never a test dependency.
+[workspace]
+resolver = "2"
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+missing_docs = "warn"
+rust_2018_idioms = { level = "deny", priority = -1 }
+
+[workspace.lints.clippy]
+all = { level = "deny", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "warn"
+expect_used = "warn"
+missing_errors_doc = "warn"
+cast_possible_truncation = "deny"

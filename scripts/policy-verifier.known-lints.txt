@@ -6,11 +6,14 @@
 # clippy lint list for the toolchain named by scripts/policy-verifier
 # .toolchain-pin) and review the result as a diff — never hand-edit names.
 #
-# This file ships the minimal fixture subset the verifier's tests and the
-# reconciled mission state ground: the corrected live Cargo.toml lint names
-# (cast_possible_truncation, not the stale cast_lossy) plus the lint groups
-# the live table opts into. A production adoption records the FULL capture
-# here; until then the verifier fails closed on any name outside this set.
+# This file records every lint name in the live tables audited read-only from
+# the mission repo: the root Cargo.toml [workspace.lints.rust] section
+# (unsafe_code, missing_docs, rust_2018_idioms) and [workspace.lints.clippy]
+# section (all, pedantic, unwrap_used, expect_used, missing_errors_doc,
+# cast_possible_truncation — not the stale cast_lossy). The audited crate
+# manifests (apps/web/src-tauri/Cargo.toml) carry only `[lints] workspace =
+# true` (zero lint names); the w1-08-staging manifest carries no [lints]
+# table at all. The verifier fails closed on any name outside this set.
 pin: fixture-toolchain-1
 clippy::all
 clippy::pedantic
@@ -18,4 +21,6 @@ clippy::unwrap_used
 clippy::expect_used
 clippy::missing_errors_doc
 clippy::cast_possible_truncation
+rust::missing_docs
 rust::rust_2018_idioms
+rust::unsafe_code

@@ -64,3 +64,45 @@ FAIL: test_staged_stale_toml_fails_then_fixed_passes (tests.test_policy_verifier
 ## RESTORE VERIFICATION
 # S0 production sabotage reverted via: git checkout -- scripts/policy-verifier.py
 # All (a)-(g) fixtures live in /tmp/qa41 (outside the repo); no repo file was modified by the battery.
+
+## REWORK-1 (drift-guard F1 + F2 remediation, 2026-10-22)
+# All commands below re-ran for real; exits and outputs are recorded verbatim.
+# No mission-repo file was written (read-only scans; mission `git diff --stat` empty).
+#
+# F1-RED (pre-fix, live corrected Cargo.toml vs shipped 7-entry snapshot):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml --known-lints scripts/policy-verifier.known-lints.txt
+#   Output: policy-verifier: UNKNOWN LINT 'rust::unsafe_code' at .../Cargo.toml:28 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: UNKNOWN LINT 'rust::missing_docs' at .../Cargo.toml:29 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: 2 finding(s) in 1 file(s); policy text does not resolve.
+#   Exit: 1 (false positives on REAL toolchain lints — the reported defect, reproduced).
+# F1-GREEN (post-fix, same live file, bare invocation through the new default pin path):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0. The vendored tests/fixtures/policy-verifier/live-corrected-lints.toml
+#   copy scanned with the CHECKED-IN snapshot likewise exits 0
+#   (test_vendored_live_corrected_table_passes_checked_in_snapshot).
+# F1-TRUE-POSITIVE (live stale reference post-fix — no masking by the expansion):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/src/w3-06-staging/root-lints-reference.toml
+#   Output: policy-verifier: UNKNOWN LINT 'clippy::cast_lossy' at .../root-lints-reference.toml:28 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: 1 finding(s) in 1 file(s); policy text does not resolve.
+#   Exit: 1 — exactly ONE finding (cast_lossy only; unsafe_code/missing_docs quiet).
+# F2-RED (pre-fix opt-in gap: stale pin, no pin flags → silent pass):
+#   Fixture: /tmp/f2demo (snapshot pin stale-pin-0 vs checked-in fixture-toolchain-1)
+#   Command: python3 scripts/policy-verifier.py /tmp/f2demo/Cargo.toml --known-lints /tmp/f2demo/known.txt
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0 (the reported gap, reproduced).
+# F2-GREEN (post-fix: identical command now fails closed on the default pin path):
+#   Output: policy-verifier: STALE KNOWN-LINT SNAPSHOT '/tmp/f2demo/known.txt' (snapshot pin 'stale-pin-0' != repo toolchain pin 'fixture-toolchain-1'; refresh the snapshot from the pinned toolchain and re-run)
+#   Exit: 1 (test_default_pin_file_enforces_freshness_without_pin_flags).
+# S0-REWORK (production-code sabotage: early `return` in PolicyChecker.check_toml):
+#   Command: python3 -m unittest tests.test_policy_verifier.PolicyVerifierLiveTableTests
+#   Result: FAILED (failures=1) —
+#   FAIL: test_vendored_live_table_with_stale_cast_lossy_fires_only_that_name
+#   (the stale live-table test is load-bearing, not vacuous; the green live-table
+#   test's non-vacuity is its F1-RED->F1-GREEN flip above, and the pin test never
+#   reaches check_toml). Sabotage restored from a /tmp backup (no git checkout
+#   of committed files); suite re-ran 19/19 OK after restore.
+# BASELINE-REWORK (post-fix tree):
+#   python3 -m unittest discover -s tests → Ran 127 tests, OK.
+#   make verify → SUMMARY: 25 checks passed, 0 failed (V9: 19 tests pass) + live-health advisory exit 0.
+#   openspec validate remediate-41-policy-verifier → valid.
