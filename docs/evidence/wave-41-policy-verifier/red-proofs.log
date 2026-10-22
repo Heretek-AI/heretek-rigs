@@ -1,0 +1,66 @@
+# red-proofs.log — wave-41-policy-verifier QA (verifier: QA seat, 2026-10-22)
+# Stage: wave-41-policy-verifier · commit d8fdded · 7-step sabotage protocol.
+# All fixture sabotage uses synthetic /tmp/qa41 trees only. Production-code
+# sabotage (S0) is reverted with git checkout; git status verified clean after.
+
+## BASELINE (unmodified tree)
+--- make verify tail ---
+== V9. Policy-Text Verifier (issue #41) ==
+  [PASS] Policy-text verifier (issue #41) green: staged policy files resolve against the pinned authority (tests/test_policy_verifier.py 16 tests pass)
+SUMMARY: 25 checks passed, 0 failed.
+make-verify-exit:0
+Ran 124 tests in 7.641s
+
+OK
+Change 'remediate-41-policy-verifier' is valid
+
+## S0 — production-code sabotage (non-vacuity proof)
+# Defect: early 'return' at top of Verifier.check_toml (lint-name check neutered).
+# Command: python3 -m unittest tests.test_policy_verifier
+# Result: FAILED (failures=4), S0-REAL-EXIT:1
+# Failing tests (expect stale-lossy, non-workspace table, staged-stale):
+FAIL: test_non_workspace_lints_table_checked (tests.test_policy_verifier.PolicyVerifierLintTests.test_non_workspace_lints_table_checked)
+FAIL: test_stale_cast_lossy_fires_naming_lint_and_line (tests.test_policy_verifier.PolicyVerifierLintTests.test_stale_cast_lossy_fires_naming_lint_and_line)
+FAIL: test_unparseable_toml_fails_closed (tests.test_policy_verifier.PolicyVerifierLintTests.test_unparseable_toml_fails_closed)
+FAIL: test_staged_stale_toml_fails_then_fixed_passes (tests.test_policy_verifier.PolicyVerifierStagedTests.test_staged_stale_toml_fails_then_fixed_passes)
+# Restore: git checkout -- scripts/policy-verifier.py; tracked status clean.
+
+## (a) live stale text replicated synthetically — MUST fire naming lint + file:line
+# Fixture: /tmp/qa41/t/stale.toml ([workspace.lints.clippy] + cast_lossy = "deny")
+# Command: python3 scripts/policy-verifier.py stale.toml --known-lints /tmp/qa41/known-lints.txt
+# Output: policy-verifier: UNKNOWN LINT 'clippy::cast_lossy' at stale.toml:6 (no such lint in the pinned toolchain snapshot)
+# Exit: 1 (RED as required). Corrected cast_possible_truncation fixture: exit 0 (GREEN).
+
+## (b) workflow run: duplicating a script body — MUST fire DUPLICATE citing lint
+# Fixture: /tmp/qa41/t/b1 (package.json lint=eslint ., pipelines/ci.yml run: pnpm eslint .)
+# Output: policy-verifier: DUPLICATE RUN COMMAND 'pnpm eslint .' at pipelines/ci.yml:8 (package script 'lint' already names this command; use `pnpm lint` instead)
+# Exit: 1 (RED). Reconciled shape (run: pnpm lint): exit 0 (GREEN).
+
+## (c) run: step with NO script and NO declaration — MUST fail naming file:line+command
+# Fixture: /tmp/qa41/t/c (run: pnpm lintt, no such scripts entry)
+# Output: policy-verifier: UNRESOLVABLE SCRIPT 'lintt' at pipelines/ci.yml:8 (run: pnpm lintt; no staged package.json scripts entry names 'lintt')
+# Exit: 1 (RED).
+
+## (d) snapshot sabotage — proves snapshot load-bearing, not decorative
+# (d1) stripped snapshot (cast_possible_truncation removed) + fixed.toml:
+#   Output: UNKNOWN LINT 'clippy::cast_possible_truncation' ... Exit: 1 (legit file now FAILS — RED).
+# (d2) stale pin (--expect-pin fixture-toolchain-2 vs snapshot pin fixture-toolchain-1):
+#   Output: STALE KNOWN-LINT SNAPSHOT ... Exit: 1 (fail-closed RED).
+# (d3) missing snapshot file: Output: MISSING KNOWN-LINT SNAPSHOT ... refusing to resolve ... Exit: 1 (fail-closed RED).
+
+## (e) unparseable TOML/YAML — MUST fail closed with named error, never skip-silent
+# (e1) bad.toml: UNREADABLE POLICY 'bad.toml' (invalid TOML: ...) Exit: 1.
+# (e2) bad workflow: UNREADABLE WORKFLOW 'pipelines/ci.yml' (invalid YAML: ...) Exit: 1.
+
+## (f) cargo subcommand vs staged alias
+# (f1) run: cargo frobnicate --locked: UNKNOWN CARGO SUBCOMMAND 'frobnicate' ... Exit: 1 (RED).
+# (f2) staged .cargo/config.toml [alias] xit + run: cargo xit: exit 0 (GREEN).
+# (f2-broken) alias entry removed: UNKNOWN CARGO SUBCOMMAND 'xit' ... Exit: 1 (RED — alias lookup load-bearing).
+
+## (g) allowlist/toolchain-pin sabotage — empty pin fails closed, no default-allow
+# Snapshot without pin line + --expect-pin fixture-toolchain-1:
+#   Output: STALE KNOWN-LINT SNAPSHOT (snapshot pin 'None' != repo toolchain pin ...) Exit: 1 (RED).
+
+## RESTORE VERIFICATION
+# S0 production sabotage reverted via: git checkout -- scripts/policy-verifier.py
+# All (a)-(g) fixtures live in /tmp/qa41 (outside the repo); no repo file was modified by the battery.
