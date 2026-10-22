@@ -140,4 +140,96 @@ spec scenario on the exact live files the change exists to adjudicate, with the 
 via synthetic-only fixtures; F2 leaves a design-MUST freshness failure unwired on the shipped
 `make` target. Per the severity rule (missing/simplified deliverable = FAIL), the stage cannot pass.
 
-VERDICT: FAIL
+> Historical verdict (initial audit 2026-10-22, SUPERSEDED by the re-audit below): FAIL
+
+---
+
+# Re-audit — rework cycle 1 (2026-10-22, commits `8dc4d57` + `8f9da0e`)
+
+Stage/wave id: `wave-41-rework-1-reaudit`. Commits under audit: `8dc4d57`
+(`fix(41-policy-verifier): complete snapshot from live tables, wire pin freshness by default`)
++ evidence commit `8f9da0e` on top (`git log --oneline -4` confirmed:
+`8f9da0e`, `8dc4d57`, `dea5b74`, `d8fdded`). Auditor: independent drift-guard
+(no fixes, no commits). Prior FAIL report above is history; O1/O2/O3 already
+ruled non-findings and are not re-litigated. Re-verification claims
+spot-checked independently (not trusted).
+
+## R1. F1 resolution — CLEARED
+
+- Live corrected mission `Cargo.toml` with the CHECKED-IN snapshot, re-run read-only:
+  `python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml --known-lints scripts/policy-verifier.known-lints.txt`
+  → exit 0 (`all 1 staged policy file(s) resolve`). The two false positives
+  (`rust::unsafe_code`, `rust::missing_docs`) are gone.
+- Live stale `src/w3-06-staging/root-lints-reference.toml` with the checked-in
+  snapshot → exit 1 with EXACTLY ONE finding (`clippy::cast_lossy` at `:28`);
+  no `rust::` findings. True positive preserved, no masking.
+- Fixture fidelity (read-only byte/parse compare): live vs
+  `tests/fixtures/policy-verifier/live-corrected-lints.toml` — `[workspace.lints.rust]`
+  and `[workspace.lints.clippy]` key sets match exactly; all levels match
+  (only trailing comments dropped, parse-irrelevant).
+- Snapshot coverage audited read-only: every name in both live tables is in
+  `scripts/policy-verifier.known-lints.txt` (`snapshot-missing-from-live: NONE`).
+  The `workspace = true` claim verified: `apps/web/src-tauri/Cargo.toml` carries
+  only `[lints] workspace = true` (zero names); `src/w1-08-staging/Cargo.toml`
+  carries no `[lints]` table (comment only). No other `[workspace.lints.*]`
+  tables exist in the live root (sections: `clippy`, `rust` only).
+- Non-vacuity spot-check (independent sabotage, QA §F1c reproduced): removed
+  `rust::missing_docs` from the checked-in snapshot →
+  `PolicyVerifierLiveTableTests` FAILED (failures=2), exit 1. Restored from
+  backup, sha256 (`49e0ce1e…`) matches pre-sabotage; `git status` clean after.
+  The vendored tests guard the fix.
+
+## R2. F2 resolution — CLEARED
+
+- `scripts/policy-verifier.py:741-742`: `--pin-file` now defaults to
+  `str(DEFAULT_PIN_FILE)` (`scripts/policy-verifier.toolchain-pin`);
+  `main` applies it whenever `--expect-pin` is absent
+  (`if expect_pin is None and args.pin_file is not None`). Freshness is the
+  default, not opt-in.
+- End-to-end bare path: stale-pin snapshot (`stale-pin-0`), NO pin flags → exit 1
+  `STALE KNOWN-LINT SNAPSHOT ... 'stale-pin-0' != ... 'fixture-toolchain-1'`.
+  The pre-fix silent pass is closed.
+- Bare default path on good files: `python3 scripts/policy-verifier.py
+  tests/fixtures/policy-verifier/live-corrected-lints.toml` (no flags at all) →
+  exit 0. Good-file path unaffected.
+- `--expect-pin` precedence sane: `--expect-pin`/`--pin-file` are
+  argparse-mutexed, so an explicit `--expect-pin` skips the default pin-file
+  read (verified: `--expect-pin stale-pin-0` vs stale snapshot passes the pin
+  gate and proceeds to lint findings). QA §F2c rationale (guard load-bearing)
+  stands; mechanism re-verified by code read + the two runs above.
+
+## R3. Scope — PASS, no creep
+
+Rework diff `dea5b74..8dc4d57` (7 files): `red-proofs.log`, this verification
+report (committed copy of the prior audit text), `wave-41-rework-1-implementation.md`,
+`scripts/policy-verifier.known-lints.txt`, `scripts/policy-verifier.py`,
+`tests/fixtures/policy-verifier/live-corrected-lints.toml` (new),
+`tests/test_policy_verifier.py`. Evidence diff `8dc4d57..8f9da0e` (2 files):
+`red-proofs.log` §RE-VERIFY + QA re-verification section only. No `specs/ rigs/
+rosters/ registry/ fleet/` files; `git diff 0a3db37..HEAD -- scripts/verify-rigs.sh`
+has 0 removed lines (V1–V8 byte-identical); V9 block carries exactly one new
+`ok()` (line 42 of the diff; the other grep hit is a comment). `Makefile`
+untouched by rework. Scope is F1/F2 only.
+
+## R4. Commands re-run — PASS
+
+- `make verify` → `SUMMARY: 25 checks passed, 0 failed`, exit 0; `live-health.py`
+  advisory exit 0 (only pre-existing heartbeat/idleness WARN/SKIP).
+- `openspec validate remediate-41-policy-verifier` → valid.
+- `python3 -m unittest discover -s tests` → 127 tests, OK (124 + 3 new live-table/pin tests).
+- Secrets scan over `git diff dea5b74..HEAD` (sk-/ghp_/AKIA/private-key/password
+  patterns) → clean. Mission repo `git diff --stat` empty (read-only scans only).
+  Worktree `git status --short` clean.
+- `red-proofs.log` §RE-VERIFY contains verbatim F1a/F1b/F1c/F2a/F2b/F2c + R1/R2/R3
+  outputs; the two QA claims spot-checked above (F1c sabotage, F2b bare path)
+  reproduce independently.
+
+## Re-audit findings
+
+F1: CLEARED — corrected live table passes, stale fires only on `cast_lossy`,
+fixture faithful, snapshot covers all live tables, guard test non-vacuous.
+F2: CLEARED — `--pin-file` defaults to the checked-in pin, stale-pin bare
+invocation exits 1, `--expect-pin` precedence sane. No new blocking defects.
+No V1–V8 changes, no forbidden dirs, no scope creep.
+
+VERDICT: PASS
