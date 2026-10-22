@@ -232,4 +232,113 @@ F2: CLEARED — `--pin-file` defaults to the checked-in pin, stale-pin bare
 invocation exits 1, `--expect-pin` precedence sane. No new blocking defects.
 No V1–V8 changes, no forbidden dirs, no scope creep.
 
+---
+
+# Re-audit — review round 2 (2026-10-22, commits `3513e47` + `f7b2dc9`)
+
+Stage/wave id: `wave-41-review2-reaudit`. Commits under audit: `3513e47`
+(review-2 fixes: index authority, expr placeholder, builtins, quoting, cargo
+context) + evidence commit `f7b2dc9` on top (`git log --oneline -6`
+confirmed: `f7b2dc9`, `3513e47`, `627b3b4`, `8f9da0e`, `8dc4d57`,
+`dea5b74`). Auditor: independent drift-guard (no fixes, no commits).
+Prior sections above are history; O1/O2/O3 and R1/R2/R3 already ruled and
+not re-litigated. Re-verification claims spot-checked independently
+(not trusted).
+
+## D1. Diff audit — PASS, 4 files only, no forbidden dirs
+
+Fix commit `3513e47` touches exactly the 4 intended files
+(`scripts/policy-verifier.known-lints.txt`,
+`scripts/policy-verifier.py`,
+`scripts/policy-verifier.toolchain-pin`,
+`tests/test_policy_verifier.py`); evidence commit `f7b2dc9` touches only
+`docs/evidence/wave-41-policy-verifier/red-proofs.log` + the QA report.
+`git diff 627b3b4..HEAD --name-only -- specs/ fleet/ rigs/ rosters/
+registry/` is empty; `git diff 627b3b4..HEAD -- scripts/verify-rigs.sh
+Makefile` is empty (V1–V8 byte-identical, no renumbering).
+
+## D2. Changed-region read-through — PASS (adversarial)
+
+1. Index authority: `load_indexed_text_or_worktree`
+   (`scripts/policy-verifier.py:507-530`) — tracked+readable path returns
+   the index blob (index wins); tracked-but-unreadable raises
+   `PolicyError` (fail-closed, no worktree fallback); untracked or
+   outside-repo returns `None` and the caller uses the worktree file,
+   which is then the only existing source (no staged content is
+   overridden). Provenance is distinguishable: index reads carry a
+   `(git index)` origin in diagnostics. Empirically proven (D5): worktree
+   pin sabotaged to `wrong-pin` → non-staged run STALE exit 1, while
+   `load_known_lints_staged` on the same path still returned
+   `fixture-toolchain-1`. Restored via `git checkout`, tree clean.
+2. Expression placeholder `__GH_EXPR__`: contains no `$`, so
+   `tokenize`'s pre-existing `$`-token drop can never manufacture it;
+   grep confirms no test/script uses it as a real name (collision
+   requires a literal `__GH_EXPR__` script — absurd). The skip fires ONLY
+   in command position (`head == GH_EXPR_PLACEHOLDER` in `check_pm_step`
+   / `check_cargo_step`); in argument position the placeholder flows
+   through normal resolution (`pnpm lint ${{ matrix.args }}` still
+   resolves `lint`). Reproduced exit 0 for both dynamic-position steps.
+3. `PM_DEFAULT_COMMANDS`: the `head in PM_DEFAULT_COMMANDS → return`
+   precedes the `names` lookup, so the "script-present wins" comment
+   describes outcome, not code path — but both branches yield no
+   finding, so precedence cannot alter any verdict and nothing can
+   "hide" (script bodies never produce findings, only DUPLICATE
+   comparisons). A typo (`tset`) still fails `UNRESOLVABLE` (fail-closed
+   direction kept). Deliberate review-approved leniency with red-proofs;
+   not a defect.
+4. Quote-strip: single `body[1:-1]` applied ONLY on the inline-`run:`
+   branch (`scan_run_steps`, `scripts/policy-verifier.py:412-423`); the
+   block-scalar branch assigns `body` before that site — untouched
+   (code-read confirmed). `run:` with unbalanced quotes
+   (`run: "pnpm lint`) is invalid YAML → `UNREADABLE WORKFLOW` exit 1
+   (fail-closed, reproduced in `/tmp`). Trailing-quote-only garbage
+   fails `UNRESOLVABLE` (fail-closed direction, never silent pass).
+5. Cargo config context: staged mode routes `.cargo/config.toml`
+   blobs through `load_aliases` only
+   (`scripts/policy-verifier.py:983-987`), never `check_toml` — no
+   findings, no `files_checked` increment from context files.
+   `index_tracked_manifests` excludes already-staged names, so a staged
+   config gets its normal single check, not double handling. Non-staged
+   path unchanged.
+6. Pin headers: both files now state CURATED SUBSET / audit-revision
+   pin and explicitly disclaim any toolchain capture — honest, and the
+   prior snapshot-header promise of a "capture" is gone. Mechanism
+   preserved: comment-tolerant parsing (TOML-channel-first, else first
+   non-`#` line; snapshot skips `#`/`pin:`), stale-pin bare invocation
+   still STALE exit 1 (D3). `write_snapshot`/`read_checked_in_pin` are
+   test helpers deriving the default from the checked-in pin.
+
+## D3. F1/F2 still cleared — re-run, not trusted
+
+- Live corrected mission `Cargo.toml` + checked-in snapshot → exit 0.
+- Live stale `root-lints-reference.toml` → exit 1 with EXACTLY ONE
+  finding (`clippy::cast_lossy` at `:28`).
+- Stale-pin snapshot (`stale-pin-0`), no flags → exit 1 `STALE
+  KNOWN-LINT SNAPSHOT`; bare invocation on good fixture → exit 0.
+
+## D4. Commands re-run — PASS
+
+- `make verify` → `SUMMARY: 25 checks passed, 0 failed`, exit 0;
+  `live-health.py` advisory exit 0 (only pre-existing
+  heartbeat/idleness WARN/SKIP).
+- `openspec validate remediate-41-policy-verifier` → valid.
+- `python3 -m unittest discover -s tests` → 142 tests, OK.
+- Secrets scan over `git diff 627b3b4..HEAD` (sk-/ghp_/AKIA/private-key
+  patterns) → clean. Mission repo read-only (`git diff --stat` empty,
+  only pre-existing untracked strays). Worktree `git status --short`
+  clean after sabotage restore; scratch in `/tmp` removed.
+
+## D5. QA spot-checks (review-2 §2/§3) independently reproduced
+
+- QA §2(a) index-authority sabotage: reproduced as in D2.1 (worktree
+  `wrong-pin` ignored by staged loader, non-staged path fails STALE).
+- QA §2(e) quoting: `run: "pnpm eslint ."` with a `lint` script →
+  exit 1 `DUPLICATE RUN COMMAND` citing `lint` (reproduced in `/tmp`
+  fixture); expression steps exit 0. Both claims hold.
+
+## Re-audit findings
+
+Numbered blocking findings: none. No new blocking defects; F1/F2 remain
+cleared; no scope creep; the PASS stands.
+
 VERDICT: PASS
