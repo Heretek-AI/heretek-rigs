@@ -78,7 +78,12 @@ def check_allowed(argv):
     if argv[0] == "daemon" and argv[1:] == ["status"]:
         return
     if argv[0] == "ps":
-        return
+        if "--nodes" in argv and "--json" in argv and "--no-cleanup" in argv:
+            return
+        raise RuntimeError(
+            f"refusing ps invocation without pinned read-only flags "
+            f"(--nodes --json --no-cleanup): {argv}"
+        )
     if (
         argv[0] == "queue"
         and len(argv) > 1
@@ -136,6 +141,12 @@ class RigClient:
         result = run_rig(args)
         if not isinstance(result, list):
             raise DataSourceError(f"rig queue {verb}: expected a JSON list")
+        if len(result) >= self.limit:
+            raise DataSourceError(
+                f"rig queue {verb}: {len(result)} rows hit the fetch cap "
+                f"({self.limit}); results may be truncated, "
+                "refusing to report healthy"
+            )
         return result
 
     def fetch_list(self):
@@ -288,20 +299,26 @@ def evaluate_pickup(rows, get_transitions, now, t_pickup_min):
         except Exception:
             unknown.append(qid)
             continue
-        progressed = any(
-            (parse_iso_ts(t.get("ts")) or claim_ts) > claim_ts
-            for t in transitions
-            if isinstance(t, dict)
-        )
-        if progressed:
+        first_post_claim = None
+        for t in transitions:
+            if not isinstance(t, dict):
+                continue
+            ts = parse_iso_ts(t.get("ts"))
+            if ts is not None and ts > claim_ts:
+                if first_post_claim is None or ts < first_post_claim:
+                    first_post_claim = ts
+        if first_post_claim is not None:
+            latency = (first_post_claim - claim_ts).total_seconds() / 60.0
+            if latency > t_pickup_min:
+                breached.append({"id": qid, "age_min": latency})
             continue
         age = (now - claim_ts).total_seconds() / 60.0
         if age > t_pickup_min:
             breached.append({"id": qid, "age_min": age})
     if breached:
         detail = (
-            "claimed rows with no follow-up transition beyond "
-            f"T_pickup={t_pickup_min:g}m: "
+            "claimed rows whose first post-claim transition exceeded "
+            f"T_pickup={t_pickup_min:g}m (or never arrived): "
             + ", ".join(f"{b['id']} ({_fmt_age(b['age_min'])})" for b in breached)
         )
         if unknown:

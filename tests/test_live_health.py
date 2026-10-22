@@ -193,8 +193,14 @@ class TestPickupEvaluation(unittest.TestCase):
                 }
             ]
         }
+        # First post-claim transition lands 11:40, ~26m after the 11:14:23
+        # claim: beyond T_pickup=15, so the row still breaches (named, WARN).
         result = self.gate.evaluate_pickup(rows, transitions.get, NOW, 15)
-        self.assertEqual(result["status"], "PASS")
+        self.assertEqual(result["status"], "WARN")
+        self.assertEqual(len(result["breached"]), 1)
+        self.assertEqual(result["breached"][0]["id"], rows[0]["qitemId"])
+        self.assertGreater(result["breached"][0]["age_min"], 15)
+        self.assertIn(rows[0]["qitemId"], result["detail"])
 
 
 class TestOverdueUndelivered(unittest.TestCase):
@@ -343,21 +349,13 @@ class TestIncidentReplay(unittest.TestCase):
         self.gate = load_gate()
 
     def test_three_claimed_untouched_rows_warn_with_all_ids(self):
-        client = FakeClient(
-            {
-                "list": INCIDENT_ROWS,
-                "overdue": [],
-                "undelivered": [],
-                "ps": [
-                    {
-                        "canonicalSessionName": "design-a11y-specialist@fleet",
-                        "agentActivity": {"state": "unknown"},
-                    }
-                ],
-                "transitions": INCIDENT_TRANSITIONS,
-            }
+        fixture_dir = (
+            REPO_ROOT / "tests" / "fixtures" / "live-health" / "incident-2026-10-22"
         )
-        fleet_map, unconfigured = heartbeat_map_all_configured()
+        client = self.gate.FixtureClient(fixture_dir)
+        fleet_raw = client.fetch_fleet_heartbeat()
+        fleet_map = {k: int(v) for k, v in fleet_raw.items()}
+        unconfigured = sorted(k for k, v in fleet_map.items() if v <= 0)
         report = self.gate.run_gate(
             client, fleet_map, unconfigured, default_opts(self.gate), NOW
         )
@@ -447,12 +445,13 @@ class TestReadOnly(unittest.TestCase):
                 env=env,
                 cwd=str(REPO_ROOT),
             )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        logged = log.read_text() if log.exists() else ""
-        for verb in self.MUTATING:
-            for line in logged.splitlines():
-                parts = line.split()
-                self.assertNotIn(verb, parts, f"mutating verb issued: {line}")
+            self.assertEqual(proc.returncode, 0, proc.stderr)
+            logged = log.read_text() if log.exists() else ""
+            self.assertTrue(logged.strip(), "stub log must record at least one command")
+            for verb in self.MUTATING:
+                for line in logged.splitlines():
+                    parts = line.split()
+                    self.assertNotIn(verb, parts, f"mutating verb issued: {line}")
 
     def test_allowlist_refuses_mutation(self):
         gate = load_gate()
@@ -463,7 +462,7 @@ class TestReadOnly(unittest.TestCase):
         # read-only verbs pass
         gate.check_allowed(["queue", "list", "--json", "-A"])
         gate.check_allowed(["queue", "transitions", "--json", "q-1"])
-        gate.check_allowed(["ps", "--nodes", "-A", "--json"])
+        gate.check_allowed(["ps", "--nodes", "-A", "--json", "--no-cleanup"])
 
 
 class TestConfigFailClosed(unittest.TestCase):

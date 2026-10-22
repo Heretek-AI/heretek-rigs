@@ -96,11 +96,11 @@ deferrals except the documented regen-environment note.
 
 The spec contract is fully met, including the issue's returnable (replay names
 all three 11:14 row IDs). Two asks in the issue body — watchdog sweep-rate
-signal and telemetry-advisory spike detection — are outside the spec's ADDED
+signal and telemetry-spike detection — are outside the spec's ADDED
 requirements; the proposal explicitly scopes watchdog changes out (routed to #38
-if at all) and telemetry advisories were folded into observable heartbeat/idleness
-WARNs. Closing #45 on this stage is legitimate for the specified subset; if the
-maintainers want the remaining two signals, that is follow-up work, not a defect
-in this stage.
+if at all). Closing #45 on this stage is legitimate for the specified subset;
+telemetry-spike detection and the watchdog sweep-rate signal remain UNFINISHED
+follow-up work for the maintainers to schedule separately, not defects in this
+stage.
 
 VERDICT: PASS
