@@ -106,3 +106,71 @@ FAIL: test_staged_stale_toml_fails_then_fixed_passes (tests.test_policy_verifier
 #   python3 -m unittest discover -s tests → Ran 127 tests, OK.
 #   make verify → SUMMARY: 25 checks passed, 0 failed (V9: 19 tests pass) + live-health advisory exit 0.
 #   openspec validate remediate-41-policy-verifier → valid.
+
+## RE-VERIFY (rework cycle 1, commit 8dc4d57, 2026-10-22)
+# Verifier: QA re-verification seat (sabotage-only; nothing committed, merged, or pushed).
+# Worktree: .lane/trees/wave-41-policy-verifier · commits: 8dc4d57 on top of
+#   dea5b74 + d8fdded (git log --oneline -4 confirmed).
+# All sabotage reverted via `git checkout -- <file>`; byte-identical restore
+# confirmed with diff against /tmp backup; git status clean after each revert.
+#
+# BASELINE-REVERIFY (unmodified tree):
+#   make verify → SUMMARY: 25 checks passed, 0 failed (V9: 19 tests pass) +
+#     live-health advisory exit 0 (only pre-existing heartbeat/idleness WARN/SKIP).
+#     make-verify-exit:0.
+#   openspec validate remediate-41-policy-verifier → valid, exit 0.
+#   python3 -m unittest discover -s tests → Ran 127 tests, OK, exit 0.
+#
+# F1a — live corrected Cargo.toml, bare scan (MUST exit 0; was exit 1 + 2 FPs):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0 (PASS — false positives gone).
+# F1b — live stale reference root-lints-reference.toml (MUST exit 1, ONLY cast_lossy):
+#   Output: policy-verifier: UNKNOWN LINT 'clippy::cast_lossy' at .../root-lints-reference.toml:28 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: 1 finding(s) in 1 file(s); policy text does not resolve.
+#   Exit: 1 (PASS — exactly ONE finding; rust names quiet, true positive preserved).
+# F1c — snapshot sabotage (remove rust::missing_docs line from checked-in snapshot):
+#   Command: python3 -m unittest tests.test_policy_verifier.PolicyVerifierLiveTableTests
+#   Result: FAILED (failures=2), exit 1 — the green-pass test and the
+#     stale-fires-only test both turn RED (missing_docs fires; assertNotIn fails).
+#   Restore: git checkout -- scripts/policy-verifier.known-lints.txt;
+#     diff vs /tmp backup → BYTE-IDENTICAL; suite 3/3 OK after restore.
+#   (PASS — vendored live-table tests guard the F1 fix, not vacuous.)
+# F1d — fixture fidelity (read-only): parsed live Cargo.toml vs vendored
+#   tests/fixtures/policy-verifier/live-corrected-lints.toml with tomllib:
+#   rust keys+levels MATCH (missing_docs/rust_2018_idioms/unsafe_code);
+#   clippy keys+levels MATCH (all/pedantic/unwrap_used/expect_used/missing_errors_doc/cast_possible_truncation).
+#   (PASS — fixture faithfully reproduces the live tables; trailing comments only dropped.)
+#
+# F2a — stale snapshot pin, NO pin flags (MUST exit 1 STALE; was silent exit 0):
+#   Fixture: /tmp/opencode/qa41f2 (snapshot pin stale-pin-0 vs checked-in fixture-toolchain-1).
+#   Command: python3 scripts/policy-verifier.py /tmp/opencode/qa41f2/good.toml --known-lints /tmp/opencode/qa41f2/stale-known.txt
+#   Output: policy-verifier: STALE KNOWN-LINT SNAPSHOT '/tmp/opencode/qa41f2/stale-known.txt' (snapshot pin 'stale-pin-0' != repo toolchain pin 'fixture-toolchain-1'; refresh the snapshot from the pinned toolchain and re-run)
+#   Exit: 1 (PASS — default --pin-file enforces freshness on the bare path).
+# F2b — matching pin, bare invocation (MUST exit 0; good-file path unaffected):
+#   Command: python3 scripts/policy-verifier.py tests/fixtures/policy-verifier/live-corrected-lints.toml
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0 (PASS).
+# F2c — explicit --expect-pin precedence sabotage (pin-file unconditionally
+#   overrides expect_pin; `if expect_pin is None` guard removed):
+#   Command: python3 -m unittest ...test_stale_snapshot_pin_fails ...test_matching_pin_passes
+#   Result: FAILED (failures=2), exit 1 — test_stale passes-silent (pin-1 vs pin-1
+#     match, asserts non-zero) and test_matching goes STALE (pin-9 vs default pin-1,
+#     asserts 0). Both directions break, proving the precedence guard load-bearing.
+#   Note: --expect-pin/--pin-file are argparse-mutexed (passing both → usage exit 2),
+#     so "precedence" = explicit --expect-pin skips the default pin-file read.
+#   Restore: git checkout -- scripts/policy-verifier.py; diff vs /tmp backup →
+#     BYTE-IDENTICAL; 5/5 pin+live tests OK after restore. (PASS.)
+#
+# REGRESSION (original red-proofs re-run; snapshot expansion must not mask):
+#   R1 stale clippy-only TOML → exit 1, UNKNOWN LINT 'clippy::cast_lossy' at t/stale.toml:2. PASS.
+#   R2 pnpm eslint . with lint script → exit 1, DUPLICATE RUN COMMAND citing 'lint'. PASS.
+#   R3 unparseable TOML → exit 1, UNREADABLE POLICY 't/bad.toml' (invalid TOML...). PASS.
+#   (All fixtures in /tmp/opencode/qa41reg; no repo files touched.)
+#
+# MISSION-REPO + HYGIENE:
+#   git -C mission diff --stat → empty (tracked tree untouched; only pre-existing untracked strays).
+#   git diff 0a3db37..HEAD -- scripts/verify-rigs.sh | grep -c '^-[^-]' → 0 (V1–V8 byte-identical).
+#   V9 block: exactly one new ok() (other grep hits: V8 context line + comment).
+#   Makefile: additive only (.PHONY token append = 1 del+1 add; one new target block).
+#   Forbidden dirs (specs/ rigs/ rosters/ registry/ fleet/): zero files in diff. PASS.

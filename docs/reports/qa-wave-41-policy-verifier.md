@@ -101,3 +101,74 @@ Numbered blocking findings: none. QA-CLEAN.
 Observations (non-blocking): O1 report-filename deviation (accepted, see section 6);
 O2 stale check-count strings in worktree AGENTS.md ("expect: 23") and old V-block comments
 ("22 -> 23") — pre-existing doc drift outside this stage's touch set.
+
+---
+
+# Re-verification — rework cycle 1 (commit 8dc4d57, 2026-10-22)
+
+Stage/wave id: `wave-41-rework-1-verify` · commit under test: `8dc4d57`
+(`fix(41-policy-verifier): complete snapshot from live tables, wire pin freshness by default`)
+on top of `dea5b74` + `d8fdded` (`git log --oneline -4` confirmed).
+Binding findings: `docs/reports/wave-41-policy-verifier-verification.md` §Findings (F1 major + F2 minor).
+Rework claim: `docs/reports/wave-41-rework-1-implementation.md`.
+Evidence: `docs/evidence/wave-41-policy-verifier/red-proofs.log` §RE-VERIFY (verbatim outputs).
+Sabotage-only; nothing committed, merged, or pushed.
+
+## Verdict: QA-CLEAN (both findings remediated, no vacuous checks, no regressions)
+
+## 1. Full suite (unmodified tree)
+
+- `make verify` → PASS — `SUMMARY: 25 checks passed, 0 failed` (V9: 19 tests pass), exit 0;
+  `live-health.py` advisory exit 0 (only pre-existing heartbeat/idleness WARN/SKIP).
+- `openspec validate remediate-41-policy-verifier` → PASS — valid, exit 0.
+- `python3 -m unittest discover -s tests` → PASS — 127 tests, OK, exit 0.
+
+## 2. F1 red-proofs (complete snapshot) — all PASS
+
+- F1a: live corrected mission `Cargo.toml`, bare scan → exit 0
+  (`all 1 staged policy file(s) resolve`). The 2 false positives are gone.
+- F1b: live stale `root-lints-reference.toml` → exit 1 with EXACTLY ONE finding
+  (`clippy::cast_lossy` at `:28`); `rust::` names quiet. True positive preserved, no masking.
+- F1c (sabotage): `rust::missing_docs` removed from checked-in snapshot →
+  `PolicyVerifierLiveTableTests` FAILED (failures=2), exit 1. Restored via
+  `git checkout`, diff-confirmed byte-identical, 3/3 OK after. Proves the
+  vendored tests guard the fix (not vacuous).
+- F1d (fidelity, read-only): tomllib parse of live vs vendored fixture —
+  `[workspace.lints.rust]` and `[workspace.lints.clippy]` keys AND levels match
+  exactly (only trailing comments dropped, parse-irrelevant). Fixture is faithful.
+
+## 3. F2 red-proofs (pin freshness by default) — all PASS
+
+- F2a: stale-pin snapshot (`stale-pin-0`), NO pin flags → exit 1
+  `STALE KNOWN-LINT SNAPSHOT ... 'stale-pin-0' != ... 'fixture-toolchain-1'`.
+  The pre-fix silent pass is closed; the bare `make policy-verifier` path is enforced
+  via `DEFAULT_PIN_FILE`.
+- F2b: matching pin, bare invocation → exit 0. Good-file path unaffected.
+- F2c (sabotage): precedence guard (`if expect_pin is None`) removed so the
+  default pin-file unconditionally overrides explicit `--expect-pin` →
+  both pre-existing pin tests FAILED (failures=2), exit 1, in opposite
+  directions (stale passes silent; matching goes STALE). Restored via
+  `git checkout`, byte-identical, 5/5 OK after. Precedence is load-bearing.
+  Note: `--expect-pin`/`--pin-file` are argparse-mutexed, so precedence means
+  an explicit `--expect-pin` skips the default pin-file read.
+
+## 4. Regression (original red-proofs, anti-masking) — all PASS
+
+- R1 stale `cast_lossy` TOML → exit 1 naming `clippy::cast_lossy` + file:line.
+- R2 `run: pnpm eslint .` with `lint` script → exit 1 `DUPLICATE RUN COMMAND` citing `lint`.
+- R3 unparseable TOML → exit 1 `UNREADABLE POLICY` (fail-closed).
+
+## 5. Hygiene — PASS
+
+- Mission repo: `git diff --stat` empty (read-only scans only; pre-existing untracked strays only).
+- `scripts/verify-rigs.sh`: zero removed lines vs `0a3db37` (V1–V8 byte-identical);
+  V9 block carries exactly one new `ok()`; `Makefile` additive only
+  (`.PHONY` token append + one new target block, no existing target touched).
+- Forbidden dirs (`specs/ rigs/ rosters/ registry/ fleet/`): zero files in diff.
+- `git status --short`: only this report and `red-proofs.log` modified (uncommitted, as instructed).
+
+## Findings
+
+Numbered blocking findings: none. QA-CLEAN.
+Vacuous checks: none — every acceptance check turned RED under minimal targeted sabotage
+(F1c snapshot-line removal, F2c precedence-guard removal, plus R1/R2/R3 regression battery).
