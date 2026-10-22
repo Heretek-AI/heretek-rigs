@@ -48,7 +48,10 @@ def plan(argv):
     Never executes rig; main() executes only on exit 0 without --dry-run.
     """
     parser = argparse.ArgumentParser(
-        description="Guarded park for typed-external blocks (REQ-BU1/BU4)."
+        description="Guarded park for typed-external blocks (REQ-BU1/BU4).",
+        # No option-prefix matching: an abbreviation such as --dry-ru must
+        # never silently parse (a missed dry-run flag would be a LIVE op).
+        allow_abbrev=False,
     )
     parser.add_argument("qitemId")
     parser.add_argument("--on", required=True)
@@ -81,6 +84,7 @@ def plan(argv):
             "argv": rig_argv,
             "stderr": "",
             "stdout": "non-typed park: pass-through (no predicate rule)\n",
+            "dry_run": args.dry_run,
         }
 
     # Typed-external park: predicate is mandatory (REQ-BU1 rejection rule).
@@ -94,10 +98,9 @@ def plan(argv):
             "stdout": "",
         }
     # Live wake is mandatory; --wake-after alone is not a live wake (REQ-BU4).
+    # An empty --wake-watchdog value wakes nobody, so it is not a live wake.
     live_wake = (
-        (args.wake_watchdog is not None)
-        or args.sweep_covered
-        or looks_like_qitem(args.on)
+        bool(args.wake_watchdog) or args.sweep_covered or looks_like_qitem(args.on)
     )
     if not live_wake:
         hint = (
@@ -114,25 +117,25 @@ def plan(argv):
 
     note = " ".join(part for part in [args.predicate, args.note] if part).strip()
     rig_argv = ["rig", "queue", "block", args.qitemId, "--on", args.on, "--note", note]
+    continuation_bits = []
     if args.continuation:
-        rig_argv += ["--continuation", args.continuation]
+        continuation_bits.append(args.continuation)
+    if args.sweep_covered:
+        continuation_bits.append("sweep-covered: transitions-cursor re-evaluation")
+    if continuation_bits:
+        rig_argv += ["--continuation", " ".join(continuation_bits)]
     if args.wake_watchdog:
         rig_argv += ["--wake-watchdog", args.wake_watchdog]
     if args.wake_after:
         rig_argv += ["--wake-after", args.wake_after]
     if args.json:
         rig_argv.append("--json")
-    if args.sweep_covered:
-        rig_argv += [
-            "--continuation",
-            ((args.continuation + " ") if args.continuation else "")
-            + "sweep-covered: transitions-cursor re-evaluation",
-        ]
     return {
         "exit": 0,
         "argv": rig_argv,
         "stderr": "",
         "stdout": "typed-external park accepted (predicate + live wake)\n",
+        "dry_run": args.dry_run,
     }
 
 
@@ -142,7 +145,7 @@ def main(argv=None):
         sys.stderr.write(result["stderr"])
     if result["exit"] != 0:
         return result["exit"]
-    if "--dry-run" in (argv if argv is not None else sys.argv[1:]):
+    if result.get("dry_run"):
         sys.stdout.write(" ".join(result["argv"]) + "\n")
         return 0
     proc = subprocess.run(result["argv"])

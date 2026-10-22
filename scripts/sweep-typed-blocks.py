@@ -24,9 +24,13 @@ Fail-closed evaluation (REQ-BU5):
   - daemon unreachable -> no evaluations claimed (raise DataSourceError).
 
 Trigger detection keys on the append-only transitions log with a per-row
-cursor (REQ-BU2/BU5 idempotency): reruns over already-evaluated transition
-ids emit nothing. --dry-run reports would-unpark rows without any live write
-(no update call, no cursor write).
+cursor covering the parked row AND each blocker/verdict qitem named by the
+predicate (REQ-BU2 legs (a)+(b), REQ-BU2/BU5 idempotency): reruns with no new
+transition ids on either side emit nothing. Satisfying notes landed on a
+referenced blocker qitem count as evidence (cited with their source qitem).
+A blocker ref that is unresolvable/unreadable fails closed: stay blocked +
+named SKIP/retry, never unpark. --dry-run reports would-unpark rows without
+any live write (no update call, no cursor write).
 
 Satisfaction evidence (REQ-BU3, implementer-fixed convention):
   SATISFIED: <blocker> <evidence-ref>
@@ -265,10 +269,65 @@ def find_qitem_refs(note):
     return set(re.findall(r"\bqitem-[0-9A-Za-z-]+\b", note or ""))
 
 
-def evaluate_row(row, transitions, fetch_blocker_transitions=None):
+def blocker_qitem_refs(row, transitions):
+    """Qitem ids referenced by the parked row's transition notes.
+
+    The predicate (SATISFY-WHEN ... VIA <where it lands>) names where
+    satisfaction lands; when that is a blocking/verdict qitem, its
+    transitions are the REQ-BU2 leg-(b) trigger. Every qitem id cited in the
+    row's notes is watched (superset of the predicate-named blocker).
+    """
+    own = row.get("qitemId")
+    refs = set()
+    for t in transitions or []:
+        if isinstance(t, dict):
+            refs |= find_qitem_refs(t.get("transitionNote") or "")
+    refs.discard(own)
+    return sorted(refs)
+
+
+def _cursor_seen(cursor, qid):
+    """Normalise a per-row cursor entry to (row_seen, {blocker_ref: seen}).
+
+    Legacy flat entries ({qid: int}) predate blocker-side tracking and mean
+    (int, {}) -- the blockers side is then fully fresh, biasing toward one
+    re-evaluation, never toward a missed unpark.
+    """
+    entry = (cursor or {}).get(qid, -1)
+    if isinstance(entry, int):
+        return (entry, {})
+    if isinstance(entry, dict) and isinstance(entry.get("row"), int):
+        blockers = entry.get("blockers") or {}
+        if isinstance(blockers, dict):
+            return (
+                entry["row"],
+                {k: v for k, v in blockers.items() if isinstance(v, int)},
+            )
+        return (entry["row"], {})
+    return (-1, {})
+
+
+def _max_tid(transitions, default):
+    seen = [
+        t.get("transitionId")
+        for t in transitions or []
+        if isinstance(t, dict) and isinstance(t.get("transitionId"), int)
+    ]
+    return max(seen, default=default) if seen else default
+
+
+def evaluate_row(
+    row, transitions, fetch_blocker_transitions=None, blocker_transitions=None
+):
     """Re-evaluate one row. Returns a verdict dict.
 
     verdict: "unpark" | "stay-blocked" | "skip" (not a typed-external HELD row).
+    blocker_transitions: optional {qitemId: [transitions]} pre-fetched from
+    verdict/blocker qitems named by the predicate; their satisfying notes
+    count as evidence (REQ-BU2 leg (b)), cited with their source qitem.
+    A verdict may carry "retry": True when evaluation was incomplete
+    (a blocker ref proved unresolvable/unreadable) -- the sweep must then
+    leave the row blocked AND freeze its cursor so the next cycle retries.
     """
     qid = row.get("qitemId", "?")
     if row.get("state") != "blocked" or not is_typed_blocker(row.get("blockedOn")):
@@ -294,10 +353,33 @@ def evaluate_row(row, transitions, fetch_blocker_transitions=None):
             park_idx = i
     evidence_notes = ordered[park_idx + 1 :]
 
+    # Blocker-side evidence (REQ-BU2 leg (b)): transitions appended to a
+    # verdict/blocker qitem named by the predicate. No park window applies to
+    # the foreign log -- every entry is landed evidence about the blocker.
+    # Transition ids are globally comparable across qitems (t927, t1065,
+    # ...), so the combined list stays tid-ordered for re-arm comparison.
+    blocker_source = {}
+    extra = []
+    for ref in sorted(blocker_transitions or {}):
+        for t in blocker_transitions[ref] or []:
+            if isinstance(t, dict) and id(t) not in blocker_source:
+                blocker_source[id(t)] = ref
+                extra.append(t)
+    extra.sort(key=lambda t: t.get("transitionId") or 0)
+    combined = sorted(
+        [*evidence_notes, *extra], key=lambda t: t.get("transitionId") or 0
+    )
+
+    def cite(t, text):
+        ref = blocker_source.get(id(t))
+        if ref is not None:
+            return f"{ref} transition {t.get('transitionId')}: {text}"
+        return text
+
     malformed = []
     satisfaction = None  # (transitionId, citation)
     rearm = None  # (transitionId, excerpt)
-    for t in evidence_notes:
+    for t in combined:
         note = t.get("transitionNote") or ""
         parsed = parse_satisfy_note(note)
         if parsed is not None:
@@ -326,8 +408,12 @@ def evaluate_row(row, transitions, fetch_blocker_transitions=None):
                         f"{', '.join(dangling)} (from transition "
                         f"{t.get('transitionId')}); refusing to unpark",
                         "missing": sorted(dangling),
+                        "retry": True,
                     }
-                satisfaction = (t.get("transitionId"), f"{blocker} {evidence}".strip())
+                satisfaction = (
+                    t.get("transitionId"),
+                    cite(t, f"{blocker} {evidence}".strip()),
+                )
                 continue
             # Well-formed but naming a different blocker: not evidence for us.
             continue
@@ -340,7 +426,7 @@ def evaluate_row(row, transitions, fetch_blocker_transitions=None):
             actor = t.get("actorSession") or ""
             authoritative = actor.split("@")[0] == "operator"
             if cited or authoritative:
-                citation_bits = [note.strip()[:220]]
+                citation_bits = [cite(t, note.strip()[:220])]
                 satisfaction = (t.get("transitionId"), " | ".join(citation_bits))
             # Else: bare assertion with no evidence citation from a
             # non-verdict authority -- not actionable (fail-closed).
@@ -371,7 +457,7 @@ def evaluate_row(row, transitions, fetch_blocker_transitions=None):
         )
     evaluative = [
         t
-        for t in evidence_notes
+        for t in combined
         if note_names_blocker(t.get("transitionNote") or "", key_tokens)
     ]
     if not evaluative:
@@ -404,7 +490,23 @@ def load_cursor(path):
     try:
         raw = json.loads(Path(path).read_text())
         if isinstance(raw, dict):
-            return {k: v for k, v in raw.items() if isinstance(v, int)}
+            out = {}
+            for key, value in raw.items():
+                if isinstance(value, int):
+                    # Legacy flat entry (row max only); normalised at use.
+                    out[key] = value
+                elif isinstance(value, dict) and isinstance(value.get("row"), int):
+                    blockers = value.get("blockers") or {}
+                    if isinstance(blockers, dict):
+                        out[key] = {
+                            "row": value["row"],
+                            "blockers": {
+                                b: v for b, v in blockers.items() if isinstance(v, int)
+                            },
+                        }
+                    else:
+                        out[key] = {"row": value["row"], "blockers": {}}
+            return out
     except (OSError, json.JSONDecodeError):
         pass
     return {}
@@ -419,9 +521,11 @@ def save_cursor(path, cursor):
 def run_sweep(client, cursor, dry_run=False, log_lines=None):
     """One sweep cycle. Returns a report dict; appends audit lines to log_lines.
 
-    cursor: {qitemId: last evaluated transitionId}. Never issues state=done.
-    Raises DataSourceError when the daemon is unreachable (no evaluations
-    claimed).
+    cursor: {qitemId: {"row": last evaluated parked-row transitionId,
+    "blockers": {blockerQitemId: last evaluated transitionId}}} (legacy flat
+    {qitemId: int} entries are accepted and normalised at use). Never issues
+    state=done. Raises DataSourceError when the daemon is unreachable (no
+    evaluations claimed).
     """
     if log_lines is None:
         log_lines = []
@@ -451,27 +555,68 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None):
             )
             report["stay_blocked"].append(qid)
             continue
-        last_seen = cursor.get(qid, -1)
-        fresh = [
-            t
-            for t in transitions
-            if isinstance(t, dict)
+        # REQ-BU2 leg (b): watch every blocker/verdict qitem the row cites.
+        refs = blocker_qitem_refs(row, transitions)
+        row_seen, blocker_seen = _cursor_seen(cursor, qid)
+        blocker_maps = {}
+        unreadable = []
+        for ref in refs:
+            try:
+                fetched = client.fetch_transitions(ref)
+            except DataSourceError as exc:
+                unreadable.append(f"{ref}: {exc}")
+                continue
+            if not isinstance(fetched, list):
+                unreadable.append(f"{ref}: expected a JSON list")
+                continue
+            blocker_maps[ref] = fetched
+        if unreadable:
+            log_lines.append(
+                f"SKIP {qid}: blocker qitem(s) unreadable "
+                f"({'; '.join(unreadable)}); stays blocked, retry next cycle"
+            )
+            report["stay_blocked"].append(qid)
+            continue  # fail-closed: cursor untouched, never unpark
+        row_max = _max_tid(transitions, row_seen)
+        blocker_max = {
+            ref: _max_tid(blocker_maps[ref], blocker_seen.get(ref, -1)) for ref in refs
+        }
+        row_fresh = any(
+            isinstance(t, dict)
             and isinstance(t.get("transitionId"), int)
-            and t["transitionId"] > last_seen
-        ]
-        iftransitions_max = max(
-            (
-                t.get("transitionId", -1)
-                for t in transitions
-                if isinstance(t, dict) and isinstance(t.get("transitionId"), int)
-            ),
-            default=last_seen,
+            and t["transitionId"] > row_seen
+            for t in transitions
         )
-        if not fresh and qid in cursor:
-            continue  # idempotent: nothing new, no duplicate evaluation
-        verdict = evaluate_row(
-            row, transitions, fetch_blocker_transitions=client.fetch_transitions
+        blocker_fresh = any(
+            isinstance(t, dict)
+            and isinstance(t.get("transitionId"), int)
+            and t["transitionId"] > blocker_seen.get(ref, -1)
+            for ref in refs
+            for t in blocker_maps[ref]
         )
+        if not row_fresh and not blocker_fresh and qid in cursor:
+            continue  # idempotent: nothing new on either side
+        cache = dict(blocker_maps)
+
+        def fetch_cached(ref, _cache=cache):
+            if ref in _cache:
+                return _cache[ref]
+            return client.fetch_transitions(ref)
+
+        try:
+            verdict = evaluate_row(
+                row,
+                transitions,
+                fetch_blocker_transitions=fetch_cached,
+                blocker_transitions=blocker_maps,
+            )
+        except DataSourceError as exc:
+            log_lines.append(
+                f"SKIP {qid}: blocker evaluation incomplete ({exc}); "
+                f"stays blocked, retry next cycle"
+            )
+            report["stay_blocked"].append(qid)
+            continue  # cursor untouched: verdict marked for retry
         report["evaluated"].append(qid)
         if verdict["verdict"] == "unpark":
             if dry_run:
@@ -484,7 +629,16 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None):
                 argv = build_unpark_argv(
                     qid, row.get("blockedOn"), verdict["evidence_citation"]
                 )
-                client.apply_update(argv)
+                try:
+                    client.apply_update(argv)
+                except DataSourceError as exc:
+                    log_lines.append(
+                        f"STAY-BLOCKED {qid} ({row.get('blockedOn')}): "
+                        f"unpark write failed ({exc}); left blocked, "
+                        f"retry next cycle"
+                    )
+                    report["stay_blocked"].append(qid)
+                    continue  # cursor untouched: the unpark did not land
                 report["unparked"].append(qid)
                 log_lines.append(
                     f"UNPARKED {qid} -> in-progress ({row.get('blockedOn')}): "
@@ -495,7 +649,8 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None):
             log_lines.append(
                 f"STAY-BLOCKED {qid} ({row.get('blockedOn')}): {verdict['reason']}"
             )
-        report["cursor"][qid] = iftransitions_max
+        if not verdict.get("retry"):
+            report["cursor"][qid] = {"row": row_max, "blockers": blocker_max}
     return report
 
 

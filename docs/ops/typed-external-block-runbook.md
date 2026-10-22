@@ -72,11 +72,17 @@ python3 scripts/sweep-typed-blocks.py [--dry-run] [--cursor-file PATH] [--log-fi
 - **Discovery is read-only**: `queue list` / `transitions` (`--json`).
   The only live write is the spec'd unpark route
   (`update --state in-progress --reopen` + evidence-citing audit note).
-- **Triggers**: a new transition on the parked row, or on the blocking
-  verdict qitem named by the predicate — keyed on the append-only
-  transitions log with a per-row cursor (`--cursor-file`, default
+- **Triggers**: a new transition on the parked row (leg (a)), or on a
+  blocking verdict qitem named by the predicate — any `qitem-…` id cited in
+  the row's transition notes (leg (b)). Both sides are keyed on the
+  append-only transitions log with a per-row cursor entry
+  (`{row: <parked-row max>, blockers: {<qitem>: <max>}}`) persisted in
+  `--cursor-file` (default
   `/tmp/heretek-sweep-typed-blocks/cursor.json`; point it at a durable path
-  when wiring the watchdog job).
+  when wiring the watchdog job). Either side advancing triggers
+  re-evaluation; blocker-side satisfying notes count as evidence, cited
+  with their source qitem. A blocker ref that is unresolvable/unreadable
+  fails closed: stay blocked + named SKIP, retry next cycle, never unpark.
 - **Cadence**: watchdog-cycle scale (≤15 min recommended — the incident's
   lesson was ~50 min of idle seats, so nightly scale defeats the purpose).
   Suggested watchdog-job wiring: run the sweep as an attached job on the
@@ -93,7 +99,7 @@ python3 scripts/sweep-typed-blocks.py [--dry-run] [--cursor-file PATH] [--log-fi
   | Predicate satisfied, unambiguous | Unpark + audit note citing evidence |
   | Evidence ambiguous / partial | Stay blocked + recorded evaluation naming what is missing |
   | Malformed `SATISFIED:` | Ignored + recorded evaluation |
-  | Blocker ref unresolvable (deleted qitem) | Stay blocked + WARN naming the ref |
+  | Blocker ref unresolvable (deleted qitem) | Stay blocked + WARN naming the ref, retry next cycle |
   | Later note cites new failure/rework | Block re-armed, stay blocked |
   | Evidence-free restatement ("blocker stands", "park continues") | Does NOT override a prior satisfaction |
   | Daemon unreachable | Log-only error, exit 2, no evaluations claimed |

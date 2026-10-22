@@ -13,6 +13,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from unittest import mock
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 SWEEP_SCRIPT = REPO_ROOT / "scripts" / "sweep-typed-blocks.py"
@@ -137,10 +138,11 @@ def satisfy_shape():
 class FakeClient:
     """In-memory rig surface; records every update call (live writes)."""
 
-    def __init__(self, rows, transitions_by_id, unreachable=()):
+    def __init__(self, rows, transitions_by_id, unreachable=(), fail_updates=()):
         self._rows = rows
         self._transitions = transitions_by_id
         self._unreachable = set(unreachable)
+        self._fail_updates = set(fail_updates)
         self.updates = []
 
     def fetch_list(self):
@@ -154,6 +156,9 @@ class FakeClient:
         return self._transitions.get(qitem_id, [])
 
     def apply_update(self, argv):
+        for qid in self._fail_updates:
+            if qid in argv:
+                raise sweep.DataSourceError(f"daemon refused update for {qid}")
         self.updates.append(list(argv))
         return {"ok": True}
 
@@ -645,6 +650,232 @@ class TestParkWrapper(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn("rig queue block", result.stdout)
+
+
+def _bt(qid, tid, state, note, actor="owner@fleet"):
+    return {
+        "transitionId": tid,
+        "qitemId": qid,
+        "ts": f"2026-10-22T06:{tid % 60:02d}:00.000Z",
+        "state": state,
+        "transitionNote": note,
+        "actorSession": actor,
+    }
+
+
+def parked_with_verdict_blocker():
+    """Parked row whose predicate names a verdict qitem (REQ-BU2 leg (b))."""
+    row = {
+        "qitemId": "qitem-PARKED",
+        "state": "blocked",
+        "blockedOn": "external:qa-operator-gate-verdict",
+        "destinationSession": "owner@fleet",
+        "summary": "parked awaiting verdict qitem",
+    }
+    parked = [
+        _bt(
+            "qitem-PARKED",
+            1,
+            "blocked",
+            "SATISFY-WHEN: QA PASS verdict VIA qitem-V1 verdict row; "
+            "parked on external:qa-operator-gate-verdict, awaiting verdict",
+            "owner@fleet",
+        ),
+    ]
+    blocker = [
+        _bt("qitem-V1", 1, "in-progress", "verdict row opened", "qa@fleet"),
+        _bt(
+            "qitem-V1", 2, "in-progress", "evidence gathered, deliberating", "qa@fleet"
+        ),
+    ]
+    verdict_row = {"qitemId": "qitem-V1", "state": "in-progress", "blockedOn": None}
+    return row, parked, blocker, verdict_row
+
+
+class TestBlockerSideTrigger(unittest.TestCase):
+    def test_blocker_only_transition_triggers_reevaluation_and_unparks(self):
+        # Parked row quiet after the first sweep; a satisfying verdict lands
+        # ONLY on the referenced blocker qitem -> must still unpark (leg (b)).
+        row, parked, blocker, verdict_row = parked_with_verdict_blocker()
+        by_id = {row["qitemId"]: parked, verdict_row["qitemId"]: blocker}
+        client = FakeClient([row, verdict_row], by_id)
+        first = sweep.run_sweep(client, cursor={}, dry_run=False)
+        self.assertEqual(client.updates, [])
+        self.assertIn(row["qitemId"], first["stay_blocked"])
+        blocker.append(
+            _bt(
+                "qitem-V1",
+                3,
+                "in-progress",
+                "QA verdict PASS per wave1-qa-report; gate satisfied, verdict recorded",
+                "qa@fleet",
+            )
+        )
+        logs = []
+        second = sweep.run_sweep(
+            client, cursor=first["cursor"], dry_run=False, log_lines=logs
+        )
+        self.assertEqual(second["unparked"], [row["qitemId"]])
+        self.assertEqual(len(client.updates), 1)
+        argv = client.updates[0]
+        note = argv[argv.index("--note") + 1]
+        self.assertIn("qitem-V1", note)
+        self.assertIn("wave1-qa-report", note)
+
+    def test_unrelated_blocker_transition_stays_blocked(self):
+        # A new transition on the referenced blocker that carries no
+        # satisfaction must trigger re-evaluation yet stay blocked.
+        row, parked, blocker, verdict_row = parked_with_verdict_blocker()
+        by_id = {row["qitemId"]: parked, verdict_row["qitemId"]: blocker}
+        client = FakeClient([row, verdict_row], by_id)
+        first = sweep.run_sweep(client, cursor={}, dry_run=False)
+        self.assertIn(row["qitemId"], first["stay_blocked"])
+        blocker.append(
+            _bt(
+                "qitem-V1",
+                3,
+                "in-progress",
+                "housekeeping: rotated logs, still deliberating",
+                "qa@fleet",
+            )
+        )
+        logs = []
+        second = sweep.run_sweep(
+            client, cursor=first["cursor"], dry_run=False, log_lines=logs
+        )
+        self.assertIn(row["qitemId"], second["evaluated"])
+        self.assertIn(row["qitemId"], second["stay_blocked"])
+        self.assertEqual(second["unparked"], [])
+        self.assertEqual(client.updates, [])
+
+
+class TestSweepFaultIsolation(unittest.TestCase):
+    def test_apply_update_failure_leaves_row_blocked_and_continues(self):
+        row_a, trans_a = satisfy_shape()
+        row_b, trans_b = w103_shape()
+        client = FakeClient(
+            [row_a, row_b],
+            {row_a["qitemId"]: trans_a, row_b["qitemId"]: trans_b},
+            fail_updates=(row_a["qitemId"],),
+        )
+        logs = []
+        report = sweep.run_sweep(client, cursor={}, dry_run=False, log_lines=logs)
+        self.assertIn(row_a["qitemId"], report["stay_blocked"])
+        self.assertNotIn(row_a["qitemId"], report["unparked"])
+        self.assertIn(row_b["qitemId"], report["unparked"])
+        self.assertEqual(len(client.updates), 1)
+        self.assertTrue(
+            any("unpark" in line.lower() and "fail" in line.lower() for line in logs),
+            logs,
+        )
+
+    def test_unreadable_blocker_stays_blocked_cursor_frozen_and_continues(self):
+        row_bad = {
+            "qitemId": "qitem-R1",
+            "state": "blocked",
+            "blockedOn": "external:qa-operator-gate-verdict",
+        }
+        trans_bad = [
+            _bt(
+                "qitem-R1",
+                1,
+                "blocked",
+                "SATISFY-WHEN: QA PASS verdict VIA qitem-BAD verdict row; "
+                "parked, awaiting verdict",
+                "owner@fleet",
+            )
+        ]
+        row_ok, trans_ok = satisfy_shape()
+        client = FakeClient(
+            [row_bad, row_ok],
+            {
+                row_bad["qitemId"]: trans_bad,
+                row_ok["qitemId"]: trans_ok,
+                "qitem-BAD": [],
+            },
+            unreachable=("qitem-BAD",),
+        )
+        logs = []
+        report = sweep.run_sweep(client, cursor={}, dry_run=False, log_lines=logs)
+        self.assertIn(row_bad["qitemId"], report["stay_blocked"])
+        self.assertNotIn(row_bad["qitemId"], report["cursor"])
+        self.assertNotIn(row_bad["qitemId"], report["unparked"])
+        self.assertIn(row_ok["qitemId"], report["unparked"])
+        self.assertTrue(any("qitem-BAD" in line for line in logs), logs)
+
+
+class TestParkArgvSafety(unittest.TestCase):
+    def test_plan_results_carry_parsed_dry_run(self):
+        typed = [
+            "qitem-X",
+            "--on",
+            "external:qa-gate-verdict",
+            "--predicate",
+            "SATISFY-WHEN: QA PASS verdict VIA wave1-qa-report",
+            "--note",
+            "parked",
+            "--sweep-covered",
+        ]
+        self.assertTrue(park.plan(["--dry-run", *typed])["dry_run"])
+        self.assertFalse(park.plan(typed)["dry_run"])
+        live = ["qitem-Y", "--on", "operator@fleet", "--note", "hi"]
+        self.assertTrue(park.plan(["--dry-run", *live])["dry_run"])
+        self.assertFalse(park.plan(live)["dry_run"])
+
+    def test_abbreviated_dry_run_cannot_trigger_live_write(self):
+        argv = [
+            "qitem-X",
+            "--on",
+            "external:qa-gate-verdict",
+            "--predicate",
+            "SATISFY-WHEN: QA PASS verdict VIA wave1-qa-report",
+            "--note",
+            "parked",
+            "--sweep-covered",
+            "--dry-ru",
+        ]
+        with mock.patch.object(park.subprocess, "run") as run_mock:
+            run_mock.side_effect = AssertionError("live rig invocation attempted")
+            with self.assertRaises(SystemExit) as cm:
+                park.main(argv)
+        self.assertEqual(cm.exception.code, 2)
+        run_mock.assert_not_called()
+
+    def test_empty_wake_watchdog_is_not_a_live_wake(self):
+        result = park.plan(
+            [
+                "qitem-X",
+                "--on",
+                "external:qa-gate-verdict",
+                "--predicate",
+                "SATISFY-WHEN: QA PASS verdict VIA wave1-qa-report",
+                "--wake-watchdog",
+                "",
+            ]
+        )
+        self.assertNotEqual(result["exit"], 0)
+        self.assertIn("wake", result["stderr"].lower())
+        self.assertIsNone(result["argv"])
+
+    def test_continuation_merged_singly_with_sweep_covered(self):
+        result = park.plan(
+            [
+                "qitem-X",
+                "--on",
+                "external:qa-gate-verdict",
+                "--predicate",
+                "SATISFY-WHEN: QA PASS verdict VIA wave1-qa-report",
+                "--continuation",
+                "keep me",
+                "--sweep-covered",
+            ]
+        )
+        self.assertEqual(result["exit"], 0)
+        argv = result["argv"]
+        self.assertEqual(argv.count("--continuation"), 1)
+        value = argv[argv.index("--continuation") + 1]
+        self.assertIn("keep me", value)
+        self.assertIn("sweep-covered", value)
 
 
 if __name__ == "__main__":

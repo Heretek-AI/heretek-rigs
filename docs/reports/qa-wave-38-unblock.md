@@ -34,7 +34,7 @@
 
 ## Evidence
 - `docs/evidence/wave-38-unblock/red-proofs.log` (this stage's full sabotage + live-read record).
-- Implementation claims verified: file list matches `git show --stat HEAD`; upstream issue URL recorded (report cites https://github.com/mvschmidt/openrig#38-... verify: report cites mvschwarz/openrig#1785); no-live-mutation record corroborated (live rows still blocked post-QA; only --dry-run invocations ran).
+- Implementation claims verified: file list matches `git show --stat HEAD`; upstream issue URL recorded (report cites mvschwarz/openrig#1785); no-live-mutation record corroborated (live rows still blocked post-QA; only --dry-run invocations ran).
 
 ## State
 - `git status --short` shows only untracked `docs/evidence/wave-38-unblock/` + this report. No commits made. Sabotage-only edits, all reverted.
