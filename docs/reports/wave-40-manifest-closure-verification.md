@@ -144,3 +144,111 @@ spec clause on the Wave-2 surface.
 Report path: `docs/reports/wave-40-manifest-closure-verification.md` (uncommitted, per order).
 
 VERDICT: PASS
+
+---
+
+## 8. Re-audit of review-fix commit `65035a1` + evidence commit `d4eaf96` (2026-10-22 UTC, independent re-audit)
+
+Stage: `wave-40-review-reaudit` · Commits under audit: `65035a1` + `d4eaf96`
+(`git log --oneline -5` confirmed: `d4eaf96` evidence on top of `65035a1` on top of
+`0ae18c5/d4a55ef/9eb5171`) · Base: `d863df0` · Auditor: drift-guard (read-only; nothing committed).
+
+### 8.1 Diff audit — scope and generated-tree integrity
+
+- `git show --stat 65035a1`: exactly two files —
+  `scripts/manifest-closure.py` (+130/−10), `tests/test_manifest_closure.py` (+324/−6).
+- Evidence commit `d4eaf96`: exactly two files — `docs/evidence/.../red-proofs.log`
+  (+134), `docs/reports/qa-wave-40-manifest-closure.md` (+66, §8). Reports/evidence only.
+- Full-wave `git diff d863df0..HEAD --stat`: 9 files, additive-only; zero changes under
+  `specs/ rigs/ rosters/ registry/ openspec/` (empty `git diff` on those paths, count 0).
+- `verify-rigs.sh` diff: `grep -cE '^-[^-]'` = **0** removed/modified lines — pure V8
+  append; V1, V2&V3, V4&V5, V6, V7 labels all present, prior-wave label fix untouched.
+- Contract check (tasks.md + `specs/manifest-closure/spec.md` + design.md): the seven
+  items map 1:1 to reviewer requests + spec fidelity (REQ-C1 tokenizer/run-strip,
+  REQ-C2(b) ownership, REQ-C3 fail-closed/unreadable, REQ-C5 extends-types/JSONC,
+  staged-context correctness). No scope creep beyond the review requests; no spec clause
+  added, removed, or reworded.
+
+### 8.2 The seven changed regions — read in full
+
+- **(a) extends per-config types (leaf-wins)**: chain starts leaf-first; `merged_types`
+  is filled from the FIRST config providing a `types` list (`if merged_types is None`
+  guard added) and `extends` is only followed while types are still unfound — leaf
+  override wins exactly matching tsc semantics; base types fire only when the leaf
+  omits them, attributed to the leaf path via probe. Base attribution correct; no
+  over-attribution (base-only entries never checked against the leaf's package).
+- **(b) parents order (nearest-first)**: `reversed(Path(path).parents)` → plain
+  `Path(path).parents`, which is already nearest-first. The reversal was the bug
+  (farthest ancestor won). Grep confirms this is the ONLY `.parents` traversal in the
+  file — no other code relied on the old order.
+- **(c) split_segments (backslash join + `#` comments)**: `\\\n` joined BEFORE
+  splitting; `#` strips to EOL only at word start (segment start or after
+  space/tab/`;|&(\``), quoted hashes never reach the branch (quote check first).
+  `foo#bar` kept (prior char `o`), `$#` kept (prior `$` not a trigger), shebang-style
+  leading `#` stripped — harmless (package.json scripts and `run:` bodies never carry
+  meaningful shebangs; `#!` is not a binary). No over-stripping found.
+- **(d) run-strip (filtered positional)**: leading `run` now stripped from the
+  post-flag-filter positional list instead of raw args, so
+  `pnpm --filter pkg run build` recurses into `build`. Empty-positional behavior
+  preserved (`if not positional: return` retained; verified `pnpm run`-only fixture
+  asserts exit 0 in the committed suite). No regression on the `run`-named-script edge
+  (identical strip-then-empty outcome under both logics).
+- **(e) JSONC (tsconfig-only)**: `_strip_jsonc` is string-aware (quote tracking with
+  escape handling — `//` inside strings/URLs preserved) and is called ONLY from
+  `load_tsconfig_text` on the extends-chain path; package manifests still go through
+  strict `load_json_text` (line 702, unchanged). Independently re-probed: commented
+  `package.json` → `UNREADABLE MANIFEST`, exit 1 (strict held). Residual nit (advisory
+  only): the trailing-comma regex could theoretically touch `,}` inside a string
+  literal — unreachable on the tsconfig surface (`types`/`extends` values), no spec
+  clause demands a full JSONC parser. NOT a finding.
+- **(f) staged context (finding-exempt)**: `index_tracked_manifests` collects only
+  `package.json` index blobs; `check_loaded` loads them for resolution (`add_package`)
+  but skips `check_package` for `context_keys`. Root = shallowest manifest, so a
+  committed workspace root correctly becomes resolution context (REQ-C2(b) direction).
+  Staged entry-point set unchanged (workflows/tsconfigs only from staged;
+  `staged_names` exclude prevents double-load). Malformed context still fails closed
+  via `load_json_text` — correct direction.
+- **(g) unreadable (IsADirectoryError + OSError)**: specific branch gives a precise
+  message; generic `OSError` fallback preserves fail-closed. QA's honest record stands:
+  removing only the specific branch still passes via the fallback (defense-in-depth,
+  not solely load-bearing); removing both lets raw `IsADirectoryError` escape (RED).
+
+### 8.3 Ruling on QA §8.4 (go-only test passes under both logics at exit-code level)
+
+CONFIRMED non-blocking — no upgrade to finding, by independent reasoning + probe:
+
+- The fixture stages `build: secrettool --fast` as its own script, so `build` is a
+  direct entry point that fires under EITHER logic. My own probe of the shipped code
+  shows TWO findings under new logic — `(script 'build' (script 'go'))` chain AND
+  direct `script 'build'` — proving the old logic would still exit non-zero via the
+  direct path alone. QA's exit-level equivalence claim is mechanically correct.
+- The NEW behavior is nevertheless discriminated, not vacuous: (i) R18 red-proof
+  (go-only fixture flips exit 1→0 under old run-strip, restored clean), and (ii) the
+  `(script 'go')` chain-attribution string exists only under new logic (visible in my
+  probe output). The behavior is red-proven; only the committed assertion is
+  exit-level-weak — a test-sharpness nit (assert the chain string or add a go-only
+  fixture), already recorded honestly by QA. Severity rule reserves FAIL for stubs,
+  vacuous checks, failing commands, or missing deliverables — none apply.
+
+### 8.4 Commands re-run (auditor, unmodified tree)
+
+- `make verify` → `SUMMARY: 24 checks passed, 0 failed`, exit 0 (V8 present; heartbeat
+  WARNs + seat-idleness SKIP only, same as baseline).
+- `openspec validate remediate-40-manifest-closure` → valid, exit 0.
+- `python3 -m unittest tests/test_manifest_closure.py` → Ran 28 / OK (17→28 via the
+  11 review-driven tests), exit 0.
+- `git status --short` → clean. Secrets scan over `git diff d863df0..HEAD` → zero
+  secret-shaped strings (only benign `secrettool` fixture / `token` prose matches).
+- Red-proof log R15–R21 present with non-vacuous signatures (exit flips + named
+  findings + unit FAIL/ERROR directions, all restored to clean status).
+
+### 8.5 Prior PASS basis — holds
+
+No generated-dir edits, no provenance churn (registry diff empty), `make verify`
+24/0 with byte-identical V1–V7, mission repo untouched (lint is read-only by
+construction; no write path exists outside the repo it runs in). The one standing
+advisory (AGENTS.md "23 checks" staleness) remains correctly out of scope.
+
+Report path: `docs/reports/wave-40-manifest-closure-verification.md` (§8, this section; uncommitted, per order).
+
+VERDICT: PASS
