@@ -578,6 +578,7 @@ roles:
       path_write:
       - tests/a11y/*
       - docs/a11y/*
+      - docs/design-system/*
       bash_allow:
       - npx playwright test tests/a11y*
       - rig whoami*
@@ -1660,6 +1661,7 @@ roles:
       - packages/ui/*
       - tokens/*
       - src/components/ui/*
+      - docs/design-system/*
       bash_allow:
       - npm run test-storybook*
       - npm run build-tokens*
@@ -2906,6 +2908,7 @@ roles:
     permissions:
       path_write:
       - docs/product/*
+      - docs/brief/*
       bash_allow:
       - rig whoami*
       - rig ps*
@@ -3750,6 +3753,7 @@ roles:
       path_write:
       - src/*
       - package.json
+      - docs/architecture/*
       bash_allow:
       - npm run build*
       - npm test*
@@ -3826,6 +3830,7 @@ roles:
       path_write:
       - src/components/*
       - src/assets/*
+      - docs/design-system/*
       bash_allow:
       - npm run build*
       - rig whoami*
@@ -3887,6 +3892,7 @@ roles:
     permissions:
       path_write:
       - docs/research/*
+      - docs/design-system/*
       bash_allow:
       - rig whoami*
       - rig ps*
