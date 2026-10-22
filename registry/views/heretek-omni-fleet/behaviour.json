@@ -5,14 +5,14 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/heretek-omni-fleet",
-      "resolvedCommit": "96f3a96e2cf8a28a968d11176c5a497a07c4d925",
+      "resolvedCommit": "bae5d3a4844f6321dd6882ed31969fa9e685b320",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/96f3a96e2cf8a28a968d11176c5a497a07c4d925/rigs/heretek-omni-fleet"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/bae5d3a4844f6321dd6882ed31969fa9e685b320/rigs/heretek-omni-fleet"
     },
     "configurationId": "command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "d1f0c86a2eab17b484f9f552e22fef6f5e4b5e9b03caef7810b8e41187a9a3ba",
+      "value": "e0212fecba0fa112e0b1883a4223bad487749d883034f2ed66011b1198917676",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {

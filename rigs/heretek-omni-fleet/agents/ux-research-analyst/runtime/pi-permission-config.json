@@ -76,6 +76,7 @@
     "path_write": {
       "*": "deny",
       "docs/research/*": "allow",
+      "docs/design-system/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",

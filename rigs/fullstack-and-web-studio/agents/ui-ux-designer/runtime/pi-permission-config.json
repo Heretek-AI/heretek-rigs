@@ -78,6 +78,7 @@
       "*": "deny",
       "src/components/*": "allow",
       "src/assets/*": "allow",
+      "docs/design-system/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",

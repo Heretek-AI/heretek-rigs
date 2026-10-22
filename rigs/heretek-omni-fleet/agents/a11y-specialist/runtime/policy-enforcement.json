@@ -86,6 +86,7 @@
       "*": "deny",
       "tests/a11y/*": "allow",
       "docs/a11y/*": "allow",
+      "docs/design-system/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",

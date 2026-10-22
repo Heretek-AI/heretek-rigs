@@ -89,6 +89,7 @@
       "packages/ui/*": "allow",
       "tokens/*": "allow",
       "src/components/ui/*": "allow",
+      "docs/design-system/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",

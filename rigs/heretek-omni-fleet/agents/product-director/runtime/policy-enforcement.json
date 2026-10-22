@@ -83,6 +83,7 @@
     "path_write": {
       "*": "deny",
       "docs/product/*": "allow",
+      "docs/brief/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",
