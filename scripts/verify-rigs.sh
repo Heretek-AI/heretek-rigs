@@ -1430,6 +1430,41 @@ if _mc_match:
 if len(failures) == _mc_before:
     ok(f"Manifest-closure lint (issue #40) green: staged manifests resolve with zero undeclared binaries (tests/test_manifest_closure.py {_mc_ran} tests pass)")
 
+print("\n== V9. Policy-Text Verifier (issue #41) ==")
+# HR-41 (fail-closed stage-time gate): lint-table names resolve against the
+# checked-in known-lint snapshot (the stale cast_lossy reference fires);
+# workflow run: steps resolve against staged package scripts (a pnpm
+# eslint .-style step duplicating the lint script fails citing the script);
+# cargo steps resolve to known subcommands or staged .cargo aliases.
+# Proven by tests/test_policy_verifier.py synthetic fixtures (stale + fixed
+# pins, duplicate + reconciled steps, stale-snapshot, unreadable files)
+# plus a live --staged run. Appended at the end — no existing check
+# renumbered or reworded. Exactly one ok() below.
+_hr41_before = len(failures)
+_hr41r = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_policy_verifier.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _hr41r.returncode != 0:
+    fail(f"tests/test_policy_verifier.py failed:\n{_hr41r.stderr}")
+_hr41s = subprocess.run(
+    [sys.executable, str(root / "scripts/policy-verifier.py"), "--staged",
+     "--pin-file", str(root / "scripts/policy-verifier.toolchain-pin")],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _hr41s.returncode != 0:
+    fail(f"scripts/policy-verifier.py --staged failed:\n{_hr41s.stdout}\n{_hr41s.stderr}")
+_hr41_ran = "?"
+_hr41_match = re.search(r"Ran (\d+) tests", _hr41r.stderr)
+if _hr41_match:
+    _hr41_ran = _hr41_match.group(1)
+if len(failures) == _hr41_before:
+    ok(f"Policy-text verifier (issue #41) green: staged policy files resolve against the pinned authority (tests/test_policy_verifier.py {_hr41_ran} tests pass)")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

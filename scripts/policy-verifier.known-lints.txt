@@ -1,0 +1,33 @@
+# policy-verifier.known-lints.txt — checked-in known-lint snapshot (issue #41).
+#
+# CURATED SUBSET, not a toolchain capture: the names below are a
+# hand-audited subset of the live lint tables read from the mission repo —
+# the root Cargo.toml [workspace.lints.rust] section (unsafe_code,
+# missing_docs, rust_2018_idioms) and [workspace.lints.clippy] section
+# (all, pedantic, unwrap_used, expect_used, missing_errors_doc,
+# cast_possible_truncation — not the stale cast_lossy). No toolchain
+# capture exists in this repo; nothing here was emitted by `rustc -W help`
+# or a clippy lint list. Treat every entry as an audited allow-list name.
+#
+# The audited crate manifests (apps/web/src-tauri/Cargo.toml) carry only
+# `[lints] workspace = true` (zero lint names); the w1-08-staging manifest
+# carries no [lints] table at all. The verifier fails closed on any name
+# outside this set.
+#
+# MANUAL REFRESH PROCESS (no automation): on a toolchain bump, re-audit
+# the live tables read-only, update the names below by hand, and bump the
+# audit-revision pin on the `pin:` line AND the identical pin in
+# scripts/policy-verifier.toolchain-pin together. A snapshot pin that
+# disagrees with the toolchain-pin file fails EVERY verifier invocation
+# as a stale snapshot (pin-mismatch-fails, design.md) — never hand-edit
+# names without bumping both pins in the same change.
+pin: fixture-toolchain-1
+clippy::all
+clippy::pedantic
+clippy::unwrap_used
+clippy::expect_used
+clippy::missing_errors_doc
+clippy::cast_possible_truncation
+rust::missing_docs
+rust::rust_2018_idioms
+rust::unsafe_code

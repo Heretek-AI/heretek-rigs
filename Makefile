@@ -13,7 +13,7 @@ SIDECAR_PROFILES ?=
 RIG_BIN := $(shell command -v rig 2>/dev/null || true)
 
 .DEFAULT_GOAL := help
-.PHONY: help generate idempotent verify live-health test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology manifest-closure
+.PHONY: help generate idempotent verify live-health test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology manifest-closure policy-verifier
 
 help: ## List all documented Heretek-Rigs targets.
 	@echo "Heretek-Rigs — 51-Agent OpenRig + Pi + OpenCode Go Fleet"
@@ -84,3 +84,6 @@ audit-loop: ## Run the automated OpenCode adversarial audit & remediation loop u
 
 manifest-closure: ## Run the stage-time manifest-closure lint over staged manifests (issue #40).
 	python3 ./scripts/manifest-closure.py --staged
+
+policy-verifier: ## Run the stage-time policy-text verifier over staged policy files (issue #41).
+	python3 ./scripts/policy-verifier.py --staged

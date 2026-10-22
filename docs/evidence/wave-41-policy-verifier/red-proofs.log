@@ -1,0 +1,311 @@
+# red-proofs.log — wave-41-policy-verifier QA (verifier: QA seat, 2026-10-22)
+# Stage: wave-41-policy-verifier · commit d8fdded · 7-step sabotage protocol.
+# All fixture sabotage uses synthetic /tmp/qa41 trees only. Production-code
+# sabotage (S0) is reverted with git checkout; git status verified clean after.
+
+## BASELINE (unmodified tree)
+--- make verify tail ---
+== V9. Policy-Text Verifier (issue #41) ==
+  [PASS] Policy-text verifier (issue #41) green: staged policy files resolve against the pinned authority (tests/test_policy_verifier.py 16 tests pass)
+SUMMARY: 25 checks passed, 0 failed.
+make-verify-exit:0
+Ran 124 tests in 7.641s
+
+OK
+Change 'remediate-41-policy-verifier' is valid
+
+## S0 — production-code sabotage (non-vacuity proof)
+# Defect: early 'return' at top of Verifier.check_toml (lint-name check neutered).
+# Command: python3 -m unittest tests.test_policy_verifier
+# Result: FAILED (failures=4), S0-REAL-EXIT:1
+# Failing tests (expect stale-lossy, non-workspace table, staged-stale):
+FAIL: test_non_workspace_lints_table_checked (tests.test_policy_verifier.PolicyVerifierLintTests.test_non_workspace_lints_table_checked)
+FAIL: test_stale_cast_lossy_fires_naming_lint_and_line (tests.test_policy_verifier.PolicyVerifierLintTests.test_stale_cast_lossy_fires_naming_lint_and_line)
+FAIL: test_unparseable_toml_fails_closed (tests.test_policy_verifier.PolicyVerifierLintTests.test_unparseable_toml_fails_closed)
+FAIL: test_staged_stale_toml_fails_then_fixed_passes (tests.test_policy_verifier.PolicyVerifierStagedTests.test_staged_stale_toml_fails_then_fixed_passes)
+# Restore: git checkout -- scripts/policy-verifier.py; tracked status clean.
+
+## (a) live stale text replicated synthetically — MUST fire naming lint + file:line
+# Fixture: /tmp/qa41/t/stale.toml ([workspace.lints.clippy] + cast_lossy = "deny")
+# Command: python3 scripts/policy-verifier.py stale.toml --known-lints /tmp/qa41/known-lints.txt
+# Output: policy-verifier: UNKNOWN LINT 'clippy::cast_lossy' at stale.toml:6 (no such lint in the pinned toolchain snapshot)
+# Exit: 1 (RED as required). Corrected cast_possible_truncation fixture: exit 0 (GREEN).
+
+## (b) workflow run: duplicating a script body — MUST fire DUPLICATE citing lint
+# Fixture: /tmp/qa41/t/b1 (package.json lint=eslint ., pipelines/ci.yml run: pnpm eslint .)
+# Output: policy-verifier: DUPLICATE RUN COMMAND 'pnpm eslint .' at pipelines/ci.yml:8 (package script 'lint' already names this command; use `pnpm lint` instead)
+# Exit: 1 (RED). Reconciled shape (run: pnpm lint): exit 0 (GREEN).
+
+## (c) run: step with NO script and NO declaration — MUST fail naming file:line+command
+# Fixture: /tmp/qa41/t/c (run: pnpm lintt, no such scripts entry)
+# Output: policy-verifier: UNRESOLVABLE SCRIPT 'lintt' at pipelines/ci.yml:8 (run: pnpm lintt; no staged package.json scripts entry names 'lintt')
+# Exit: 1 (RED).
+
+## (d) snapshot sabotage — proves snapshot load-bearing, not decorative
+# (d1) stripped snapshot (cast_possible_truncation removed) + fixed.toml:
+#   Output: UNKNOWN LINT 'clippy::cast_possible_truncation' ... Exit: 1 (legit file now FAILS — RED).
+# (d2) stale pin (--expect-pin fixture-toolchain-2 vs snapshot pin fixture-toolchain-1):
+#   Output: STALE KNOWN-LINT SNAPSHOT ... Exit: 1 (fail-closed RED).
+# (d3) missing snapshot file: Output: MISSING KNOWN-LINT SNAPSHOT ... refusing to resolve ... Exit: 1 (fail-closed RED).
+
+## (e) unparseable TOML/YAML — MUST fail closed with named error, never skip-silent
+# (e1) bad.toml: UNREADABLE POLICY 'bad.toml' (invalid TOML: ...) Exit: 1.
+# (e2) bad workflow: UNREADABLE WORKFLOW 'pipelines/ci.yml' (invalid YAML: ...) Exit: 1.
+
+## (f) cargo subcommand vs staged alias
+# (f1) run: cargo frobnicate --locked: UNKNOWN CARGO SUBCOMMAND 'frobnicate' ... Exit: 1 (RED).
+# (f2) staged .cargo/config.toml [alias] xit + run: cargo xit: exit 0 (GREEN).
+# (f2-broken) alias entry removed: UNKNOWN CARGO SUBCOMMAND 'xit' ... Exit: 1 (RED — alias lookup load-bearing).
+
+## (g) allowlist/toolchain-pin sabotage — empty pin fails closed, no default-allow
+# Snapshot without pin line + --expect-pin fixture-toolchain-1:
+#   Output: STALE KNOWN-LINT SNAPSHOT (snapshot pin 'None' != repo toolchain pin ...) Exit: 1 (RED).
+
+## RESTORE VERIFICATION
+# S0 production sabotage reverted via: git checkout -- scripts/policy-verifier.py
+# All (a)-(g) fixtures live in /tmp/qa41 (outside the repo); no repo file was modified by the battery.
+
+## REWORK-1 (drift-guard F1 + F2 remediation, 2026-10-22)
+# All commands below re-ran for real; exits and outputs are recorded verbatim.
+# No mission-repo file was written (read-only scans; mission `git diff --stat` empty).
+#
+# F1-RED (pre-fix, live corrected Cargo.toml vs shipped 7-entry snapshot):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml --known-lints scripts/policy-verifier.known-lints.txt
+#   Output: policy-verifier: UNKNOWN LINT 'rust::unsafe_code' at .../Cargo.toml:28 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: UNKNOWN LINT 'rust::missing_docs' at .../Cargo.toml:29 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: 2 finding(s) in 1 file(s); policy text does not resolve.
+#   Exit: 1 (false positives on REAL toolchain lints — the reported defect, reproduced).
+# F1-GREEN (post-fix, same live file, bare invocation through the new default pin path):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0. The vendored tests/fixtures/policy-verifier/live-corrected-lints.toml
+#   copy scanned with the CHECKED-IN snapshot likewise exits 0
+#   (test_vendored_live_corrected_table_passes_checked_in_snapshot).
+# F1-TRUE-POSITIVE (live stale reference post-fix — no masking by the expansion):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/src/w3-06-staging/root-lints-reference.toml
+#   Output: policy-verifier: UNKNOWN LINT 'clippy::cast_lossy' at .../root-lints-reference.toml:28 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: 1 finding(s) in 1 file(s); policy text does not resolve.
+#   Exit: 1 — exactly ONE finding (cast_lossy only; unsafe_code/missing_docs quiet).
+# F2-RED (pre-fix opt-in gap: stale pin, no pin flags → silent pass):
+#   Fixture: /tmp/f2demo (snapshot pin stale-pin-0 vs checked-in fixture-toolchain-1)
+#   Command: python3 scripts/policy-verifier.py /tmp/f2demo/Cargo.toml --known-lints /tmp/f2demo/known.txt
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0 (the reported gap, reproduced).
+# F2-GREEN (post-fix: identical command now fails closed on the default pin path):
+#   Output: policy-verifier: STALE KNOWN-LINT SNAPSHOT '/tmp/f2demo/known.txt' (snapshot pin 'stale-pin-0' != repo toolchain pin 'fixture-toolchain-1'; refresh the snapshot from the pinned toolchain and re-run)
+#   Exit: 1 (test_default_pin_file_enforces_freshness_without_pin_flags).
+# S0-REWORK (production-code sabotage: early `return` in PolicyChecker.check_toml):
+#   Command: python3 -m unittest tests.test_policy_verifier.PolicyVerifierLiveTableTests
+#   Result: FAILED (failures=1) —
+#   FAIL: test_vendored_live_table_with_stale_cast_lossy_fires_only_that_name
+#   (the stale live-table test is load-bearing, not vacuous; the green live-table
+#   test's non-vacuity is its F1-RED->F1-GREEN flip above, and the pin test never
+#   reaches check_toml). Sabotage restored from a /tmp backup (no git checkout
+#   of committed files); suite re-ran 19/19 OK after restore.
+# BASELINE-REWORK (post-fix tree):
+#   python3 -m unittest discover -s tests → Ran 127 tests, OK.
+#   make verify → SUMMARY: 25 checks passed, 0 failed (V9: 19 tests pass) + live-health advisory exit 0.
+#   openspec validate remediate-41-policy-verifier → valid.
+
+## RE-VERIFY (rework cycle 1, commit 8dc4d57, 2026-10-22)
+# Verifier: QA re-verification seat (sabotage-only; nothing committed, merged, or pushed).
+# Worktree: .lane/trees/wave-41-policy-verifier · commits: 8dc4d57 on top of
+#   dea5b74 + d8fdded (git log --oneline -4 confirmed).
+# All sabotage reverted via `git checkout -- <file>`; byte-identical restore
+# confirmed with diff against /tmp backup; git status clean after each revert.
+#
+# BASELINE-REVERIFY (unmodified tree):
+#   make verify → SUMMARY: 25 checks passed, 0 failed (V9: 19 tests pass) +
+#     live-health advisory exit 0 (only pre-existing heartbeat/idleness WARN/SKIP).
+#     make-verify-exit:0.
+#   openspec validate remediate-41-policy-verifier → valid, exit 0.
+#   python3 -m unittest discover -s tests → Ran 127 tests, OK, exit 0.
+#
+# F1a — live corrected Cargo.toml, bare scan (MUST exit 0; was exit 1 + 2 FPs):
+#   Command: python3 scripts/policy-verifier.py /home/john/Projects/heretek-asset-manager/Cargo.toml
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0 (PASS — false positives gone).
+# F1b — live stale reference root-lints-reference.toml (MUST exit 1, ONLY cast_lossy):
+#   Output: policy-verifier: UNKNOWN LINT 'clippy::cast_lossy' at .../root-lints-reference.toml:28 (no such lint in the pinned toolchain snapshot)
+#           policy-verifier: 1 finding(s) in 1 file(s); policy text does not resolve.
+#   Exit: 1 (PASS — exactly ONE finding; rust names quiet, true positive preserved).
+# F1c — snapshot sabotage (remove rust::missing_docs line from checked-in snapshot):
+#   Command: python3 -m unittest tests.test_policy_verifier.PolicyVerifierLiveTableTests
+#   Result: FAILED (failures=2), exit 1 — the green-pass test and the
+#     stale-fires-only test both turn RED (missing_docs fires; assertNotIn fails).
+#   Restore: git checkout -- scripts/policy-verifier.known-lints.txt;
+#     diff vs /tmp backup → BYTE-IDENTICAL; suite 3/3 OK after restore.
+#   (PASS — vendored live-table tests guard the F1 fix, not vacuous.)
+# F1d — fixture fidelity (read-only): parsed live Cargo.toml vs vendored
+#   tests/fixtures/policy-verifier/live-corrected-lints.toml with tomllib:
+#   rust keys+levels MATCH (missing_docs/rust_2018_idioms/unsafe_code);
+#   clippy keys+levels MATCH (all/pedantic/unwrap_used/expect_used/missing_errors_doc/cast_possible_truncation).
+#   (PASS — fixture faithfully reproduces the live tables; trailing comments only dropped.)
+#
+# F2a — stale snapshot pin, NO pin flags (MUST exit 1 STALE; was silent exit 0):
+#   Fixture: /tmp/opencode/qa41f2 (snapshot pin stale-pin-0 vs checked-in fixture-toolchain-1).
+#   Command: python3 scripts/policy-verifier.py /tmp/opencode/qa41f2/good.toml --known-lints /tmp/opencode/qa41f2/stale-known.txt
+#   Output: policy-verifier: STALE KNOWN-LINT SNAPSHOT '/tmp/opencode/qa41f2/stale-known.txt' (snapshot pin 'stale-pin-0' != repo toolchain pin 'fixture-toolchain-1'; refresh the snapshot from the pinned toolchain and re-run)
+#   Exit: 1 (PASS — default --pin-file enforces freshness on the bare path).
+# F2b — matching pin, bare invocation (MUST exit 0; good-file path unaffected):
+#   Command: python3 scripts/policy-verifier.py tests/fixtures/policy-verifier/live-corrected-lints.toml
+#   Output: policy-verifier: all 1 staged policy file(s) resolve against the pinned authority.
+#   Exit: 0 (PASS).
+# F2c — explicit --expect-pin precedence sabotage (pin-file unconditionally
+#   overrides expect_pin; `if expect_pin is None` guard removed):
+#   Command: python3 -m unittest ...test_stale_snapshot_pin_fails ...test_matching_pin_passes
+#   Result: FAILED (failures=2), exit 1 — test_stale passes-silent (pin-1 vs pin-1
+#     match, asserts non-zero) and test_matching goes STALE (pin-9 vs default pin-1,
+#     asserts 0). Both directions break, proving the precedence guard load-bearing.
+#   Note: --expect-pin/--pin-file are argparse-mutexed (passing both → usage exit 2),
+#     so "precedence" = explicit --expect-pin skips the default pin-file read.
+#   Restore: git checkout -- scripts/policy-verifier.py; diff vs /tmp backup →
+#     BYTE-IDENTICAL; 5/5 pin+live tests OK after restore. (PASS.)
+#
+# REGRESSION (original red-proofs re-run; snapshot expansion must not mask):
+#   R1 stale clippy-only TOML → exit 1, UNKNOWN LINT 'clippy::cast_lossy' at t/stale.toml:2. PASS.
+#   R2 pnpm eslint . with lint script → exit 1, DUPLICATE RUN COMMAND citing 'lint'. PASS.
+#   R3 unparseable TOML → exit 1, UNREADABLE POLICY 't/bad.toml' (invalid TOML...). PASS.
+#   (All fixtures in /tmp/opencode/qa41reg; no repo files touched.)
+#
+# MISSION-REPO + HYGIENE:
+#   git -C mission diff --stat → empty (tracked tree untouched; only pre-existing untracked strays).
+#   git diff 0a3db37..HEAD -- scripts/verify-rigs.sh | grep -c '^-[^-]' → 0 (V1–V8 byte-identical).
+#   V9 block: exactly one new ok() (other grep hits: V8 context line + comment).
+#   Makefile: additive only (.PHONY token append = 1 del+1 add; one new target block).
+#   Forbidden dirs (specs/ rigs/ rosters/ registry/ fleet/): zero files in diff. PASS.
+
+## REVIEW-2 (second review round, commit 3513e47, 2026-10-22)
+# Verifier: QA re-verification seat (sabotage-only; nothing committed, merged, or pushed).
+# Worktree: .lane/trees/wave-41-policy-verifier · commit 3513e47
+#   (`fix(41-policy-verifier): address PR review - index authority, expr placeholder,
+#   builtins, quoting, cargo context`) on top of 627b3b4 + 8f9da0e + 8dc4d57 + dea5b74
+#   (git log --oneline -5 confirmed).
+# Every sabotage below was reverted via `git checkout -- <file>` with
+# `git status --short` confirmed clean after each revert; post-restore suites re-ran OK.
+#
+# BASELINE-REVIEW2 (unmodified tree):
+#   make verify → SUMMARY: 25 checks passed, 0 failed (V9: 34 tests pass) +
+#     live-health advisory exit 0 (only pre-existing heartbeat/idleness WARN/SKIP).
+#     make-verify-exit:0.
+#   openspec validate remediate-41-policy-verifier → valid, exit 0.
+#   python3 -m unittest discover -s tests → Ran 142 tests, OK, exit 0.
+#   New-behavior positives (clean tree): 9 workflow tests OK
+#     (expression-single-segment, dynamic-expression-skip, npm test with/without
+#     script, npm t alias, yarn workspace resolve, yarn bogus control, 3 quoting tests)
+#     + 7/7 PolicyVerifierStagedTests OK.
+#
+# (a) INDEX AUTHORITY — unstaged worktree snapshot breakage vs staged run:
+#   Positive (clean tree): test_staged_uses_indexed_snapshot_not_worktree passes —
+#     worktree snapshot rewritten to `pin: wrong-pin` UNSTAGED, staged run still exit 0
+#     (INDEX blob wins); test_staged_snapshot_edit_is_honored passes — a STAGED
+#     snapshot edit adding `clippy::new_hotness` is honored (exit 0 on new_hotness table).
+#   Sabotage: load_known_lints_staged reduced to `return load_known_lints(path_str)`
+#     (index read bypassed; backup /tmp/opencode/qa41r2-a-backup.py):
+#     test_staged_uses_indexed_snapshot_not_worktree → FAILED (failures=1), exit 1:
+#     `AssertionError: 1 != 0 : policy-verifier: MISSING KNOWN-LINT SNAPSHOT
+#     '/tmp/tmpvnwysg2w/known.txt' (no lint entries parsed)` — the unstaged worktree
+#     breakage now leaks into staged validation. Behavior changed: index path load-bearing.
+#   Restore: git checkout -- scripts/policy-verifier.py; git status --short clean;
+#     PolicyVerifierStagedTests 7/7 OK after. PASS.
+#
+# (b) SNAPSHOT HONESTY — headers + pin-mismatch (F2 mechanism intact):
+#   grep -in "curated.subset" → scripts/policy-verifier.known-lints.txt:3
+#     `# CURATED SUBSET, not a toolchain capture: ...` and
+#     scripts/policy-verifier.toolchain-pin:3
+#     `# CURATED SUBSET companion to scripts/policy-verifier.known-lints.txt: ...`
+#     Both files disclaim toolchain capture; refresh process documented in both headers.
+#   Pin-mismatch re-proof (no pin flags, F2 default path): snapshot copy with pin
+#     `stale-pin-9` vs checked-in `fixture-toolchain-1`, good fixture
+#     tests/fixtures/policy-verifier/live-corrected-lints.toml:
+#     Command: python3 scripts/policy-verifier.py /tmp/opencode/qa41r2b/good.toml
+#       --known-lints /tmp/opencode/qa41r2b/stale-known.txt
+#     Output: policy-verifier: STALE KNOWN-LINT SNAPSHOT '.../stale-known.txt'
+#       (snapshot pin 'stale-pin-9' != repo toolchain pin 'fixture-toolchain-1'; ...)
+#     Exit: 1 (fail-closed RED). PASS. No code sabotage needed (positive re-proof).
+#
+# (c) EXPRESSIONS — `${{ }}` placeholder:
+#   Positive (clean tree): `echo ${{ a || b }}` single segment, no finding (exit 0);
+#     `pnpm ${{ matrix.script }}` skipped, no UNRESOLVABLE (exit 0);
+#     `pnpm lint ${{ matrix.args }}` still resolves lint (exit 0).
+#   Sabotage: `for segment in split_segments(sanitized):` → `split_segments(body)`
+#     (placeholder substitution removed; backup /tmp/opencode/qa41r2c-backup.py):
+#     `pnpm ${{ matrix.script }}` test → FAILED, exit 1:
+#     `UNRESOLVABLE SCRIPT 'matrix.script' at .../pipelines/ci.yml:7` (split on `$`/`{`
+#     tokens, expression torn apart).
+#     Direct `||`-in-expression probe (`run: pnpm ${{ a || b }}`, /tmp/qa41r2c-or-16_86_26):
+#     sabotaged → exit 1, `UNRESOLVABLE SCRIPT 'a' at .../ci.yml:7`
+#     (split at `||`, head fragment misresolved).
+#   Restore: git checkout -- scripts/policy-verifier.py; status clean; same probe →
+#     exit 0 (`all 1 staged policy file(s) resolve`); 3/3 expression tests OK. PASS.
+#   Note: the `echo ${{ a || b }}` unit test stays green even sabotaged because `echo`
+#     steps carry no resolution — the load-bearing proof is the RED on manager-position
+#     expressions above, i.e. the behavior the placeholder exists to protect.
+#
+# (d) BUILTINS — manager defaults + aliases:
+#   Positive (clean tree): `npm test` with test script → exit 0 (script wins);
+#     `npm test` with NO test script → exit 0, no UNRESOLVABLE (manager default);
+#     `npm t` ≡ test (exit 0); `yarn workspace foo build` → exit 0;
+#     `yarn workspace foo bogus` → exit 1 naming `bogus` (control still fails named).
+#   Sabotage: `"test",` removed from PM_DEFAULT_COMMANDS (backup /tmp/opencode/qa41r2d-backup.py):
+#     test_npm_test_without_script_passes_as_default → FAILED, exit 1:
+#     `UNRESOLVABLE SCRIPT 'test' at .../pipelines/ci.yml:7
+#     (run: npm test; no staged package.json scripts entry names 'test')`.
+#     With-script and alias tests still pass (script-wins path untouched — precise).
+#   Restore: git checkout -- scripts/policy-verifier.py; status clean; 5/5 npm/yarn
+#     tests OK. PASS.
+#
+# (e) QUOTING — inline `run:` outer-quote strip:
+#   Positive (clean tree): `run: "pnpm eslint ."` → exit 1, DUPLICATE citing lint;
+#     single-quoted variant likewise; interior-escape variant (`"pnpm eslint '.'"`)
+#     likewise DUPLICATE (outer strip once, interior survives).
+#   Sabotage: `body = body[1:-1]` → `pass` (quote-blind; backup /tmp/opencode/qa41r2e-backup.py):
+#     all 3 quoting tests FAILED — each `AssertionError: 0 == 0 : ... all 1 staged
+#     policy file(s) resolve ...`, i.e. the DUPLICATE is MISSED (exit 0 silence).
+#   Restore: git checkout -- scripts/policy-verifier.py; status clean; 3/3 quoting
+#     tests OK. PASS (fix proven: quote-blind parsing misses what the fix catches).
+#
+# (f) CARGO CONTEXT — committed-not-staged `.cargo/config.toml` aliases:
+#   Positive (clean tree): staged workflow + COMMITTED (not staged)
+#     `.cargo/config.toml [alias] xit` + `run: cargo xit` → exit 0 (resolves);
+#     `run: cargo frobnicate --locked` → exit 1 naming `frobnicate` (control).
+#   Sabotage: is_cargo_config branch removed from index_tracked_manifests
+#     (package.json-only context; backup /tmp/opencode/qa41r2f-backup.py):
+#     test_staged_committed_cargo_alias_resolves_without_staging → FAILED, exit 1:
+#     `UNKNOWN CARGO SUBCOMMAND 'xit' at pipelines/ci.yml:7
+#     (run: cargo xit; not a known subcommand or staged .cargo/config.toml alias)`.
+#     Unknown-alias control still fails as before (precise).
+#   `.cargo/config` naming audit: full `python3 -m unittest tests.test_policy_verifier`
+#     output on the CLEAN tree contains ZERO `.cargo/config` strings (grep exit 1);
+#     code route: staged-context config entries (policy-verifier.py:983-987) feed
+#     `checker.aliases |= load_aliases(...)` only and never reach `check_toml`,
+#     while lint-checked `.cargo/*.toml` (lines 994-997/1047-1049) carry no
+#     `[workspace.lints]/[lints]` tables so yield no findings. PASS.
+#   Restore: git checkout -- scripts/policy-verifier.py; status clean; suite OK. PASS.
+#
+# (g) NITPICK — write_snapshot default equals checked-in pin:
+#   Positive (clean tree): test_shipped_authority_files_exist_and_pin_match reads the
+#     pin via read_checked_in_pin() (comment-tolerant); all default-pin fixtures
+#     across the suite resolve — 34/34 tests/test_policy_verifier.py OK.
+#   Sabotage: read_checked_in_pin forced to `return "sabotage-pin"`
+#     (derivation broken; test-file backup /tmp/opencode/qa41r2x-test-backup.py):
+#     `python3 -m unittest tests.test_policy_verifier` → FAILED (failures=26),
+#     e.g. `STALE KNOWN-LINT SNAPSHOT ... (snapshot pin 'sabotage-pin' != repo
+#     toolchain pin 'fixture-toolchain-1' ...)`. The default is derived, not
+#     hardcoded — breaking the derivation breaks the pin tests.
+#   Restore: git checkout -- tests/test_policy_verifier.py scripts/policy-verifier.py;
+#     status clean; 34/34 OK. PASS.
+#
+# F1/F2 REGRESSION (live mission repo, read-only; mission `git diff --stat` empty):
+#   F1a live corrected Cargo.toml, bare: `python3 scripts/policy-verifier.py
+#     /home/john/Projects/heretek-asset-manager/Cargo.toml` → exit 0
+#     (`all 1 staged policy file(s) resolve`). No false positives.
+#   F1b live stale root-lints-reference.toml, bare → exit 1 with EXACTLY ONE finding:
+#     `UNKNOWN LINT 'clippy::cast_lossy' at .../root-lints-reference.toml:28 ...`
+#     `1 finding(s) in 1 file(s)`. True positive preserved, no masking.
+#   F2 stale-pin bare → exit 1 STALE (see (b) above; pre-fix silent pass stays closed).
+#
+# SCOPE: fix commit 3513e47 touches exactly 4 files —
+#   scripts/policy-verifier.known-lints.txt, scripts/policy-verifier.py,
+#   scripts/policy-verifier.toolchain-pin, tests/test_policy_verifier.py —
+#   zero files under specs/ fleet/ rigs/ rosters/ registry/. PASS.
