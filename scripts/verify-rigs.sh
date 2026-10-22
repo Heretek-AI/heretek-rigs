@@ -1395,7 +1395,7 @@ utr43 = subprocess.run(
 if utr43.returncode != 0:
     fail(f"tests/test_regen_gate.py failed:\n{utr43.stderr}")
 if len(failures) == _hr43_before:
-    ok("Regen-gate sanctioned-untracked allowlist covers AGENTS.md strays with justified entries and refuses synthetic dirt (tests/test_regen_gate.py 8/8)")
+    ok("Regen-gate sanctioned-untracked allowlist covers AGENTS.md strays with justified entries and refuses synthetic dirt (tests/test_regen_gate.py 9/9)")
 
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
