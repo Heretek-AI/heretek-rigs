@@ -71,3 +71,38 @@ Full sabotage transcript: `docs/evidence/wave-43-regen-gate/red-proofs.log`.
 4. Sabotage F: removed `".claude/",` line -> `./scripts/verify-rigs.sh --check-only` exit 1,
    `SUMMARY: 22 checks passed, 2 failed`, names `.claude/` gap -> `git checkout -- scripts/generate-rigs.py` -> 23/0.
 5. `git diff 00acda2..HEAD --stat -- registry/` -> empty; `git status --short` -> only QA strays.
+
+---
+
+# Follow-up re-verification: b5d4487 (porcelain strip fix) + 3bfd010 (V7 label)
+
+Stage: `wave-43-strip-reverify` · QA date (UTC): 2026-10-22
+Commits under test: `b5d4487` + `3bfd010` on top of prior wave-43 commits
+(`git log --oneline -6`: `3bfd010`, `b5d4487`, `057c7b6`, `4fe192a`, `5748758`, `32c1233`).
+Base for scope review: `00acda2`. QA mode: sabotage-only edits, all reverted; no commits/merges/pushes.
+Spec sources re-read from disk: `AGENTS.md`, `openspec/changes/remediate-43-regen-gate/specs/` (REQ-RG1–RG4), `tasks.md`.
+Sabotage transcript: `docs/evidence/wave-43-regen-gate/red-proofs.log` §13. Original report above intact.
+
+## Verdict: QA-CLEAN (no numbered findings)
+
+| # | Check | Command | Observed output | Result |
+|---|---|---|---|---|
+| F1 | Full suite | `make test` | `Ran 59 tests ... OK` exit 0 (58 prior + 1 new verbatim test) | PASS |
+| F2 | Verify 23/0 + advisory | `make verify` | `SUMMARY: 23 checks passed, 0 failed.` exit 0; V7 shows 9/9; pre-existing LIVE-HEALTH WARN (heartbeat stale age-unknown x7) + SKIP seat-idleness | PASS |
+| F3 | Spec valid | `openspec validate remediate-43-regen-gate` | `Change 'remediate-43-regen-gate' is valid` | PASS |
+| Fa | Unstaged ` M` verbatim (REQ-RG3) | `/tmp/qa_wave43_reverify.py baseline` | refusal line `'   M fleet/fleet.yaml'`, exit 2 | PASS |
+| Fa-red | `.strip()` sabotage → RED | temp restore `.strip()` + unit test | refusal `'  M fleet/fleet.yaml'`; `test_unstaged_first_line_keeps_leading_space_verbatim` FAILED exit 1; reverted via `git checkout --`, 9/9 OK | PASS (not vacuous) |
+| Fb | Staged `M ` still refuses | same harness (staged fixture) | raw `'M  fleet/fleet.yaml'`, exit 2 | PASS (no behavior change) |
+| Fc | Strays-only clean | same harness (strays fixture) | resolves HEAD, silent | PASS (no regression) |
+| Fd | V7 9/9 label matches count | `grep -c "    def test_"` → 9; verify shows 9/9 | match | PASS |
+| Fd-red | `8/8` label sabotage → still 23/0 | temp label revert + `--check-only` | `SUMMARY: 23 checks passed, 0 failed.` exit 0 with wrong label; reverted, 9/9 back | PASS (label-only, cosmetic — proven) |
+| F5 | Scope beyond fix commits | `git diff 00acda2..HEAD --name-only` vs per-commit lists | union matches exactly; b5d4487 = 2 files, 3bfd010 = 1 line; `registry/ specs/ rigs/ rosters/` diff empty | PASS |
+
+## Notes
+
+- Fd-red outcome is expected-by-design, not a weakness: V7's load-bearing assertion is the
+  `test_regen_gate.py` subprocess returncode, not the display string. The wrong-label run passing
+  proves the label cannot mask a test failure (a real test break would still fail V7 — proven by
+  the original sabotage F in §7 of the red-proofs log).
+- `git status --short` post-QA: empty (clean). Only files changed on disk by QA are the two
+  allowed evidence/report appends (`docs/evidence/.../red-proofs.log` §13, this section).
