@@ -154,4 +154,55 @@ No (b) robot, no (c) legalization. Faithful to the issue's chosen option. PASS.
 No numbered findings. No stubs, no `|| true`, no swallowed errors, no skipped tests,
 no secrets, no hand-edits under generated dirs, no renumbering, no scope creep.
 
+## 9. Re-audit 2026-10-22: follow-up fixes b5d4487 + 3bfd010 (stage wave-43-strip-reaudit)
+
+Commits under audit: `b5d4487` (porcelain strip fix) + `3bfd010` (V7 label
+8/8→9/9) + `e208287` (QA evidence, reports/evidence only). Base: `00acda2`.
+Spec sources re-read from disk: `AGENTS.md`, `openspec/changes/remediate-43-regen-gate/specs/`
+(REQ-RG1–RG4), `tasks.md`, `docs/reports/qa-wave-43-regen-gate.md` (follow-up
+§13 re-verification — one claim spot-checked independently, see R5).
+
+- R1 Diff scope: `git diff 00acda2..HEAD --stat` = 10 files, identical set to
+  the prior audit plus the two fix deltas. `b5d4487` touches exactly
+  `scripts/generate-rigs.py` (1 line) + `tests/test_regen_gate.py` (+1 test);
+  `3bfd010` touches exactly `scripts/verify-rigs.sh` (1 label string);
+  `e208287` touches exactly `docs/evidence/.../red-proofs.log` +
+  `docs/reports/qa-wave-43-regen-gate.md`. No other drift.
+  `git diff 00acda2..HEAD -- scripts/verify-rigs.sh | grep "^-[^-]"` = 0
+  removed lines vs base (the 8/8→9/9 delta exists only inter-commit; vs base
+  the V7 block is pure addition). V1–V6 byte-identical. PASS.
+- R2 `.rstrip("\n")` fix (generate-rigs.py:192): correct — strips only
+  terminal newlines, preserves leading porcelain status spaces (verified by
+  the new verbatim test asserting `"   M fleet/fleet.yaml"`). Other `.strip()`
+  sites audited: line 176 `rev-parse HEAD` (SHA-only, validated by
+  `re.fullmatch(r"[0-9a-f]{40}")` immediately after — no status semantics),
+  line 329 `npm root` path, line 362 charter-section regex group, line 692
+  `rev-parse --short=7` pin SHA. None operate on porcelain-shaped data. PASS.
+- R3 Label 8/8→9/9: display-only inside the wave's own new V7 `ok()` string.
+  The load-bearing gate is returncode-based
+  (`utr43.returncode != 0 → fail(...)`); a wrong label still passes 23/0 while
+  a real test break still fails V7 (QA's Fd-red + original sabotage F prove
+  both directions). `grep -c "    def test_"` = 9 matches the 9/9 label. PASS.
+- R4 Re-run myself: `make verify` → `SUMMARY: 23 checks passed, 0 failed`
+  exit 0 (+ pre-existing LIVE-HEALTH WARN heartbeat-stale ×7, SKIP
+  seat-idleness — advisory, unchanged); `python3 -m unittest
+  tests/test_regen_gate.py` → 9/9 OK; `openspec validate
+  remediate-43-regen-gate` → valid. Real-secret-pattern scan over
+  `git diff 00acda2..HEAD` (ghp_/gho_/AKIA/private-key shapes): zero hits
+  (the only `ghp_` substring is report prose naming the pattern, not a
+  secret). PASS.
+- R5 Spot-check of appended QA claim Fa (independent repro, /tmp scratch
+  repo, live checkout untouched): unstaged edit of `fleet/fleet.yaml` →
+  `resolve_heretek_commit` exits 2 with verbatim `   M fleet/fleet.yaml`
+  (leading space preserved — would have rendered `  M ...` staged-looking
+  under the old `.strip()`). Matches QA's recorded Fa/Fa-red. PASS.
+- R6 Prior PASS basis still holds: `git diff 00acda2..HEAD --stat --
+  registry/ specs/ rigs/ rosters/` empty (no generated-dir edits, no
+  provenance churn); allowlist entries unchanged since prior audit (7 dir
+  prefixes + 2 exact files with justification comments); no stubs introduced
+  (new test has real assertions, no `|| true`/skips). `git status --short`
+  clean at check time. PASS.
+
+No numbered findings in this re-audit.
+
 VERDICT: PASS
