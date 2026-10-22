@@ -90,6 +90,7 @@
       "*": "deny",
       "src/*": "allow",
       "package.json": "allow",
+      "docs/architecture/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",

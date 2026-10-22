@@ -1,0 +1,86 @@
+# Red-proof log: docs-write-scopes QA (2026-10-22)
+# Branch: fix/docs-write-scopes @ 7180444 (f0ff176 + 7180444 on bae5d3a)
+# Protocol: sabotage -> observe failure (RED) -> revert -> re-verify (GREEN).
+
+## 0. Baseline (unmodified tree)
+### make verify
+  [PASS] tests/test_render_seat.py (7/7 unit tests) passed
+
+SUMMARY: 22 checks passed, 0 failed.
+### test_render_seat
+----------------------------------------------------------------------
+Ran 7 tests in 2.233s
+
+OK
+### fleet.yaml diff line count (expect 6 added)
++      - docs/design-system/*
++      - docs/design-system/*
++      - docs/brief/*
++      - docs/architecture/*
++      - docs/design-system/*
++      - docs/design-system/*
+
+## 1. POSITIVE sabotage: remove ONE grant (ui-ux-designer docs/design-system, fleet.yaml:3833)
+# Method: delete exactly line 3833 with sed, regen with ALLOW_DIRTY=1.
+
+## 1. POSITIVE result: RED observed
+# After removing fleet.yaml:3833 + regen: ui-ux-designer generated configs
+# (rigs/fullstack-and-web-studio + heretek-omni-fleet + specs/web-design) contain
+# ZERO docs/* grants (grep exit 1 = RED), while sibling design-system-eng still
+# shows docs/design-system/* (grep exit 0). Pipeline carries catalog -> leaves.
+# => Acceptance check (grant-presence grep) FAILS under sabotage: non-vacuous.
+
+## 2. Revert + re-verify
+# git checkout -- fleet/fleet.yaml; regen ALLOW_DIRTY=1 exit 0; grant grep exit 0 (GREEN restored).
+# Regen also stamped resolvedCommit=7180444 into registry/* (provenance noise, NOT content);
+# restored via git checkout -- registry/. Final: git diff --stat empty; make verify 22/0.
+
+## 3. NEGATIVE (least-privilege) greps on final tree
+### 3a. ts-node-fullstack LACKS docs/brief (expect count 0)
+rigs/fullstack-and-web-studio/agents/ts-node-fullstack/runtime/pi-permission-config.json:0
+rigs/heretek-omni-fleet/agents/ts-node-fullstack/runtime/pi-permission-config.json:0
+specs/agents/languages/ts-node-fullstack/runtime/pi-permission-config.json:0
+### 3b. ui-ux-designer LACKS docs/brief + docs/architecture (expect 0/0)
+0
+0
+### 3c. ALL six roles lack git add/commit/stage verbs
+OK: rigs/executive-and-architecture/agents/product-director/runtime/pi-permission-config.json
+OK: rigs/heretek-omni-fleet/agents/product-director/runtime/pi-permission-config.json
+OK: rigs/fullstack-and-web-studio/agents/ts-node-fullstack/runtime/pi-permission-config.json
+OK: rigs/heretek-omni-fleet/agents/ts-node-fullstack/runtime/pi-permission-config.json
+OK: rigs/fullstack-and-web-studio/agents/ui-ux-designer/runtime/pi-permission-config.json
+OK: rigs/heretek-omni-fleet/agents/ui-ux-designer/runtime/pi-permission-config.json
+OK: rigs/fullstack-and-web-studio/agents/design-system-eng/runtime/pi-permission-config.json
+OK: rigs/heretek-omni-fleet/agents/design-system-eng/runtime/pi-permission-config.json
+OK: rigs/fullstack-and-web-studio/agents/ux-research-analyst/runtime/pi-permission-config.json
+OK: rigs/heretek-omni-fleet/agents/ux-research-analyst/runtime/pi-permission-config.json
+OK: rigs/fullstack-and-web-studio/agents/a11y-specialist/runtime/pi-permission-config.json
+OK: rigs/heretek-omni-fleet/agents/a11y-specialist/runtime/pi-permission-config.json
+### 3d. git verbs present in ts-node config (read-only set)
+git diff
+git log
+git show
+git status
+### 3e. AGENTS.md deny present in rendered path rules
+      2 "AGENTS.md": "deny"
+
+### 3c-bis. specs/ copies also lack git add/commit/stage verbs
+OK: specs/agents/executive/product-director/runtime/pi-permission-config.json
+OK: specs/agents/languages/ts-node-fullstack/runtime/pi-permission-config.json
+OK: specs/agents/web-design/ui-ux-designer/runtime/pi-permission-config.json
+OK: specs/agents/web-design/design-system-eng/runtime/pi-permission-config.json
+OK: specs/agents/executive/ux-research-analyst/runtime/pi-permission-config.json
+OK: specs/agents/web-design/a11y-specialist/runtime/pi-permission-config.json
+specs-copy verdict: FAIL=0 (0 = all clean)
+
+## 4. GUARD: no bash_allow / mcp / git-verb changes vs bae5d3a
+### fleet.yaml diff minus-lines (expect NONE — purely +6 additive)
+(no removed lines — purely additive)
+### bash_allow / mcp / server lines in diff (expect NONE)
+(no bash/mcp/server/git lines touched)
+specs/agents/executive/product-director/runtime/pi-permission-config.json: docs/product/* docs/brief/* 
+specs/agents/languages/ts-node-fullstack/runtime/pi-permission-config.json: docs/architecture/* 
+specs/agents/web-design/ui-ux-designer/runtime/pi-permission-config.json: docs/design-system/* 
+specs/agents/web-design/design-system-eng/runtime/pi-permission-config.json: docs/design-system/* 
+specs/agents/executive/ux-research-analyst/runtime/pi-permission-config.json: docs/research/* docs/design-system/* 
+specs/agents/web-design/a11y-specialist/runtime/pi-permission-config.json: docs/design-system/* 

@@ -634,11 +634,11 @@ integrity:
     agents/git-drift-coord/skills/worktree-rebase-orchestration/SKILL.md: 5d4f609e77195b9ca141aa79bf0ae51f4a7939e80c129e8f50a4a986ebccc713
     agents/git-drift-coord/startup/context.md: d8e84fb800be3a85bb355df7d5bf208ef1dabdd02da7163e1d1d74239f26b350
     agents/product-director/agent.yaml: 486a3ce72add6494841e0404e4459c88242cd5cb00546d765c9df16858c88501
-    agents/product-director/guidance/role.md: cd412cd3ff35dd620b0d09cb83042c9fdfd0b71a796f7fdde96c2c5f00ad439a
+    agents/product-director/guidance/role.md: 5b702d1acfc3875654ff538be08fd3a7d2973d22b6f3451223048438c3724010
     agents/product-director/runtime/mcp.json: a8eee8c8642d8778dfe4a50b28701b04560214e5375e8599247fc83776ce8ce9
-    agents/product-director/runtime/pi-permission-config.json: 1f9ed37f2d3fe7c4ecdd1b825d470346b1ae97a5d526ba158e864c0910e8fede
+    agents/product-director/runtime/pi-permission-config.json: 49d352f23c21d9ad9a91d1c9b51fc6bbcd60b5f64122661a8af66d27a1914be8
     agents/product-director/runtime/pi-settings.json: 56d9cda1f64c99524b01561abd9db68e1ded823962fac7b79cf957c7fe7922be
-    agents/product-director/runtime/policy-enforcement.json: 7f5a03777c6126ff6f08c0a83f01220981ecf33882621970a63db08bbcebf592
+    agents/product-director/runtime/policy-enforcement.json: dcfbe9fb667484b2c95ed74cde2a2ebaad88bfb2b7bfa17597843c6d8ef639b2
     agents/product-director/skills/epic-roadmap-authoring/SKILL.md: f9c668cd615d53e4d394a3f83cf6a8cb723fd7d2b482caaf88e0fb0821d565f7
     agents/product-director/startup/context.md: e8c048f3f4b7634780bcf2a038592f41039b0dae8dbf390b08728db6657a3c8e
     agents/system-architect/agent.yaml: 4338554af1961475866d187abe5ed01fd7202aee9e3d12722a228794b7e84d86
