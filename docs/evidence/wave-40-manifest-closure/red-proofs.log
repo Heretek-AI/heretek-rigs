@@ -1,0 +1,143 @@
+# red-proofs.log — wave-40-manifest-closure QA (2026-10-22 UTC)
+# Stage: wave-40-manifest-closure | Commit under test: 9eb5171
+# Protocol: red-proof-sabotage 7-step per check. All fixtures synthetic in
+# /tmp/qa40-red (never the mission repo, never this worktree's live files),
+# except two explicitly-restored in-tree sabotages (lint BIN_ALIASES, unit-test
+# fixture) and one staged-index probe (unstaged + deleted after).
+# LINT = scripts/manifest-closure.py; ALLOW = fleet/allowed-system-tools.txt.
+
+## BASELINE (unmodified tree, all exit 0)
+- `make verify` -> SUMMARY: 24 checks passed, 0 failed. Exit 0. V8 block present;
+  live-health advisories only (heartbeat WARNs, same as baseline).
+- `make test` -> Ran 59 tests / OK. Exit 0.
+- `python3 -m unittest tests/test_manifest_closure.py` -> Ran 17 tests / OK. Exit 0.
+- `openspec validate remediate-40-manifest-closure` -> valid. Exit 0.
+- `make manifest-closure` (empty stage) -> "no staged manifests; zero undeclared." Exit 0.
+
+## RED-PROOF R1 — (a1) types:node without @types/node MUST fire
+- Fixture /tmp/qa40-red/a1: package.json {scripts:{typecheck:"tsc --noEmit"},
+  devDeps:{typescript}} + tsconfig {types:["node"]}, NO @types/node.
+- Cmd: python3 LINT --allowlist ALLOW /tmp/qa40-red/a1
+- Out: "UNDECLARED TYPES ENTRY '@types/node' (referenced by tsconfig '.../a1/tsconfig.json' in package 'p')"
+  "manifest-closure: 1 undeclared reference(s) across 2 entry point(s)." Exit 1. RED confirmed.
+
+## RED-PROOF R2 — (a2) bare eslint/prettier without dep MUST fire
+- Fixture /tmp/qa40-red/a2: scripts {lint:"eslint .", format:"prettier --check ."}, devDeps {}.
+- Out: "UNDECLARED BINARY 'eslint' (invoked by script 'lint' ...)" +
+  "UNDECLARED BINARY 'prettier' (invoked by script 'format' ...)". Exit 1. RED confirmed.
+
+## RED-PROOF R3 — (a3) vitest run without vitest MUST fire
+- Fixture /tmp/qa40-red/a3: scripts {unit:"vitest run"}, devDeps {}.
+- Out: "UNDECLARED BINARY 'vitest' (invoked by script 'unit' ...)". Exit 1. RED confirmed.
+
+## RED-PROOF R4 — (a4) JSX without @types/react: LINT PASSES (contractual), tsc COVERS
+- Fixture /tmp/qa40-red/a4: deps {react, react-dom} + devDeps {typescript} (NO @types/react),
+  tsconfig {jsx:"react-jsx"}. Lint exit 0, "1 entry point(s) checked; zero undeclared."
+- Verdict vs spec: SATISFIES spec as written. REQ-C2 "Each original omission fails named"
+  scenario lists only vitest / eslint-prettier / @types/node omissions; REQ-C5 + design.md
+  S15-21 + tasks.md T4 explicitly require instance #2 omission to PASS the lint
+  ("documented limitation") with tsc as the covering gate. The lint passing here is
+  CONTRACTUAL, not vacuous. No FAIL.
+- Independent covering-gate proof (this QA, /tmp/qa40-red/t4-react: app.tsx JSX,
+  jsx:react-jsx, no @types/react): `tsc --noEmit` -> exit 1 with
+  "error TS7026: JSX element implicitly has type 'any' ..." +
+  "error TS2875: ... requires the module path 'react/jsx-runtime' ..."
+  (the issue's TS7016/7026 class; matches implementer's /tmp/t4-react claim). tsc RED confirmed.
+
+## RED-PROOF R5 — (b) fixed-pin equivalents MUST pass (no false positives)
+- Fixture /tmp/qa40-red/b-fixed: eslint+prettier+vitest+tsc scripts, all deps declared,
+  tsconfig types:["node"] + @types/node.
+- Out: "5 entry point(s) checked; zero undeclared." Exit 0. GREEN confirmed.
+
+## RED-PROOF R6 — (c) pnpm dlx / npx one-shots MUST fail
+- /tmp/qa40-red/c-dlx {x:"pnpm dlx cowsay hi"} -> "UNDECLARED ONE-SHOT PACKAGE 'cowsay'
+  (... npx/pnpm-dlx fetch without a pinned backing dependency)". Exit 1. RED confirmed.
+- /tmp/qa40-red/c-npx {x:"npx serve"} -> "UNDECLARED BINARY 'serve' (invoked by script 'x' ...)".
+  Exit 1. RED confirmed.
+
+## RED-PROOF R7 — (d) pnpm script recursion resolves; breaking target fails; cycles fail
+- /tmp/qa40-red/d-rec {lint:"pnpm check", check:"eslint ."} + eslint declared ->
+  "2 entry point(s) checked; zero undeclared." Exit 0 (recursion resolves). GREEN confirmed.
+- Sabotage d-rec-broken (same shape, eslint dep REMOVED) ->
+  "UNDECLARED BINARY 'eslint' (invoked by script 'check' (script 'lint') ...)" naming the
+  recursion chain. Exit 1. Proves recursion is LOAD-BEARING. RED confirmed.
+- /tmp/qa40-red/d-cyc {a:"pnpm b", b:"pnpm a"} -> "INDIRECTION CYCLE 'a'/'b'
+  (script indirection cycle: ...#a -> ...#b -> ...#a ...)". Exit 1. RED confirmed.
+
+## RED-PROOF R8 — (e) allowlisted toolchain passes; non-allowlisted fails
+- /tmp/qa40-red/e-tool {v:"git --version", n:"node --version", r:"rig --help"}, no deps ->
+  "3 entry point(s) checked; zero undeclared." Exit 0. GREEN confirmed.
+- /tmp/qa40-red/e-nonallow {f:"curl https://example.com", d:"docker ps"} ->
+  "UNDECLARED BINARY 'curl' ..." + "UNDECLARED BINARY 'docker' ...". Exit 1. RED confirmed.
+
+## RED-PROOF R9 — (f) malformed manifests fail closed, named
+- /tmp/qa40-red/f-badpkg package.json = "{not valid json!!!" ->
+  "UNREADABLE MANIFEST '.../f-badpkg/package.json' (invalid JSON: ...)". Exit 1. RED confirmed.
+- /tmp/qa40-red/f-badts tsconfig.json = "{bad tsconfig" ->
+  "UNREADABLE MANIFEST '.../f-badts/tsconfig.json' (invalid JSON: ...)". Exit 1. RED confirmed.
+- Never silent pass. Fail-closed confirmed.
+
+## RED-PROOF R10 — (g) tsc->typescript alias is load-bearing (in-tree sabotage + restore)
+- Baseline: /tmp/qa40-red/g-alias {typecheck:"tsc --noEmit"} + typescript dep ->
+  "1 entry point(s) checked; zero undeclared." Exit 0.
+- Sabotage: removed `"tsc": "typescript"` from BIN_ALIASES in scripts/manifest-closure.py
+  (uncommitted edit, in-tree). Re-ran g-alias ->
+  "UNDECLARED BINARY 'tsc' (invoked by script 'typecheck' ...)". Exit 1. RED confirmed.
+- Restore: `git checkout -- scripts/manifest-closure.py`; `git status --short` clean;
+  re-ran g-alias -> exit 0. Restore + clean + green confirmed.
+
+## RED-PROOF R11 — unit-test suite is non-vacuous (in-tree sabotage + restore)
+- Sabotage: renamed "vitest":"3.0.0" -> "vitest-removed":"3.0.0" (2 occurrences) in
+  tests/test_manifest_closure.py (uncommitted edit, in-tree).
+- `python3 -m unittest tests/test_manifest_closure.py` -> "Ran 17 tests / FAILED
+  (failures=2, errors=1)". Exit 1. RED confirmed (suite fires when fixtures break).
+- Restore: `git checkout -- tests/test_manifest_closure.py`; `git status --short` clean;
+  re-ran -> "Ran 17 tests / OK". Restore + clean + green confirmed.
+
+## RED-PROOF R12 — V8 --staged half reads index blobs (staged-index probe + cleanup)
+- Created qa40-v8-probe/package.json {x:"totally-undeclared-bin-xyz --flag"}, `git add`ed.
+- `python3 scripts/manifest-closure.py --staged` ->
+  "UNDECLARED BINARY 'totally-undeclared-bin-xyz' (invoked by script 'x' ...)". Exit 1.
+  Proves --staged is not an empty-stage vacuous pass: it fires on staged bad content.
+- Cleanup: `git reset -q HEAD -- qa40-v8-probe/package.json` + `rm -rf qa40-v8-probe`;
+  `git status --short` clean; --staged -> "no staged manifests; zero undeclared." Exit 0.
+
+## RED-PROOF R13 — quoted-semicolon tokenizer (regression for T5-caught bug)
+- /tmp/qa40-red/q-semi {note:'echo "lock round-trips; ok" 2>&1', lint:"eslint ."} + eslint ->
+  "2 entry point(s) checked; zero undeclared." Exit 0. No false positive on `ok`/`harness`
+  fragments inside quotes. GREEN confirmed.
+
+## RED-PROOF R14 — missing/empty allowlist fails closed
+- `--allowlist /tmp/qa40-red/no-such-file.txt` -> "MISSING ALLOWLIST ... refusing to
+  default-allow". Exit 2. RED confirmed.
+- Empty allowlist file -> "MISSING ALLOWLIST ... (no entries parsed)". Exit 2. RED confirmed.
+
+## T5 LIVE-MISSION RE-RUN (read-only, this QA)
+- Cmd: python3 LINT --allowlist ALLOW package.json apps/web/package.json tests/package.json
+  e2e/package.json apps/web/tsconfig.json e2e/tsconfig.json .github/workflows/ci.yml
+  (cwd /home/john/Projects/heretek-asset-manager).
+- Out: "manifest-closure: 42 entry point(s) checked; zero undeclared." Exit 0.
+  Reproduces implementer's "42 entry point(s)" claim EXACTLY.
+- Mission untouched: `git status --short` before/after diff EMPTY; still zero commits
+  (`fatal: ... does not have any commits yet` — by design); `git stash list` empty.
+  Nothing written outside the QA worktree.
+
+## MAKEFILE / ALLOWLIST / DEVIATION NOTES
+- `git diff d863df0..HEAD --numstat`: Makefile 4+/1- (the 1 del = .PHONY line gaining the
+  `manifest-closure` token; verified additive, non-masking), verify-rigs.sh 33+/0 (pure
+  V8 append, exactly one new ok(), zero V1-V7 lines touched), rest pure additions.
+- Allowlist grounding (mission repo read-only): node/npm/pnpm/yarn <- ci.yml
+  NODE_VERSION 22 / PNPM_VERSION 9 + `pnpm install --frozen-lockfile`; git <- VCS seam /
+  header probe note; cargo <- `cargo fetch --locked` / `cargo fmt` steps + Cargo.toml on
+  disk; echo <- POSIX shell builtin (workflow note step); rig <- fleet operator CLI per
+  REQ-C2(d). curl/docker correctly absent (R8 proves they fail).
+- 24-vs-23: tasks.md T3 ("plus one new named check, all passing") + REQ-C4 additive-gate
+  scenario MANDATE the appended gate; design.md "Risks" documents 22->23 for the prior
+  wave. 24/0 with byte-identical V1-V7 is the legitimate reading; brief's "23/0" is the
+  stale no-regression baseline. DEVIATION LEGITIMATE, no finding.
+
+## VACUOUS-CHECK SCAN
+- Zero vacuous checks. Every acceptance check was red-proofed: all 4 defect shapes fire
+  (a4 passing is contractual per T4/REQ-C5/design.md, covered by tsc RED proven above),
+  fixed pins pass, one-shots/recursion/allowlist/malformed/alias all discriminate,
+  V8 halves proven non-vacuous (R11 unit tests, R12 staged blobs).
