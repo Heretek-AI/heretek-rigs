@@ -62,15 +62,110 @@ HERETEK_RIGS_COMMIT_FALLBACK = "SYNTHETIC-NO-GIT-PROVENANCE-UNVERIFIED"
 REVIEW_DATE = "2026-10-18"
 
 
+# Issue #43: sanctioned-untracked allowlist for the clean-tree gate.
+# `git status --porcelain` includes untracked files, but the fleet's own
+# operating pattern dirties the tree in steady state with session outputs
+# that have no committed home (AGENTS.md:46: leave those strays alone).
+# The gate therefore classifies instead of treating any output as dirt.
+# Single in-repo source: the REQ-RG4 verify check tests THESE constants.
+# Directories match by prefix (sessions create arbitrary filenames
+# underneath); files match exact root-relative paths (a same-named file
+# elsewhere is still dirt). UNTRACKED (`??`) entries only — a path that is
+# both allowlisted and tracked-modified (status `M`, not `??`) is blocking
+# dirt, because tracked edits could coincide with generator-input changes.
+SANCTIONED_UNTRACKED_DIRS = (
+    # Session evidence logs the workflow mandates (proposal §Motivation).
+    "docs/evidence/",
+    # Stage/session implementation reports (proposal §Motivation).
+    "docs/reports/",
+    # Prior sessions' agent-state artifacts (AGENTS.md:46 blessed stray).
+    ".agents/",
+    # Prior sessions' tooling state (AGENTS.md:46 blessed stray).
+    ".claude/",
+    # Loop transcripts / session scratch (proposal §Motivation).
+    ".opencode/",
+    # Ephemeral stage worktrees managed by lane orchestration (tooling state,
+    # never a generator input: generate_all reads fleet/, schemas/, vendor).
+    ".lane/",
+    # In-flight uncommitted OpenSpec change scratch (session-authored until
+    # committed; the generator never reads openspec/, so it cannot be an
+    # input to generated leaves).
+    "openspec/changes/",
+)
+SANCTIONED_UNTRACKED_FILES = (
+    # Root tooling-state stray (AGENTS.md:46); distinct from the tracked
+    # generated lockfile at fleet/skills-lock.json.
+    "skills-lock.json",
+    # Prior-session review artifact (AGENTS.md:46 blessed stray).
+    "PROMPT_REVIEW.md",
+)
+
+
+def _is_sanctioned_untracked(rel_path: str) -> bool:
+    """True when an untracked path is workflow-mandated scratch (issue #43).
+
+    Fail-closed: any exception (or an emptied allowlist source) returns
+    False, i.e. the path counts as dirt — never as allow-all.
+    """
+    try:
+        if not SANCTIONED_UNTRACKED_DIRS and not SANCTIONED_UNTRACKED_FILES:
+            return False
+        # Porcelain collapses wholly-untracked dirs to `?? dirname/`; strip
+        # the trailing slash so collapsed and file forms match identically.
+        rel = rel_path.rstrip("/")
+        for prefix in SANCTIONED_UNTRACKED_DIRS:
+            bare = prefix.rstrip("/")
+            if rel == bare or rel.startswith(prefix):
+                return True
+        return rel in SANCTIONED_UNTRACKED_FILES
+    except Exception:
+        return False
+
+
+def _split_porcelain(status_output: str):
+    """Split `git status --porcelain` into (blocking, ignored) line lists.
+
+    Status-code-first: only `??` (untracked) entries consult the allowlist;
+    every other status (modified/staged/deleted/renamed tracked entries) is
+    blocking. Unparseable lines are blocking (porcelain drift fails closed).
+    """
+    blocking, ignored = [], []
+    for line in status_output.splitlines():
+        if len(line) < 4 or line[2] != " ":
+            blocking.append(line)
+            continue
+        code, path = line[:2], line[3:]
+        if code == "??":
+            # Porcelain may C-quote paths with special chars ("a b" form);
+            # unquote so prefix/exact matching sees the real rel path.
+            if len(path) >= 2 and path.startswith('"') and path.endswith('"'):
+                try:
+                    path = path[1:-1].encode("utf-8").decode("unicode_escape")
+                    path = path.encode("latin-1").decode("utf-8")
+                except Exception:
+                    blocking.append(line)
+                    continue
+            if _is_sanctioned_untracked(path):
+                ignored.append(line)
+            else:
+                blocking.append(line)
+        else:
+            blocking.append(line)
+    return blocking, ignored
+
+
 def resolve_heretek_commit(root: Path, allow_synthetic: bool = False) -> str:
     """Resolve the real generating checkout SHA (fail-closed provenance).
 
-    Returns `git rev-parse HEAD` (40-hex) when the checkout is clean; dies if
-    git is missing, HEAD is unresolvable, or `git status --porcelain` is
-    non-empty — unless HERETEK_RIGS_ALLOW_DIRTY=1 is set for explicitly
-    labeled dev regenerations (still records the real SHA, never the fallback).
-    When git is unresolvable, dies unless allow_synthetic is True, in which
-    case the obvious SYNTHETIC- marker is returned (never a 40-hex lookalike).
+    Returns `git rev-parse HEAD` (40-hex) when the checkout holds no
+    *blocking* dirt; dies if git is missing, HEAD is unresolvable, or
+    `git status --porcelain` contains blocking entries — unless
+    HERETEK_RIGS_ALLOW_DIRTY=1 is set for explicitly labeled dev
+    regenerations (still records the real SHA, never the fallback).
+    Sanctioned untracked strays (issue #43 allowlist above) are ignored for
+    the dirt decision and never alter the baked provenance. When git is
+    unresolvable, dies unless allow_synthetic is True, in which case the
+    obvious SYNTHETIC- marker is returned (never a 40-hex lookalike).
     """
     allow_dirty = os.environ.get("HERETEK_RIGS_ALLOW_DIRTY") == "1"
     try:
@@ -98,10 +193,24 @@ def resolve_heretek_commit(root: Path, allow_synthetic: bool = False) -> str:
     except Exception:
         dirty = ""
     if dirty and not allow_dirty:
-        die(
-            "refusing to bake provenance on a dirty checkout "
-            "(commit or stash first, or set HERETEK_RIGS_ALLOW_DIRTY=1 for dev regen)"
-        )
+        blocking, ignored = _split_porcelain(dirty)
+        if blocking:
+            # REQ-RG3: refusal names the blocking porcelain lines verbatim
+            # in one section and the ignored sanctioned paths in a separate
+            # section (proving the filter ran). The remediation hint is
+            # unchanged: commit/stash or the ALLOW_DIRTY escape hatch.
+            sections = [
+                "refusing to bake provenance on a dirty checkout "
+                "(commit or stash first, or set HERETEK_RIGS_ALLOW_DIRTY=1 for dev regen)",
+                "blocking changes:",
+                *[f"  {b}" for b in blocking],
+            ]
+            if ignored:
+                sections += [
+                    "ignored sanctioned strays (not dirt):",
+                    *[f"  {i}" for i in ignored],
+                ]
+            die("\n".join(sections))
     return head
 
 

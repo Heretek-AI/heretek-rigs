@@ -10,9 +10,9 @@ Stack: `@openrig/cli@0.6.13` (`rig`), Pi 1.3.0 (`pi`), `@gotgenes/pi-permission-
 Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, or `scripts/`, then regenerate:
 
 ```bash
-python3 ./scripts/generate-rigs.py        # clean tree only; dirty tree refuses (by design)
+python3 ./scripts/generate-rigs.py        # no blocking dirt only: sanctioned session strays ignored (issue #43 allowlist), tracked/non-allowlisted dirt refuses (by design)
 HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py   # dev iterations only
-./scripts/verify-rigs.sh --check-only     # expect: 22 checks passed, 0 failed
+./scripts/verify-rigs.sh --check-only     # expect: 23 checks passed, 0 failed
 python3 ./scripts/audit_loop.py --self-test
 ```
 
@@ -42,7 +42,7 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - Never `--force` (a force-push guardrail has bitten before); if a branch goes stale, open a fresh branch name instead.
 - Merge-conflict rule for generated files: take `main`'s generator, keep the branch's catalog edit, **re-run `generate-rigs.py`** — never hand-resolve generated leaves.
 - Committed provenance (`resolvedCommit`) pins the pre-merge HEAD and re-lags one commit per merge. Known, accepted; `packageDigest`s stay self-consistent. Do NOT "fix" it by hand-editing registry files.
-- `verify-rigs.sh`'s 22 checks are audit-baselined: add new gates alongside (new script or new block), don't renumber/reword existing checks casually.
+- `verify-rigs.sh`'s 23 checks are audit-baselined: add new gates alongside (new script or new block), don't renumber/reword existing checks casually.
 - Leave untracked strays alone unless asked: `docs/evidence/`, `docs/reports/`, `.agents/`, `.claude/`, root `skills-lock.json`, `PROMPT_REVIEW.md` — prior sessions' artifacts, not yours to delete.
 
 ## Secrets (hard rules)
