@@ -29,6 +29,10 @@ access. See `AUDIT_REPORT_FINDINGS.md` and `REMEDIATION_LOG.md`.
   design briefs (planning snapshots; `TECHNICAL_DOCUMENTATION.md` is authoritative
   where they differ).
 
+Prefer Docker? Public images (`:latest` slim, `:full` with browser + radare2) run
+with `--user 1000:1000` and secrets mounted at `/run/heretek-secrets:ro` — see
+`docs/USER_GUIDE.md` §11 and `docker-compose.yml`.
+
 ## Quickstart
 
 ```bash

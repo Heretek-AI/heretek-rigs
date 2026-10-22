@@ -459,3 +459,74 @@ queue state. Scans every seat under `OPENRIG_HOME/state/pi`, including archived 
 | `error: refusing to bake provenance on a dirty checkout` | `scripts/generate-rigs.py` detected uncommitted changes via `git status --porcelain`. | Commit or stash your changes before running `make generate`, or set `HERETEK_RIGS_ALLOW_DIRTY=1` during local development iterations. |
 | `Declared file is missing, unreadable or outside the bundle folder` during `rig up` or `rig bundle check` | `rig up` was run from outside the `rigs/<rig>/` directory without `--rig-root`, or a symlink was introduced into `rigs/<rig>/`. | Always run `(cd rigs/<rig> && rig up rig.yaml --cwd "$HERETEK_WORKSPACE" --yes)` and ensure zero symlinks exist (`make verify` checks this in V3). |
 | `rig spec preflight` fails with daemon connection error | The local OpenRig daemon is not running (`rig spec validate` and `rig bundle check` run offline, but `preflight` and `agent validate` require the daemon). | Start the daemon first with `rig daemon start --no-kernel` (or `rig daemon start`). |
+
+## 11. Run in Docker (GHCR Fleet Image)
+
+Public multi-arch images (`linux/amd64`, `linux/arm64`) are published by
+`.github/workflows/docker-release.yml` to `ghcr.io/heretek-ai/heretek-rigs`:
+
+| Tag | Contents | Approx. size |
+| :--- | :--- | :--- |
+| `:latest` (slim) | `rig` 0.6.11, `pi` 1.3.0, permission system + AST/LSP packages, 8 npm MCP servers, uvx PyPI MCP servers | ~3.5 GB (dominated by the upstream `codebase-memory-mcp` 330 MB Go binary, tree-sitter WASM grammars, and the Node 22 toolchain) |
+| `:full` | slim + Playwright Chromium (+`CHROME_PATH` for chrome-devtools-mcp), source-built radare2 6.2.4, compiled `r2mcp -R` | ~4.7 GB |
+| `:sha-<commit>` / `:sha-<commit>-full` | Pinned releases (provenance + SBOM attestations) | — |
+
+### Run contract (all required)
+
+1. **UID**: the image runs as `heretek` (uid/gid 1000). Always pass
+   `--user 1000:1000` so `$HOME=/home/heretek` stays writable; any other UID
+   fails loudly at entrypoint with a clear message.
+2. **Secrets**: mount your host secrets dir read-only at `/run/heretek-secrets`.
+   The entrypoint dereferences every file into `$HERETEK_SECRETS` as a fresh
+   `0600` regular file owned by uid 1000 (satisfying `render-seat.py`'s
+   symlink/uid/mode triple check), covering hostile cases: `0644` files,
+   symlinks, and foreign-uid files are all normalized. On SELinux hosts
+   (Fedora/RHEL) append `:z` so the mount is relabeled and visible in-container:
+   `-v "$HOME/.config/heretek-rigs/secrets:/run/heretek-secrets:ro,z`.
+3. **Terminal**: pass `-e TERM=xterm-256color` for `rig tui` rendering.
+4. **No `rig ui open` in-container** (no browser). Use `rig tui`,
+   `rig terminal open <rig> --window`, or plain `tmux attach`.
+5. **Sidecars stay siblings**: join the deterministic `heretek` network
+   (`--network heretek`) to reach sidecars by service name and container port.
+   Host clients use `127.0.0.1` and the published host port.
+
+```bash
+# Interactive shell, auto-seed + auto-launch executive rig against ./my-project
+docker run --rm -it --user 1000:1000 \
+  -v "$PWD/my-project:/workspace" \
+  -v "$HOME/.config/heretek-rigs/secrets:/run/heretek-secrets:ro" \
+  -e TERM=xterm-256color \
+  -e HERETEK_RIG="executive-and-architecture" \
+  -e HERETEK_AUTO_UP="1" \
+  ghcr.io/heretek-ai/heretek-rigs:latest \
+  rig tui
+```
+
+### Pairing with sidecars (`docker-compose.yml`)
+
+```bash
+HERETEK_IMAGE=ghcr.io/heretek-ai/heretek-rigs:latest \
+HERETEK_RIG=executive-and-architecture \
+HERETEK_WORKSPACE=/path/to/project \
+docker compose up -d fleet
+docker compose exec fleet rig tui
+```
+
+The fleet service joins the external `heretek` network (named deterministically via
+`name: heretek` in `docker-compose.sidecars.yml`). Host clients use
+`127.0.0.1:<published-port>`; clients inside fleet use
+`<service-name>:<container-port>` for sidecars on the shared network. Configure
+each client's endpoint accordingly; joining the network does not rewrite MCP
+bindings. The current catalog has no SearXNG MCP binding, and its Qdrant MCP uses
+`QDRANT_LOCAL_PATH` for local storage. Start sidecars first with
+`make sidecars-up SIDECAR_PROFILES="..."` on the host (or a second compose file).
+
+### Which MCP servers work in-container
+
+- `:latest`: all except `playwright`, `chrome-devtools` (no browser) and `radare2`
+  (no binary). Seats binding them render degraded (`"enabled": false`) unless the
+  tools exist — validated fail-closed by the in-container smoke gates.
+- `:full`: adds Chromium (`CHROME_PATH` pre-set for chrome-devtools-mcp),
+  `radare2` + `r2mcp -R`. The `terraform` MCP still shells to a host `docker`
+  binary — mount `/var/run/docker.sock` explicitly if you need it
+  (understand the privilege implications first).

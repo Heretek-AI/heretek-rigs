@@ -1,0 +1,38 @@
+# heretek-rigs Docker build context exclusions.
+# Keep the image reproducible and free of session data / secrets / VCS weight.
+
+.git/
+.gitignore
+
+# Session transcripts -- MUST NEVER ship in a published image
+.opencode/
+.scratch/
+
+# Prior audit/remediation working artifacts (regenerable, untracked)
+docs/evidence/
+docs/reports/
+
+# Audit report contains session-specific findings, not release content
+AUDIT_REPORT_FINDINGS.md
+
+# Python bytecode / caches (non-reproducible, rebuilt at runtime)
+__pycache__/
+*.pyc
+*.pyo
+.ruff_cache/
+
+# Editor / OS noise
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Local-only generated state (recreated by generate-rigs.py / seed at runtime)
+workspaces/
+.openrig/
+
+# OpenRig runtime-managed files (created by `rig up` inside bundle dirs;
+# untracked, per-seat content -- never bake into the image)
+rigs/*/AGENTS.md

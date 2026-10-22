@@ -1,0 +1,46 @@
+# Fleet + sidecar pairing for heretek-rigs.
+# The fleet container joins the deterministic `heretek` bridge network
+# (named via `name: heretek` in docker-compose.sidecars.yml) so seats can
+# reach sidecars by service name and container port on that network.
+# Host clients use 127.0.0.1 and the published host port instead.
+#
+#   Fluids first:  cp .env.example .env   # no -- fill SEARXNG_SECRET etc.
+#   Slim image:    HERETEK_IMAGE=ghcr.io/heretek-ai/heretek-rigs:latest
+#   Full image:    HERETEK_IMAGE=ghcr.io/heretek-ai/heretek-rigs:full
+#   Launch:        HERETEK_RIG=executive-and-architecture make -f /dev/null up
+#   Or directly:   docker compose up -d fleet
+name: heretek-rigs-fleet
+
+services:
+  fleet:
+    image: ${HERETEK_IMAGE:-ghcr.io/heretek-ai/heretek-rigs:latest}
+    user: "1000:1000"
+    working_dir: /opt/heretek/heretek-rigs
+    environment:
+      HERETEK_RIG: ${HERETEK_RIG:-}
+      HERETEK_AUTO_UP: ${HERETEK_AUTO_UP:-0}
+      HERETEK_SEED: ${HERETEK_SEED:-auto}
+      HERETEK_SEED_MODE: ${HERETEK_SEED_MODE:---allow-missing-secrets}
+      HERETEK_START_DAEMON: ${HERETEK_START_DAEMON:-1}
+      HERETEK_WORKSPACE: /workspace
+      TERM: xterm-256color
+    volumes:
+      # Target project the seats work on (seat cwd).
+      - ${HERETEK_WORKSPACE:-.}:/workspace
+      # Host secrets, read-only; entrypoint stages them to 0600 internally.
+      - ${HERETEK_SECRETS_DIR:-~/.config/heretek-rigs/secrets}:/run/heretek-secrets:ro
+      # Persist daemon state + seeded seats across restarts.
+      - heretek-openrig-home:/home/heretek/.openrig
+    networks:
+      - heretek
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+networks:
+  heretek:
+    name: heretek
+    external: true
+
+volumes:
+  heretek-openrig-home:
