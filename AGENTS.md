@@ -26,7 +26,7 @@ Use `yaml.safe_dump` NEVER on `fleet/fleet.yaml` — it strips comments. Surgica
 | Seat render dry-run | `HERETEK_SECRETS=~/.config/heretek-rigs/secrets python3 scripts/render-seat.py --role <id> --rig <id> --pod <id> --dry-run` |
 | Seed then launch | `python3 scripts/seed-rig.py rigs/<rig>/rig.yaml [--allow-missing-secrets]` → `(cd rigs/<rig> && rig up rig.yaml --cwd <workspace> --yes)` |
 | Talk to a seat | `rig send '<pod>-<member>@<rig>' "<message>"` / `rig capture` / `rig transcript --tail N` |
-| Queue work | `rig queue create --destination <session> --body-file <file>` / `rig queue list [--destination S] [-a]` |
+| Queue work | `rig queue create --destination <session> --body-file <file>` / `rig queue list --json [--destination S] [-a]` (copy qitem IDs only from `--json` output — never retype) |
 | Permission gate (mock) | `bash scripts/gate-role.sh <role>` (also: `make gate ROLE=`) |
 | Wiring gates + graphs | `make topology OUT=/tmp/topo` |
 | Live-seat audit | `make audit-sessions WORKSPACE=/path/to/seat-workspace` |
