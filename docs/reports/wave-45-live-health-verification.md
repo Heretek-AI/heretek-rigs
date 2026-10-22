@@ -66,8 +66,10 @@ tasks.md T1–T8 (gate, tests, fixtures, docs, reports, evidence). No scope cree
 ## 4. Tests — non-vacuous (21 cases, all re-run OK)
 
 Spot-read: `test_claimed_untouched_row_named_with_age` asserts WARN + exact row ID
-+ age ≥ 50m; `test_fresh_claim_passes` / `test_post_claim_transition_clears_breach`
-assert the negative direction (no false positive); `test_overdue_breach_...`
++ age ≥ 50m; `test_fresh_claim_passes` asserts the negative direction (no false
++ positive on a fresh claim) while `test_late_first_transition_warns` asserts
++ WARN when the first post-claim transition lands past T_pickup (late pickup
++ still breaches); `test_overdue_breach_...`
 asserts breach/non-breach split at the grace boundary plus histogram totals.
 QA SAB-8 proved the suite goes RED (`FAILED (failures=2)`) when the breach
 condition is masked, with clean restore. Independent re-run:

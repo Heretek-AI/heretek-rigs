@@ -181,7 +181,7 @@ class TestPickupEvaluation(unittest.TestCase):
         result = self.gate.evaluate_pickup(rows, transitions.get, NOW, 15)
         self.assertEqual(result["status"], "PASS")
 
-    def test_post_claim_transition_clears_breach(self):
+    def test_late_first_transition_warns(self):
         rows = [dict(INCIDENT_ROWS[0])]
         transitions = {
             rows[0]["qitemId"]: INCIDENT_TRANSITIONS[rows[0]["qitemId"]]
