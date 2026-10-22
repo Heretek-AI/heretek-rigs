@@ -141,6 +141,50 @@ def load_json_text(text, origin):
         raise ClosureError(f"UNREADABLE MANIFEST '{origin}' (invalid JSON: {exc})")
 
 
+def _strip_jsonc(text):
+    """Strip JSONC comments and trailing commas (tsconfig-only).
+
+    String-aware: `//` and `/* */` inside single/double-quoted strings are
+    preserved. Only TypeScript configs go through this path; package.json
+    and every other manifest stays on strict JSON (fail closed).
+    """
+    out = []
+    i, n = 0, len(text)
+    quote = None
+    while i < n:
+        ch = text[i]
+        if quote is not None:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 1
+            elif ch == quote:
+                quote = None
+        elif ch in ("'", '"'):
+            quote = ch
+            out.append(ch)
+        elif ch == "/" and i + 1 < n and text[i + 1] == "/":
+            i += 2
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        elif ch == "/" and i + 1 < n and text[i + 1] == "*":
+            i += 2
+            while i < n and not (text[i] == "*" and i + 1 < n and text[i + 1] == "/"):
+                i += 1
+            i += 2
+            continue
+        else:
+            out.append(ch)
+        i += 1
+    return re.sub(r",\s*([}\]])", r"\1", "".join(out))
+
+
+def load_tsconfig_text(text, origin):
+    """Parse a TypeScript config as JSONC (comments/trailing commas legal)."""
+    return load_json_text(_strip_jsonc(text), origin)
+
+
 def read_text_file(path):
     try:
         return Path(path).read_text()
@@ -157,11 +201,17 @@ def read_text_file(path):
 def split_segments(body):
     """Split a script/run body on shell chaining operators (REQ-C1).
 
+    Join backslash-newline continuations
+    BEFORE splitting, and skip the remainder of a line when an unquoted `#`
+    begins a word (shell comment to EOL). A `#` inside an existing word
+    (e.g. `foo#bar`) or inside quotes is preserved.
+
     Quote-aware: operators inside single/double quotes (e.g. the `;` in
     `echo "a; b"`) never split. Unbalanced quotes fall back to treating
     the rest of the body as one segment rather than mis-splitting.
     """
     normalized = body.replace("\r\n", "\n").replace("\r", "\n")
+    normalized = normalized.replace("\\\n", "")
     segments = []
     current = []
     quote = None
@@ -178,6 +228,16 @@ def split_segments(body):
                 quote = None
         elif ch in ("'", '"'):
             quote = ch
+            current.append(ch)
+        elif ch == "#":
+            # Shell comment to EOL only when `#` begins a word: at the
+            # start of a segment or right after whitespace/an operator.
+            # `foo#bar` keeps its `#`; quoted hashes never reach here.
+            prior = "".join(current)
+            if not prior or prior[-1] in (" ", "\t", ";", "|", "&", "(", "`"):
+                while i < len(normalized) and normalized[i] != "\n":
+                    i += 1
+                continue
             current.append(ch)
         elif ch in ("\n", ";", "|", "&"):
             segments.append("".join(current))
@@ -352,13 +412,14 @@ class ClosureChecker:
         script recurses (cycle-checked); a manager built-in resolves to the
         manager binary (must be allowlisted); a one-shot subcommand (dlx/x)
         or an otherwise unknown head fails closed.
+
+        A leading `run` is stripped from the FILTERED positional list (after
+        manager-flag skipping), so `pnpm --filter pkg run build` still
+        recurses into `build` instead of treating `run` as the script name.
         """
-        idx = 0
-        while idx < len(args) and args[idx] == "run":
-            idx += 1
         positional = []
         skip_next = False
-        for token in args[idx:]:
+        for token in args:
             if skip_next:
                 skip_next = False
                 continue
@@ -368,6 +429,8 @@ class ClosureChecker:
             if token.startswith("-"):
                 continue
             positional.append(token)
+        while positional and positional[0] == "run":
+            positional.pop(0)
         if not positional:
             return
         head, rest = positional[0], positional[1:]
@@ -487,8 +550,10 @@ class ClosureChecker:
             return
         pkg_doc = self.packages.get(Path(path).parent / "package.json", {})
         if not pkg_doc:
-            # Nearest ancestor package owns this tsconfig.
-            for candidate in reversed(Path(path).parents):
+            # Nearest ancestor package owns this tsconfig (Path.parents is
+            # already nearest-first, so no reversal: the farthest ancestor
+            # must never win).
+            for candidate in Path(path).parents:
                 if candidate / "package.json" in self.packages:
                     pkg_doc = self.packages[candidate / "package.json"]
                     break
@@ -569,6 +634,44 @@ def staged_files():
     return blobs
 
 
+def index_tracked_manifests(exclude):
+    """Return [(path, blob text)] for tracked package.json files in the index.
+
+    Resolution context only for the --staged flow: staging just a workflow
+    (or just a child manifest) must not lose the workspace-root manifest's
+    dependency context. Callers must never check these for findings.
+    """
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "-z"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise ClosureError(f"STAGED SCAN FAILED (git unavailable: {exc})")
+    if proc.returncode != 0:
+        raise ClosureError(f"STAGED SCAN FAILED ({proc.stderr.strip()})")
+    context = []
+    for name in proc.stdout.split("\0"):
+        if not name or name in exclude:
+            continue
+        if Path(name).name != "package.json":
+            continue
+        shown = subprocess.run(
+            ["git", "show", f":{name}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if shown.returncode != 0:
+            raise ClosureError(
+                f"UNREADABLE MANIFEST '{name}' (cannot read indexed blob)"
+            )
+        context.append((name, shown.stdout))
+    return context
+
+
 def load_allowlist(path):
     try:
         text = Path(path).read_text()
@@ -586,8 +689,16 @@ def load_allowlist(path):
     return entries
 
 
-def check_loaded(checker, manifests, tsconfigs, workflows):
-    for path, text in manifests:
+def check_loaded(checker, manifests, tsconfigs, workflows, context_manifests=()):
+    """Load manifests and check entry points.
+
+    `context_manifests` are resolution context only (the --staged flow loads
+    tracked-but-unstaged package manifests from the index so staged
+    workflows/children resolve workspace-root deps): they join dependency
+    resolution but are never checked for findings themselves.
+    """
+    context_keys = {Path(path) for path, _ in context_manifests}
+    for path, text in list(manifests) + list(context_manifests):
         doc = load_json_text(text, str(path))
         if not isinstance(doc, dict):
             raise ClosureError(f"UNREADABLE MANIFEST '{path}' (not an object)")
@@ -598,23 +709,30 @@ def check_loaded(checker, manifests, tsconfigs, workflows):
         checker.root_doc = checker.packages[ordered[0]]
         checker.root_path = ordered[0]
     for path in ordered:
+        if path in context_keys:
+            continue
         checker.check_package(path, checker.packages[path])
     for path, text in workflows:
         checker.check_workflow(path, text)
     for path, text in tsconfigs:
         # Follow relative `extends` so a `types` entry in a base config is
         # still attributed (bare-package extends stay with the tsc gate).
+        # `types` is read from EACH config in the chain: the first config
+        # (leaf first) providing a list wins, matching tsc override
+        # semantics. All configs on this path parse as JSONC; package.json
+        # and every other manifest stays on strict JSON (fail closed).
         chain = [(path, text)]
         seen = {str(path)}
         merged_types = None
         merged_doc = None
         while chain:
             current, current_text = chain.pop()
-            doc = load_json_text(current_text, str(current))
+            doc = load_tsconfig_text(current_text, str(current))
             if not isinstance(doc, dict):
                 raise ClosureError(f"UNREADABLE MANIFEST '{current}' (not an object)")
             if merged_doc is None:
                 merged_doc = doc
+            if merged_types is None:
                 compiler = doc.get("compilerOptions")
                 if isinstance(compiler, dict) and isinstance(
                     compiler.get("types"), list
@@ -687,7 +805,9 @@ def main(argv=None):
             if not manifests and not tsconfigs and not workflows:
                 print("manifest-closure: no staged manifests; zero undeclared.")
                 return 0
-            check_loaded(checker, manifests, tsconfigs, workflows)
+            staged_names = {name for name, _ in staged}
+            context = index_tracked_manifests(staged_names)
+            check_loaded(checker, manifests, tsconfigs, workflows, context)
         else:
             roots = [Path(p) for p in args.paths] if args.paths else [Path.cwd()]
             manifests, tsconfigs, workflows = [], [], []

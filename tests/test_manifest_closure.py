@@ -213,6 +213,15 @@ def git(*args, cwd, env=None):
     )
 
 
+def load_lint_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("manifest_closure", str(SCRIPT))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
 class TestManifestClosure(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -322,13 +331,19 @@ class TestManifestClosure(unittest.TestCase):
         self.assertIn("fakeglobaltool", proc.stdout + proc.stderr)
 
     # REQ-C3 scenario: unreadable manifest fails closed, never skip-silent.
+    # discover_tree only collects filenames from os.walk, so a directory
+    # named package.json is never opened for reading: the lint flow cannot
+    # reach read_text_file's IsADirectoryError path (an explicit directory
+    # path argument is walked by discover_tree, which yields no manifests
+    # rather than reading the directory itself). Exercise the real path
+    # directly: reading a directory must fail closed.
     def test_unreadable_manifest_fails_closed(self):
-        fixed_tree(self.root)
-        (self.root / "e2e/package.json").unlink()
-        (self.root / "e2e/package.json").mkdir()
-        proc = self.lint_root()
-        self.assertNotEqual(proc.returncode, 0)
-        self.assertIn("e2e", proc.stdout + proc.stderr)
+        mod = load_lint_module()
+        target = self.root / "unreadable-dir"
+        target.mkdir()
+        with self.assertRaises(mod.ClosureError) as ctx:
+            mod.read_text_file(target)
+        self.assertIn("UNREADABLE MANIFEST", str(ctx.exception))
 
     def test_corrupt_manifest_fails_closed(self):
         fixed_tree(self.root)
@@ -336,6 +351,201 @@ class TestManifestClosure(unittest.TestCase):
         proc = self.lint_root()
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("apps/web/package.json", proc.stdout + proc.stderr)
+
+    # Extends chain: leaf omits `types`, base provides an undeclared entry
+    # -> the base entry still fires (leaf-first chain read, not leaf-only).
+    def test_extends_chain_base_types_fire_when_leaf_omits(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"t": "tsc --noEmit"},
+                    "devDependencies": {"typescript": "5.7.2"},
+                },
+                "shared/base.json": {
+                    "compilerOptions": {"types": ["undeclared-base-pkg"]}
+                },
+                "tsconfig.json": {
+                    "extends": "./shared/base.json",
+                    "compilerOptions": {"strict": True},
+                },
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("undeclared-base-pkg", proc.stdout + proc.stderr)
+
+    # Extends chain reverse: leaf provides `types` -> leaf's list wins and
+    # the base list is ignored (tsc override semantics, not a union).
+    def test_extends_chain_leaf_types_override_base(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"t": "tsc --noEmit"},
+                    "devDependencies": {
+                        "typescript": "5.7.2",
+                        "@types/node": "22.10.0",
+                    },
+                },
+                "tsconfig.json": {
+                    "extends": "./shared/base.json",
+                    "compilerOptions": {"types": ["node"]},
+                },
+                "shared/base.json": {
+                    "compilerOptions": {"types": ["mystery-base-pkg"]}
+                },
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # Tsconfig ownership: the NEAREST ancestor package resolves @types, so a
+    # dep declared only in the nested package passes even though the root
+    # lacks it (farthest-first traversal would fail this closed-wrong).
+    def test_tsconfig_nearest_package_owns_types(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {"name": "root", "private": True},
+                "sub/package.json": {
+                    "name": "sub",
+                    "devDependencies": {"@types/inner-lib": "1.0.0"},
+                },
+                "sub/nested/tsconfig.json": {
+                    "compilerOptions": {"types": ["inner-lib"]}
+                },
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # Tokenizer: backslash-newline joins before splitting; an unquoted `#`
+    # beginning a word comments to EOL; `#` inside words/quotes is kept.
+    def test_split_segments_continuation_comments_and_hashes(self):
+        mod = load_lint_module()
+        self.assertEqual(mod.split_segments("cmd arg \\\nmore"), ["cmd arg more"])
+        self.assertEqual(mod.split_segments("cmd # comment"), ["cmd"])
+        self.assertEqual(mod.split_segments("# full-line comment\ncmd"), ["cmd"])
+        self.assertEqual(mod.split_segments('echo "a#b"'), ['echo "a#b"'])
+        self.assertEqual(mod.split_segments("echo x#y"), ["echo x#y"])
+
+    # Tokenizer end to end: continuations and full-line comments in script
+    # bodies resolve (a dangling `#` or continuation fragment never becomes
+    # the checked binary).
+    def test_script_continuation_and_comment_lines_pass(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {
+                        "lint": "eslint --flag \\\n.",
+                        "note": "# tune later\neslint .",
+                    },
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # PM run-strip: manager flags may precede `run`, so
+    # `pnpm --filter pkg run build` still recurses into `build` (a binary
+    # reachable only through `build` proves the recursion; treating `run`
+    # as the head would wrongly pass via the allowlisted manager).
+    def test_pnpm_filter_run_recurses_into_script(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {
+                        "go": "pnpm --filter pkg run build",
+                        "build": "secrettool --fast",
+                    },
+                    "devDependencies": {},
+                },
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("secrettool", proc.stdout + proc.stderr)
+
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"go": "pnpm run"},
+                    "devDependencies": {},
+                },
+            },
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # JSONC tsconfigs: comments and trailing commas parse, and the declared
+    # `types` entry is still checked (undeclared `node` fires).
+    def test_tsconfig_jsonc_parses_and_fires(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"t": "tsc --noEmit"},
+                    "devDependencies": {"typescript": "5.7.2"},
+                },
+                "tsconfig.json": (
+                    "{\n"
+                    "  // workspace types gate\n"
+                    '  "compilerOptions": {\n'
+                    '    "types": ["node",], // trailing comma\n'
+                    "  },\n"
+                    "}\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("@types/node", proc.stdout + proc.stderr)
+
+    # package.json stays on strict JSON: a comment there still fails closed
+    # (proves the JSONC path applies to TypeScript configs only).
+    def test_commented_package_json_still_fails_closed(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": (
+                    "{\n"
+                    "  // not legal in strict manifests\n"
+                    '  "name": "mini",\n'
+                    '  "scripts": {"t": "tsc --noEmit"},\n'
+                    '  "devDependencies": {"typescript": "5.7.2"}\n'
+                    "}\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("UNREADABLE MANIFEST", proc.stdout + proc.stderr)
 
     # Instance #2 documented limitation: ambient JSX without @types/react has
     # no textual hook, so the lint MUST pass it; tsc remains the covering gate.
@@ -527,6 +737,114 @@ class TestManifestClosure(unittest.TestCase):
         proc = run_lint("--allowlist", str(allowlist), "--staged", cwd=repo)
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("vitest", proc.stdout + proc.stderr)
+
+    def make_staged_repo(self, name):
+        repo = self.root / name
+        repo.mkdir()
+        self.assertEqual(git("init", "-q", cwd=repo).returncode, 0)
+        git("config", "user.email", "qa@example.test", cwd=repo)
+        git("config", "user.name", "closure-qa", cwd=repo)
+        return repo
+
+    # REQ-C4: staging only a workflow still sees the committed root
+    # manifest's dep context -> zero undeclared (no false UNDECLARED).
+    def test_staged_workflow_uses_committed_root_context(self):
+        repo = self.make_staged_repo("repoW")
+        write_tree(
+            repo,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"unit": "vitest run"},
+                    "devDependencies": {"vitest": "3.0.0"},
+                },
+            },
+        )
+        (repo / "allowlist.txt").write_text(TOOLCHAIN_ALLOWLIST)
+        git("add", "-A", cwd=repo)
+        git("commit", "-qm", "seed", cwd=repo)
+        (repo / ".github" / "workflows").mkdir(parents=True)
+        (repo / ".github/workflows/ci.yml").write_text(
+            "name: ci\non: [push]\njobs:\n"
+            "  unit:\n    runs-on: ubuntu-latest\n    steps:\n"
+            "      - name: Vitest suite\n        run: pnpm unit\n"
+        )
+        git("add", ".github/workflows/ci.yml", cwd=repo)
+        proc = run_lint(
+            "--allowlist", str(repo / "allowlist.txt"), "--staged", cwd=repo
+        )
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # REQ-C4: staging only a child manifest still sees the committed root
+    # manifest's dep context; context-only manifests add no entry points.
+    def test_staged_child_manifest_uses_committed_root_context(self):
+        repo = self.make_staged_repo("repoC")
+        write_tree(
+            repo,
+            {
+                "package.json": {
+                    "name": "root",
+                    "private": True,
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+            },
+        )
+        (repo / "allowlist.txt").write_text(TOOLCHAIN_ALLOWLIST)
+        git("add", "-A", cwd=repo)
+        git("commit", "-qm", "seed", cwd=repo)
+        (repo / "apps" / "a").mkdir(parents=True)
+        (repo / "apps/a/package.json").write_text(
+            json.dumps(
+                {
+                    "name": "a",
+                    "scripts": {"lint": "eslint ."},
+                    "devDependencies": {},
+                }
+            )
+        )
+        git("add", "apps/a/package.json", cwd=repo)
+        proc = run_lint(
+            "--allowlist", str(repo / "allowlist.txt"), "--staged", cwd=repo
+        )
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # REQ-C4 negative: index context never blanket-allows — a dep genuinely
+    # absent from staged and committed manifests still fires.
+    def test_staged_genuinely_absent_dep_still_fires(self):
+        repo = self.make_staged_repo("repoN")
+        write_tree(
+            repo,
+            {
+                "package.json": {
+                    "name": "root",
+                    "private": True,
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+            },
+        )
+        (repo / "allowlist.txt").write_text(TOOLCHAIN_ALLOWLIST)
+        git("add", "-A", cwd=repo)
+        git("commit", "-qm", "seed", cwd=repo)
+        (repo / "apps" / "a").mkdir(parents=True)
+        (repo / "apps/a/package.json").write_text(
+            json.dumps(
+                {
+                    "name": "a",
+                    "scripts": {"scan": "mysterytool --fast"},
+                    "devDependencies": {},
+                }
+            )
+        )
+        git("add", "apps/a/package.json", cwd=repo)
+        proc = run_lint(
+            "--allowlist", str(repo / "allowlist.txt"), "--staged", cwd=repo
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("mysterytool", proc.stdout + proc.stderr)
 
     # REQ-C3: the checked-in allowlist exists and names the toolchain binaries.
     def test_checked_in_allowlist_covers_toolchain(self):
