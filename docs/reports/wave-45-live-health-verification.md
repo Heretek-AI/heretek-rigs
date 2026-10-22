@@ -105,4 +105,105 @@ telemetry-spike detection and the watchdog sweep-rate signal remain UNFINISHED
 follow-up work for the maintainers to schedule separately, not defects in this
 stage.
 
+## 8. Re-audit of review-driven fixes (d1db5e4 + 5724316 + 776775e) — 2026-10-22 UTC
+
+- Commits under audit: `d1db5e4` (six review fixes) + `5724316` (note
+  touch-up) + `776775e` (QA re-verification evidence). Base for diff:
+  `5a478b5`. No production code touched by this auditor; all checks re-run
+  independently in the worktree. Nothing committed.
+- Prior verdict line confirmed intact before amendment: file ended with exactly
+  `VERDICT: PASS`; §7 text matches the review-asked rewrite (telemetry-spike +
+  watchdog sweep-rate stated as UNFINISHED follow-up, prior over-claim that
+  telemetry was "folded into WARNs" removed); §4 matches actual test behavior
+  (names `test_late_first_transition_warns`, describes WARN on late first
+  transition — verified against `tests/test_live_health.py:184`).
+
+### 8.1 Diff audit — every hunk justified, no scope creep
+
+- `git diff 5a478b5..HEAD --stat -- specs/ rigs/ rosters/ registry/` → empty.
+  No hand-edits under generated dirs (AGENTS.md one-rule honored).
+- `git diff 5a478b5..HEAD -- scripts/verify-rigs.sh` → empty (byte-identical;
+  audit-baseline honored). `git diff 5a478b5..HEAD -- openspec/` → empty
+  (spec contract unchanged — review fixes trace to fidelity, no new features).
+- `d1db5e4 --stat`: only `scripts/live-health.py`,
+  `tests/test_live_health.py`, `docs/reports/wave-45-live-health-verification.md`
+  (§4 + §7 rewrites). `5724316`: test rename (`test_post_claim_transition_clears_breach`
+  → `test_late_first_transition_warns`) + §4 touch-up. `776775e`: evidence log +
+  QA appendix only. `Makefile` delta (6 lines) belongs to the original `761b1ac`,
+  not the review fixes. No new deliverables, no widened surface.
+
+### 8.2 The three behavior changes — read, fail-closed in all paths
+
+- Truncation guard (`scripts/live-health.py:144`): `len(result) >= self.limit`
+  → `DataSourceError` → `run_gate` degrades to SKIP (all-SKIP for `fetch_list`,
+  single-SKIP for overdue/undelivered; `finalize` orders FAIL > WARN > SKIP >
+  PASS so any SKIP blocks the healthy banner). Independently re-run: stub rig
+  returning 3 rows with `--limit 3` → `DataSourceError: ... hit the fetch cap
+  (3) ... refusing to report healthy`. On the `>=` operator: firing at exactly
+  `limit` is conservative — a legitimately full-but-complete page SKIPs instead
+  of passing. That is the fail-closed direction (SKIP, exit 0, never PASS), not
+  a defect; no finding.
+- Pickup first-transition semantics (`evaluate_pickup`, lines 302–314): minimum
+  post-claim `ts` computed over dict entries with parseable `ts > claim_ts`;
+  latency past `T_pickup` breaches with the latency (not age); no post-claim
+  transition falls back to claim-age breach. Unreadable paths stay
+  unknown/SKIP: `get_transitions` raising → `unknown` (lines 297–301);
+  unparseable `claimedAt` → `unknown` (293–296); non-dict/unparseable transition
+  entries skipped, never treated as progress. Breach-empty + unknown-nonempty →
+  SKIP with reason; breach-nonempty + unknown → WARN naming both. No healthy
+  path on unreadable data.
+- ps pinning (`check_allowed`, lines 80–86): bare/reduced `ps` argv refused
+  with `RuntimeError`; only the pinned combo (`--nodes --json --no-cleanup`)
+  passes. Live caller `fetch_ps_nodes` (line 170) uses exactly the pinned
+  combo. `RuntimeError` (not `DataSourceError`) still degrades to SKIP: raised
+  inside `run_rig` it is caught by `fetch_list`'s `except Exception` (all-SKIP),
+  by the overdue/undelivered/nodes `except Exception` handlers (single-SKIP),
+  and inside `evaluate_pickup`'s `except Exception` (unknown → SKIP). No
+  mutation path: `queue` branch additionally requires `--json`; `show` remains
+  allowed but no live caller uses it and it is read-only.
+
+### 8.3 Test changes — all non-vacuous, independently confirmed
+
+- Renamed test `test_late_first_transition_warns` (line 184): appends an 11:40
+  transition (~26m post-claim) and asserts WARN + ID + latency > 15. Old name
+  has 0 hits outside the QA report's own audit row. Independent red-proof (no
+  tree modification, semantics replicated against fixture data): NEW code →
+  `WARN [{'id': 'qitem-...78213c07c3272cbc', 'age_min': 25.605...}]` (matches
+  QA's 25.6m); pre-fix `any(ts > claim)` semantics → `progressed=True` → no
+  breach (PASS). The test discriminates the semantic change. NOT vacuous.
+- FixtureClient swap (line 355): incident replay now replays the on-disk
+  fixtures through the real `FixtureClient` instead of a hand-built FakeClient —
+  strictly stronger fidelity; replay re-run independently: WARN naming all
+  three 11:14 qitem IDs, `sources: 5 ok, 0 skipped`, exit 0. ✓
+- Moved assertions + `assertTrue(logged.strip(), "stub log must record at
+  least one command")` (line 450): assertions now execute only after the
+  subprocess returncode assertion inside the `with` block, and an empty stub
+  log fails the test. QA SAB-R4 red-proven (silent stub → AssertionError);
+  restored `TestReadOnly` re-run OK per evidence log. NOT vacuous.
+- Full suite independently re-run: `Ran 28 tests ... OK`.
+
+### 8.4 Independent re-runs (this auditor)
+
+- `make verify` → `SUMMARY: 22 checks passed, 0 failed` (exit 0) + advisory
+  WARN (heartbeat, 7 stale) + SKIP (seat-idleness), `sources: 4 ok, 1 skipped`
+  — matches QA R2 exactly.
+- `openspec validate remediate-45-live-health` → valid.
+- Incident replay `--now 2026-10-22T12:05:00Z` → WARN + all three row IDs
+  (51m each), exit 0 — matches QA R4b and verification §5/LH7.
+- Red-proofs log: re-verification section present with dated SAB-R1…R4 entries,
+  each recording failure signature + `git checkout --` restore + clean status;
+  signatures non-vacuous (DATASOURCEERROR text, `FAILED (failures=1)`,
+  RuntimeError refusals, AssertionError on empty log). Spot-check of R4b
+  (above) and guard behavior (above) confirms the log's claims.
+- Secrets: pattern grep over the full `5a478b5..HEAD` diff → 0 hits.
+  `git status --short` → clean before this report amendment (only this
+  auditor's `/tmp/opencode/` scratch outside the tree).
+
+### Findings
+
+None. No stubs, no vacuous checks, no failing commands, no missing
+deliverables, no hand-edits under generated dirs, no spec drift, no secrets.
+The `>=` truncation operator and the §7 follow-up-work framing are deliberate
+and documented, not defects.
+
 VERDICT: PASS
