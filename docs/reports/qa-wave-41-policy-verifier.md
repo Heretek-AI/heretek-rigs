@@ -172,3 +172,91 @@ Sabotage-only; nothing committed, merged, or pushed.
 Numbered blocking findings: none. QA-CLEAN.
 Vacuous checks: none — every acceptance check turned RED under minimal targeted sabotage
 (F1c snapshot-line removal, F2c precedence-guard removal, plus R1/R2/R3 regression battery).
+---
+
+# Re-verification — review round 2 (commit 3513e47, 2026-10-22)
+
+Stage/wave id: `wave-41-review2-reverify` · commit under test: `3513e47`
+(`fix(41-policy-verifier): address PR review - index authority, expr placeholder,
+builtins, quoting, cargo context`) on top of `627b3b4` + `8f9da0e` + `8dc4d57`
+(`git log --oneline -5` confirmed).
+Must read: worktree `AGENTS.md`, `openspec/changes/remediate-41-policy-verifier/specs/`,
+`tasks.md` (F1/F2 regression: live corrected table exit 0, live stale fires only
+cast_lossy, stale pin bare exit 1). Sabotage-only edits (all reverted via
+`git checkout -- <file>`); nothing committed, merged, or pushed.
+
+## Verdict: QA-CLEAN (all new behaviors verified, no vacuous checks, no regressions)
+
+## 1. Full suite (unmodified tree)
+
+- `make verify` → PASS — `SUMMARY: 25 checks passed, 0 failed` (V9 now: 34 tests pass),
+  exit 0; `live-health.py` advisory exit 0 (only pre-existing heartbeat/idleness WARN/SKIP).
+- `openspec validate remediate-41-policy-verifier` → PASS — valid, exit 0.
+- `python3 -m unittest discover -s tests` → PASS — 142 tests, OK, exit 0.
+
+## 2. RED-PROOFS for each NEW behavior (evidence: red-proofs.log §REVIEW-2) — all PASS
+
+- (a) Index authority: unstaged worktree snapshot breakage (`pin: wrong-pin`, uncommitted)
+  → staged run still exit 0 (index wins); staged snapshot edit adding
+  `clippy::new_hotness` honored (exit 0). Sabotage (worktree-read forced in staged
+  mode) → `MISSING KNOWN-LINT SNAPSHOT ... (no lint entries parsed)`, exit 1 —
+  behavior changes, index path load-bearing. Restored, status clean, 7/7 staged tests OK.
+- (b) Snapshot honesty: `curated subset` headers present in BOTH files
+  (known-lints.txt:3, toolchain-pin:3), both disclaim toolchain capture and document
+  the manual refresh process. Pin-mismatch re-proof: stale-pin-9 snapshot, no pin
+  flags → exit 1 `STALE KNOWN-LINT SNAPSHOT` (F2 mechanism intact).
+- (c) Expressions: `echo ${{ a || b }}` single segment, no finding (exit 0);
+  `pnpm ${{ matrix.script }}` skipped, no UNRESOLVABLE (exit 0);
+  `pnpm lint ${{ matrix.args }}` still resolves (exit 0). Sabotage (placeholder
+  substitution removed) → `pnpm ${{ matrix.script }}` FAILED exit 1
+  (`UNRESOLVABLE SCRIPT 'matrix.script'`), and direct probe `pnpm ${{ a || b }}`
+  → exit 1 (`UNRESOLVABLE SCRIPT 'a'`, split at `||`). Restored → exit 0, 3/3 OK.
+- (d) Builtins: `npm test` with-script exit 0; without-script exit 0 no UNRESOLVABLE;
+  `npm t` ≡ test; `yarn workspace foo build` exit 0; `yarn workspace foo bogus`
+  exit 1 naming `bogus`. Sabotage (`test` removed from PM_DEFAULT_COMMANDS) →
+  scriptless `npm test` FAILED exit 1 (`UNRESOLVABLE SCRIPT 'test'`), while
+  with-script/alias paths stay green (precise). Restored, 5/5 OK.
+- (e) Quoting: `"pnpm eslint ."` → exit 1 DUPLICATE citing lint (double, single,
+  and interior-escape variants). Sabotage (quote-blind parsing restored) → all 3
+  quoting tests FAILED with exit-0 silence (DUPLICATE missed). Restored, 3/3 OK.
+- (f) Cargo context: staged workflow + committed-not-staged `.cargo/config.toml`
+  alias → `cargo xit` resolves exit 0; `cargo frobnicate` → exit 1 UNKNOWN (control).
+  Sabotage (config dropped from index context) → `cargo xit` FAILED exit 1
+  (`UNKNOWN CARGO SUBCOMMAND 'xit'`). Clean-tree full-suite output contains ZERO
+  `.cargo/config` strings (grep exit 1); context config entries route through
+  `load_aliases` only (policy-verifier.py:983-987), never `check_toml`. Restored, OK.
+- (g) Nitpick: `write_snapshot` default derives from `read_checked_in_pin()`
+  (comment-tolerant); 34/34 module tests OK. Sabotage (derivation forced to
+  `sabotage-pin`) → FAILED failures=26 (`STALE ... 'sabotage-pin' !=
+  'fixture-toolchain-1'`). Default is derived, not hardcoded. Restored, 34/34 OK.
+
+No vacuous checks: every new behavior turns RED under minimal targeted sabotage.
+
+## 3. F1/F2 regression — all PASS
+
+- F1a live corrected `Cargo.toml`, bare → exit 0 (`all 1 staged policy file(s) resolve`).
+- F1b live stale `root-lints-reference.toml`, bare → exit 1 with EXACTLY ONE finding
+  (`clippy::cast_lossy` at `:28`; `1 finding(s)`).
+- F2 stale-pin bare → exit 1 STALE (see section 2(b)).
+- Mission repo (`/home/john/Projects/heretek-asset-manager`): read-only scans,
+  `git diff --stat` empty (tracked tree untouched).
+
+## 4. Scope — PASS
+
+Fix commit `3513e47` touches exactly the 4 intended files
+(`scripts/policy-verifier.known-lints.txt`, `scripts/policy-verifier.py`,
+`scripts/policy-verifier.toolchain-pin`, `tests/test_policy_verifier.py`);
+zero files under `specs/`/`fleet/`/`rigs/`/`rosters/`/`registry/`.
+
+## 5. Final tree state
+
+`git status --short` shows nothing modified except the sanctioned evidence paths:
+`docs/evidence/wave-41-policy-verifier/red-proofs.log` (appended §REVIEW-2) and this
+report (appended review-round-2 section). Production and test code untouched since
+`3513e47`; all sabotage reverted (per-item `git checkout`, status clean each time).
+No commits, merges, or pushes.
+
+## Findings
+
+Numbered blocking findings: none. QA-CLEAN.
+Vacuous checks: none.
