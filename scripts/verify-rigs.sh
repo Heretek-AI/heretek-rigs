@@ -1397,6 +1397,39 @@ if utr43.returncode != 0:
 if len(failures) == _hr43_before:
     ok("Regen-gate sanctioned-untracked allowlist covers AGENTS.md strays with justified entries and refuses synthetic dirt (tests/test_regen_gate.py 9/9)")
 
+print("\n== V8. Manifest-Closure Lint (issue #40) ==")
+# HR-40 (fail-closed stage-time gate): every binary invoked by staged
+# package.json scripts / workflow run: steps must resolve to a declared
+# dependency or the checked-in operator-runner allowlist
+# (fleet/allowed-system-tools.txt); staged tsconfig `types` entries must
+# resolve to declared @types packages. Proven by tests/test_manifest_closure.py
+# synthetic fixtures (all four Wave-2 defect shapes fire named; the fixed
+# pins pass) plus a live --staged run. Appended at the end — no existing
+# check renumbered or reworded. Exactly one ok() below.
+_mc_before = len(failures)
+_mcr = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_manifest_closure.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _mcr.returncode != 0:
+    fail(f"tests/test_manifest_closure.py failed:\n{_mcr.stderr}")
+_mcs = subprocess.run(
+    [sys.executable, str(root / "scripts/manifest-closure.py"), "--staged"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _mcs.returncode != 0:
+    fail(f"scripts/manifest-closure.py --staged failed:\n{_mcs.stdout}\n{_mcs.stderr}")
+_mc_ran = "?"
+_mc_match = re.search(r"Ran (\d+) tests", _mcr.stderr)
+if _mc_match:
+    _mc_ran = _mc_match.group(1)
+if len(failures) == _mc_before:
+    ok(f"Manifest-closure lint (issue #40) green: staged manifests resolve with zero undeclared binaries (tests/test_manifest_closure.py {_mc_ran} tests pass)")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

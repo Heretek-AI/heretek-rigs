@@ -1,0 +1,26 @@
+# allowed-system-tools.txt — operator-runner-provided tool allowlist (issue #40).
+#
+# Binaries the operator-runner guarantees on every gate host. The
+# manifest-closure lint (scripts/manifest-closure.py, REQ-C2(d)/REQ-C3)
+# resolves an invoked binary here when no staged manifest declares it.
+# PATH resolution never counts: a binary that merely happens to be installed
+# (cf. GLOBAL eslint 10.11.0) still fails unless listed below. One tool per
+# line; `#` starts a comment. This file is versioned so drift is reviewable;
+# a missing or empty file fails the lint closed (never default-allows).
+#
+# Grounded 2026-10-22 (read-only) in the live fixed state:
+# - node/npm/pnpm/yarn: toolchain package managers (workflow pins
+#   NODE_VERSION 22 / PNPM_VERSION 9; `pnpm install --frozen-lockfile`,
+#   `pnpm lint|format:check|typecheck|unit`, `pnpm --filter ... integration`).
+# - git: VCS service seam (`git --version && git lfs version` probe step).
+# - cargo: Rust toolchain (`cargo fetch/fetch --locked, fmt, clippy, test`).
+# - echo: runner shell builtin (`echo "lock round-trips ..."` note step).
+# - rig: fleet operator CLI guaranteed on runner hosts (spec REQ-C2(d)).
+node
+npm
+pnpm
+yarn
+git
+cargo
+echo
+rig
