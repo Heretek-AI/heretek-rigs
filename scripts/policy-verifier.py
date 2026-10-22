@@ -124,6 +124,25 @@ PM_BUILTINS = {
     "cache",
     "doctor",
 }
+# pnpm/npm/yarn default lifecycle commands: if a same-named workspace
+# script exists the manager runs it; if not, the manager's own default
+# command applies. Either way there is no UNRESOLVABLE SCRIPT finding.
+PM_DEFAULT_COMMANDS = {
+    "test",
+    "start",
+    "stop",
+    "restart",
+}
+# Short manager aliases, verified against the documented alias sets
+# (npm/pnpm/yarn `t` runs the `test` script). Kept to this named set only.
+PM_ALIASES = {
+    "t": "test",
+}
+# GitHub Actions `${{ ... }}` expression placeholder (REQ-P2): replaced
+# BEFORE splitting so expressions containing shell separators stay single
+# tokens. Scope is `${{ }}` only — `$VAR`/tokenize behavior untouched.
+GH_EXPR_RE = re.compile(r"\$\{\{.*?\}\}")
+GH_EXPR_PLACEHOLDER = "__GH_EXPR__"
 # One-shot execution subcommands fetch without a pinned backing script.
 ONE_SHOT_SUBCOMMANDS = {"dlx", "x"}
 
@@ -392,21 +411,23 @@ def scan_run_steps(text, origin):
             i = j
         else:
             body = rest
+            # Inline `run:` quoting: remove ONE matching pair of outer
+            # single/double quotes so `run: "pnpm lint"` checks the command,
+            # not the quotes. Interior (YAML-escaped) quotes are preserved.
+            # Block-scalar bodies never pass through here — untouched.
+            if len(body) >= 2 and (
+                (body.startswith('"') and body.endswith('"'))
+                or (body.startswith("'") and body.endswith("'"))
+            ):
+                body = body[1:-1]
             i += 1
         if body and not body.lstrip().startswith("#"):
             steps.append((lineno, body))
     return steps
 
 
-def load_known_lints(path):
-    """Load the checked-in known-lint snapshot (REQ-P1 authority)."""
-    try:
-        text = Path(path).read_text()
-    except OSError as exc:
-        raise PolicyError(
-            f"MISSING KNOWN-LINT SNAPSHOT '{path}' ({exc}; refusing to "
-            "resolve lint names against the local toolchain)"
-        )
+def parse_known_lints_text(text, origin):
+    """Parse snapshot text (shared by worktree and git-index reads)."""
     pin = None
     names = set()
     for line in text.splitlines():
@@ -420,17 +441,117 @@ def load_known_lints(path):
         names.add(stripped)
     if not names:
         raise PolicyError(
-            f"MISSING KNOWN-LINT SNAPSHOT '{path}' (no lint entries parsed)"
+            f"MISSING KNOWN-LINT SNAPSHOT '{origin}' (no lint entries parsed)"
         )
     return pin, names
 
 
-def read_toolchain_pin(pin_file):
-    """Read the repo toolchain pin (plain text or rust-toolchain.toml)."""
+def _repo_relative(path_str):
+    """Repo-relative path for --staged index reads, or None if outside."""
     try:
-        text = Path(pin_file).read_text()
+        top = subprocess.run(
+            ["git", "rev-parse", "--show-toplevel"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return None
+    if top.returncode != 0:
+        return None
+    toplevel = Path(top.stdout.strip())
+    candidate = Path(path_str)
+    try:
+        absolute = (
+            candidate.resolve()
+            if candidate.is_absolute()
+            else (Path.cwd() / candidate).resolve()
+        )
+    except OSError:
+        return None
+    try:
+        return str(absolute.relative_to(toplevel.resolve()))
+    except ValueError:
+        return None
+
+
+def _read_index_text(rel):
+    """Return the git-index blob for a repo-relative path, or None."""
+    try:
+        shown = subprocess.run(
+            ["git", "show", f":{rel}"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
     except OSError as exc:
-        raise PolicyError(f"UNREADABLE TOOLCHAIN PIN '{pin_file}' ({exc})")
+        raise PolicyError(f"STAGED SCAN FAILED (git unavailable: {exc})")
+    if shown.returncode != 0:
+        return None
+    return shown.stdout
+
+
+def _is_tracked(rel):
+    try:
+        proc = subprocess.run(
+            ["git", "ls-files", "--error-unmatch", "--", rel],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError as exc:
+        raise PolicyError(f"STAGED SCAN FAILED (git unavailable: {exc})")
+    return proc.returncode == 0
+
+
+def load_indexed_text_or_worktree(path_str, kind):
+    """Authority text for --staged runs: the git INDEX blob wins.
+
+    The snapshot and pin are stage-time authorities, so in --staged mode
+    they must reflect what is staged, not unstaged worktree edits. When
+    the path maps to a tracked repo file the index blob
+    (``git show :<path>``) is authoritative; when the path is untracked
+    or outside the repo the worktree file is used. A tracked-but-
+    unreadable index blob fails closed. Worktree/index divergence is
+    resolved in favour of the index (documented, no silent worktree
+    influence on staged validation).
+    """
+    rel = _repo_relative(path_str)
+    if rel is None:
+        return None
+    indexed = _read_index_text(rel)
+    if indexed is not None:
+        return indexed
+    if _is_tracked(rel):
+        raise PolicyError(
+            f"UNREADABLE POLICY '{path_str}' (cannot read indexed {kind} blob; "
+            "failing closed rather than falling back to the worktree)"
+        )
+    return None
+
+
+def load_known_lints(path):
+    """Load the known-lint snapshot (REQ-P1 authority) from the worktree."""
+    try:
+        text = Path(path).read_text()
+    except OSError as exc:
+        raise PolicyError(
+            f"MISSING KNOWN-LINT SNAPSHOT '{path}' ({exc}; refusing to "
+            "resolve lint names against the local toolchain)"
+        )
+    return parse_known_lints_text(text, path)
+
+
+def load_known_lints_staged(path_str):
+    """Load the snapshot for --staged runs: the git INDEX blob wins."""
+    indexed = load_indexed_text_or_worktree(path_str, "snapshot")
+    if indexed is not None:
+        return parse_known_lints_text(indexed, f"{path_str} (git index)")
+    return load_known_lints(path_str)
+
+
+def parse_toolchain_pin_text(text, origin):
+    """Parse pin text: TOML channel first, else first non-comment line."""
     try:
         doc = tomllib.loads(text)
         channel = doc.get("toolchain", {}).get("channel")
@@ -438,10 +559,33 @@ def read_toolchain_pin(pin_file):
             return channel.strip()
     except Exception:
         pass
-    pin = text.strip()
-    if not pin:
-        raise PolicyError(f"UNREADABLE TOOLCHAIN PIN '{pin_file}' (empty)")
-    return pin
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        return stripped
+    raise PolicyError(f"UNREADABLE TOOLCHAIN PIN '{origin}' (empty)")
+
+
+def read_toolchain_pin(pin_file):
+    """Read the repo toolchain pin (plain text or rust-toolchain.toml).
+
+    `#` comment lines are ignored so the pin file can carry a header
+    documenting the manual refresh process.
+    """
+    try:
+        text = Path(pin_file).read_text()
+    except OSError as exc:
+        raise PolicyError(f"UNREADABLE TOOLCHAIN PIN '{pin_file}' ({exc})")
+    return parse_toolchain_pin_text(text, pin_file)
+
+
+def read_toolchain_pin_staged(pin_file):
+    """Read the pin for --staged runs: the git INDEX blob wins."""
+    indexed = load_indexed_text_or_worktree(pin_file, "pin")
+    if indexed is not None:
+        return parse_toolchain_pin_text(indexed, f"{pin_file} (git index)")
+    return read_toolchain_pin(pin_file)
 
 
 def load_package_json(text, origin):
@@ -528,7 +672,12 @@ class PolicyChecker:
                 )
 
     def check_run_body(self, path, lineno, body):
-        for segment in split_segments(body):
+        # GitHub `${{ ... }}` expressions become a non-dollar placeholder
+        # BEFORE splitting, so separators inside an expression (e.g.
+        # `${{ a || b }}`) never split the step. Diagnostics still cite the
+        # original body text.
+        sanitized = GH_EXPR_RE.sub(GH_EXPR_PLACEHOLDER, body)
+        for segment in split_segments(sanitized):
             tokens = tokenize(segment)
             if not tokens:
                 continue
@@ -568,8 +717,28 @@ class PolicyChecker:
             positional.pop(0)
         if not positional:
             return
+        # `yarn workspace <name> <cmd>`: skip the workspace + name tokens
+        # and resolve <cmd> as the script.
+        if manager == "yarn" and positional[0] == "workspace":
+            if len(positional) < 3:
+                return
+            positional = positional[2:]
+        # Short aliases resolve to their canonical command first.
+        if positional and positional[0] in PM_ALIASES:
+            positional = [PM_ALIASES[positional[0]]] + positional[1:]
+        if not positional:
+            return
         head, rest = positional[0], positional[1:]
+        # Dynamic script position (`pnpm ${{ matrix.script }}`): content
+        # cannot be verified — skip the step with no finding.
+        if head == GH_EXPR_PLACEHOLDER:
+            return
         names = self.script_names()
+        # Manager default commands: a same-named workspace script wins when
+        # present; otherwise the manager's default applies. No finding
+        # either way.
+        if head in PM_DEFAULT_COMMANDS:
+            return
         if head in PM_BUILTINS:
             return
         if head in ONE_SHOT_SUBCOMMANDS:
@@ -605,6 +774,10 @@ class PolicyChecker:
             # itself, nothing to resolve.
             return
         head = positional[0]
+        # Dynamic subcommand position (`cargo ${{ matrix.tool }}`): content
+        # cannot be verified — skip the step with no finding.
+        if head == GH_EXPR_PLACEHOLDER:
+            return
         if head in KNOWN_CARGO_SUBCOMMANDS or head in self.aliases:
             return
         self.note(
@@ -687,11 +860,14 @@ def staged_files():
 
 
 def index_tracked_manifests(exclude):
-    """Tracked package.json files: resolution context for --staged runs.
+    """Tracked context for --staged runs.
 
     Staging just a workflow must not lose the workspace-root manifest's
-    script context. Context manifests join script resolution but are never
-    checked for findings themselves.
+    script context, nor a committed `.cargo/config.toml`'s aliases. Both
+    context classes join resolution but are never checked for findings
+    themselves (no check_toml on config files here). Returns
+    [(path, blob text)]; the caller routes package.json entries through
+    add_package and config entries through load_aliases.
     """
     try:
         proc = subprocess.run(
@@ -708,7 +884,11 @@ def index_tracked_manifests(exclude):
     for name in proc.stdout.split("\0"):
         if not name or name in exclude:
             continue
-        if Path(name).name != "package.json":
+        is_manifest = Path(name).name == "package.json"
+        is_cargo_config = (
+            Path(name).name == "config.toml" and ".cargo" in Path(name).parts
+        )
+        if not (is_manifest or is_cargo_config):
             continue
         shown = subprocess.run(
             ["git", "show", f":{name}"],
@@ -758,9 +938,16 @@ def main(argv=None):
 
     try:
         expect_pin = args.expect_pin
-        if expect_pin is None and args.pin_file is not None:
-            expect_pin = read_toolchain_pin(args.pin_file)
-        snapshot_pin, known_lints = load_known_lints(args.known_lints)
+        if args.staged:
+            # Stage-time authorities come from the git INDEX so unstaged
+            # worktree edits cannot silently alter staged validation.
+            if expect_pin is None and args.pin_file is not None:
+                expect_pin = read_toolchain_pin_staged(args.pin_file)
+            snapshot_pin, known_lints = load_known_lints_staged(args.known_lints)
+        else:
+            if expect_pin is None and args.pin_file is not None:
+                expect_pin = read_toolchain_pin(args.pin_file)
+            snapshot_pin, known_lints = load_known_lints(args.known_lints)
         if expect_pin is not None and snapshot_pin != expect_pin:
             print(
                 f"policy-verifier: STALE KNOWN-LINT SNAPSHOT "
@@ -794,7 +981,10 @@ def main(argv=None):
                 and ("workflows" in Path(n).parts or "pipelines" in Path(n).parts)
             ]
             for path, text in list(manifests) + context:
-                checker.add_package(path, load_package_json(text, path))
+                if Path(path).name == "package.json":
+                    checker.add_package(path, load_package_json(text, path))
+                elif Path(path).name == "config.toml" and ".cargo" in Path(path).parts:
+                    checker.aliases |= load_aliases(text, path)
             ordered = sorted(
                 checker.packages,
                 key=lambda p: (len(Path(p).parts), str(p)),

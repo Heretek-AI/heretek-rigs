@@ -147,7 +147,18 @@ def git(*args, cwd):
     return proc
 
 
-def write_snapshot(directory, pin="fixture-toolchain-1"):
+def read_checked_in_pin():
+    """Checked-in audit-revision pin, ignoring `#` header comments."""
+    for line in CHECKED_IN_PIN.read_text().splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            return stripped
+    raise AssertionError("toolchain pin file must not be empty")
+
+
+def write_snapshot(directory, pin=None):
+    if pin is None:
+        pin = read_checked_in_pin()
     path = Path(directory) / "known-lints.txt"
     path.write_text(SNAPSHOT_TEXT.replace("fixture-toolchain-1", pin))
     return path
@@ -378,6 +389,161 @@ class PolicyVerifierWorkflowTests(unittest.TestCase):
             proc = run_verifier(str(root), "--known-lints", str(snapshot))
             self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
+    def test_github_expression_with_separators_stays_single_segment(self):
+        """REQ-P2: `echo ${{ a || b }}` stays one segment with no finding."""
+        with tempfile.TemporaryDirectory() as tmp:
+            text = (
+                "name: expr\non: [push]\njobs:\n"
+                "  e:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: echo ${{ a || b }}\n"
+            )
+            root, _, snapshot = self._tree(tmp, text)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+
+    def test_pm_dynamic_expression_script_skipped_without_finding(self):
+        """REQ-P2: `pnpm ${{ matrix.script }}` skips with no UNRESOLVABLE."""
+        with tempfile.TemporaryDirectory() as tmp:
+            text = (
+                "name: dyn\non: [push]\njobs:\n"
+                "  d:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: pnpm ${{ matrix.script }}\n"
+            )
+            root, _, snapshot = self._tree(tmp, text)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+            self.assertNotIn("UNRESOLVABLE", out)
+
+    def test_pm_static_script_alongside_expression_resolves(self):
+        """REQ-P2: `pnpm lint ${{ matrix.args }}` still resolves lint."""
+        with tempfile.TemporaryDirectory() as tmp:
+            text = (
+                "name: mix\non: [push]\njobs:\n"
+                "  m:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: pnpm lint ${{ matrix.args }}\n"
+            )
+            root, _, snapshot = self._tree(tmp, text)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_npm_test_with_script_passes(self):
+        """REQ-P2: `npm test` resolves via the test script when present."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = {"name": "t", "scripts": {"test": "vitest run"}}
+            text = (
+                "name: t\non: [push]\njobs:\n"
+                "  t:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: npm test\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=pkg)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_npm_test_without_script_passes_as_default(self):
+        """REQ-P2: `npm test` with no test script applies the manager
+        default (no UNRESOLVABLE SCRIPT finding)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = {"name": "t", "scripts": {}}
+            text = (
+                "name: t\non: [push]\njobs:\n"
+                "  t:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: npm test\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=pkg)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+            self.assertNotIn("UNRESOLVABLE", out)
+
+    def test_npm_t_alias_behaves_as_test(self):
+        """REQ-P2: alias `npm t` behaves as `test` (script or default)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = {"name": "t", "scripts": {"test": "vitest run"}}
+            text = (
+                "name: t\non: [push]\njobs:\n"
+                "  t:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: npm t\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=pkg)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_yarn_workspace_resolves_command(self):
+        """REQ-P2: `yarn workspace foo build` resolves build."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = {"name": "t", "scripts": {"build": "tsc -p ."}}
+            text = (
+                "name: y\non: [push]\njobs:\n"
+                "  y:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: yarn workspace foo build\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=pkg)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
+    def test_yarn_workspace_unknown_command_fails(self):
+        """REQ-P2 control: `yarn workspace foo bogus` still fails named."""
+        with tempfile.TemporaryDirectory() as tmp:
+            pkg = {"name": "t", "scripts": {"build": "tsc -p ."}}
+            text = (
+                "name: y\non: [push]\njobs:\n"
+                "  y:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: yarn workspace foo bogus\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=pkg)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("bogus", out)
+
+    def test_quoted_inline_run_double_quotes_duplicates(self):
+        """REQ-P2: `run: "pnpm eslint ."` fires DUPLICATE citing lint."""
+        with tempfile.TemporaryDirectory() as tmp:
+            text = (
+                "name: q\non: [push]\njobs:\n"
+                "  q:\n    runs-on: ubuntu-latest\n    steps:\n"
+                '      - run: "pnpm eslint ."\n'
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=FLAT_PKG)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("DUPLICATE", out)
+            self.assertIn("lint", out)
+
+    def test_quoted_inline_run_single_quotes_duplicates(self):
+        """REQ-P2: `run: 'pnpm eslint .'` fires DUPLICATE citing lint."""
+        with tempfile.TemporaryDirectory() as tmp:
+            text = (
+                "name: q\non: [push]\njobs:\n"
+                "  q:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: 'pnpm eslint .'\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=FLAT_PKG)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("DUPLICATE", out)
+            self.assertIn("lint", out)
+
+    def test_quoted_inline_run_interior_escapes_still_resolve(self):
+        """REQ-P2: outer quotes strip once; interior quotes survive and
+        the step still folds to the script body (`lint: eslint .`)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            text = (
+                "name: q\non: [push]\njobs:\n"
+                "  q:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: \"pnpm eslint '.'\"\n"
+            )
+            root, _, snapshot = self._tree(tmp, text, pkg=FLAT_PKG)
+            proc = run_verifier(str(root), "--known-lints", str(snapshot))
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("DUPLICATE", out)
+            self.assertIn("lint", out)
+
 
 class PolicyVerifierStagedTests(unittest.TestCase):
     def test_staged_stale_toml_fails_then_fixed_passes(self):
@@ -414,7 +580,7 @@ class PolicyVerifierStagedTests(unittest.TestCase):
         """REQ-P4: the shipped authority files exist and pin-match."""
         self.assertTrue(CHECKED_IN_SNAPSHOT.exists(), f"missing {CHECKED_IN_SNAPSHOT}")
         self.assertTrue(CHECKED_IN_PIN.exists(), f"missing {CHECKED_IN_PIN}")
-        pin = CHECKED_IN_PIN.read_text().strip()
+        pin = read_checked_in_pin()
         self.assertTrue(pin, "toolchain pin file must not be empty")
         names = {
             line.strip()
@@ -425,6 +591,110 @@ class PolicyVerifierStagedTests(unittest.TestCase):
         self.assertIn(pin, pins)
         self.assertIn("clippy::cast_possible_truncation", names)
         self.assertNotIn("clippy::cast_lossy", names)
+
+    def test_staged_uses_indexed_snapshot_not_worktree(self):
+        """REQ-P4 index-authority: a worktree snapshot edit left UNSTAGED
+        does not affect staged validation (the INDEX blob wins)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            git("init", cwd=tmp)
+            root = Path(tmp)
+            (root / "package.json").write_text(json.dumps(ROOT_PKG))
+            snapshot = root / "known.txt"
+            snapshot.write_text(SNAPSHOT_TEXT)
+            git("add", "package.json", "known.txt", cwd=tmp)
+            git("commit", "-qm", "seed", cwd=tmp)
+            staged = root / "Cargo.toml"
+            staged.write_text('[workspace]\nresolver = "2"\n\n' + FIXED_CLIPPY_STANZA)
+            git("add", "Cargo.toml", cwd=tmp)
+            # Break the worktree copy WITHOUT staging: staged validation
+            # must still pass because the indexed snapshot is authoritative.
+            snapshot.write_text("pin: wrong-pin\n")
+            proc = run_verifier(
+                "--known-lints",
+                str(snapshot),
+                "--expect-pin",
+                "fixture-toolchain-1",
+                "--staged",
+                cwd=tmp,
+            )
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+
+    def test_staged_snapshot_edit_is_honored(self):
+        """REQ-P4 index-authority positive: a STAGED snapshot edit that
+        adds a lint name is honored by staged validation."""
+        with tempfile.TemporaryDirectory() as tmp:
+            git("init", cwd=tmp)
+            root = Path(tmp)
+            (root / "package.json").write_text(json.dumps(ROOT_PKG))
+            snapshot = root / "known.txt"
+            snapshot.write_text(SNAPSHOT_TEXT)
+            git("add", "package.json", "known.txt", cwd=tmp)
+            git("commit", "-qm", "seed", cwd=tmp)
+            snapshot.write_text(SNAPSHOT_TEXT + "clippy::new_hotness\n")
+            git("add", "known.txt", cwd=tmp)
+            staged = root / "Cargo.toml"
+            staged.write_text('[workspace.lints.clippy]\nnew_hotness = "warn"\n')
+            git("add", "Cargo.toml", cwd=tmp)
+            proc = run_verifier(
+                "--known-lints",
+                str(snapshot),
+                "--expect-pin",
+                "fixture-toolchain-1",
+                "--staged",
+                cwd=tmp,
+            )
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+
+    def test_staged_committed_cargo_alias_resolves_without_staging(self):
+        """REQ-P2: a staged workflow using a COMMITTED (not staged)
+        .cargo/config.toml alias resolves."""
+        with tempfile.TemporaryDirectory() as tmp:
+            git("init", cwd=tmp)
+            root = Path(tmp)
+            (root / "package.json").write_text(json.dumps(ROOT_PKG))
+            cargo_dir = root / ".cargo"
+            cargo_dir.mkdir()
+            (cargo_dir / "config.toml").write_text(
+                '[alias]\nxit = "test -- --nocapture"\n'
+            )
+            snapshot = write_snapshot(tmp)
+            git("add", "package.json", ".cargo/config.toml", cwd=tmp)
+            git("commit", "-qm", "seed", cwd=tmp)
+            wf_dir = root / "pipelines"
+            wf_dir.mkdir()
+            (wf_dir / "ci.yml").write_text(
+                "name: alias\non: [push]\njobs:\n"
+                "  t:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: cargo xit\n"
+            )
+            git("add", "pipelines/ci.yml", cwd=tmp)
+            proc = run_verifier("--known-lints", str(snapshot), "--staged", cwd=tmp)
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+
+    def test_staged_unknown_cargo_alias_still_fails(self):
+        """REQ-P2 control: an alias absent from every context still fails."""
+        with tempfile.TemporaryDirectory() as tmp:
+            git("init", cwd=tmp)
+            root = Path(tmp)
+            (root / "package.json").write_text(json.dumps(ROOT_PKG))
+            snapshot = write_snapshot(tmp)
+            git("add", "package.json", cwd=tmp)
+            git("commit", "-qm", "seed", cwd=tmp)
+            wf_dir = root / "pipelines"
+            wf_dir.mkdir()
+            (wf_dir / "ci.yml").write_text(
+                "name: alias\non: [push]\njobs:\n"
+                "  t:\n    runs-on: ubuntu-latest\n    steps:\n"
+                "      - run: cargo frobnicate --locked\n"
+            )
+            git("add", "pipelines/ci.yml", cwd=tmp)
+            proc = run_verifier("--known-lints", str(snapshot), "--staged", cwd=tmp)
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("frobnicate", out)
 
 
 if __name__ == "__main__":
