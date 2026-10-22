@@ -38,3 +38,25 @@
 
 ## State
 - `git status --short` shows only untracked `docs/evidence/wave-38-unblock/` + this report. No commits made. Sabotage-only edits, all reverted.
+
+## Addendum: re-verification of review-driven fixes (2026-10-22, commit 1d8e8a5)
+
+Scope: `fix(38-unblock)` delta on top of 40bc8b5 — blocker-side trigger (leg b), per-row fault isolation (apply_update + blocker-fetch guards), park argv safety (`allow_abbrev=False`, empty-watchdog rejection, single `--continuation`), runbook §3 + line-37 fix. Sabotage-only edits; all reverted; no commits.
+
+| # | Check | Result |
+|---|---|---|
+| A1 | Full suite `make test` | PASS — 50 tests OK, exit 0 |
+| A2 | `make verify` | PASS — SUMMARY 22 passed / 0 failed (+ advisory live-health WARN only), exit 0 |
+| A3 | `openspec validate remediate-38-unblock` | PASS — valid |
+| B-a | Blocker-only trigger: quiet parked row + satisfying blocker transition → would-unpark/unpark WITH blocker citation; unrelated blocker transition → re-evaluated yet stay-blocked | PASS (2 new tests) + sabotage RED (RC=1): severing `blocker_qitem_refs` → satisfying case stays blocked |
+| B-b | `apply_update` raising DataSourceError on one row → stay-blocked + logged, cursor frozen for that row, subsequent rows still processed | PASS + sabotage RED (RC=1): unguarded write → sweep crashes (`DataSourceError` escapes) |
+| B-c | Blocker-fetch raising → stay-blocked + named SKIP, cursor unchanged, sweep continues (exit path, not crash) | PASS + sabotage RED (RC=1): unguarded fetch → sweep crashes |
+| B-d | `--dry-ru` → SystemExit 2 with no subprocess call; `--wake-watchdog ""` alone → exit 2; both continuation sources → exactly one `--continuation` | PASS (3 new tests + `dry_run` carrier test) + 3 sabotages each RED (RC=1) |
+| B-e | Item-3 deviation soundness: `allow_abbrev=False` + one live-parser probe per abbreviated flag | PASS — `--dry-ru/--dry-r/--sweep-covere/--wake-watchdo/--pred` all exit 2 at parse time; valid `--dry-run` prints argv, exit 0 |
+| C | QA-report line-37 fix | PASS — cites only `mvschwarz/openrig#1785`; zero garbled-URL matches |
+| D | Runbook §3 describes both triggers as implemented | PASS — legs (a)+(b), `{row, blockers}` cursor, source-cited blocker evidence, unreadable-ref SKIP+retry |
+| E | Live read-only dry-run | PASS — exit 0, evaluated=9/unparked=0/would-unpark=4/stay-blocked=5/skipped=12; cursor file not created; no non-dry-run invocation |
+
+Findings: none blocking. No vacuous checks — all 7 sabotages produced RED (RC=1) and green was restored after each revert.
+
+Verdict on programmer's item-3 deviation (reject-exit-2 via `allow_abbrev=False` instead of aliasing abbreviations): **ACCEPT**. With prefix matching disabled, no abbreviated spelling of any long option can parse — a mistyped `--dry-run` errors (exit 2) instead of silently becoming a live write, and a mistyped live-affecting flag errors instead of silently dropping. The unit test (mocked subprocess never called) plus five live-parser probes confirm no abbreviated flag reaches the write path. Rejecting is strictly safer than aliasing here: an alias list can never enumerate every truncation, while `allow_abbrev=False` closes the whole class.
