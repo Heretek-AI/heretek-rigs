@@ -35,7 +35,7 @@ live-health: ## Warn-first live-fleet health gate (read-only; advisory exit 0, -
 	python3 ./scripts/live-health.py
 
 test: ## Run unit tests for seat rendering and permission configuration.
-	python3 -m unittest tests/test_render_seat.py -v
+	python3 -m unittest tests/test_render_seat.py tests/test_sweep_typed_blocks.py -v
 
 bootstrap-seats: ## Provision $OPENRIG_HOME/state/pi/<seat>/agent/ across all rigs.
 	bash ./scripts/bootstrap-pi-seats.sh --all
