@@ -1,0 +1,114 @@
+# red-proofs.log — wave-38-unblock (stage remediate-38-unblock, commit 40bc8b5)
+# QA verifier: sabotage-only edits, every defect reverted via `git checkout -- <file>`.
+# Each entry: timestamp (UTC), target assertion, injected defect, check command,
+# exit code (RED = non-zero / FAILED), restore proof.
+
+## Baseline (unmodified tree, 2026-10-22)
+- `make verify` -> SUMMARY: 22 checks passed, 0 failed; LIVE-HEALTH WARN (advisory, exit 0). EXIT 0.
+- `make test` -> Ran 42 tests ... OK (7 render-seat + 35 sweep). EXIT 0.
+- `openspec validate remediate-38-unblock` -> valid. EXIT 0.
+- `python3 -m unittest tests/test_live_health.py` -> Ran 21 tests ... OK. EXIT 0.
+
+## S1 — bare seat assertion must NOT unpark (fail-closed citation rule)
+- 2026-10-22T~17:30Z | target: test_bare_seat_assertion_without_citation_stays_blocked
+- defect: scripts/sweep-typed-blocks.py `if cited or authoritative:` -> `if True:  # SABOTAGE-S1`
+- check: `python3 -m unittest tests.test_sweep_typed_blocks.TestEvaluation.test_bare_seat_assertion_without_citation_stays_blocked` -> FAILED (failures=1), RC=1 (RED)
+- restore: `git checkout -- scripts/sweep-typed-blocks.py`; `git status --short` clean.
+
+## S2 (vacuous attempt, superseded) — NEGATIONS tuple edit did NOT flip the verdict (test stayed green, RC=0).
+- Reason: `_word_hits` hardcodes its own negation regex `no|zero|without|none|not`; the NEGATIONS constant is never referenced (dead constant — see finding F1). Sabotage reverted. NOT counted as a red-proof.
+## S2b — watchdog "pass still pending" restatement must NOT unpark (W2-06 false-positive shape)
+- defect: `cited = CITATION_RE.search(note) is not None` -> `cited = True  # SABOTAGE-S2b`
+- check: test_pending_pass_assertion_stays_blocked -> FAILED (failures=1), RC=1 (RED)
+- restore: git checkout; status clean.
+
+## S3 (insufficient, superseded) — renaming 2 of 8 REARM_TOKENS left "rework" matching; test stayed green RC=0. Reverted.
+## S3b — rework/failure note after satisfaction must re-arm (stay blocked)
+- defect: `elif rearm_hits:` -> `elif False:  # SABOTAGE-S3b`
+- check: test_sabotage_rework_note_rearms_block -> FAILED (failures=1), RC=1 (RED)
+- restore: git checkout; status clean.
+
+## S4 — malformed SATISFIED: (missing evidence) must NOT unpark
+- defect: empty-evidence branch `return ("malformed",...)` -> `return ("ok", ..., "SABOTAGE")`
+- check: 3 TestSatisfyConvention/malformed tests -> FAILED (failures=1: test_malformed_satisfy_missing_evidence), RC=1 (RED)
+- restore: git checkout; status clean.
+
+## S5a (defense-in-depth note) — widening state pin to allow "done" still refused by second guard `if "done" in argv`; test stayed green RC=0, builder refused done. Proves two independent layers. Reverted.
+## S5c+d — sweep must NEVER emit state=done (structural incapacity)
+- defect: removed `if "done" in argv` guard + builder `"in-progress"` -> `"done"`
+- check: test_sweep_never_emits_done -> FAILED (errors=1, builder raises RuntimeError), RC=1 (RED)
+- clean-tree verify: check_unpark_argv refuses `state=done` with RuntimeError (GOOD); `build_unpark_argv` pins in-progress.
+- restore: git checkout; status clean.
+
+## S6 — predicate-less typed park must be REJECTED (REQ-BU1)
+- defect: scripts/park-typed-block.py predicate gate `if not args.predicate ...` -> `if False:`
+- check: test_predicate_less_typed_park_rejected + test_malformed_predicate_rejected -> FAILED (failures=2), RC=1 (RED)
+- restore: git checkout.
+## S6b — timer-only (--wake-after alone) typed park must be REJECTED (REQ-BU4)
+- defect: `live_wake = (...)` -> `live_wake = True`
+- check: test_timer_only_typed_park_rejected -> FAILED (failures=1), RC=1 (RED)
+- restore: git checkout; status clean.
+
+## S7 — --dry-run must mutate nothing
+- defect: `if dry_run:` -> `if dry_run and False:` (dry-run falls into live update path)
+- check: test_dry_run_reports_but_mutates_nothing -> FAILED (failures=1, updates=['qitem-W103'] vs []), RC=1 (RED)
+- restore: git checkout; status clean.
+
+## Sa — evidence-stripped unblock-shaped note must STAY blocked (check a)
+- defect: `if sat_hits and not rearm_hits:` -> `if True:`
+- check: test_sabotage_note_without_satisfaction_tokens_stays_blocked -> FAILED (failures=1), RC=1 (RED)
+- restore: git checkout.
+
+## Sd — dangling verdict-qitem ref must STAY blocked naming the ref (check d)
+- defect: `if dangling:` -> `if dangling and False:`
+- check: test_dangling_verdict_qitem_ref_stays_blocked_and_names_ref -> FAILED (failures=1), RC=1 (RED)
+- restore: git checkout; `git status --short` clean.
+
+## Direct path exercises on the CLEAN tree (no sabotage; ad-hoc FakeClient, exit 0)
+- D1: transitions-unreadable row -> SKIP log naming qitem, stay-blocked, zero updates. PASS.
+- D2: malformed/missing cursor file -> load_cursor returns {}, no crash. PASS.
+- D3: malformed transition entries (non-dict, null note) -> tolerated, stay-blocked, zero updates. PASS.
+- E: build_unpark_argv pins in-progress and contains no "done"; check_allowed refuses bare update/create/block/resolve and state=done. PASS.
+- RO: run_sweep contains exactly one apply_update call site, guarded by `if dry_run` branch. PASS.
+
+## Live read-only dry-run (NO mutations; 2026-10-22)
+- `python3 scripts/sweep-typed-blocks.py --dry-run --cursor-file /tmp/heretek-qa38-cursor.json` -> EXIT 0
+- `sweep: evaluated=9 unparked=0 would-unpark=4 stay-blocked=5 skipped=12` (+ dry-run trailer; cursor not written).
+- WOULD-UNPARK includes W1-03 (qitem-20261022052407-3d618a4431583b97, t927) and W1-04 (qitem-20261022052409-291190744e33d1fe, t1065-via-t928); STAY-BLOCKED includes re-armed W2 rows and the harness-denied row.
+- Cross-check: `rig queue show` confirms both W1-03 and W1-04 still `blocked` post-dry-run (zero live writes: unparked=0, no cursor write).
+- Read-only discipline: the tool's only write path is `update --state in-progress --reopen --note` via apply_update; unreachable in --dry-run (proven RED by S7); no non-dry-run invocation was executed by this QA stage.
+
+## Makefile diff review
+- `git diff 69f2514..HEAD -- Makefile`: single-line change — `test` target extended to run test_render_seat.py + test_sweep_typed_blocks.py. No verify-rigs.sh changes (22-check baseline intact, confirmed by make verify SUMMARY 22/0). No renumbering, no masking.
+
+## Anti-stub
+- grep for TODO|FIXME|XXX||| true|except-pass|skipTest|@unittest.skip over both scripts + tests: CLEAN (one benign "pass-through" status string in park wrapper for non-typed parks, not a stub).
+
+## Final state
+- `make test` re-run after all restores: Ran 42 tests ... OK. `git status --short` shows only untracked docs/evidence/ + docs/reports/ (this log + QA report). No production/test file modifications remain.
+
+## Re-verification of review-driven fixes (2026-10-22; commit 1d8e8a5 on top of 40bc8b5)
+Commit under test: 1d8e8a5 `fix(38-unblock): address PR review - blocker triggers, argv safety, per-row fault isolation`.
+Baseline (unmodified tree): `make test` -> Ran 50 tests OK, exit 0; `make verify` -> SUMMARY 22 passed / 0 failed (+ advisory live-health WARN only), exit 0; `openspec validate remediate-38-unblock` -> valid, exit 0.
+New behavior tests (all PASS on unmodified tree): TestBlockerSideTrigger (2), TestSweepFaultIsolation (2), TestParkArgvSafety (4) — 8/8 OK.
+Method: surgical one-line production-code sabotage via python patch, re-run targeted test (expect non-zero exit / FAIL), restore with `git checkout -- <file>`, confirm clean + green. No test files touched. All sabotages reverted.
+
+- R-a1 (blocker-only trigger, PASS): `TestBlockerSideTrigger.test_blocker_only_transition_triggers_reevaluation_and_unparks` — parked row quiet, satisfying verdict lands ONLY on referenced blocker qitem -> unparked == [row], exactly 1 update, audit note cites source `qitem-V1` + `wave1-qa-report`. PASS.
+- R-a2 (unrelated blocker transition, PASS): new blocker-side transition with no satisfaction -> row in `evaluated` AND `stay_blocked`, `unparked == []`, zero updates. PASS (trigger fires, verdict stays closed).
+- R-a (sabotage, RED RC=1): `refs = blocker_qitem_refs(row, transitions)` -> `refs = []` in run_sweep (scripts/sweep-typed-blocks.py). Re-run TestBlockerSideTrigger -> FAILED (failures=2): satisfying case STAYS blocked (no unpark), unrelated case never re-evaluated. Proves the blocker-fetch leg is load-bearing; without it leg (b) silently dies. Restored: `git checkout -- scripts/sweep-typed-blocks.py`, `git status --short` clean, class re-run OK.
+- R-b (apply_update failure, PASS): `TestSweepFaultIsolation.test_apply_update_failure_leaves_row_blocked_and_continues` — DataSourceError on one row's update -> that row stay-blocked + failure logged, cursor entry absent for it (frozen), second row still unparks (1 update). PASS.
+- R-b (sabotage, RED RC=1): removed try/except around `client.apply_update(argv)` (bare call). Re-run -> ERROR, `sweep_typed_blocks.DataSourceError: daemon refused update for qitem-SAT`, FAILED (errors=1): sweep crashes, no isolation, second row never processed. Proves the guard is load-bearing. Restored clean, class re-run OK.
+- R-c (blocker-fetch failure, PASS): `TestSweepFaultIsolation.test_unreadable_blocker_stays_blocked_cursor_frozen_and_continues` — fetch_transitions raising on qitem-BAD -> row stay-blocked + SKIP naming `qitem-BAD`, no cursor entry (frozen), healthy row still unparks. PASS.
+- R-c (sabotage, RED RC=1): removed try/except around `client.fetch_transitions(ref)` (bare call). Re-run -> ERROR, `DataSourceError: daemon unreachable (transitions qitem-BAD)`, FAILED (errors=1): exit path becomes a crash. Proves the fetch guard is load-bearing. Restored clean, class re-run OK.
+- R-d1 (abbrev rejection, PASS): `test_abbreviated_dry_run_cannot_trigger_live_write` — `--dry-ru` with subprocess.run mocked to raise -> SystemExit code 2, mock not called. PASS.
+- R-d1 (sabotage, RED RC=1): `allow_abbrev=False` -> `allow_abbrev=True` (scripts/park-typed-block.py). Re-run -> FAIL `AssertionError: SystemExit not raised` (abbrev silently parses as --dry-run). Proves the flag is load-bearing; silent abbreviation acceptance is the live-op hazard. Restored clean.
+- R-d2 (empty watchdog, PASS): `test_empty_wake_watchdog_is_not_a_live_wake` — `--wake-watchdog ""` alone -> exit != 0, stderr names wake, argv None. PASS.
+- R-d2 (sabotage, RED RC=1): `bool(args.wake_watchdog)` -> `(args.wake_watchdog is not None)`. Re-run -> FAIL `AssertionError: 0 == 0` (empty string accepted as live wake). Restored clean.
+- R-d3 (continuation merge, PASS): `test_continuation_merged_singly_with_sweep_covered` — both sources -> exactly one `--continuation`, value contains both `keep me` and `sweep-covered`. PASS.
+- R-d3 (sabotage, RED RC=1): restored legacy double `--continuation` emit. Re-run -> FAIL `AssertionError: 2 != 1`. Restored clean, class re-run 4/4 OK.
+- R-e (item-3 deviation probe, PASS): source pins `allow_abbrev=False` (line 54). Live-parser probes (real subprocess, error/dry-run paths only — zero live-write surface): `--dry-ru`, `--dry-r`, `--sweep-covere`, `--wake-watchdo`, `--pred` each -> exit 2 with argparse usage error (rejected before plan()/main() can reach subprocess). Valid `--dry-run` control -> exit 0, prints exact `rig queue block ...` argv, executes nothing. Reasoning: with prefix matching off, no abbreviated spelling of any long option can parse; any misspelling exits 2 at parse time, so no abbreviated flag can set dry_run or silently drop a live-affecting flag on the write path (main() only calls subprocess.run on exit 0 without dry_run). ACCEPT the reject-exit-2 deviation (see QA report addendum).
+- QA-report line-37 check: line 37 cites only `mvschwarz/openrig#1785`; grep for garbled `mvschmidt`/stale fragment -> 0 matches. PASS.
+- Runbook §3 check: documents leg (a) parked-row + leg (b) blocker-qitem triggers, `{row, blockers:{qitem:max}}` cursor entry, blocker-side evidence cited with source qitem, unreadable-ref fail-closed SKIP + retry. Matches implementation. PASS.
+- Live read-only dry-run (NO mutations): `python3 scripts/sweep-typed-blocks.py --dry-run --cursor-file /tmp/heretek-qa38-reverify-cursor.json --log-file /tmp/heretek-qa38-reverify.log` -> EXIT 0, `evaluated=9 unparked=0 would-unpark=4 stay-blocked=5 skipped=12`; cursor file NOT created (dry-run purity on live data); live rows show blocker-side citations (e.g. `qitem-... transition 1169: ...`) confirming leg (b) on real data. No non-dry-run invocation executed by this QA stage.
+
+Final state: `make test` re-run after all restores: Ran 50 tests OK. `git status --short` clean except appended QA report section (tracked) — this log is git-ignored. No commits made. Sabotage-only edits, all reverted.
