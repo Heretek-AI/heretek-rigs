@@ -66,3 +66,12 @@ trust nothing below without re-checking.
 2. If relaunching: re-seed (`bootstrap-pi-seats.sh --profile all-51`), `rig up
    rig.all-51.yaml --cwd <fresh-workspace> --yes`, confirm 51 `run`.
 3. Ask the human for the reference-machine decision — it gates everything.
+
+## Decisions (2026-10-23, principal-confirmed)
+
+- SCOPE: the 9 issues #37-#45 only; pre-existing backlog (#9,#11,#12,#14-#18) out of scope.
+- ORDER: severity order #45,#38,#43,#40,#41,#37,#44,#42,#39.
+- #12 deferred with written rationale (architecture program, needs own design tree).
+- Per-issue approaches: #37 local guardrail (CLI truncation REFUTED in 0.6.13 — copy IDs only from --json, never retype); #38 event-driven re-eval on note-landed + explicit satisfy transition; #39 reconcile-diff command now, full generation later; #40 stage-time manifest-closure lint; #41 combined minimal verifier (lint-table + run:-vs-scripts); #42/#44 local --json/--full/--verify mandate + ONE upstream issue against mvschwarz/openrig filed alongside local fix; #43 sanctioned-untracked allowlist in generate-rigs.py; #45 warn-first live-health gate (overdue/undelivered + stuck-row age, heartbeat enablement prerequisite).
+- EXECUTION: specs-first for all 9 (9 change packages across spec/remediate-45-38-43, spec/remediate-40-41-39, spec/remediate-37-44-42), then implement in severity order with full triad per remediation; PR per change, human merges.
+- Live-state correction: tree dirt is now 2 modified (AGENTS.md one-line #44 workaround + HANDOFF.md) plus untracked session-evidence paths, verified 2026-10-23.
