@@ -1,0 +1,14 @@
+[
+  {
+    "canonicalSessionName": "design-a11y-specialist@heretek-omni-fleet",
+    "agentActivity": {
+      "state": "idle-at-prompt"
+    }
+  },
+  {
+    "canonicalSessionName": "design-design-system-eng@heretek-omni-fleet",
+    "agentActivity": {
+      "state": "idle-at-prompt"
+    }
+  }
+]

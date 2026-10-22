@@ -13,7 +13,7 @@ SIDECAR_PROFILES ?=
 RIG_BIN := $(shell command -v rig 2>/dev/null || true)
 
 .DEFAULT_GOAL := help
-.PHONY: help generate idempotent verify test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology
+.PHONY: help generate idempotent verify live-health test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology
 
 help: ## List all documented Heretek-Rigs targets.
 	@echo "Heretek-Rigs — 51-Agent OpenRig + Pi + OpenCode Go Fleet"
@@ -29,6 +29,10 @@ idempotent: ## Regenerate twice and fail if any byte differs (HR-8.1 determinism
 
 verify: ## Run the self-testing verification gate (schemas, digests, 51-role parity, DAGs, sidecars, unit tests).
 	bash ./scripts/verify-rigs.sh
+	python3 ./scripts/live-health.py
+
+live-health: ## Warn-first live-fleet health gate (read-only; advisory exit 0, --strict to fail).
+	python3 ./scripts/live-health.py
 
 test: ## Run unit tests for seat rendering and permission configuration.
 	python3 -m unittest tests/test_render_seat.py -v
