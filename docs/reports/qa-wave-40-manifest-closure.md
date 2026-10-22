@@ -95,3 +95,69 @@ implementation bug — as written: PASS, no finding.
 Paths:
 - Evidence: `docs/evidence/wave-40-manifest-closure/red-proofs.log`
 - Report: `docs/reports/qa-wave-40-manifest-closure.md`
+
+---
+
+## 8. Re-verification of review-fix commit `65035a1` (2026-10-22 UTC, second pass)
+
+Stage: `wave-40-review-reverify` · Commit under test: `65035a1`
+(`fix(40-manifest-closure): address PR review - extends types, ownership, tokenizer,
+run-strip, JSONC, staged context, unreadable test` on top of `0ae18c5/d4a55ef/9eb5171`;
+`git log --oneline -4` confirmed). Original §§1–7 above left intact.
+Verdict for this pass: **QA-CLEAN** (1 observation, 1 carried advisory, no findings).
+
+### 8.1 Checks run (exact commands, worktree root, unmodified tree first)
+
+| # | Command | Result |
+|---|---------|--------|
+| 1 | `make test` | PASS — `Ran 59 tests / OK`, exit 0 |
+| 2 | `make verify` | PASS — `SUMMARY: 24 checks passed, 0 failed.`, exit 0; V8 present; live-health advisories only (heartbeat WARNs + seat-idleness SKIP, same as prior baseline) |
+| 3 | `openspec validate remediate-40-manifest-closure` | PASS — valid, exit 0 |
+| 4 | `python3 -m unittest tests/test_manifest_closure.py` | PASS — `Ran 28 tests / OK` (17 → 28 via the 11 new review-driven tests), exit 0 |
+
+### 8.2 Red-proof results (per new behavior; full log appended to `docs/evidence/wave-40-manifest-closure/red-proofs.log` R15–R21)
+
+| Item | Sabotage | RED? | Restored clean? |
+|------|----------|------|-----------------|
+| (a) extends types | nested `merged_types` read back under `if merged_doc is None:` (first-doc-only revert) → base fixture flips exit 1 → exit 0 (PASS) | YES | YES (`git checkout`, status clean, base fires again) |
+| (a) leaf-wins control | none — leaf `{types:["node"]}` + `@types/node`, base mystery entry → exit 0 | GREEN (control) | n/a |
+| (b) ownership | restored `reversed(Path(path).parents)` → false `UNDECLARED TYPES ENTRY '@types/inner-lib'` attributed to `root`, exit 1; unit test FAILs | YES | YES (status clean, exit 0 again) |
+| (c) tokenizer | deleted backslash-newline join → `cmd arg \\\nmore` splits to `['cmd arg \\', 'more']`; 2 unit tests FAIL | YES | YES (status clean, both OK) |
+| (d) run-strip | restored pre-fix raw-args `run` strip → go-only fixture flips exit 1 → exit 0 (must NOT fire); committed fixture loses `(script 'go')` chain finding | YES | YES (status clean, exit 1 + chain back) |
+| (e) JSONC | `load_tsconfig_text` → `load_json_text` → commented tsconfig goes `UNREADABLE MANIFEST`, exit 1 (parse fails); unit test FAILs. Commented `package.json` control still `UNREADABLE` on clean tree (strict held) | YES | YES (status clean, types finding back) |
+| (f) staged context | dropped `context_manifests` → workflow-context unit test FAILs; scratch repo `--staged` false-fires on child `eslint` (exit 1) | YES | YES (status clean, 3 staged tests OK, scratch `--staged` exit 0) |
+| (f) context-only control | scratch repo: full-tree scan fires on committed root `leak` (exit 1); `--staged` with only clean child staged → exit 0 (root not finding-checked) | GREEN (control, as reasoned) | n/a (scratch `/tmp` repo) |
+| (g) unreadable | removed `IsADirectoryError` branch **and** generic `OSError` fallback → raw `IsADirectoryError` escapes, unit test ERRORs. (Removing only the specific branch still passes via the `OSError` fallback — message-precision defense-in-depth, recorded honestly.) Old directory-discovery test shape grep → ABSENT | YES | YES (status clean, unit OK) |
+
+### 8.3 Scope
+
+`git show --stat 65035a1`: exactly two files — `scripts/manifest-closure.py`
+(+130/−10), `tests/test_manifest_closure.py` (+324/−6). No `specs/` / `openspec/`
+content change, no `registry/` / `fleet/` / `rigs/` / generated-dir drift in the fix
+commit. Full-wave diff `d863df0..HEAD` remains additive-only.
+
+### 8.4 Observation (advisory, not a finding)
+
+The committed `test_pnpm_filter_run_recurses_into_script` asserts only exit≠0 +
+names `secrettool` on a fixture where `build` is itself a staged script — that
+assertion PASSES under both old and new run-strip logic (old code still fires via the
+direct `build` entry point). The new behavior is proven load-bearing by this pass's
+go-only exit-flip (R18) and the `(script 'go')` chain-attribution flip; a future
+strengthening could assert the chain string or add a go-only fixture. Behavior
+correct — test could be sharper.
+
+### 8.5 Carried advisory (from §6, still open)
+
+Worktree `AGENTS.md` still says "expect: 23 checks passed" / "23 checks are
+audit-baselined" while post-stage truth is 24. Out of this stage's touch-only scope;
+follow-up should refresh the two numbers.
+
+### 8.6 Verdict
+
+**QA-CLEAN** — the review fix is load-bearing on all seven behaviors, scope is clean
+(two files, no drift), no vacuous checks. Do NOT commit (per work order; report + log
+appended, uncommitted).
+
+Paths:
+- Evidence: `docs/evidence/wave-40-manifest-closure/red-proofs.log` (appendix R15–R21)
+- Report: `docs/reports/qa-wave-40-manifest-closure.md` (§8, this section)
