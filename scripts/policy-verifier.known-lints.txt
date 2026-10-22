@@ -1,0 +1,21 @@
+# policy-verifier.known-lints.txt — checked-in known-lint snapshot (issue #41).
+#
+# Offline authority for scripts/policy-verifier.py REQ-P1: the lint names the
+# pinned toolchain provides. Refresh deterministically by capturing the
+# toolchain lint list on a networked shell host (e.g. `rustc -W help` /
+# clippy lint list for the toolchain named by scripts/policy-verifier
+# .toolchain-pin) and review the result as a diff — never hand-edit names.
+#
+# This file ships the minimal fixture subset the verifier's tests and the
+# reconciled mission state ground: the corrected live Cargo.toml lint names
+# (cast_possible_truncation, not the stale cast_lossy) plus the lint groups
+# the live table opts into. A production adoption records the FULL capture
+# here; until then the verifier fails closed on any name outside this set.
+pin: fixture-toolchain-1
+clippy::all
+clippy::pedantic
+clippy::unwrap_used
+clippy::expect_used
+clippy::missing_errors_doc
+clippy::cast_possible_truncation
+rust::rust_2018_idioms
