@@ -1,0 +1,212 @@
+===== QA wave-57-generate run 2026-10-23T16:23:36Z branch=feat/57-generate-trackers head=4acac85 =====
+--- CHECK 1: unittest 53 ---
+----------------------------------------------------------------------
+Ran 53 tests in 4.126s
+
+OK
+exit=0
+--- CHECK 2: make test ---
+----------------------------------------------------------------------
+Ran 123 tests in 6.907s
+
+OK
+exit=0
+--- CHECK 3: verify-rigs ---
+  [PASS] Tracker-vs-queue reconcile (issue #39) green: drifted pair diffs, converged pair in sync, run read-only (tests/test_reconcile.py 28 tests pass)
+
+== V11. Dispatch-Tracker Proposal Generator (issue #57) ==
+  [PASS] Dispatch-tracker proposal generator (issue #57) green: drifted pair yields paste-ready cells, empty queue fails closed, run read-only (tests/test_generate_trackers.py 25 tests pass)
+
+SUMMARY: 27 checks passed, 0 failed.
+exit=0
+--- build drifted scratch fixtures in /tmp/qa57 ---
+fixtures written
+exit=0
+fa87ce6218a38aeb75b487dbd9b7c460  /tmp/qa57/live-tracker.md
+683f7f2dd84953a3847877ada3e7467c  /tmp/qa57/queue_list.json
+d1c704deecd6618b61fdf35f6d8dc8a6  /tmp/qa57/transitions.json
+--- CHECK 4: G-T4 convergence ---
+generate exit=1 (expect 1, diffs)
+7
+2
+fa87ce6218a38aeb75b487dbd9b7c460  /tmp/qa57/live-tracker.md
+paste-ready proposals: 7
+patched copy written
+reconcile exit=0 (expect 0 in-sync)
+reconcile: in sync — 7 rows across 1 tracker(s) agree with queue state.
+1
+proposal paste-ready head:
+PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 5: handed_off_to Wave 2; operator note appended)
+PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 5: handed_off_to Wave 2; operator note appended)
+PROPOSED-CELL:::QA PASS 4+merge (row note 3) (queue note 5: handed_off_to Wave 2; operator note appended)
+written proposal file head:
+generate-trackers: 1 tracker(s) vs queue state (7 queue rows)
+queue→tracker mapping: terminal queue (state closed/done/handed_off/handed-off/complete/completed, or latest-transition state in that set, or latest note matching qa pass|placed|closed|handed-off|done) => QA PASS + PLACED canonical cell; non-terminal queue => no terminal proposal (terminal tracker claims become Re-verify + NEEDS-HUMAN-REVIEW)
+DIFF [stale-state] /tmp/qa57/live-tracker.md:7 slice W1-01 workspace-root qitem qitem-20261022052401-3af4e59b9c34bc58
+  tracker-enum:  STAGED
+  queue-mapping: terminal => QA PASS + PLACED canonical
+  reason:  queue is QA-passed/placed/closed; tracker state is stale
+  tracker: STAGED 6 files, awaiting QA
+  queue:   state=closed latest_transition=5 (handed_off_to Wave 2)
+--- CHECK 5a: empty queue [] -> exit 2 ---
+exit=2 (expect 2)
+generate-trackers: FAILED: EMPTY QUEUE LIST '/tmp/qa57/empty_queue.json' (parsed to []; an empty queue MUST NEVER report in sync — re-fetch rig queue list --json)
+NAMED-DIAG-OK
+1
+--- CHECK 5b: missing tracker -> exit 2 ---
+exit=2 (expect 2)
+UNREADABLE TRACKER
+No such
+--- CHECK 5c: --out at tracker-shaped path refused, bytes identical ---
+exit=2 (expect 2)
+generate-trackers: FAILED: refusing to write proposal to tracker-shaped path '/tmp/qa57/phase0-dispatch-tracker.md' (proposals go OUTSIDE the mission repo for TPM review)
+/tmp/qa57/phase0-dispatch-tracker.md: OK
+VICTIM-BYTES-IDENTICAL
+out-to-existing exit=2 (expect 2)
+--- CHECK 5d: --out to existing file refused ---
+exit=2 (expect 2)
+generate-trackers: FAILED: refusing to overwrite existing file '/tmp/qa57/exists.md' (proposals go to a fresh non-tracker path OUTSIDE the mission repo for TPM review)
+/tmp/qa57/exists.md: OK
+EXISTING-BYTES-IDENTICAL
+--- sprints/ path refused ---
+exit=2 (expect 2)
+generate-trackers: FAILED: refusing to write proposal inside a sprints tracker directory '/tmp/qa57/sprints/fresh.md' (proposals go OUTSIDE the mission repo for TPM review)
+NOT-CREATED (good)
+--- CHECK 5e: orphan qitem row -> NEEDS-HUMAN-REVIEW + non-zero ---
+orphan fixture written
+exit=1 (expect non-zero)
+2
+orphan
+orphan
+orphan
+--- CHECK 5f: OTHER(raw) prose row -> diffed, never silently agreed ---
+other fixture written
+exit=1 (expect non-zero)
+1
+3
+0
+no in-sync (good)
+--- CHECK 6: regression parity git-show-HEAD wrapper vs worktree ---
+FILES-IDENTICAL(HEAD==worktree)
+old drift exit=1
+new drift exit=1
+/tmp/qa57/old.drift.out /tmp/qa57/new.drift.out differ: byte 1, line 1
+DRIFT-DIFFERS
+old sync exit=1
+new sync exit=0
+/tmp/qa57/old.sync.out /tmp/qa57/new.sync.out differ: byte 1, line 1
+SYNC-DIFFERS
+--- CHECK 7: anti-stub + secrets scan over wave diff ---
+---
+?? docs/evidence/wave-57-generate/
+stub scan (new files + reconcile.py wrapper):
+NO-STUB-MARKERS
+|| true scan:
+NO-PIPE-TRUE
+empty-catch scan:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/generate_trackers.py:368:    except ReconcileError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/generate_trackers.py:371:    except (AttributeError, TypeError, ValueError, KeyError) as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:63:    except OSError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:72:        except ReconcileError:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:74:        except OSError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:102:    except FileExistsError:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:108:    except OSError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:113:    except OSError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:120:    except OSError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:124:    except json.JSONDecodeError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:145:    except OSError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:171:    except ValueError:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:259:    except FileNotFoundError as exc:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:263:    except subprocess.TimeoutExpired:
+/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-57-generate/scripts/reconcile_model.py:272:    except json.JSONDecodeError as exc:
+secrets scan (credential-shaped):
+NO-CREDENTIAL-SHAPES
+shared-model import check:
+59:from reconcile_model import (  # noqa: E402
+0
+0 local re-implementations (good)
+--- final tree state ---
+?? docs/evidence/wave-57-generate/
+===== QA DONE =====
+--- CHECK 6 (corrected): PYTHONPATH=/scripts so git-HEAD wrapper resolves shared model ---
+0
+0 row-level review markers (legend/summary mentions only)
+old drift exit=1
+new drift exit=1
+IDENTICAL_DRIFT
+old sync exit=0
+new sync exit=0
+IDENTICAL_SYNC
+--- 5e detail ---
+generate-trackers: 1 tracker(s) vs queue state (7 queue rows)
+queue→tracker mapping: terminal queue (state closed/done/handed_off/handed-off/complete/completed, or latest-transition state in that set, or latest note matching qa pass|placed|closed|handed-off|done) => QA PASS + PLACED canonical cell; non-terminal queue => no terminal proposal (terminal tracker claims become Re-verify + NEEDS-HUMAN-REVIEW)
+DIFF [stale-state] /tmp/qa57/orphan-tracker.md:7 slice W1-01 workspace-root qitem qitem-20261022052401-3af4e59b9c34bc58
+  tracker-enum:  STAGED
+  queue-mapping: terminal => QA PASS + PLACED canonical
+  reason:  queue is QA-passed/placed/closed; tracker state is stale
+--
+PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 5: handed_off_to Wave 2; operator note appended)
+  SUGGESTED queue-note append on qitem-20261022052418-bf0bcb28d32a3065: Tracker row W1-07 godot-model converged: STAGED scaffold, awaiting QA -> QA PASS + PLACED canonical (queue note 5: handed_off_to Wave 2; operator note appended)
+generate-trackers: 7 proposal(s) across 7 row(s) (0 unchanged, 0 NEEDS-HUMAN-REVIEW); TPM approval required — no files modified.
+--- 5f detail ---
+queue→tracker mapping: terminal queue (state closed/done/handed_off/handed-off/complete/completed, or latest-transition state in that set, or latest note matching qa pass|placed|closed|handed-off|done) => QA PASS + PLACED canonical cell; non-terminal queue => no terminal proposal (terminal tracker claims become Re-verify + NEEDS-HUMAN-REVIEW)
+DIFF [other-prose] /tmp/qa57/other-tracker.md:7 slice W1-01 workspace-root qitem qitem-20261022052401-3af4e59b9c34bc58
+  tracker-enum:  OTHER(awaiting tea-leaf reading ~~mystical~~)
+  queue-mapping: WITHHELD — TPM judgment required
+  reason:  tracker Status prose matches no locked enum arm; status NEVER guessed
+  tracker: awaiting tea-leaf reading ~~mystical~~
+  queue:   state=closed latest_transition=5 (handed_off_to Wave 2)
+--- orphan/other both-side evidence ---
+0
+4
+--- make generate-tracker wiring (G-T5) ---
+make exit=2 (expect 1, diffs)
+python3 ./scripts/generate_trackers.py --live --tracker /tmp/qa57/live-tracker.md --out /tmp/qa57/make-proposal.md
+generate-trackers: FAILED: UNREACHABLE QUEUE (rig queue transitions --json qitem-20261022052401-3af4e59b9c34bc58 exited 1: )
+make: *** [Makefile:95: generate-tracker] Error 2
+fa87ce6218a38aeb75b487dbd9b7c460  /tmp/qa57/live-tracker.md
+--- make generate still fleet target ---
+24:generate: ## Deterministically generate all 51 AgentSpecs, 8 RigBundles, Roster, and Registry views from fleet/fleet.yaml.
+94:generate-tracker: ## Emit a dispatch-tracker proposal from live queue state (read-only, TPM approval): make generate-tracker TRACKER=path/to/tracker.md OUT=file.
+--- CHECK 5e REDO (correct orphan: drop W1-05 qitem from queue, tracker row stays inside table) ---
+dropped qitem-20261022052412-8a8c5130ff0d9fb0
+exit=1 (expect non-zero)
+1
+3
+2
+2
+DIFF [tracker-row-without-qitem] /tmp/qa57/live-tracker.md:11 slice W1-05 bff-protocol qitem qitem-20261022052412-8a8c5130ff0d9fb0
+  tracker-enum:  DISPATCHED
+  queue-mapping: WITHHELD — TPM judgment required
+  reason:  queue has no entry for qitem-20261022052412-8a8c5130ff0d9fb0 (suggest removal/closure review)
+  tracker: DISPATCHED pending
+  queue:   (no queue entry)
+  NEEDS-HUMAN-REVIEW: TPM decide; guessed-status nowhere. Tracker evidence: 'DISPATCHED pending'. Queue evidence: '(no queue entry)'.
+  SUGGESTED (not paste-ready): Confirm W1-05 bff-protocol closure/removal with the TPM, or re-queue and record the new qitem; suggested Status once re-owned: QA PASS + PLACED canonical (queue note pending; operator note appended)
+DIFF [stale-state] /tmp/qa57/live-tracker.md:12 slice W1-06 web-tests qitem qitem-20261022052415-c8ac4d1c13408e78
+  tracker-enum:  STAGED
+  queue-mapping: terminal => QA PASS + PLACED canonical
+  reason:  queue is QA-passed/placed/closed; tracker state is stale
+  tracker: STAGED 13 files, awaiting QA
+  queue:   state=closed latest_transition=5 (handed_off_to Wave 2)
+0
+no in-sync claim (good)
+--- G-T5 guard through make: existing OUT refused ---
+make exit=2 (expect 2)
+generate-trackers: FAILED: refusing to overwrite existing file '/tmp/qa57/make-exists.md' (proposals go to a fresh non-tracker path OUTSIDE the mission repo for TPM review)
+make: *** [Makefile:95: generate-tracker] Error 2
+pre
+--- final status ---
+?? docs/evidence/wave-57-generate/
+--- empty-except-body AST check ---
+scripts/generate_trackers.py empty-except-lines: NONE
+scripts/reconcile_model.py empty-except-lines: NONE
+scripts/reconcile.py empty-except-lines: NONE
+--- log tail ---
+scripts/reconcile_model.py empty-except-lines: NONE
+scripts/reconcile.py empty-except-lines: NONE
+--- log tail ---
+208 docs/evidence/wave-57-generate/red-proofs.log
+--- final tree ---
+?? docs/evidence/wave-57-generate/
+4acac85 feat(wave-57-generate): implement #57 tracker proposal generator
