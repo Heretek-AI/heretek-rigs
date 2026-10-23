@@ -267,6 +267,115 @@ class TestProposeNeverEdit(unittest.TestCase):
             self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
             self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
 
+    def test_out_refusing_scratch_copy_of_tracker(self):
+        """F1(i): --out to a scratch byte-copy of a tracker (a different path
+        from the --tracker input) is refused; victim bytes identical."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            victim = write_tracker(
+                tmp, DRIFTED_TRACKER, name="phase0-dispatch-tracker.md"
+            )
+            victim_before = Path(victim).read_bytes()
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                victim,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
+            self.assertEqual(Path(victim).read_bytes(), victim_before)
+
+    def test_out_refusing_tracker_named_path_in_fresh_dir(self):
+        """F1(ii): --out to a tracker-NAMED path in a fresh dir is refused
+        even though nothing exists there yet (no file created); same for a
+        fresh path inside a sprints/ tracker directory."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            fresh = Path(tmp) / "freshdir"
+            fresh.mkdir()
+            dest = str(fresh / "victim-dispatch-tracker.md")
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                dest,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
+            self.assertFalse(Path(dest).exists())
+            sprints_dir = fresh / "sprints"
+            sprints_dir.mkdir()
+            sprints_dest = str(sprints_dir / "review.txt")
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                sprints_dest,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
+            self.assertFalse(Path(sprints_dest).exists())
+
+    def test_out_refusing_existing_non_tracker_file(self):
+        """F1(iii): --out to an existing non-tracker file is refused; bytes untouched."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            dest = Path(tmp) / "proposal.txt"
+            dest.write_text("PRE-EXISTING REVIEW NOTES \u2014 DO NOT OVERWRITE\n")
+            before = dest.read_bytes()
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                str(dest),
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
+            self.assertEqual(dest.read_bytes(), before)
+
+    def test_out_to_fresh_non_tracker_path_writes(self):
+        """F1(iv): --out to a fresh non-tracker path writes the proposal (exit 1 on diffs)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            before = Path(tracker).read_bytes()
+            qlist, trans = make_queue_state(tmp)
+            dest = str(Path(tmp) / "review-proposal.txt")
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                dest,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertEqual(Path(tracker).read_bytes(), before)
+            text = Path(dest).read_text()
+            self.assertIn("W1-01", text)
+            self.assertIn("TPM approval required", text)
+
     def test_out_file_gets_proposal_and_tracker_untouched(self):
         """REQ-R2: --out writes the reviewable proposal outside any tracker."""
         with tempfile.TemporaryDirectory() as tmp:

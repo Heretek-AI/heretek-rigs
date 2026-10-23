@@ -21,8 +21,11 @@ Usage:
   --live fetches both over the rig CLI with the pinned --json read-only verbs
   (list/show/transitions only); anything else is refused.
 
-  --out writes the reviewable proposal to a file OUTSIDE the mission repo.
-  --out pointing at an input tracker is refused fail-closed.
+  --out writes the reviewable proposal to a FRESH non-tracker file OUTSIDE
+  the mission repo. --out pointing at an input tracker, at any
+  tracker-shaped path (a *dispatch-tracker.md filename or anything inside
+  a sprints/ tracker directory), or at any existing file is refused
+  fail-closed (exit 2, destination bytes untouched).
 
 Exit codes: 0 = in sync (every parsed row agrees); 1 = diffs found (TPM
 approval required); 2 = fail-closed error (unreadable tracker, unparseable
@@ -58,6 +61,7 @@ Diff classes:
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -81,10 +85,76 @@ NOTE_ID_RES = (
 )
 NO_QITEM_CELLS = {"", "\u2014", "-", "n/a", "none"}
 QITEM_RE = re.compile(r"qitem-\d{14}-[0-9a-f]+")
+TRACKER_OUT_BASENAME_RE = re.compile(r"dispatch-tracker\.md$", re.IGNORECASE)
 
 
 class ReconcileError(Exception):
     """A fail-closed finding (exit 2 class)."""
+
+
+def refuse_out_path(out, trackers):
+    """Fail-closed --out guard (REQ-R2): a proposal must never land on a tracker.
+
+    Refuses (exit 2 via ReconcileError, destination bytes untouched): an --out
+    that resolves to any input --tracker path; any tracker-shaped destination
+    (a *dispatch-tracker.md filename, or anything inside a sprints/ tracker
+    directory) regardless of the input set; and ANY existing file at the
+    destination. Only a fresh non-tracker path passes.
+    """
+    try:
+        resolved = Path(out).resolve()
+    except OSError as exc:
+        raise ReconcileError(f"UNUSABLE --out '{out}' ({exc})")
+    for tracker in trackers:
+        try:
+            if resolved == Path(tracker).resolve():
+                raise ReconcileError(
+                    f"refusing to write proposal to input tracker path '{tracker}' "
+                    f"(proposals go OUTSIDE the mission repo for TPM review)"
+                )
+        except ReconcileError:
+            raise
+        except OSError as exc:
+            raise ReconcileError(f"UNUSABLE --out '{out}' ({exc})")
+    if TRACKER_OUT_BASENAME_RE.search(resolved.name):
+        raise ReconcileError(
+            f"refusing to write proposal to tracker-shaped path '{out}' "
+            f"(proposals go OUTSIDE the mission repo for TPM review)"
+        )
+    if "sprints" in {part.lower() for part in resolved.parts}:
+        raise ReconcileError(
+            f"refusing to write proposal inside a sprints tracker directory '{out}' "
+            f"(proposals go OUTSIDE the mission repo for TPM review)"
+        )
+    if os.path.lexists(out) or resolved.exists():
+        raise ReconcileError(
+            f"refusing to overwrite existing file '{out}' "
+            f"(proposals go to a fresh non-tracker path OUTSIDE the mission "
+            f"repo for TPM review)"
+        )
+
+
+def write_out_exclusive(out, text):
+    """Write the proposal to a fresh path; never overwrite (REQ-R2).
+
+    The O_EXCL create re-checks at write time so a file that appeared after
+    the up-front refuse_out_path() check is still refused, never clobbered.
+    """
+    try:
+        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+    except FileExistsError:
+        raise ReconcileError(
+            f"refusing to overwrite existing file '{out}' "
+            f"(proposals go to a fresh non-tracker path OUTSIDE the mission "
+            f"repo for TPM review)"
+        )
+    except OSError as exc:
+        raise ReconcileError(f"UNWRITABLE --out '{out}' ({exc})")
+    try:
+        with os.fdopen(fd, "w") as handle:
+            handle.write(text)
+    except OSError as exc:
+        raise ReconcileError(f"UNWRITABLE --out '{out}' ({exc})")
 
 
 def load_json_file(path, what):
@@ -377,18 +447,7 @@ def main(argv=None):
 
     try:
         if args.out:
-            for tracker in args.tracker:
-                try:
-                    if Path(args.out).resolve() == Path(tracker).resolve():
-                        raise ReconcileError(
-                            f"refusing to write proposal to input tracker path '{tracker}' "
-                            f"(proposals go OUTSIDE the mission repo for TPM review)"
-                        )
-                    # Fail closed before doing any work, while the tracker exists check is cheap.
-                except ReconcileError:
-                    raise
-                except OSError as exc:
-                    raise ReconcileError(f"UNUSABLE --out '{args.out}' ({exc})")
+            refuse_out_path(args.out, args.tracker)
         rows = []
         for tracker in args.tracker:
             rows.extend(parse_tracker(tracker))
@@ -446,10 +505,7 @@ def main(argv=None):
                 f"TPM approval required \u2014 no files modified."
             )
             if args.out:
-                try:
-                    Path(args.out).write_text(report + "\n")
-                except OSError as exc:
-                    raise ReconcileError(f"UNWRITABLE --out '{args.out}' ({exc})")
+                write_out_exclusive(args.out, report + "\n")
             print(report)
             return 1
         summary = (
@@ -457,10 +513,7 @@ def main(argv=None):
             f"{len(args.tracker)} tracker(s) agree with queue state."
         )
         if args.out:
-            try:
-                Path(args.out).write_text(summary + "\n")
-            except OSError as exc:
-                raise ReconcileError(f"UNWRITABLE --out '{args.out}' ({exc})")
+            write_out_exclusive(args.out, summary + "\n")
         print(summary)
         return 0
     except ReconcileError as exc:

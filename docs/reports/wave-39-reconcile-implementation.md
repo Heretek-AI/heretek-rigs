@@ -18,10 +18,10 @@ Branch: `remediate/39-reconcile`.
 - `make reconcile TRACKER=... [OUT=...]` wired (live `--json` read-only
   queue verbs); `make verify` SUMMARY is **26/0** (25 audit-baselined checks
   untouched + exactly one appended V10 block, no renumbering); `make test`
-  runs 85 tests green (incl. 15 new); `openspec validate
+  runs 89 tests green (incl. 19 new); `openspec validate
   remediate-39-reconcile` passes.
 - Red-proof: sabotaging the stale-state rule fails 2 tests; restored file
-  returns to 15/15 green.
+  returns to 19/19 green.
 
 ## Tracker-shape grounding (read-only, mission repo)
 
@@ -65,8 +65,15 @@ semantics invented beyond the spec's four diff classes.
 - The mission repo saw zero writes: only `read` calls against its tracker
   files. All fixtures are synthetic in `/tmp` (tests) or inline in the
   verify block (`mkdtemp`, removed afterwards).
-- `scripts/reconcile.py` opens trackers read-only; `--out` to an input
-  tracker path is refused (exit 2); read-only proven by byte-comparison in
+- `scripts/reconcile.py` opens trackers read-only; `--out` is refused
+  fail-closed (exit 2, destination bytes untouched) when it resolves to an
+  input tracker, to any tracker-shaped path (`*dispatch-tracker.md` or
+  inside a `sprints/` directory, regardless of the input set), or to ANY
+  existing file — enforced up-front plus `O_EXCL` exclusive-create at both
+  write sites (rework-1 closes the exact-match-only gap: the auditor's
+  `--tracker <scratch> --out <tracker byte-copy>` repro now exits 2 with
+  the victim md5-identical). Fresh non-tracker `--out` paths still write
+  (exit 1 on diffs / 0 in sync); read-only proven by byte-comparison in
   both the unit tests and the V10 verify block.
 - `git status` in this worktree shows only: `M Makefile`, `M
   scripts/verify-rigs.sh`, `?? scripts/reconcile.py`, `??
@@ -78,8 +85,11 @@ semantics invented beyond the spec's four diff classes.
   mapping table, four diff classes, proposal renderer with
   `PROPOSED-CELL:::` machine-readable lines for the T4 replay, offline +
   `--live` queue sources, fail-closed errors, `--out` refusal.
-- `tests/test_reconcile.py` (new, 15 tests): drifted pre-convergence Wave-1
+- `tests/test_reconcile.py` (new, 19 tests): drifted pre-convergence Wave-1
   replica (7 rows), converged pair, read-only + paste-ready proposals,
+  F1 `--out` refusal quartet (scratch tracker byte-copy, tracker-named
+  fresh path + sprints/ location, existing non-tracker file, fresh-path
+  write-through) alongside the original exact-match test,
   fail-closed set (missing tracker, unparseable row naming file:line,
   missing qitem, unreachable queue), T4 replay-to-zero, live-mode fake-rig
   pair.
@@ -88,7 +98,8 @@ semantics invented beyond the spec's four diff classes.
 
 ## Verification outputs (exact commands, exit codes)
 
-- `python3 -m unittest tests/test_reconcile.py -v` → 15 tests, OK.
+- `python3 -m unittest tests/test_reconcile.py -v` → 19 tests, OK
+  (15 original + 4 F1 refusal tests).
 - Sabotage run (stale-state rule disabled) → FAILED (failures=2);
   restored → OK.
 - `make verify` → `SUMMARY: 26 checks passed, 0 failed` (exit 0) +
@@ -101,10 +112,12 @@ semantics invented beyond the spec's four diff classes.
 
 - Full generation (option (a), trackers-as-a-view): explicitly deferred per
   the principal decision and tasks.md T6 — reconcile now, generate later.
-  T6 also asks to file the deferred `remediate-39-generate` follow-up as an
-  issue: **not filed** (filing a GitHub issue from this seat would be a
-  network/state-changing act outside the implementation scope; left for the
-  TPM — the design sketch already exists in `design.md`).
+  T6 follow-up filed as
+  https://github.com/Heretek-AI/heretek-rigs/issues/57
+  (`gh issue create` exit 0; body = the deferred `remediate-39-generate`
+  design sketch from `design.md`: generate-tracker-from-queue deferred
+  scope, reconcile-diff as prerequisite, TPM-approval requirement).
+  tasks.md T6 checked off with the URL recorded in-package.
 - `docs/reports/remediate-39-reconcile-implementation.md` (tasks.md T6
   filename): written instead as `docs/reports/wave-39-reconcile-implementation.md`
   per the stage binding (`docs/reports/<stage>-implementation.md`).
