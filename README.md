@@ -58,7 +58,8 @@ rig daemon start --no-kernel
 # 5. Operate
 rig ps --nodes --rig executive-and-architecture
 rig send exec-exec-director@executive-and-architecture "Draft the sprint breakdown for <goal>."
-rig queue list --destination exec-exec-director@executive-and-architecture
+rig queue list --destination exec-exec-director@executive-and-architecture --json
+# Copy qitem IDs verbatim from --json output -- never retype them.
 ```
 
 ## Rigs (8)

@@ -1,0 +1,45 @@
+=== QA red-proofs log: wave-37-id-discipline ===
+date(UTC): 2026-10-22T23:29:14Z
+HEAD: c350b39a38fb5e3ddfc119b416a42cbc578ee24a feat(37-id-discipline): copy qitem IDs only from --json output, never retype
+base: 39e45b6
+tree-clean-pre-qa: 1 lines
+--- BASELINE make verify (tail) ---
+SUMMARY: 25 checks passed, 0 failed.
+make-verify-exit=0
+--- SABOTAGE-A injected ---
+target: specs/agents/web-design/a11y-specialist/startup/context.md (replaced --json primer with bare form)
+SABOTAGE-A result: RED exit=1, failing test=test_regen_carries_primer_into_rendered_leaves, named leaf=specs/agents/web-design/a11y-specialist/startup/context.md
+restore: git checkout -- specs/agents/web-design/a11y-specialist/startup/context.md; git-status-after: ?? docs/evidence/wave-37-id-discipline/;
+retest: 4/4 OK exit 0
+SABOTAGE-B1 result: RED exit=1 (generator --json stripped -> test_charter_example_parses_as_json_invocation FAIL; test_every_queue_read_example_shows_json stays green by design: line still mentions --json later -- proves tests 1+2 complementary, neither vacuous)
+SABOTAGE-B1b result: RED exit=1 (README.md:61 bare -> test_every_queue_read_example_shows_json FAIL naming README.md:61)
+SABOTAGE-B2 result: RED exit=1 (never-retype neutered, 1-line diff -> test_charter_states_never_retype_rule FAIL)
+restores: git checkout x3; git-status-after: clean except ?? docs/evidence/; retest: 4/4 OK
+SABOTAGE-C regen-idempotency: plain regen + --vendor-dir <main-checkout>/.scratch/vendor exit=0 (NO ALLOW_DIRTY needed on clean tree)
+post-regen diff: 16 registry files ONLY, every hunk resolvedCommit 39e45b6->c350b39 + derived canonicalUrl (known per-merge re-lag, AGENTS.md-blessed); zero changes in specs/ rigs/ rosters/ bundle.yaml
+restore: git checkout -- registry/; status clean except ?? docs/evidence/
+LIVE-D proof (read-only, no mutations):
+list: rig queue list --json -A --limit 1 exit=0 -> qitem-20261022111416-78213c07c3272cbc (len=37)
+show full ID --json exit=0, resolved qitemId matches
+show 30-char truncation exit=1, error=qitem_not_found
+=== ANCHOR-6 moved-anchor proof ===
+spec cited ~701; actual template at:
+13:  3. specs/agents/<domain>/<role>/ (51 AgentSpecs v1.0, guidance/role.md, startup/context.md,
+809:        (adir / "startup/context.md").write_text(
+909:                        "path": "startup/context.md",
+--- generator block (lines 808-811):
+        (adir / "startup").mkdir(parents=True, exist_ok=True)
+        (adir / "startup/context.md").write_text(
+            f'You are {rid} ({r["title"]}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list --json`) before starting work. Copy `qitem-...` ids verbatim from that `--json` output -- never retype or reconstruct t
+        )
+--- rendered leaf line 1 (specs/agents/web-design/a11y-specialist/startup/context.md):
+You are a11y-specialist (Accessibility (a11y) & Usability Specialist). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list --json`) before starting work. Copy `qitem-...` ids verbatim from that `--json` output -- ne
+--- template->leaf identity: leaf == f-string with rid=a11y-specialist substituted (both contain identical primer sentence)
+1
+=== QA-CLOSE ===
+final git status:
+?? docs/evidence/wave-37-id-discipline/
+?? docs/reports/qa-wave-37-id-discipline.md
+report: docs/reports/qa-wave-37-id-discipline.md
+?? docs/evidence/wave-37-id-discipline/
+?? docs/reports/qa-wave-37-id-discipline.md

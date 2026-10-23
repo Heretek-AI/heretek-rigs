@@ -211,8 +211,9 @@ In `heretek-rigs`, work moves in small, verifiable slices through OpenRig queues
 rig send exec-exec-director@executive-and-architecture \
   "Draft an ADR and sprint breakdown for migrating our auth service to passkeys. Coordinate with system-architect and tpm-scrum-lead."
 
-# 2. Inspect the seat's queue items
-rig queue list --destination exec-exec-director@executive-and-architecture --limit 100
+# 2. Inspect the seat's queue items (always --json when an ID will be reused)
+rig queue list --destination exec-exec-director@executive-and-architecture --limit 100 --json
+# Copy qitem IDs verbatim from --json output -- never retype or reconstruct them.
 
 # 3. Capture recent terminal output or full conversation transcript from a seat
 rig capture exec-exec-director@executive-and-architecture
