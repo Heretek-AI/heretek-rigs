@@ -33,7 +33,16 @@ Spec proposal for heretek-rigs issue #44. Specs only — no implementation in th
    filing it (`gh` or web), and linking the filed issue URL back into this
    spec package.
 
+## Filed upstream
+
+- https://github.com/mvschwarz/openrig/issues/1806 (filed 2026-10-23;
+  single shared issue covering BOTH the bounded-preview trailer +
+  compact notice AND the #42 create-receipt ask; draft saved at
+  `docs/evidence/upstream-queue-stdout-issue.md`). `remediate-42-create-receipt`
+  references this SAME URL — no duplicates.
+
 ## Non-goals
+
 - No local fork/patch of `@openrig/cli`; no vendored queue renderer.
 - No change to `--full` semantics; `--full` stays orthogonal.
 - No second upstream issue for #42 — one issue covers both notices + receipt.

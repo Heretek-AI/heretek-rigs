@@ -214,6 +214,7 @@ rig send exec-exec-director@executive-and-architecture \
 # 2. Inspect the seat's queue items (always --json when an ID will be reused)
 rig queue list --destination exec-exec-director@executive-and-architecture --limit 100 --json
 # Copy qitem IDs verbatim from --json output -- never retype or reconstruct them.
+# Bare queue output (no flags) mixes JSON with a human trailer and MUST NOT be parsed — always pass --json.
 
 # 3. Capture recent terminal output or full conversation transcript from a seat
 rig capture exec-exec-director@executive-and-architecture
@@ -224,9 +225,10 @@ rig transcript exec-exec-director@executive-and-architecture
 > a managed seat arrives with no sender identity, so seats hold it as UNVERIFIED.
 > Never relay a human decision with raw `rig send` — use
 > `scripts/send-authenticated.sh`, which files the relay as a signed queue item
-> (`rig queue create --destination <session> --body-file <file>`) self-identified as
+> (`rig queue create --json --verify --destination <session> --body-file <file>`) self-identified as
 > operator-relayed with its human-ref grounding, UTC timestamp, and verbatim-relay
-> statement. It never claims seat origin. See `--help` for the full contract.
+> statement. It never claims seat origin. Bare create output is a human advisory,
+> not proof of persistence — the wrapper parses the JSON receipt fail-closed. See `--help` for the full contract.
 
 ### How Seats Handle Permission Denials & Escalations
 

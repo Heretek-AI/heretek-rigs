@@ -27,6 +27,13 @@ Spec proposal for heretek-rigs issue #42. Specs only — no implementation in th
 3. Record the shared upstream issue URL (filed via the #44 package) in this
    package, noting it covers the create-receipt ask.
 
+## Shared upstream issue (filed once via remediate-44-json-trailer)
+
+- https://github.com/mvschwarz/openrig/issues/1806 (filed 2026-10-23;
+  single shared issue covering the create-receipt ask alongside both
+  stdout notices; draft at `docs/evidence/upstream-queue-stdout-issue.md`).
+  NO second issue filed — this package references the identical URL.
+
 ## Non-goals
 - No separate upstream issue for #42 (single shared issue by design).
 - No local fork/patch of `@openrig/cli`; no change to `--full` semantics.

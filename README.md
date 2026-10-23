@@ -60,6 +60,8 @@ rig ps --nodes --rig executive-and-architecture
 rig send exec-exec-director@executive-and-architecture "Draft the sprint breakdown for <goal>."
 rig queue list --destination exec-exec-director@executive-and-architecture --json
 # Copy qitem IDs verbatim from --json output -- never retype them.
+# Bare queue output (no flags) mixes JSON with a human trailer and MUST NOT be parsed — always pass --json.
+# Bare create output is a human advisory, not proof of persistence — the agent-safe form is create --json --verify.
 ```
 
 ## Rigs (8)
