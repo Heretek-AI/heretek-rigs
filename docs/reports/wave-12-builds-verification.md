@@ -138,3 +138,46 @@ shape with a real tooth; the envelope allowlist/expiry/self-verification checks 
 non-vacuous; no rollout creep; no secrets or stubs. Three envelope hardening notes are advisory only.
 
 VERDICT: PASS
+
+## Rework cycle 1 re-audit (fix commit ce20926 + evidence 1c453b4; auditor-executed, NOT committed)
+
+- **Delta audited:** `git show ce20926 --stat` = 33 files (1-line catalog narrow, `scripts/check-envelope.py`
+  +92, tests +22/+95, implementation-report wording, 28 mechanical regen leaves); `1c453b4` adds only the
+  48-line QA red-proofs appendix. `git status --short` CLEAN before and after this re-audit; scratch only
+  under `/tmp/opencode/w12reaudit` (removed after run); no worktree file touched except this report.
+- **(a) Catalog narrowing — PASS:** `git diff main -- fleet/fleet.yaml` is exactly one added line,
+  `      - date +%s` (exact, no wildcard) at line 1807. Regen leaves carry only that delta:
+  permission-JSON `^[+-]` lines are exactly 6× `-      "date +%s*": "allow",` / 6× `+      "date +%s": "allow",`
+  (spec + 2 rig copies × 2 files), zero non-date churn. `test_canary_scope_only` now pins fixed base
+  `a33f3bb` and asserts `changed == [CANARY_ROLE]` exactly (test_build_canary.py:151) — no HEAD drift.
+  Matcher soundness proven, not assumed: the 11-test canary suite (green in the auditor's run) renders the
+  CURRENT catalog and asserts ALLOW on exact `date +%s` plus DENY on 13 shapes incl bare `date`,
+  `date +%s -u`, `date +%s --help`, `;`/`|`/`>`/`$()`/backtick chains. Live caveat honestly stated in both
+  reports (seat still serves the pre-narrowing render until next refresh; narrowed behavior proven on mock
+  render) — no promise the code doesn't keep.
+- **(b) Checker hardening — PASS, each sound, none over-refusing valid forms:**
+  auditor-probed beyond the suite — valid envelope ACCEPT; `PUSH main` + `PUSH feat/wave-12-canary` ACCEPT;
+  deadline + `--consumed` ACCEPT; single-slice + `--consumed` REFUSE; `(a)/(b)/(c)`-prefixed TPM markers
+  ACCEPT; colonless `WHAT` line REFUSE; owning-seat-as-verifier (incl `TPM countersigned engine-systems-eng`)
+  REFUSE; `PUSH --force`/`-d`/`feat/x --force`/`HEAD`/`.hidden`/`a.lock`/`feat/.lock` all REFUSE;
+  path `src/engine/` (incl trailing-space form) ACCEPT. RED replicated by the auditor from
+  `git show ce20926^:scripts/check-envelope.py` (scratch only): F2 combined-expiry, F4 embedded-marker,
+  F5 duplicate-actions, F6 `src/*`, F7 `PUSH +main` → pre-fix exit 0 ACCEPT vs fixed exit 1 REFUSE (5/5).
+  Residuals are advisory only, fail-closed or inert: duplicate `OPTIONAL notes:` ACCEPTs (notes are
+  non-authority, never read by any check); indented unknown header absorbed inertly (pre-existing note,
+  unchanged, still hits the allowlist in `actions`); lowercase `PUSH head` refused (conservative
+  HEAD-confusion guard; no spec-required form refused). No new hole: every auditor hostile input REFUSEs.
+- **(c) Doc accuracy — PASS:** §5 pasted 7-file command re-ran by the auditor → 125 OK; §8 `60 = 49 + 11`
+  confirmed (`tests.test_check_envelope` 49 OK, `tests.test_build_canary` 11 OK, run individually);
+  "6 permission JSONs" confirmed; `audit_loop.py --self-test` SELF-TEST PASSED. No edited sentence promises
+  behavior the code doesn't exhibit.
+- **(d) Four gates re-run by the auditor (exit codes observed):** new suites 60 OK exit 0; 7-file
+  make-test form 125 OK exit 0; `./scripts/verify-rigs.sh --check-only` 27 passed / 0 failed exit 0;
+  `bash scripts/gate-role.sh engine-systems-eng` 40 ok / 0 FAIL exit 0.
+- **(e) Scope creep / secrets / stubs — PASS:** creep filter
+  (`engine-systems-eng|bundle.yaml|registry/|fleet/fleet.yaml|check-envelope|test_build_canary|test_check_envelope|red-proofs|wave-12-builds-implementation|wave-12-builds-verification`)
+  on `git diff main --name-only` → empty; `Makefile`/`verify-rigs.sh`/`gate-*.sh`/`render-seat.py`/
+  `generate-rigs.py` byte-identical to `main`; `scripts/` + `tests/` diffs are only the 3 intended files.
+  Stub grep (`TODO|FIXME|XXX|\|\| true`) and credential-shaped grep on the fix diff → clean (exit 1, no hits).
+
+VERDICT: PASS
