@@ -27,6 +27,7 @@ Use `yaml.safe_dump` NEVER on `fleet/fleet.yaml` — it strips comments. Surgica
 | Seed then launch | `python3 scripts/seed-rig.py rigs/<rig>/rig.yaml [--allow-missing-secrets]` → `(cd rigs/<rig> && rig up rig.yaml --cwd <workspace> --yes)` |
 | Talk to a seat | `rig send '<pod>-<member>@<rig>' "<message>"` / `rig capture` / `rig transcript --tail N` |
 | Queue work | `rig queue create --json --verify --destination <session> --body-file <file>` / `rig queue list --json [--destination S] [-a]` (copy qitem IDs only from `--json` output — never retype; bare queue output mixes JSON with a human trailer/advisory and MUST NOT be parsed; bare create output is advisory, not proof of persistence) |
+| Tracker proposals | `make reconcile TRACKER=… [OUT=…]` / `make generate-tracker TRACKER=… OUT=…` — propose-only: NEVER auto-edit trackers or write queue state; `--out` MUST be a fresh non-tracker path (refuse `*dispatch-tracker.md`, `sprints/` locations, existing files; `O_EXCL` create) — violations fail closed (exit 2). |
 | Permission gate (mock) | `bash scripts/gate-role.sh <role>` (also: `make gate ROLE=`) |
 | Wiring gates + graphs | `make topology OUT=/tmp/topo` |
 | Live-seat audit | `make audit-sessions WORKSPACE=/path/to/seat-workspace` |
