@@ -1533,6 +1533,82 @@ if _hr39_match:
 if len(failures) == _hr39_before:
     ok(f"Tracker-vs-queue reconcile (issue #39) green: drifted pair diffs, converged pair in sync, run read-only (tests/test_reconcile.py {_hr39_ran} tests pass)")
 
+print("\n== V11. Dispatch-Tracker Proposal Generator (issue #57) ==")
+# HR-57 (propose-only emitter, no auto-edit): generate_trackers.py consumes
+# the shared reconcile row model and emits paste-ready Status cells for every
+# diffed row (OTHER(<raw>)/orphan rows carry NEEDS-HUMAN-REVIEW, never a
+# guessed status), fails closed on an EMPTY queue list ([]), and its
+# non-review cells replay through reconcile to exit 0 in sync — proven by
+# tests/test_generate_trackers.py synthetic fixtures (/tmp only) plus an
+# offline end-to-end run below. Appended at the end — no existing check
+# renumbered or reworded. Exactly one ok() below.
+_hr57_before = len(failures)
+_hr57r = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_generate_trackers.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _hr57r.returncode != 0:
+    fail(f"tests/test_generate_trackers.py failed:\n{_hr57r.stderr}")
+import tempfile as _tf57
+_hr57_tmp = _tf57.mkdtemp(prefix="hr57-verify-")
+try:
+    _hr57_tracker = Path(_hr57_tmp) / "wave9-dispatch-tracker.md"
+    _hr57_tracker.write_text(
+        "# Wave 9 Dispatch Tracker (verify fixture)\n\n## Slices\n"
+        "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+        "|---|---|---|---|---|\n"
+        "| W9-01 demo | seat | out | qitem-20261022000001-aaaaaaaaaaaaaaaa | STAGED awaiting QA |\n"
+    )
+    _hr57_qlist = Path(_hr57_tmp) / "queue_list.json"
+    _hr57_qlist.write_text(json.dumps([{"qitemId": "qitem-20261022000001-aaaaaaaaaaaaaaaa", "state": "closed"}]))
+    _hr57_trans = Path(_hr57_tmp) / "transitions.json"
+    _hr57_trans.write_text(json.dumps({"qitem-20261022000001-aaaaaaaaaaaaaaaa": [{"transitionId": 7, "qitemId": "qitem-20261022000001-aaaaaaaaaaaaaaaa", "ts": "2026-10-22T11:45:00.000Z", "state": "closed", "transitionNote": "handed_off_to Next"}]}))
+    _hr57_before_bytes = _hr57_tracker.read_bytes()
+    _hr57_prop = Path(_hr57_tmp) / "w9-proposal.txt"
+    _hr57_drift = subprocess.run(
+        [sys.executable, str(root / "scripts/generate_trackers.py"), "--tracker", str(_hr57_tracker), "--queue-list", str(_hr57_qlist), "--transitions", str(_hr57_trans), "--out", str(_hr57_prop)],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if _hr57_drift.returncode != 1 or "PROPOSED-CELL:::" not in _hr57_drift.stdout or "W9-01" not in _hr57_drift.stdout:
+        fail(f"scripts/generate_trackers.py offline drifted run must exit 1 with a W9-01 paste-ready cell (got {_hr57_drift.returncode}: {_hr57_drift.stdout[:200]}{_hr57_drift.stderr[:200]})")
+    if "PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 7: handed_off_to Next; operator note appended)" not in _hr57_prop.read_text():
+        fail("scripts/generate_trackers.py --out proposal must carry the exact Q8 paste-ready cell")
+    if _hr57_tracker.read_bytes() != _hr57_before_bytes:
+        fail("scripts/generate_trackers.py modified the tracker (must be read-only)")
+    _hr57_empty = Path(_hr57_tmp) / "empty_list.json"
+    _hr57_empty.write_text("[]")
+    _hr57_eq = subprocess.run(
+        [sys.executable, str(root / "scripts/generate_trackers.py"), "--tracker", str(_hr57_tracker), "--queue-list", str(_hr57_empty), "--transitions", str(_hr57_trans)],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if _hr57_eq.returncode != 2 or "EMPTY QUEUE LIST" not in (_hr57_eq.stdout + _hr57_eq.stderr) or "in sync" in _hr57_eq.stdout:
+        fail(f"scripts/generate_trackers.py empty-queue run must exit 2 EMPTY QUEUE LIST, never in sync (got {_hr57_eq.returncode}: {_hr57_eq.stdout[:200]}{_hr57_eq.stderr[:200]})")
+    _hr57_victim = Path(_hr57_tmp) / "notes.txt"
+    _hr57_victim.write_text("PRE-EXISTING\n")
+    _hr57_ref = subprocess.run(
+        [sys.executable, str(root / "scripts/generate_trackers.py"), "--tracker", str(_hr57_tracker), "--queue-list", str(_hr57_qlist), "--transitions", str(_hr57_trans), "--out", str(_hr57_victim)],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if _hr57_ref.returncode != 2 or "refusing" not in (_hr57_ref.stdout + _hr57_ref.stderr).lower() or _hr57_victim.read_text() != "PRE-EXISTING\n":
+        fail("scripts/generate_trackers.py --out to an existing file must exit 2 refusing with bytes untouched")
+finally:
+    import shutil as _sh57
+    _sh57.rmtree(_hr57_tmp, ignore_errors=True)
+_hr57_ran = "?"
+_hr57_match = re.search(r"Ran (\d+) tests", _hr57r.stderr)
+if _hr57_match:
+    _hr57_ran = _hr57_match.group(1)
+if len(failures) == _hr57_before:
+    ok(f"Dispatch-tracker proposal generator (issue #57) green: drifted pair yields paste-ready cells, empty queue fails closed, run read-only (tests/test_generate_trackers.py {_hr57_ran} tests pass)")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
