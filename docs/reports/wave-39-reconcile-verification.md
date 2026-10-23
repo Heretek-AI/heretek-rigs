@@ -108,6 +108,43 @@
 
 ### Ruling
 
-- Scope clean, both approved review items correct with load-bearing non-vacuous tests, QA's claims independently confirmed, F1/F2 stay cleared, all gates green. QA's F1 is a real but explicitly out-of-scope, pre-existing, fully disclosed residual → advisory, not a finding. No new blocking defects.
+- Scope clean, both approved review items correct with load-bearing non-vacuous tests, QA's claims independently confirmed, F1/F2 stay cleared, all gates green. QA's F1 is a real but explicitly out-of-scope, pre-existing, fully disclosed residual → advisory, not a finding. No new blocking defects. (Review2 ruling — preserved as history; restated below by the Option A re-audit.)
+
+## Re-audit — wave-39-optionA-reaudit (2026-10-23, Option A + perms df6e6cb + evidence c71f7f3) — drift-guard re-audit
+
+- Stage/wave: `wave-39-optionA-reaudit` · Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-39-reconcile`
+- Commits under audit: `df6e6cb` (Option A + perms) + `c71f7f3` (evidence/QA on top). `git log --oneline -4` confirms (`c71f7f3`, `df6e6cb`, `0e0bcc3`, `6d56b10`); `git status --short` clean at audit time (before this append; no commit/merge/push by this audit).
+- Spec read from disk first: this report (history above), `openspec/changes/remediate-39-reconcile/tasks.md` (T6 still `[x]` with issue #57 URL), `openspec/changes/remediate-39-reconcile/specs/tracker-reconcile/`, `docs/reports/qa-wave-39-reconcile.md` (§Re-verification 2026-10-23 wave-39-optionA-reverify), `AGENTS.md`.
+- Auditor modified no source files: all probes ran against `/tmp/opencode/hr39optionA/` + fresh `tempfile` fixtures; mission repo never written. Only this verification report is appended (uncommitted, per brief).
+
+### 1. Diff audit — scope CLEAN
+
+- Fix commit `df6e6cb --stat`: exactly 2 files (`scripts/reconcile.py` +5/−2, `tests/test_reconcile.py` +123). Evidence commit `c71f7f3`: exactly 2 files (`docs/evidence/wave-39-reconcile/red-proofs.log` +30, `docs/reports/qa-wave-39-reconcile.md` +26).
+- No V1–V9 changes: `git diff df6e6cb --name-only -- Makefile scripts/verify-rigs.sh specs/ rigs/ rosters/ registry/` → empty. No forbidden-dir edits. No scope creep beyond the two approved items (stale-terminal normalization + 0o600).
+
+### 2. Changed-region reads — both items CORRECT
+
+- Stale-terminal fix (`scripts/reconcile.py:415,423`): `evidence_note = normalize_proposal_note(latest_note)` then `queue-side evidence: {evidence_note or entry.get('state')}`. Fallback-to-state preserved when note empty (`normalize("")` → `""` falsy → state; independently probed: empty note → `queue-side evidence: in-progress`). Diagnostics untouched (`:420` `queue:` field keeps RAW `latest_note`, byte-identical by design). Correct.
+- 0o600 (`:144`): `os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)` — the ONLY `os.open` site in the script (grep); no `write_text`/`chmod`/`O_TRUNC` anywhere on the `--out` path; both write sites (`:523` diffs, `:531` in-sync) go through `write_out_exclusive`. No other world-readable creates. No test/gate depends on group readability (only assertion on mode is the new owner-only test `:836` `mode & 0o077 == 0`). Correct.
+
+### 3. Prior advisory CLOSED — intentional-raw set verified by own grep
+
+- Classified every `latest_note` use in `scripts/reconcile.py`: paste-safe — `propose_cell` parked True/False (`:389`,`:396` via internal `normalize_proposal_note`), missing-annotation inline (`:409`), stale-terminal `evidence_note` (`:423`, the fix); intentional-raw — exactly the 4 `queue:` diagnostic fields (`:388`,`:395`,`:406`,`:420`), which QA §Review-fixes documents as raw-by-design and which never enter a `PROPOSED-CELL` line; non-interpolated — `queue_terminal :275` (regex match only). No raw-note proposal site remains. The review2 advisory is the exact defect this commit fixes → CLOSED, not merely noted.
+
+### 4. F1/F2 stay CLEARED
+
+- F1 (overwrite gap): auditor's tracker-shaped-victim attack re-run on scratch (`--out …/phase0-dispatch-tracker.md`) → exit 2 refusing tracker-shaped path, victim md5 identical pre/post. Cleared.
+- F2 (unfiled follow-up): `gh issue view 57` → OPEN (`remediate-39-generate` sketch); `tasks.md` still `[x]` with the URL (grep count 1). Cleared.
+
+### 5. Gates re-run by this auditor + one QA claim spot-checked independently
+
+- `make verify` → `SUMMARY: 26 checks passed, 0 failed`, exit 0 (+ standing live-health heartbeat WARN / seat-idleness SKIP advisory, unchanged); V10 reports 28 tests pass.
+- `openspec validate remediate-39-reconcile` → valid, exit 0. `python3 -m unittest tests.test_reconcile` → 28/28 OK.
+- Secrets scan over the `6d56b10...HEAD` script/test diff (token-shaped patterns): 0 hits.
+- Independent spot-checks (fresh fixtures, not reusing test helpers): (SPOT1) hostile note `wip ev|idence\nline2   spaced` in stale-terminal row → exit 1, single `PROPOSED-CELL` pipe-free with `wip ev/idence line2 spaced`, matching QA §optionA 4a; (SPOT2) empty note → falls back to state; (SPOT3) real `--out` run → mode `0o600`, `mode & 0o077 == 0`. All match QA's table.
+
+### Ruling
+
+- Scope exact (2 + 2 files), both hunks correct with fallback preserved and diagnostics untouched, prior advisory verified closed with a complete raw-site classification, F1/F2 stay cleared, all gates green, QA's claims independently confirmed with non-vacuous probes. No new blocking defects. PASS stands.
 
 VERDICT: PASS
