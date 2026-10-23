@@ -210,3 +210,60 @@ scripts/reconcile.py empty-except-lines: NONE
 --- final tree ---
 ?? docs/evidence/wave-57-generate/
 4acac85 feat(wave-57-generate): implement #57 tracker proposal generator
+
+=== REWORK CYCLE 1 (review fixes) ===
+Date: 2026-10-23. Worktree: .lane/trees/wave-57-generate, branch feat/57-generate-trackers @ 951e13a.
+Start state: `git log --oneline -2` = 951e13a / 9128ca3; `git status --short` clean.
+
+--- Fix-commit review (`git show 951e13a --stat` + hunks) ---
+6 files, 180 insertions, 6 deletions:
+ docs/reports/wave-57-generate-implementation.md |  7 ++
+ scripts/generate_trackers.py                    | 28 +++++++-
+ scripts/reconcile_model.py                      |  6 +-
+ scripts/verify-rigs.sh                          | 11 ++-
+ tests/test_generate_trackers.py                 | 40 +++++++++++
+ tests/test_reconcile.py                         | 94 +++++++++++++++++++++++++
+Hunk verdicts (each minimal, matches claimed intent):
+- FIX 1 (generate_trackers.py build_proposal gate): `terminal, latest_id = queue_terminal(...)[:2]`, paste-ready branch gains `and latest_id is not None`; new elif routes terminal-without-trail to NEEDS-HUMAN-REVIEW with label `terminal-state without transition evidence => NEEDS-HUMAN-REVIEW, no paste-ready cell` + no-evidence proposal naming both-side evidence. No other branches touched. PASS.
+- FIX 2 (reconcile_model.py): exactly 3 one-word changes adding `encoding="utf-8"` at os.fdopen(write_out_exclusive), Path.read_text(load_json_file), Path.read_text(parse_tracker). PASS.
+- FIX 3 (verify-rigs.sh V11): bare `_hr57_prop.read_text()` content assertion replaced by is_file guard + OSError guard + skip-if-absent; no check renumbered/reworded; later checks (read-only md5, empty-queue, existing-out) still unconditional. PASS.
+- Spec check: openspec/changes/issue-57-generate-trackers/specs/generate-trackers/spec.md ends at REQ-G5 (120 lines); REQ-G1..G5 intact. Q7/Q8 shapes referenced from design.md: no-evidence rows must carry NEEDS-HUMAN-REVIEW quoting both-side evidence and never a guessed `queue note None` cell — the FIX 1 elif satisfies exactly this. PASS.
+
+--- Gate 1: full suites (real runs, unmodified tree) ---
+$ python3 -m unittest tests/test_generate_trackers.py tests/test_reconcile.py
+Ran 55 tests in 4.248s / OK / EXIT=0  (26 + 29 incl. 2 new tests)
+$ make test
+Ran 125 tests in 7.443s / OK / EXIT=0
+$ ./scripts/verify-rigs.sh --check-only
+[PASS] Dispatch-tracker proposal generator (issue #57) green ... / SUMMARY: 27 checks passed, 0 failed / EXIT=0
+PASS (55 OK / 125 OK / 27-0).
+
+--- FIX 1 red-proof (scratch /tmp/qa57r1 only; tree untouched) ---
+Fixtures: tracker W1-01 STAGED awaiting QA + queue entry state=done + transitions {} (terminal-by-entry-state, EMPTY trail, stale cell).
+$ python3 scripts/generate_trackers.py --tracker tracker.md --queue-list queue_list.json --transitions transitions.json
+POST-FIX: EXIT=1; NEEDS-HUMAN-REVIEW count=4; PROPOSED-CELL::: count=0; `queue note None` count=0 (stdout+stderr).
+queue-mapping label: `terminal-state without transition evidence => NEEDS-HUMAN-REVIEW, no paste-ready cell`.
+proposal: `TPM: confirm the terminal queue state with QA and record the closing transition note before pasting a canonical cell; queue-side evidence: state=done latest_transition=None (); status NEVER guessed`.
+PRE-FIX control (`git show 9128ca3:scripts/generate_trackers.py` to /tmp/qa57r1/prefix_gen.py, same fixtures): EXIT=1 but emits `PROPOSED-CELL:::QA PASS + PLACED canonical (queue note None: ; operator note appended)` x1 — reproduces the bug; proves the new test is non-vacuous. RED-confirmed.
+Normal paste-ready path (post-fix, same fixtures + transitions {qitem:[{transitionId:7,state:done,note:handed_off_to Next}]}): EXIT=1 with `PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 7: handed_off_to Next; operator note appended)` — real transition id cited. PASS.
+
+--- FIX 2 red-proof (scratch /tmp/qa57r1/uni* only; tree untouched) ---
+WITH pins (worktree reconcile_model.py copied to /tmp/qa57r1/uni2): tracker+queue JSON carrying `cafe-acute/em-dash/CJK` round-trip (parse_tracker/load_json_file/write_out_exclusive/byte-compare) in child under `LC_ALL=C LANG=C PYTHONUTF8=0 PYTHONCOERCECLOCALE=0` -> `GREEN-WITH-PINS exit= 0 / ROUNDTRIP-OK bytes=57`. PASS.
+WITHOUT pins (scratch copy /tmp/qa57r1/unpinned2/reconcile_model.py = worktree file with all 3 `encoding="utf-8"` pins forced to `"ascii"` = C-locale default; diff confirms ONLY those 3 lines differ; child verified importing `reconcile_model.__file__ = /tmp/qa57r1/unpinned2/reconcile_model.py`): same round-trip -> `exit= 1 / UnicodeDecodeError: 'ascii' codec can't decode byte 0xc3 in position 103` in parse_tracker. RED-confirmed (matches the reported pre-fix `UnicodeDecodeError: 'ascii' ... byte 0xc3`); suite C-locale test is non-vacuous.
+(Harness notes: child stdout must stay ASCII-safe under LC_ALL=C — payload asserted via bytes, only `ROUNDTRIP-OK bytes=N` printed; stale out.md trips the O_EXCL fresh-out guard and was removed before re-runs.)
+
+--- FIX 3 red-proof (scratch /tmp/qa57r1/v11/gate_old.py + gate_new.py; tree untouched) ---
+Faithful extracted V11 copies (drift run + proposal-content assertion + read-only + empty-queue + existing-out + PROOF-SUMMARY), drifted run forced to fail via nonexistent --transitions path (tracker/queue fixtures intact; generate exits 2, no proposal emitted).
+OLD copy: drift exit=2 -> 1 named FAIL, then `FileNotFoundError: ... w9-proposal.txt` traceback at `prop.read_text()`; PROOF-SUMMARY never reached; later checks never ran. RED-confirmed (old gate crashes).
+NEW copy: drift exit=2 -> FAIL#1 (drifted run), FAIL#2 `proposal file missing because the drifted run failed (no proposal emitted; skipping paste-ready cell content check)`; then `read-only check ran (tracker bytes untouched)`, `empty-queue check ran (exit 2 EMPTY QUEUE LIST)`, `existing-out check ran (exit 2 refusing, bytes untouched)`; `PROOF-SUMMARY: 0 passed, 2 failed`, no traceback. PASS (named failures + SUMMARY reached).
+
+--- Regression spot ---
+$ python3 -m unittest tests.test_generate_trackers.TestConvergenceReplay -v -> 1 test OK (`test_applying_non_review_cells_converges_reconcile_to_zero_diffs`, reconcile exits 0 in-sync). PASS.
+`make generate` fleet target untouched: fix commit has no Makefile/fleet changes (`git show 951e13a --stat` grep: none); Makefile:24 `generate:` + Makefile:94 `generate-tracker:` intact. PASS.
+No new stubs: grep TODO/FIXME/XXX in scripts/generate_trackers.py + scripts/reconcile_model.py -> none. No new secrets: grep ghp_/github_pat/sk-/AKIA hits are pre-existing secret-pattern REGEXES inside scripts/verify-rigs.sh audit gates (lines 673/1050/1068-1102), not credentials; fix hunk touched only the V11 assertion. PASS.
+generate_trackers.py has no direct open()/read_text()/write_text()/fdopen (grep empty) — all file I/O through the three pinned shared-model functions. PASS.
+
+--- Revert proof ---
+All sabotage/proof material lived in /tmp/qa57r1 (prefix_gen.py, uni*/, unpinned2/, v11/); never in the tree. Removed: /tmp/qa57r1 deleted after runs.
+`git status --short` (end): clean (no output). `git log --oneline -2`: 951e13a / 9128ca3.
+NOT committed, per instruction. No vacuous checks found.
