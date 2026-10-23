@@ -30,12 +30,12 @@
 
 ## 1. Corrected capability matrix (#12 headline is over-narrow)
 
-#12's fleet-wide claim ("the ONLY build-capable seat is cpp-lowlevel-eng") was re-audited against `fleet/fleet.yaml` in this worktree (64 roles, full `bash_allow` scan; method + script in §7). **15 roles** hold at least one build/test verb:
+#12's fleet-wide claim ("the ONLY build-capable seat is cpp-lowlevel-eng") was re-audited against `fleet/fleet.yaml` in this worktree (51 roles, full `bash_allow` scan; runnable command in §7). **15 roles** hold at least one build/test verb:
 
 | Role | Build/test verbs | Standing |
 |---|---|---|
 | `cpp-lowlevel-eng` | `cmake*`, `ninja*`, `ctest*`, `./build.sh*`, `clang-tidy*` | only `./build.sh` runner; cannot stage/commit |
-| `engine-systems-eng` | `cargo bench*`, `cargo test engine*`, `cmake --build*`, `ctest*`, `cmake --version*`, `clang --version*` | test-execution only; configure/compile/`./build.sh` dead |
+| `engine-systems-eng` | `cargo bench*`, `cargo test engine*`, `cmake --build*`, `ctest*`, `cmake --version*`, `clang --version*` | existing-tree build/test only; configure (`cmake --preset*`), direct compiler invocation, and `./build.sh*` denied |
 | `dependency-patcher` | `npm test*`, `cargo test*`, `pytest*`, `go test*` (+ `git checkout*`, `git commit*`) | lang tests; commit w/o add = dead grant |
 | `go-backend-eng` | `go build*`, `go test*`, `golangci-lint*`, `go mod*` | go-only |
 | `rust-systems-spec` | `cargo build*`, `cargo test*` | rust-only |
@@ -124,11 +124,13 @@ record ID) → member-fragment re-seed from post-merge charters
 `rig restore <snapshotId> --rig <rig-id>` + re-seed from pre-change charters.
 Full text in draft `design.md` §6.
 
-### STAGED live measurements (not run — fleet DOWN)
+### Remaining STAGED measurements (D1–D7, BC-L3 live round-trip, BC-L4 mutation)
 
-The 5 #12 denial re-probes + D1–D7 + relay round-trip + first per-node
-refresh are specified as tasks BC-L1…L5 with exact commands. If
-`seat launch --stop` reports "already running" or equivalent, STOP and record
+Still STAGED, with exact commands in tasks BC-L2…L5: D1–D7 closeout checks
+(no catalog change was made, so no build was runnable — correctly not
+attempted); the live authenticated-relay round-trip (BC-L3); the first
+per-node refresh mutation (BC-L4). If `seat launch --stop` reports "already
+running" or equivalent, STOP and record
 the block as a headline finding — that failure IS the spike data for #11
 (never bounce the fleet from this spike).
 
@@ -238,8 +240,22 @@ Workstream C.
 ## 7. Repro commands (all read-only / mock / dummy-secret)
 
 ```bash
-# matrix + git-write audit
-python3 - <<'EOF'  # per-role bash_allow scan evening: see §1 table
+# matrix + git-write audit (read-only; reproduces the §1 table: 51 roles, 15 with build verbs)
+python3 - <<'EOF'
+import yaml
+d = yaml.safe_load(open('fleet/fleet.yaml'))
+roles = d['roles']
+toks = ['cmake','ninja','ctest','build.sh','clang','cargo test','cargo bench',
+        'go test','go build','npm test','pytest','gradlew','cargo build']
+print("roles:", len(roles))
+n = 0
+for name in sorted(roles):
+    ba = (roles[name].get('permissions') or {}).get('bash_allow') or []
+    hits = [b for b in ba if any(t in b for t in toks)]
+    if hits:
+        n += 1
+        print(f"{name}: {hits}")
+print("roles-with-build-verbs:", n)
 EOF
 grep -c "git add" fleet/fleet.yaml          # 0
 grep -n "git commit\|git checkout" fleet/fleet.yaml

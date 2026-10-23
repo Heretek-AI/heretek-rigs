@@ -13,7 +13,7 @@
 Issue #12 reports that no seat can execute an end-to-end build. Its headline
 claim — "the ONLY build-capable seat is cpp-lowlevel-eng" — is **over-narrow
 and needs correction**: a fleet-wide static audit of `fleet/fleet.yaml`
-(`bash_allow`, this worktree, 64 roles) shows **15 roles** hold at least one
+(`bash_allow`, this worktree, 51 roles) shows **15 roles** hold at least one
 build/test verb. The still-true core gaps are narrower and more actionable:
 
 1. **No `git add` anywhere fleet-wide** (`grep -c "git add" fleet/fleet.yaml`
@@ -24,9 +24,10 @@ build/test verb. The still-true core gaps are narrower and more actionable:
    `git add` that grant commits only already-staged content — a dead grant
    for seat-authored work.
 3. **Configure/compile dead for the engine seat.** `engine-systems-eng` holds
-   `cmake --build*`, `ctest*`, `cargo test engine*`, `cargo bench*` but NOT
-   `cmake --preset*` (configure), NOT a compiler invocation (only
-   `cmake --version*` / `clang --version*`), NOT `./build.sh*`.
+   existing-tree build/test verbs only (`cmake --build*`, `ctest*`,
+   `cargo test engine*`, `cargo bench*`, plus `cmake --version*` /
+   `clang --version*`) but NOT `cmake --preset*` (configure), NOT a direct
+   compiler invocation, NOT `./build.sh*`.
 4. **`./build.sh` runnable in exactly one seat** (`cpp-lowlevel-eng`,
    via PR #13) — and that seat cannot stage/commit its output (gaps 1–2).
 
@@ -63,5 +64,6 @@ because each option below touches the same policy-propagation path.
 - No implementation in this change (spec + design + tasks only).
 - No `fleet/fleet.yaml` edit, no regen, no re-seed, no relaunch.
 - No `verify-rigs.sh` / `Makefile` edits.
-- No live-seat contact (all live proof STAGED to the gated implementation
-  wave).
+- No live-seat contact beyond the canary: no catalog or policy edits, no
+  staged-mutation tasks executed (`--stop`, re-seed, restore all NOT run);
+  live canary probes + MEASURED items stand as stated in the findings report.

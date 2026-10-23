@@ -17,6 +17,13 @@ alongside the log (D1–D4 of BUILD-CLOSEOUT-CRITERIA.md).
 - Static acceptance (now): `cpp-lowlevel-eng.bash_allow` contains
   `./build.sh*` + `cmake*` + `ninja*` + `ctest*` (already merged, PR #13 —
   verify with `grep -n "build.sh" fleet/fleet.yaml`).
+- Static acceptance (now): sabotage replays against the rendered runner
+  policy MUST RED-reject (mock harness, `gate-run.sh` form — e.g.
+  `./build.sh --help; id` denied by the chaining rule,
+  `cmake --build x > /tmp/pwned` denied by the write-escape rule,
+  `ctest | tee /tmp/pwned` denied by the chaining rule). All three verified
+  POLICY-DENY on the current catalog 2026-10-23. Any future grant widening
+  MUST re-run this replay set with zero EXEC-ALLOW before merge.
 - **TBD (STAGED):** live D1–D4 logs attached to #12 (exit 0, CTest N/N,
   tree SHA, ELAPSED). Mock-harness ALLOW is NOT accepted as build proof.
 
@@ -53,6 +60,15 @@ revocation, 3-link audit trail), delivered via `send-authenticated.sh`
   invocation; `--dry-run` prints the exact `rig queue create` form
   (`scripts/send-authenticated.sh --destination <seat> --message <t>
   --human-ref <r> --dry-run` exits 0).
+- Static acceptance (now): NO envelope-validating code or schema exists in
+  this worktree (verified 2026-10-23: zero matches for envelope/pre-auth
+  consumers in `scripts/`, `Makefile`, `tests/`) — so the implementation
+  wave SHALL ship these as binary fail-closed tests, one per required
+  field: an envelope missing/invalid in path scope, owning seats,
+  enumerated actions, TPM gating, expiry, revocation, or any of the 3 audit
+  links MUST be refused (operator holds, no execution); exactly one
+  fully-populated envelope MUST be accepted. Existing receipt-parsing +
+  never-raw-`rig-send` coverage stays unchanged.
 - **TBD (STAGED):** one relay round-trip on the relaunched fleet with the
   seat transcript ACK quoted verbatim.
 
@@ -93,6 +109,11 @@ is proven live.
 - **TBD (STAGED):** first live use records snapshot ID, `--plan` output,
   audit excerpts; if `seat launch --stop` refuses a running node, that block
   is recorded as a headline finding (never worked around by bouncing).
+  BC-L4 acceptance additionally requires, all recorded: sibling seats
+  preserved (the `--plan` non-target list shows no other seat touched),
+  queue drain-to-zero before mutation with HELD items unparked (or
+  explicitly left rerouted) after confirm, and snapshot-restore rollback
+  proven available (snapshot ID on file pre-mutation).
 - Static acceptance (now): help-text verbs exist
   (`rig seat launch --help`, `rig policy permissions --help` show the flags
   cited in `design.md` §4).

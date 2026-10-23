@@ -9,7 +9,7 @@
 
 ## 1. Corrected capability matrix (static, verified)
 
-Source: `fleet/fleet.yaml`, 64 roles. Method: every `bash_allow` entry
+Source: `fleet/fleet.yaml`, 51 roles. Method: every `bash_allow` entry
 matched against build/test tokens
 (`cmake`, `ninja`, `ctest`, `build.sh`, `clang`, `cargo test/bench`,
 `go test/build`, `npm test`, `pytest`, `gradlew`, `cargo build`).
@@ -192,21 +192,21 @@ policy hashes (dry-run, dummy secrets, this worktree's catalog):
 - `extensions/pi-permission-system/config.json`: `92aea891…7ae5b6` (full in report)
 - `mcp.json`: `47853051…f9838` · `settings.json`: `781034d9…d3087cf`
 
-Re-seed/relaunch recipe that restores the canary (rollback — PRE-EXERCISED
-2026-10-23, snapshot ID real):
+Planned re-seed/relaunch recipe that would restore the canary (rollback —
+only the named preview steps ran 2026-10-23; launch/reseed/restore NOT executed):
 
 ```bash
-rig snapshot 01M5GWFPKVNQEXQVSAGQ2ANJBE   # taken: snapshot 01M5N162P3C5J21KFPCKGHD8XX
+rig snapshot 01M5GWFPKVNQEXQVSAGQ2ANJBE   # MEASURED: snapshot 01M5N162P3C5J21KFPCKGHD8XX created
 python3 scripts/seed-rig.py <member-fragment-for-engine-systems-eng> \
-  --rig <rig-id> --pod engine              # from post-merge charters
+  --rig <rig-id> --pod engine              # NOT executed (planned: from post-merge charters)
 rig seat launch engine-engine-systems-eng@heretek-omni-fleet --fresh \
-  --reason "<change-ref>"                  # --plan first (preview PROVEN live:
-                                           #  "launchable: false; stop required: true",
-                                           #  siblings unchanged; execution NOT attempted —
-                                           #  blocked without TPM sign-off, recorded not forced)
+  --reason "<change-ref>"                  # MEASURED: --plan preview only ("launchable: false;
+                                           #  stop required: true", siblings unchanged);
+                                           #  live --stop execution NOT attempted
 rig seat handover engine-engine-systems-eng@heretek-omni-fleet \
-  --reason "<ref>" --dry-run               # two-phase plan PROVEN live, no changes made
+  --reason "<ref>" --dry-run               # MEASURED: two-phase plan preview, no changes made
 rig restore 01M5N162P3C5J21KFPCKGHD8XX --rig 01M5GWFPKVNQEXQVSAGQ2ANJBE
+                                           # NOT executed (planned rollback handle)
 ```
 
 Live denial baseline (BC-L1, 2026-10-23 ~18:44Z): 5/5 DENIED verbatim —
