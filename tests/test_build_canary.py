@@ -2,7 +2,7 @@
 """Canary build-capability tests (issue #12 wave, canary scope ONLY).
 
 12a — output-anchored canary grant on engine-systems-eng (REQ-BC2): a
-bounded clock read (`date +%s*`) pairing with the D4 ELAPSED artifact. It is
+bounded clock read (`date +%s`) pairing with the D4 ELAPSED artifact. It is
 NOT a configure/compile/`./build.sh` grant, so REQ-BC3 holds (authorship and
 execution stay separated). 12c — commit path runs through the REQ-BC4
 envelope (tests/test_check_envelope.py): NO standing `git add` grant exists
@@ -42,7 +42,7 @@ EXPECTED_CANARY_BASH_ALLOW = [
     "ctest*",
     "cmake --version*",
     "clang --version*",
-    "date +%s*",
+    "date +%s",
     "rig whoami*",
     "rig ps*",
     "rig queue *",
@@ -74,7 +74,7 @@ class CanaryCatalogPins(unittest.TestCase):
 
     def test_clock_read_grant_present(self):
         """12a canary grant: bounded clock read for D4 ELAPSED proof."""
-        self.assertIn("date +%s*", self.canary["permissions"]["bash_allow"])
+        self.assertIn("date +%s", self.canary["permissions"]["bash_allow"])
 
     def test_canary_bash_allow_byte_exact(self):
         """The canary delta is exactly one appended grant — no drift."""
@@ -124,9 +124,10 @@ class CanaryCatalogPins(unittest.TestCase):
 
     def test_canary_scope_only(self):
         """Binding bound: every role except engine-systems-eng keeps
-        byte-identical permissions vs the wave base HEAD (a33f3bb)."""
+        byte-identical permissions vs the FIXED wave-base commit a33f3bb
+        (pinned: HEAD drifts as the wave lands commits)."""
         proc = subprocess.run(
-            ["git", "show", "HEAD:fleet/fleet.yaml"],
+            ["git", "show", "a33f3bb:fleet/fleet.yaml"],
             cwd=str(REPO_ROOT),
             capture_output=True,
             text=True,
@@ -145,9 +146,9 @@ class CanaryCatalogPins(unittest.TestCase):
             if self.fleet["roles"][name].get("permissions")
             != base["roles"][name].get("permissions")
         ]
-        # Pre-delta the list is empty; post-delta it is exactly the canary.
-        # Any other role in the list fails in both states.
-        self.assertIn(changed, ([], [CANARY_ROLE]))
+        # Post-delta the changed-role list is exactly the canary.
+        # Any other role in the list fails.
+        self.assertEqual(changed, [CANARY_ROLE])
 
 
 class CanaryMockProbes(unittest.TestCase):
@@ -163,8 +164,11 @@ class CanaryMockProbes(unittest.TestCase):
         ("date +%s > /tmp/wave12-pwned", "redirection write-escape"),
         ("date +%s$(id)", "chaining with $()"),
         ("date +%s `id`", "chaining with backtick"),
-        # Scope narrowness: the grant is `date +%s*`, not `date*`.
+        # Scope narrowness: the grant is exact `date +%s`, not `date*`
+        # (proven: suffixed forms DENY against the exact pattern).
         ("date", "bare date outside the bounded grant"),
+        ("date +%s -u", "suffixed flag outside the exact grant"),
+        ("date +%s --help", "suffixed help outside the exact grant"),
         # BC-L1 remainder: still denied after the grant (the `date +%s`
         # denial is SUPERSEDED by design — asserted ALLOW above).
         ("cmake --preset linux-release", "configure still denied"),

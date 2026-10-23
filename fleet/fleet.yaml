@@ -1804,7 +1804,7 @@ roles:
       - ctest*
       - cmake --version*
       - clang --version*
-      - date +%s*
+      - date +%s
       - rig whoami*
       - rig ps*
       - rig queue *

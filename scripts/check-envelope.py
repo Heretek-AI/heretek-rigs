@@ -136,8 +136,18 @@ def split_sections(lines):
             key = "notes"
             value = re.match(r"^OPTIONAL notes:\s*(.*)$", stripped).group(1)
         elif re.match(r"^[A-Za-z].*:", raw):
-            key = f"unknown:{stripped[:40]}"
-            value = ""
+            if (
+                current is not None
+                and current["key"] == "actions"
+                and re.match(r"^(COMMIT|FILE-QUEUE-ITEM|PUSH)(\s|$)", stripped)
+            ):
+                # Action-shaped line inside the actions section (e.g. a PUSH
+                # refspec containing ':'): keep it as body so check_actions —
+                # not the unknown-section gate — rules on it, fail-closed.
+                current["body"].append(stripped)
+            else:
+                key = f"unknown:{stripped[:40]}"
+                value = ""
         if key is not None:
             pending_wrap = None
             current = {"key": key, "head": value, "body": []}
@@ -162,10 +172,15 @@ def section_text(section):
 
 
 def require(sections, key, label):
-    for section in sections:
-        if section["key"] == key:
-            return section
-    raise Refusal(f"{label}: REQUIRED section missing — envelope void on its face")
+    found = [section for section in sections if section["key"] == key]
+    if not found:
+        raise Refusal(f"{label}: REQUIRED section missing — envelope void on its face")
+    if len(found) > 1:
+        raise Refusal(
+            f"{label}: AMBIGUOUS — {len(found)} '{key}' sections; "
+            "duplicates refused, operator holds"
+        )
+    return found[0]
 
 
 def check_identity(sections):
@@ -194,6 +209,11 @@ def check_expiry(sections, now, consumed):
         deadline = parse_stamp(deadline_match.group(1), "Expiry")
     elif re.search(r"expires\b", text, re.IGNORECASE):
         raise Refusal("Expiry: 'expires' without a parseable UTC deadline — refused")
+    if single_slice and deadline is not None:
+        raise Refusal(
+            "Expiry: single-slice AND an explicit UTC deadline combined — "
+            "expiry is one or the other (XOR), not both — refused"
+        )
     if not single_slice and deadline is None:
         raise Refusal(
             "Expiry: neither single-slice nor an explicit UTC deadline — refused"
@@ -218,6 +238,21 @@ def check_path_scope(sections):
             raise Refusal(
                 f"Path scope: out-of-scope entry {entry!r} "
                 "(absolute, parent-traversal or whitespace — refused)"
+            )
+        if entry.rstrip("/").strip() in ("", "."):
+            raise Refusal(
+                f"Path scope: repository-root alias {entry!r} "
+                "(enumerates everything — refused)"
+            )
+        if entry.startswith("~"):
+            raise Refusal(
+                f"Path scope: home-prefixed entry {entry!r} "
+                "(outside the repo — refused)"
+            )
+        if re.search(r"[*?\[\]{}!]", entry):
+            raise Refusal(
+                f"Path scope: glob metacharacter in {entry!r} "
+                "(patterns widen scope — refused)"
             )
 
 
@@ -246,9 +281,17 @@ def check_actions(sections):
         push_match = re.match(r"^PUSH\s+(\S+)$", line)
         if push_match:
             branch = push_match.group(1)
-            if branch.startswith("-") or ".." in branch:
+            if (
+                branch[:1] in ("+", "-", "/", ".", ":")
+                or branch.endswith(("/", ".", ".lock"))
+                or ".." in branch
+                or ":" in branch
+                or re.search(r"[*?\[\]{}!~^\\]", branch)
+                or branch.upper() == "HEAD"
+            ):
                 raise Refusal(
-                    f"Permitted operator actions: bad branch ref {branch!r} — refused"
+                    f"Permitted operator actions: bad branch ref {branch!r} "
+                    "(force/refspec/wildcard/HEAD/dotdot/leading-punctuation — refused)"
                 )
             continue
         raise Refusal(
@@ -258,19 +301,36 @@ def check_actions(sections):
 
 
 def marker_value(text, marker):
+    """Value of a `MARKER: value` record line, or None when absent.
+
+    Line-start anchored: optional whitespace, optional numbered prefix
+    (`1.`, `2)`, `(a)`), then the marker, then a REQUIRED colon delimiter.
+    Embedded marker text mid-record satisfies nothing.
+    """
+    pattern = re.compile(
+        r"^\s*(?:\(\s*[A-Za-z0-9]+\s*\)\s*|\d+\s*[.)]\s*)?"
+        + re.escape(marker)
+        + r"\s*:\s*(.*)$",
+        re.IGNORECASE,
+    )
     for line in text.splitlines():
-        if marker in line.upper():
-            idx = line.upper().find(marker) + len(marker)
-            value = line[idx:].lstrip(": ").strip()
-            return value
-    return ""
+        match = pattern.match(line)
+        if match:
+            return match.group(1).strip()
+    return None
 
 
 def check_tpm_gate(sections, seats):
     text = section_text(require(sections, "tpm_gate", "TPM verification gate"))
-    upper = text.upper()
-    for marker in ("WHAT", "BY WHOM", "ARTIFACTS"):
-        if marker not in upper:
+    what = marker_value(text, "WHAT")
+    by_whom = marker_value(text, "BY WHOM")
+    artifacts = marker_value(text, "ARTIFACTS")
+    for marker, value in (
+        ("WHAT", what),
+        ("BY WHOM", by_whom),
+        ("ARTIFACTS", artifacts),
+    ):
+        if value is None:
             raise Refusal(
                 f"TPM verification gate: {marker} record missing — no execution"
             )

@@ -19,7 +19,7 @@
 
 | # | Deliverable | Spec anchor |
 |---|---|---|
-| 1 | 12a canary grant: `date +%s*` appended to `engine-systems-eng.bash_allow` (bounded clock read for D4 ELAPSED proof; output-anchored per REQ-BC2; NOT configure/compile/`./build.sh`, so REQ-BC3 holds) | REQ-BC1/BC2/BC3 |
+| 1 | 12a canary grant: exact `date +%s` on `engine-systems-eng.bash_allow` (bounded clock read for D4 ELAPSED proof, narrowed from `date +%s*` in rework cycle 1 §8 F3; output-anchored per REQ-BC2; NOT configure/compile/`./build.sh`, so REQ-BC3 holds) | REQ-BC1/BC2/BC3 |
 | 2 | `scripts/check-envelope.py` — PRE-AUTH envelope verifier (12b verification path, not a standing grant) | REQ-BC4/BC5 |
 | 3 | 12c commit path = envelope-authorized operator COMMIT (REQ-BC6 option a): no standing `git add` grant anywhere, `git-drift-coord` untouched (locked + read-only) | REQ-BC6 |
 | 4 | #9/#11 canary validation: full per-node refresh composition executed on the canary only (snapshot → drain check → re-seed → `--plan` → `--stop` launch → confirm → authenticated relay round-trip) | REQ-BC7 |
@@ -27,8 +27,9 @@
 
 ## 2. Files changed
 
-- `fleet/fleet.yaml` — 1 insertion (`      - date +%s*` after `clang --version*`
-  in `engine-systems-eng.bash_allow`). Full diff is that line only.
+- `fleet/fleet.yaml` — 1 insertion (`      - date +%s` after `clang --version*`
+  in `engine-systems-eng.bash_allow`; exact form since rework cycle 1 §8 F3).
+  Full diff is that line only.
 - `scripts/check-envelope.py` — NEW (executable). Exit 0 `ACCEPT`, 1 `REFUSE
   (<field>)` (operator holds), 2 usage. Validates: envelope id, slice class,
   issued-by, issued-at (`YYYY-MM-DD HH:MMZ`, real calendar date), expiry
@@ -143,7 +144,7 @@ and the live `@heretek-omni-fleet`).
 - `bash scripts/gate-role.sh engine-systems-eng` → **40 ok, 0 FAIL** (existing
   baseline unbroken by the grant).
 - `./scripts/verify-rigs.sh --check-only` → **27 passed, 0 failed** (exit 0).
-- `python3 -m unittest tests/test_render_seat.py … tests/test_generate_trackers.py`
+- `python3 -m unittest tests/test_render_seat.py tests/test_sweep_typed_blocks.py tests/test_regen_gate.py tests/test_queue_id_discipline.py tests/test_queue_json_discipline.py tests/test_reconcile.py tests/test_generate_trackers.py`
   (the 7 `make test` files) → **125 tests OK** (exit 0).
 - `python3 ./scripts/audit_loop.py --self-test` → **SELF-TEST PASSED** (exit 0).
 - `HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py --vendor-dir
@@ -184,7 +185,8 @@ and the live `@heretek-omni-fleet`).
    configure/compile/`./build.sh` for authoring seats) leaves exactly the
    output-anchored clock read for D4 ELAPSED — the hole the spike §8 left
    open and design A1 named (`date*`-shaped grant). Narrowed to `date +%s*`
-   (not `date*`) so bare `date`/`date --help` stay denied (pinned by test).
+   (not `date*`), then to exact `date +%s` in rework cycle 1 (§8 F3, mechanism
+   proven) so bare `date`/`date --help`/`date +%s -u` stay denied (pinned by test).
    No A2 widening; fleet-wide rollout explicitly not started.
 2. **No `Makefile`/`verify-rigs.sh` wiring.** Draft tasks require none; the
    new suites run via `python3 -m unittest tests/test_build_canary.py
@@ -202,8 +204,68 @@ and the live `@heretek-omni-fleet`).
    `git-drift-coord` still `builtin:locked` + `READONLY_16_ROLES`; commit
    authority flows through the verified envelope path (§1.2).
 
-## 8. Self-audit notes (unfinished stated plainly)
+## 8. Rework cycle 1 (review findings F1–F7, N1–N2 — 2026-10-23)
 
+Nine verified findings fixed, minimal hunks, no commit. Validation after fix:
+`test_check_envelope + test_build_canary` → **60 tests OK** (49 + 11);
+7-file `make test` form → **125 OK**; `verify-rigs.sh --check-only` → **27/0**;
+`generate-rigs.py` clean (regen leaves carry only the F3 delta).
+
+- **F1 (report ellipsis):** §5 command replaced with the full 7-file form
+  (`test_render_seat test_sweep_typed_blocks test_regen_gate test_queue_id_discipline
+  test_queue_json_discipline test_reconcile test_generate_trackers`); the exact
+  pasted command re-run → 125 OK before writing it in.
+- **F2 (expiry XOR):** `check_expiry()` now refuses single-slice + explicit
+  deadline combined (named `Expiry` Refusal); neither-only-one refusals preserved.
+  Test `test_combined_single_slice_and_deadline_refused` → exit 1 + names expiry.
+  RED proof: combined envelope ACCEPT (exit 0) on pre-fix checker, REFUSE on fixed.
+- **F3 (narrow `date +%s*` → `date +%s`):** MECHANISM PROVEN FIRST on /tmp renders
+  (worktree untouched): wildcard render — bare ALLOW, `-u` ALLOW, `--help` ALLOW,
+  `;id` DENY; exact-pattern render — bare ALLOW (`1792787710`), `-u`/`--help`/`;id`
+  all DENIED verbatim. Narrowing is real, not theater, so shipped: catalog line
+  narrowed, `test_build_canary` pins updated (`date +%s`, +2 narrowness DENY cases
+  `-u`/`--help`), regen re-run (6 permission JSONs now `"date +%s": "allow"`;
+  role.md verification-commands line updated; canary-only). Live re-probe, canary
+  only, bare `date +%s` → `1792787868` exit 0 ALLOWED
+  (`qitem-20261023203742-194fbe78a6bb9c27`, done). NOTE: live seat still runs the
+  pre-narrowing wildcard render until the next refresh; narrowed behavior is proven
+  by the mock suite rendering the current catalog (13 DENY subtests green).
+- **F4 (marker anchoring):** `marker_value()` is now line-start anchored (optional
+  whitespace + optional `1.`/`(a)` prefix, REQUIRED colon), returns None when absent;
+  `check_tpm_gate()` presence checks go through it. Tests: embedded `WHAT` in
+  `whatever` mid-record → refused naming WHAT; empty `WHAT:` → refused. Missing-marker
+  refusals preserved (existing tests green). RED proof: embedded envelope ACCEPT on
+  pre-fix, REFUSE on fixed.
+- **F5 (duplicate sections):** `require()` now refuses 2+ same-key sections as
+  AMBIGUOUS (named Refusal); missing-section refusal preserved. Test: appended second
+  `Permitted operator actions:` with REBASE → exit 1 + `AMBIGUOUS`. RED proof:
+  pre-fix ACCEPT (first section wins, REBASE ignored), fixed REFUSE.
+- **F6 (path-scope classes):** `check_path_scope()` additionally refuses root aliases
+  (`.`, `./`, empty-after-normalize), `~`-prefixed entries, and glob metacharacters
+  (`*?[]{}!`); absolute/`..`/whitespace refusals preserved. Five tests added
+  (`.`, `./`, `~/evil`, `src/*`, `src/[a-z]`). RED proof: `src/*` ACCEPT pre-fix,
+  REFUSE fixed.
+- **F7 (PUSH branch validation):** branch must be a plain name — refuses leading
+  `+ - / . :`, trailing `/ . .lock`, `..`, any `:`, wildcards/specials
+  (`*?[]{}!~^\`), and bare `HEAD`; `PUSH main` + `PUSH feat/wave-12-canary` still
+  ACCEPT. Root cause found live: `PUSH :…` lines never reached `check_actions`
+  (colon ⇒ unknown-section gate fired first); fixed by keeping action-shaped lines
+  inside the actions section as body so `check_actions` rules on them (fail-closed
+  either way; no behavior change outside the actions section). Tests: `PUSH +main`,
+  `PUSH :main`, `PUSH HEAD:main` → exit 1; `PUSH main` → ACCEPT. RED proof: `PUSH
+  +main` ACCEPT pre-fix, REFUSE fixed.
+- **N1 (drifting HEAD):** `test_canary_scope_only` compares on-disk catalog vs fixed
+  base `a33f3bb` and asserts `changed == [CANARY_ROLE]` exactly (was `HEAD` +
+  `assertIn ([], [canary])`). Holds with the F3 narrowing. Verified green.
+- **N2 (unknown-section text):** test now also asserts `unknown section` in output
+  (checker emits exactly that).
+
+RED-proof method (all in /tmp scratch, worktree files never touched for sabotage):
+pre-fix checker extracted via `git show HEAD:scripts/check-envelope.py`; five sabotage
+envelopes (F2 combined, F4 embedded, F5 duplicate, F6 glob, F7 `PUSH +main`) → exit 0
+pre-fix, exit 1 fixed. Scratch removed afterwards.
+
+## 9. Self-audit notes (unfinished stated plainly)
 - New suites are NOT wired into `make test` or `verify-rigs.sh` (decision 2) —
   CI will not run them until the follow-up appends them.
 - `git status` at hand-off: 29 tracked modifications (1-line catalog delta +

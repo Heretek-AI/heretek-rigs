@@ -175,6 +175,19 @@ class EnvelopeExpiryTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn("Expiry", proc.stdout + proc.stderr)
 
+    def test_combined_single_slice_and_deadline_refused(self):
+        """Expiry is XOR: single-slice AND an explicit deadline is refused."""
+        proc = run_checker(
+            mutate(
+                VALID_ENVELOPE,
+                "Expiry: expires 2026-10-24 19:00Z",
+                "Expiry: single-slice: void after first execution attempt; "
+                "expires 2026-10-24 19:00Z",
+            )
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("Expiry", proc.stdout + proc.stderr)
+
     def test_single_slice_consumed_refused(self):
         """Single-slice envelopes are void after the first attempt."""
         proc = run_checker(WRAPPED_ENVELOPE, None, "--consumed")
@@ -200,6 +213,31 @@ class EnvelopeScopeTests(unittest.TestCase):
 
     def test_parent_traversal_refused(self):
         proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "../evil"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("Path scope", proc.stdout + proc.stderr)
+
+    def test_root_alias_dot_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "."))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("Path scope", proc.stdout + proc.stderr)
+
+    def test_root_alias_dot_slash_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "./"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("Path scope", proc.stdout + proc.stderr)
+
+    def test_home_prefixed_entry_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "~/evil"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("Path scope", proc.stdout + proc.stderr)
+
+    def test_glob_star_entry_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "src/*"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("Path scope", proc.stdout + proc.stderr)
+
+    def test_glob_bracket_entry_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "src/[a-z]"))
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn("Path scope", proc.stdout + proc.stderr)
 
@@ -256,6 +294,41 @@ class EnvelopeActionTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn("action", proc.stdout + proc.stderr)
 
+    def test_duplicate_actions_sections_refused(self):
+        """A second Permitted-actions section must not be silently ignored."""
+        text = VALID_ENVELOPE + "Permitted operator actions:\nREBASE\n"
+        proc = run_checker(text)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("AMBIGUOUS", proc.stdout + proc.stderr)
+
+    def test_push_force_refspec_refused(self):
+        proc = run_checker(
+            VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH +main")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("action", proc.stdout + proc.stderr)
+
+    def test_push_colon_refspec_refused(self):
+        proc = run_checker(
+            VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH :main")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("action", proc.stdout + proc.stderr)
+
+    def test_push_head_refspec_refused(self):
+        proc = run_checker(
+            VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH HEAD:main")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("action", proc.stdout + proc.stderr)
+
+    def test_push_bare_main_accepted(self):
+        """Exact branch form PUSH main is accepted."""
+        text = VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH main")
+        proc = run_checker(text)
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+        self.assertIn("ACCEPT", proc.stdout)
+
     def test_explicit_push_with_branch_accepted(self):
         """PUSH is permitted ONLY with the exact branch named."""
         text = VALID_ENVELOPE.replace(
@@ -286,6 +359,27 @@ class EnvelopeTpmTests(unittest.TestCase):
 
     def test_missing_artifacts_refused(self):
         proc = run_checker(drop_line(VALID_ENVELOPE, "3. ARTIFACTS:"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("TPM", proc.stdout + proc.stderr)
+
+    def test_embedded_what_marker_does_not_satisfy(self):
+        """Marker text embedded mid-record must NOT satisfy presence."""
+        text = mutate(
+            VALID_ENVELOPE,
+            "1. WHAT: seat close-out doc + CTest log + tree SHA",
+            "1. scope note: whatever the seat produced is attached",
+        )
+        proc = run_checker(text)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("WHAT", proc.stdout + proc.stderr)
+
+    def test_empty_what_value_refused(self):
+        text = mutate(
+            VALID_ENVELOPE,
+            "1. WHAT: seat close-out doc + CTest log + tree SHA",
+            "1. WHAT:",
+        )
+        proc = run_checker(text)
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn("TPM", proc.stdout + proc.stderr)
 
@@ -336,6 +430,7 @@ class EnvelopeRobustnessTests(unittest.TestCase):
         text = VALID_ENVELOPE.replace("OPTIONAL notes:", "Extra grants:")
         proc = run_checker(text)
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("unknown section", proc.stdout + proc.stderr)
 
     def test_usage_error_without_envelope(self):
         proc = subprocess.run(

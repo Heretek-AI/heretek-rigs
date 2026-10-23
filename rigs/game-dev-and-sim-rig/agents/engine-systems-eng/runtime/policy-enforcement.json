@@ -39,7 +39,7 @@
       "ctest*": "allow",
       "cmake --version*": "allow",
       "clang --version*": "allow",
-      "date +%s*": "allow",
+      "date +%s": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",
