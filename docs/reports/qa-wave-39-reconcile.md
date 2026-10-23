@@ -78,3 +78,39 @@ commit/merge/push. Full evidence in docs/evidence/wave-39-reconcile/red-proofs.l
 - Scope CLEAN: 6 intended files only; no forbidden dirs; V1–V9 untouched; no secrets.
 
 Ruling: both binding findings closed with red-proofed guards. QA-CLEAN — no new findings.
+
+## Review-fixes re-verification (2026-10-23, commit d9b6504, stage wave-39-review2-reverify) — QA-CLEAN (1 advisory)
+
+Round 2 on the open PR branch (prior verdict history FAIL -> PASS). Commit d9b6504
+`fix(39-reconcile): normalize proposal notes, fail-closed malformed-input mapping`.
+Sabotage-only edits (all in /tmp/opencode/hr39review2/ scratch copies); worktree untouched (probes ran against /tmp fixtures);
+mission repo read-only (md5-verified); no commit/merge/push. Full evidence: red-proofs.log §17.
+
+- Suite: `make verify` 26/0 exit 0 (+ unchanged advisory), `openspec validate` exit 0, 24/24 unit tests OK.
+- (a) Hostile note (`|` + newline + multi-space) clean-vs-hostile pair: exits 1/1, finding classes identical
+  (7 diffs, all 3 classes), 7/7 proposals single-line pipe-free with exact normalized snippet,
+  `queue:` diagnostics keep raw note — normalization masks no finding. Red-proofed load-bearing (b):
+  normalization calls removed in scratch copy -> pipes + 65→86 line growth. No vacuous check.
+- (c) Malformed shapes (non-dict trail, unhashable qitemId, row missing `status`): each exit 2, one-line
+  stderr naming the type, no traceback, no false in-sync. Except-clause removed -> traceback + exit 1
+  (proves mapping load-bearing and confirms the pre-fix crash/exit-1 collision with diffs-found).
+- (d) Clean-note output byte-identical pre/post fix (pre-fix script via read-only `git show`, no stash).
+- (e) Live read-only run: exit 1, `14 diff(s) across 23 row(s)` = audit baseline; mission md5s intact
+  (phase0 d7678fce…/wave1 a24fca86…/wave2 74f93824…) and identical before/after; mission git diff empty.
+- Scope: fix commit touches exactly the 3 intended files (review-fix report, reconcile.py, test_reconcile.py);
+  no spec/forbidden-dir drift.
+
+### Findings
+
+- **F1 (advisory, pre-existing, out of approved scope — PASS-with-note): the `stale-terminal` branch proposal
+  (`queue-side evidence: {latest_note or ...}`) still interpolates the RAW note.** A pasted stale-terminal
+  proposal from a hostile note WOULD corrupt a tracker table. Exact corrupted output (single-row probe,
+  note `"wip update x|y\nz   w ongoing"`, exit 1 stale-state):
+  `Re-verify W1-01 demo with QA, or correct the tracker cell; queue-side evidence: wip update x|y`
+  followed by a dangling `z   w ongoing` line — the `|` splits the markdown table row into an extra column
+  and the newline breaks the row across lines. This branch was explicitly out of the review brief (scoped to
+  `propose_cell` + missing-annotation site) and the fix commit's own report already discloses it, so it does
+  not block this stage. Recommend a follow-up review item to extend normalization to the stale-terminal branch.
+
+Ruling: both approved review items verified with red-proofed, non-vacuous checks; residual disclosed with
+exact blast radius. QA-CLEAN — no blocking findings.
