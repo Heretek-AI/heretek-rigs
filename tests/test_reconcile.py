@@ -1,0 +1,460 @@
+#!/usr/bin/env python3
+"""Unit tests for the tracker-vs-queue reconcile diff command (issue #39).
+
+Synthetic fixtures in /tmp only — never the live mission checkout and never
+this repo's live files. The pre-convergence Wave-1 tracker below replicates
+the live drifted state read-only from the mission repo
+(docs/sprints/wave1-dispatch-tracker.md, 2026-10-22 issue evidence):
+W1-01/02/06/07 STAGED/awaiting QA, W1-04 PARKED, W1-05 DISPATCHED, while the
+queue shows all 7 slices QA-passed and placed. The command must FLAG every
+drift class and PASS a converged pair with zero diffs.
+
+Covers REQ-R1 (parse + compare, >=7 diffs naming file+row+both values),
+REQ-R2 (propose paste-ready replacement text, strictly read-only), REQ-R3
+(replay: applied proposals re-run to zero diffs + exit 0 "in sync"), REQ-R4
+(fail-closed parsing: unreadable tracker, unparseable row, missing qitem,
+unreachable queue).
+"""
+
+import json
+import os
+import stat
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SCRIPT = REPO_ROOT / "scripts" / "reconcile.py"
+
+QIDS = {
+    "W1-01": "qitem-20261022052401-3af4e59b9c34bc58",
+    "W1-02": "qitem-20261022052403-b120f5f7ba339bd9",
+    "W1-03": "qitem-20261022052407-3d618a4431583b97",
+    "W1-04": "qitem-20261022052409-291190744e33d1fe",
+    "W1-05": "qitem-20261022052412-8a8c5130ff0d9fb0",
+    "W1-06": "qitem-20261022052415-c8ac4d1c13408e78",
+    "W1-07": "qitem-20261022052418-bf0bcb28d32a3065",
+}
+
+# Pre-convergence Wave-1 shape (issue #39 evidence, synthetic qitem ids stay
+# in the live id shape but the file lives in /tmp): 4x STAGED/awaiting QA,
+# 1x PARKED blocked on QA, 1x DISPATCHED, 1x QA PASS with a stale note id
+# (queue moved on past it).
+DRIFTED_TRACKER = """\
+# Wave 1 Dispatch Tracker (synthetic pre-convergence replica)
+Parent: qitem-20261022052237-f31eb9f55da995fb CLOSED done handed_off_to Wave 2 (transition 952).
+
+## Slices (disjoint, one owner each)
+| Slice | Owner seat | Output | Slice qitem | Status |
+|---|---|---|---|---|
+| W1-01 workspace-root | build-ts-node-fullstack | root manifests, workspace configs | {q1} | STAGED 6 files, awaiting QA |
+| W1-02 ts-configs | build-ts-node-fullstack | tsconfigs strict flags, eslint, prettier | {q2} | STAGED 9 files, awaiting QA |
+| W1-03 rust-tauri | systems-rust-systems-spec | rustfmt/clippy, tauri conf | {q3} | QA PASS 4+merge (row note 3) |
+| W1-04 ci-workflow | data-data-pipeline-eng | 4-job Actions workflow | {q4} | PARKED blocked on QA gate |
+| W1-05 bff-protocol | build-go-backend-eng | bff + protocol scaffolds | {q5} | DISPATCHED pending |
+| W1-06 web-tests | build-ts-node-fullstack | web + tests + e2e scaffolds | {q6} | STAGED 13 files, awaiting QA |
+| W1-07 godot-model | gameplay-tech-artist-pipeline | godot-model scaffold | {q7} | STAGED scaffold, awaiting QA |
+
+## Rules (all slices)
+No commits by seats.
+""".format(
+    q1=QIDS["W1-01"],
+    q2=QIDS["W1-02"],
+    q3=QIDS["W1-03"],
+    q4=QIDS["W1-04"],
+    q5=QIDS["W1-05"],
+    q6=QIDS["W1-06"],
+    q7=QIDS["W1-07"],
+)
+
+
+def make_queue_state(tmpdir, latest_id=5, drop=(), stale_note_rows=()):
+    """Write queue_list.json + transitions.json; return (list_path, trans_path).
+
+    Every slice qitem is closed/handed off with a QA PASS + placed
+    transition trail. Rows in stale_note_rows keep an older latest
+    transition (their tracker note is stale but the row still converged
+    terminally on the queue side).
+    """
+    qlist = []
+    trans = {}
+    for slc, qid in QIDS.items():
+        if qid in drop:
+            continue
+        top = 3 if qid in stale_note_rows else latest_id
+        qlist.append(
+            {
+                "qitemId": qid,
+                "state": "closed",
+                "destinationSession": "seat@rig",
+                "tsUpdated": "2026-10-22T12:00:00.000Z",
+            }
+        )
+        trail = [
+            {
+                "transitionId": 1,
+                "qitemId": qid,
+                "ts": "2026-10-22T05:24:00.000Z",
+                "state": "pending",
+                "transitionNote": "created",
+            },
+            {
+                "transitionId": 2,
+                "qitemId": qid,
+                "ts": "2026-10-22T05:30:00.000Z",
+                "state": "in-progress",
+                "transitionNote": "claimed",
+            },
+            {
+                "transitionId": 3,
+                "qitemId": qid,
+                "ts": "2026-10-22T11:00:00.000Z",
+                "state": "in-progress",
+                "transitionNote": "QA PASS per wave1-qa-report",
+            },
+        ]
+        if top >= 4:
+            trail.append(
+                {
+                    "transitionId": 4,
+                    "qitemId": qid,
+                    "ts": "2026-10-22T11:30:00.000Z",
+                    "state": "in-progress",
+                    "transitionNote": "placed canonical paths",
+                }
+            )
+        if top >= 5:
+            trail.append(
+                {
+                    "transitionId": 5,
+                    "qitemId": qid,
+                    "ts": "2026-10-22T11:45:00.000Z",
+                    "state": "closed",
+                    "transitionNote": "handed_off_to Wave 2",
+                }
+            )
+        trans[qid] = trail
+    list_path = Path(tmpdir) / "queue_list.json"
+    trans_path = Path(tmpdir) / "transitions.json"
+    list_path.write_text(json.dumps(qlist))
+    trans_path.write_text(json.dumps(trans))
+    return str(list_path), str(trans_path)
+
+
+def write_tracker(tmpdir, text, name="wave1-dispatch-tracker.md"):
+    path = Path(tmpdir) / name
+    path.write_text(text)
+    return str(path)
+
+
+def run_reconcile(*args):
+    return subprocess.run(
+        [sys.executable, str(SCRIPT), *args],
+        capture_output=True,
+        text=True,
+    )
+
+
+class TestDriftClasses(unittest.TestCase):
+    def test_pre_convergence_reports_at_least_seven_diffs(self):
+        """REQ-R1: all 7 drifted Wave-1 rows surface, each naming file+row+both values."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            for slc, qid in QIDS.items():
+                self.assertIn(slc, proc.stdout, f"diff for {slc} missing")
+                self.assertIn(qid, proc.stdout, f"qitem for {slc} missing")
+            self.assertIn("tracker:", proc.stdout)
+            self.assertIn("queue:", proc.stdout)
+
+    def test_stale_state_class_flagged(self):
+        """REQ-R1 drift class 1: STAGED/DISPATCHED rows vs QA-passed+placed queue."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertIn("stale-state", proc.stdout)
+            # W1-01 reads STAGED while the queue is closed/handed off.
+            block = [ln for ln in proc.stdout.splitlines() if "W1-01" in ln]
+            self.assertTrue(block, "no diff block names W1-01")
+
+    def test_parked_satisfied_but_tracker_silent_flagged(self):
+        """REQ-R1 drift class 2: PARKED-blocked-on-QA vs queue blocker-satisfied."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertIn("parked-satisfied-but-tracker-silent", proc.stdout)
+            self.assertIn("W1-04", proc.stdout)
+
+    def test_missing_convergence_annotation_flagged(self):
+        """REQ-R1 drift class 3: terminal enum but stale note id (W1-03 note 3 vs latest 5)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertIn("missing-convergence-annotation", proc.stdout)
+            self.assertIn("W1-03", proc.stdout)
+
+    def test_converged_pair_passes_with_zero_diffs(self):
+        """REQ-R3: terminal enum + latest note recorded on every row -> exit 0 in sync."""
+        with tempfile.TemporaryDirectory() as tmp:
+            rows = []
+            for slc, qid in QIDS.items():
+                rows.append(
+                    "| %s | seat | output | %s | QA PASS + PLACED canonical "
+                    "(queue note 5; operator note appended \u2014 "
+                    "parked-on-QA blocker satisfied) |" % (slc, qid)
+                )
+            tracker = write_tracker(
+                tmp,
+                "# Wave 1 Dispatch Tracker (synthetic converged)\n\n"
+                "## Slices\n"
+                "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+                "|---|---|---|---|---|\n" + "\n".join(rows) + "\n",
+            )
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertIn("in sync", proc.stdout)
+            self.assertIn("7 row", proc.stdout)
+
+
+class TestProposeNeverEdit(unittest.TestCase):
+    def test_run_is_read_only_and_proposals_are_paste_ready(self):
+        """REQ-R2: tracker bytes identical afterwards; every diff has replacement text."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            before = Path(tracker).read_bytes()
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertEqual(Path(tracker).read_bytes(), before)
+            self.assertEqual(proc.stdout.count("PROPOSED Status cell:"), 7)
+            self.assertIn("operator note appended", proc.stdout)
+
+    def test_out_refusing_tracker_path(self):
+        """REQ-R2: --out pointing at an input tracker is refused (never auto-overwrite)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                tracker,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
+
+    def test_out_file_gets_proposal_and_tracker_untouched(self):
+        """REQ-R2: --out writes the reviewable proposal outside any tracker."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            before = Path(tracker).read_bytes()
+            qlist, trans = make_queue_state(tmp)
+            out = str(Path(tmp) / "proposal.txt")
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                out,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertEqual(Path(tracker).read_bytes(), before)
+            self.assertIn("W1-01", Path(out).read_text())
+
+
+class TestFailClosed(unittest.TestCase):
+    def test_missing_tracker_is_named_failure(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker",
+                str(Path(tmp) / "no-such-tracker.md"),
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("no-such-tracker.md", proc.stdout + proc.stderr)
+            self.assertNotIn("in sync", proc.stdout)
+
+    def test_unparseable_row_names_file_and_line(self):
+        """REQ-R4: a short (wrong-column-count) table row fails, never silently drops."""
+        with tempfile.TemporaryDirectory() as tmp:
+            bad = DRIFTED_TRACKER.replace(
+                "| W1-07 godot-model | gameplay-tech-artist-pipeline "
+                "| godot-model scaffold | %s | STAGED scaffold, awaiting QA |"
+                % QIDS["W1-07"],
+                "| W1-07 godot-model | STAGED |",
+            )
+            tracker = write_tracker(tmp, bad)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("UNPARSEABLE ROW", proc.stdout + proc.stderr)
+            self.assertIn("W1-07", proc.stdout + proc.stderr)
+
+    def test_missing_qitem_is_a_diff_not_a_drop(self):
+        """REQ-R4 scenario: tracker row with no queue entry -> named diff, exit non-zero."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp, drop=(QIDS["W1-05"],))
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("tracker-row-without-qitem", proc.stdout)
+            self.assertIn("W1-05", proc.stdout)
+
+    def test_unreachable_queue_fails_closed(self):
+        """REQ-R4: missing/unparseable queue JSON is a named failure, never 'in sync'."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, _ = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                str(Path(tmp) / "no-queue.json"),
+                "--transitions",
+                qlist,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertNotIn("in sync", proc.stdout)
+            bad = Path(tmp) / "bad.json"
+            bad.write_text("{not json")
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", str(bad), "--transitions", qlist
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+
+
+class TestReplayProof(unittest.TestCase):
+    def test_applying_proposals_converges_to_zero_diffs(self):
+        """REQ-R3/T4: TPM-approval simulation — apply every PROPOSED cell, re-run -> in sync."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            first = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(first.returncode, 1, first.stdout + first.stderr)
+            # Collect proposed Status cells per slice from the machine-readable
+            # proposal markers the command prints for exactly this replay use.
+            proposals = {}
+            current_slice = None
+            current_cell = None
+            for line in first.stdout.splitlines():
+                if line.startswith("DIFF "):
+                    # DIFF [<class>] <file>:<line> slice <SLC> qitem <qid>
+                    parts = line.split("slice ", 1)[1]
+                    current_slice = parts.split()[0]
+                elif line.startswith("PROPOSED-CELL:::"):
+                    current_cell = line.split(":::", 1)[1]
+                    proposals[current_slice] = current_cell
+            self.assertEqual(len(proposals), 7, first.stdout)
+            lines = Path(tracker).read_text().splitlines()
+            for i, line in enumerate(lines):
+                for slc, cell in proposals.items():
+                    if line.startswith("| %s " % slc):
+                        cells = line.split("|")
+                        cells[-2] = " " + cell + " "
+                        lines[i] = "|".join(cells)
+            converged = write_tracker(tmp, "\n".join(lines) + "\n", name="converged.md")
+            second = run_reconcile(
+                "--tracker", converged, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+            self.assertIn("in sync", second.stdout)
+
+
+class TestLiveMode(unittest.TestCase):
+    def _fake_rig(self, tmp, list_payload, trans_payload, exit_code=0):
+        bindir = Path(tmp) / "bin"
+        bindir.mkdir()
+        fake = bindir / "rig"
+        fake.write_text(
+            "#!/usr/bin/env bash\n"
+            'if [ "$2" = "list" ]; then\n'
+            f"  printf '%s' {_shq(json.dumps(list_payload))}\n"
+            "  exit 0\n"
+            "fi\n"
+            f'exec python3 -c {_shq("import json,sys; print(json.dumps(" + json.dumps(trans_payload) + "[sys.argv[1]]))")} "$4"\n'
+        )
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+        env = {**os.environ, "PATH": f"{bindir}{os.pathsep}{os.environ['PATH']}"}
+        return env
+
+    def test_live_mode_reads_only_json_verbs(self):
+        """REQ-R4: --live consumes machine-readable output; drifted pair still diffs."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist_data = json.loads(Path(make_queue_state(tmp)[0]).read_text())
+            trans_data = json.loads(Path(make_queue_state(tmp)[1]).read_text())
+            env = self._fake_rig(tmp, qlist_data, trans_data)
+            proc = subprocess.run(
+                [sys.executable, str(SCRIPT), "--tracker", tracker, "--live"],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("W1-01", proc.stdout)
+
+    def test_live_mode_unreachable_rig_fails_closed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            env = {**os.environ, "PATH": str(Path(tmp))}
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(SCRIPT),
+                    "--tracker",
+                    tracker,
+                    "--live",
+                    "--rig-bin",
+                    "rig-definitely-absent-39",
+                ],
+                capture_output=True,
+                text=True,
+                env=env,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertNotIn("in sync", proc.stdout)
+
+
+def _shq(s):
+    return "'" + s.replace("'", "'\\''") + "'"
+
+
+if __name__ == "__main__":
+    unittest.main()

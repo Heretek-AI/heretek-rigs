@@ -13,7 +13,7 @@ SIDECAR_PROFILES ?=
 RIG_BIN := $(shell command -v rig 2>/dev/null || true)
 
 .DEFAULT_GOAL := help
-.PHONY: help generate idempotent verify live-health test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology manifest-closure policy-verifier
+.PHONY: help generate idempotent verify live-health test bootstrap-seats seed gate guard-profiles sidecars-up sidecars-down bundle-check audit-loop audit-sessions topology manifest-closure policy-verifier reconcile
 
 help: ## List all documented Heretek-Rigs targets.
 	@echo "Heretek-Rigs — 51-Agent OpenRig + Pi + OpenCode Go Fleet"
@@ -35,7 +35,7 @@ live-health: ## Warn-first live-fleet health gate (read-only; advisory exit 0, -
 	python3 ./scripts/live-health.py
 
 test: ## Run unit tests for seat rendering and permission configuration.
-	python3 -m unittest tests/test_render_seat.py tests/test_sweep_typed_blocks.py tests/test_regen_gate.py tests/test_queue_id_discipline.py tests/test_queue_json_discipline.py -v
+	python3 -m unittest tests/test_render_seat.py tests/test_sweep_typed_blocks.py tests/test_regen_gate.py tests/test_queue_id_discipline.py tests/test_queue_json_discipline.py tests/test_reconcile.py -v
 
 bootstrap-seats: ## Provision $OPENRIG_HOME/state/pi/<seat>/agent/ across all rigs.
 	bash ./scripts/bootstrap-pi-seats.sh --all
@@ -87,3 +87,6 @@ manifest-closure: ## Run the stage-time manifest-closure lint over staged manife
 
 policy-verifier: ## Run the stage-time policy-text verifier over staged policy files (issue #41).
 	python3 ./scripts/policy-verifier.py --staged
+
+reconcile: ## Diff dispatch tracker(s) against live queue state (read-only, TPM approval): make reconcile TRACKER=path/to/tracker.md [OUT=file].
+	python3 ./scripts/reconcile.py --live --tracker $(TRACKER) $(if $(OUT),--out $(OUT))
