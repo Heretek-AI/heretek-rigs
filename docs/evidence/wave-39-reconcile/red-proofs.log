@@ -1,0 +1,241 @@
+# Red-proof log — wave-39-reconcile (issue #39, change remediate-39-reconcile)
+# Implementation under test: 38262a0 "feat(39-reconcile): read-only tracker-vs-queue reconcile diff command"
+# Worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-39-reconcile
+# QA seat: verifier. Sabotage-only edits; every code/input sabotage restored. No commit/merge/push.
+# Scratch dir for all synthetic fixtures: /tmp/opencode/hr39qa (never the mission repo, never this repo's live files).
+
+## 0. Baseline (unmodified tree) — all green before any sabotage
+- `make verify` → `SUMMARY: 26 checks passed, 0 failed.`, exit 0, plus advisory live-health output
+  (heartbeat WARN / seat-idleness SKIP on heretek-omni-fleet; warn-first, unchanged behavior).
+  V10 line: `[PASS] Tracker-vs-queue reconcile (issue #39) green: drifted pair diffs, converged pair in sync, run read-only (tests/test_reconcile.py 15 tests pass)`.
+- `make test` → `Ran 85 tests ... OK`, exit 0 (incl. 15 new tests/test_reconcile.py).
+- `openspec validate remediate-39-reconcile` → `Change 'remediate-39-reconcile' is valid`, exit 0.
+- `git status --short` clean; HEAD 38262a0.
+
+## 1. Drift class (a1): stale-state MUST fire — RED proven (fixture sabotage, no code edit)
+- Fixture (/tmp/opencode/hr39qa/a1-stale.md): `| S-01 demo | seat | out | qitem-20261022000001-aaaaaaaaaaaaaaaa | STAGED awaiting QA |`
+  vs queue state closed + `handed_off_to Next` (transition 5).
+- `python3 scripts/reconcile.py --tracker .../a1-stale.md --queue-list .../a1-qlist.json --transitions .../a1-trans.json`
+  → exit 1, stdout contains `stale-state` and `S-01`. PASS (fires).
+- Restore: fixture-only; deleted nothing in repo. `git status --short` clean.
+
+## 2. Drift class (a2): parked-satisfied-but-tracker-silent MUST fire — RED proven
+- Fixture (a2-parked.md): `PARKED blocked on QA gate` vs closed/handed-off queue.
+- Same command shape → exit 1, stdout contains `parked-satisfied-but-tracker-silent` + `S-02`. PASS.
+
+## 3. Drift class (a3): missing-convergence-annotation MUST fire — RED proven
+- Fixture (a3-note.md): `QA PASS + PLACED canonical (row note 3)` vs queue latest transition 5.
+- → exit 1, stdout contains `missing-convergence-annotation` + `S-03`. PASS.
+
+## 4. Drift class (a4): tracker-row-without-qitem MUST fire (both shapes) — RED proven
+- (a4) em-dash qitem cell (mirrors live W2-01 operator-executed row): `| S-04 demo | seat | out | — | DISPATCHED pending |`
+  → exit 1, `tracker-row-without-qitem`. PASS.
+- (a4b) qitem with no queue entry (`qitem-20261022999999-bbbbbbbbbbbbbbbb` dropped from queue list)
+  → exit 1, `tracker-row-without-qitem` + `S-05`. PASS (named diff, never a silent drop — REQ-R4 scenario).
+
+## 5. Converged pair (b) MUST pass with zero diffs — GREEN proven
+- Fixture (b-conv.md): `QA PASS + PLACED canonical (queue note 5; operator note appended)` vs queue latest 5.
+- → exit 0, stdout `reconcile: in sync — 1 rows across 1 tracker(s) agree with queue state.` PASS.
+
+## 6. Unparseable row (c) → fail closed naming file:line — RED proven (exit 2)
+- Fixture (c-bad.md): last table row shortened to `| S-07 broken | STAGED |` (2 cells vs 5).
+- → exit 2, stderr `reconcile: FAILED: UNPARSEABLE ROW '/tmp/opencode/hr39qa/c-bad.md:6' (expected 5 cells, got 2; first cell 'S-07 broken')`. PASS (names file:line, never skips).
+
+## 7. Missing tracker (d) → fail closed — RED proven (exit 2)
+- `--tracker /tmp/opencode/hr39qa/no-such-tracker.md` → exit 2, names the path, no `in sync` on stdout. PASS.
+
+## 8. Mapping-rule sabotage (e): neuter parked rule → its test MUST fail — RED proven (code sabotage, restored)
+- Step 1 target: `scripts/reconcile.py`, `diff_row`, parked branch.
+- Step 2 defect: `if norm["parked"]:` → `if False and norm["parked"]:` (1-line change; `git diff --stat` confirmed 1 insertion/1 deletion).
+- Step 3 injected via exact-string python replacement; NOT committed.
+- Step 4 `python3 -m unittest tests/test_reconcile.py` → `Ran 15 tests ... FAILED (failures=1)`, exit 1.
+  Failing assertion: `test_parked_satisfied_but_tracker_silent` — W1-04 fell through to `stale-state`,
+  `parked-satisfied-but-tracker-silent` absent. Proves the parked rule is load-bearing (no vacuous pass).
+- Step 5 `git checkout -- scripts/reconcile.py`.
+- Step 6 `git status --short` clean (empty); `diff -q scripts/reconcile.py /tmp/opencode/hr39qa/reconcile.py.pristine` → identical;
+  re-run `python3 -m unittest tests/test_reconcile.py` → `Ran 15 tests ... OK`. PASS.
+
+## 9. Exit-code sabotage (V10 gate load-bearing): diffs branch `return 1` → `return 0` — RED proven (restored)
+- Defect: `print(report) / return 1` → `print(report) / return 0` in the diffs branch (1-line change).
+- Re-ran drifted fixture: exit changed 1 → 0. V10's gate (`returncode != 1` → `fail(...)`) would therefore FAIL the
+  verify run — i.e. the V10 offline end-to-end leg is non-vacuous, not just the unittest leg (covered separately in §8).
+- `git checkout -- scripts/reconcile.py`; `git status --short` clean; byte-identical to pristine copy. PASS.
+
+## 10. --out guard (f): --out at a tracker path MUST be refused — RED proven (exit 2, scratch only)
+- Scratch tracker-shaped path `/tmp/opencode/hr39qa/wave1-dispatch-tracker.md` used as BOTH `--tracker` and `--out`
+  (never the real mission file).
+- → exit 2, `refusing to write proposal to input tracker path ... (proposals go OUTSIDE the mission repo for TPM review)`;
+  tracker bytes identical before/after (read-only proven). PASS.
+
+## 11. Live read-only run (g): real mission trackers + live queue — recorded WITHOUT acting
+- Daemon: `rig daemon status` → `Daemon running on port 7433 (pid 13874)` — live path available, no --offline fallback needed.
+- Command: `python3 scripts/reconcile.py --live --tracker <mission>/wave1-dispatch-tracker.md --tracker <mission>/wave2-dispatch-tracker.md --tracker <mission>/phase0-dispatch-tracker.md`
+  → exit 1; `reconcile: 3 tracker(s) vs queue state (21 queue rows)`; `14 diff(s) across 23 row(s); TPM approval required — no files modified.`
+  Full output saved to /tmp/opencode/hr39qa/live-run.txt (NOT acted on — QA took no approval/apply step).
+  Classes observed live: 6× tracker-row-without-qitem, 4× stale-state (incl. reverse direction: tracker terminal while queue blocked, e.g. W1-03/W1-04), 4× missing-convergence-annotation.
+- Mission integrity: md5 before/after identical —
+  `wave1-dispatch-tracker.md: OK`, `wave2-dispatch-tracker.md: OK`, `phase0-dispatch-tracker.md: OK`. PASS.
+
+## 12. T5 wiring: `make reconcile TRACKER=<mission wave1>` — non-masking proven
+- `make reconcile TRACKER=/home/john/Projects/heretek-asset-manager/docs/sprints/wave1-dispatch-tracker.md`
+  → tool printed live diffs (`1 tracker(s) vs queue state (21 queue rows)` + W1-00 diff); make exit 2 (recipe failure
+  propagated from tool exit 1 — NOT swallowed, no `-` prefix / `|| true` in the recipe). PASS.
+
+## 13. `openspec validate` red-proofs (structural sabotages, all restored)
+- (i) REQ-R1 heading `### Requirement:` → `### Broken-Heading:` → validate exit 0 `valid` + INFO "ignored by validation".
+  Observation: heading-typo leniency (see QA report finding F2). Restored via `git checkout -- <spec>`.
+- (ii) `tasks.md` moved aside → validate exit 0 `valid`. Observation: tasks.md presence not enforced (F2).
+  Restored via `mv` back; `git status --short` clean.
+- (iii) `specs/` + `proposal.md` moved aside → validate exit 1 `Change 'remediate-39-reconcile' has issues` /
+  `Change must have at least one delta. No deltas found.` — check IS load-bearing for delta presence. RED proven.
+  Restored; re-validate → `valid`; `git status --short` clean; `git diff --stat -- openspec/` empty.
+- (iv) REQ-R4 `#### Scenario:` → `#### Deleted-Scenario:` → validate exit 0 `valid`.
+  Observation: per-requirement scenario presence not strictly enforced (F2). Restored; re-validate → `valid`.
+- Verdict on the check: NOT vacuous (fires RED when deltas vanish); lenient at the margins — recorded, not blocking.
+
+## 14. Static delta review (no sabotage needed; `git diff HEAD~1`)
+- `scripts/verify-rigs.sh`: numstat `68 additions / 0 deletions`; zero `^-` lines → V1–V9 behavior-identical,
+  nothing renumbered/reworded. V10 block: exactly ONE code-level `ok(...)` invocation
+  (the only other `ok()` match is the comment `# Exactly one ok() below.`); 4 `fail(...)` gates (no pass inflation).
+- `Makefile`: additive only — `.PHONY` gains `reconcile`; `test` list gains `tests/test_reconcile.py`; new 2-line
+  `reconcile:` target (`python3 ./scripts/reconcile.py --live --tracker $(TRACKER) $(if $(OUT),--out $(OUT))`).
+  No masking (§12 proves exit propagation).
+
+## 15. Deferred items — spec-sanction status (evidence, not sabotage)
+- Full generation (option (a)): EXPLICITLY SANCTIONED — proposal.md §Non-goals ("DEFERRED ... needs its own design
+  tree and its own change package. A follow-up `remediate-39-generate` change MAY supersede this one") +
+  design.md §"Why diff-first, generation-deferred". Not a dropped task.
+- T6 report filename: tasks.md asks `docs/reports/remediate-39-reconcile-implementation.md`; actual
+  `docs/reports/wave-39-reconcile-implementation.md` follows the lane/stage binding (`docs/reports/<stage>-...`)
+  from the QA/implementation instructions — higher binding wins. Sanctioned rename. Report content verified present
+  (claims, tracker-shape grounding, no-mission-write record, files changed, verification outputs, skipped/deferred).
+- T6 follow-up filing (`remediate-39-generate` issue): NOT FILED — explicitly recorded in the implementation report
+  (§Skipped / deferred: "not filed ... left for the TPM — the design sketch already exists in design.md"),
+  rationale given (issue filing is a network/state-changing act outside implementation scope). The artifact is
+  preserved (design.md row-model sketch + "MUST consume this diff spec's row model"). Half-open by record, not by
+  silence → QA finding F1 (advisory, non-blocking; TPM decision).
+
+## Final tree state
+- `git status --short` shows NOTHING except the two QA deliverables below (untracked):
+  `docs/evidence/wave-39-reconcile/red-proofs.log` (this file) and `docs/reports/qa-wave-39-reconcile.md`.
+  All sabotaged production/spec files restored byte-identical (pristine diffs confirmed in §§8–9, §13).
+  No commit/merge/push performed. No mission-repo writes (md5 proof §11).
+
+## 16. Rework-1 re-verification (2026-10-23, commit cd262e6, stage wave-39-rework-1-verify) — F1/F2 closure proof
+All probes ran against /tmp/opencode/hr39verify/ scratch ONLY (own fixtures + byte-copy of live phase-0 tracker).
+Worktree sources untouched; `git status --short` clean before and after. Mission repo reads only (md5-verified).
+
+- Baseline: `make verify` → SUMMARY: 26 checks passed, 0 failed, exit 0 (+ standing live-health advisory
+  WARN heartbeat / SKIP seat-idleness, unchanged); V10 reports 19 tests pass. `openspec validate
+  remediate-39-reconcile` → valid, exit 0. `python3 -m unittest tests.test_reconcile` → 19/19 OK, exit 0.
+- F1(a) auditor-repro replay: --tracker <scratch input> --out <byte-copy of live phase0 tracker> → exit 2
+  ("refusing to write proposal to tracker-shaped path"), victim md5 d7678fce before AND after (identical).
+  Live mission phase0 md5 d7678fce confirmed pre/post. PASS.
+- F1(b) --out to tracker-NAMED path in fresh dir (victim-dispatch-tracker.md) → exit 2, nothing created. PASS.
+  (sprints/-location sub-case covered by unit test, green in19/19.)
+- F1(c) --out to existing non-tracker file → exit 2, bytes untouched. PASS.
+- F1(d) --out to fresh non-tracker path → exit 1, proposal written (4836 bytes in probe fixture). PASS.
+- F1(e) sabotage, layer 1 (refuse_out_path neutered to `return None` in scratch copy): fresh tracker-named
+  path WRITTEN (exit 1) → RED-CONFIRMED shape-guard load-bearing; pre-existing victims (a),(c) still refused
+  via O_EXCL (defense-in-depth, expected). Layer 1+2 (O_EXCL→O_TRUNC as well): (a),(b),(c) ALL clobber
+  (exit 1, bytes changed) → RED-CONFIRMED both layers load-bearing. Unit-test cross-check: 4 new tests are
+  (i)scratch-copy (ii)tracker-named (iii)existing-nontracker (iv)fresh-writes; against fully-neutered copy the
+  4 refusal tests FAIL (3 new + 1 original exact-match) while the fresh-writes positive test stays green —
+  exactly the load-bearing pattern (refusals depend on the guard; the allowed path does not). No vacuous check.
+- F1(f) race/append: code read confirms BOTH write sites (reconcile.py:508,516) go through write_out_exclusive()
+  (os.O_CREAT|O_EXCL); behavioral proof: first --out to fresh path writes (exit 1), immediate re-run to same
+  path refused (exit 2, bytes identical). PASS.
+- F2: `gh issue view 57` → OPEN, title "Follow-up (deferred from #39): generate dispatch trackers from queue
+  state (remediate-39-generate sketch)", body = design.md sketch (generate scope, reconcile-diff prerequisite,
+  row-model consumption, TPM approval ×3, REQ-R3 convergence acceptance). URL recorded in tasks.md T6 [x] +
+  wave-39-reconcile-implementation.md:116 + rework-1 report §F2. PASS.
+- Regression: drift-class tests (STAGED/DISPATCHED, PARKED, stale-note, + ≥7-diffs naming file+row+both values),
+  converged-pair zero-diffs, unparseable-row file:line diagnostic, missing-qitem diff-not-drop, unreachable-queue
+  fail-closed — all green in 19/19. Live read-only run (phase0+wave1+wave2 --live): exit 1, "14 diff(s) across
+  23 row(s); TPM approval required — no files modified." (identical to audit baseline); mission md5s
+  phase0 d7678fce / wave1 a24fca86 / wave2 74f93824 intact before+after; mission `git diff --stat` empty. PASS.
+- Scope: `git diff 2a1c6a2..HEAD --stat` = 6 files only (reconcile.py, test_reconcile.py, tasks.md, 2 reports +
+  verification.md audit record). No specs//rigs//rosters//registry/ edits; Makefile + verify-rigs.sh untouched
+  by rework (V1–V9 byte-identical). Secrets scan (token-shaped patterns): 0 hits. PASS.
+- Sabotage artifacts live ONLY in /tmp/opencode/hr39verify/ (neutered copy, probe scripts, mission md5
+  before-file, live output). Nothing to restore in worktree; `git status --short` verified clean post-run.
+
+## 17. Review-fixes re-verification (2026-10-23, commit d9b6504, stage wave-39-review2-reverify) — round 2
+- Commit under test: d9b6504 `fix(39-reconcile): normalize proposal notes, fail-closed malformed-input mapping`
+  on top of b2f107f/6f916cf/cd262e6 (prior verdict history FAIL -> PASS). `git log --oneline -5` confirmed.
+- Scratch dir: /tmp/opencode/hr39review2/ (probe script probes.py, fixture outputs, sabotage copies
+  reconcile_no_norm.py / reconcile_no_map.py / reconcile_prefix.py). Worktree sources untouched by probes;
+  mission repo read-only (md5-verified). No commit/merge/push.
+- Baseline (unmodified tree): `make verify` -> `SUMMARY: 26 checks passed, 0 failed`, exit 0
+  (+ standing live-health heartbeat WARN / seat-idleness SKIP advisory, unchanged);
+  `openspec validate remediate-39-reconcile` -> `Change 'remediate-39-reconcile' is valid`, exit 0;
+  `python3 -m unittest tests.test_reconcile` -> 24/24 OK (19 pre-existing + 5 new). All green before sabotage.
+- Probe harness: /tmp/opencode/hr39review2/probes.py imports DRIFTED_TRACKER/make_queue_state/write_tracker
+  from tests/test_reconcile.py via importlib (no worktree edits). Result: 27/27 probe checks passed.
+- (a) Hostile note `"QA PASS a|b\nc   d  placed"` on every qitem latest transition, clean vs hostile pair:
+  clean exit 1, hostile exit 1 (equal); finding classes byte-identical (7 diffs:
+  missing-convergence-annotation, parked-satisfied-but-tracker-silent, stale-state);
+  7/7 PROPOSED-CELL lines single-line and pipe-free; exact snippet
+  `(queue note 5: QA PASS a/b c d placed;` present; 7 `queue:` diagnostic lines keep the RAW note
+  (`a|b` + newline intact) — normalization masks nothing, diagnostics untouched. PASS.
+- (b) Sabotage (scratch copy, both normalization call sites replaced with str()): hostile run emits `|`
+  in PROPOSED lines and grows 65 -> 86 output lines (newline leak) — fix load-bearing, no vacuous check. PASS.
+- (c) Malformed shapes, each: exit 2, single-line stderr (no embedded newline), no Traceback, no false in-sync:
+  non-dict trail `[42, "not-a-dict"]` -> `reconcile: FAILED: malformed input (AttributeError: 'int' object
+  has no attribute 'get')`; unhashable qitemId `["list-is-unhashable"]` -> `... (TypeError: cannot use 'list'
+  as a dict key (unhashable type: 'list'))`; tracker row missing `status` (driver monkeypatch of
+  parse_tracker, mirrors unit test) -> `... (KeyError: 'status')`. PASS (3/3).
+- (c-sabotage) except-clause removed in scratch copy: non-dict trail -> exit 1 + Traceback; unhashable qitemId
+  -> exit 1 + Traceback. Confirms the mapping is load-bearing AND the pre-fix crash/exit-1 collision
+  (traceback exit 1 indistinguishable from diffs-found exit 1). PASS.
+- (d) Clean-note byte-identity: pre-fix script extracted via `git show d9b6504~1:scripts/reconcile.py`
+  (read-only, no stash) vs fixed script on the standard drifted fixture -> stdout byte-identical, exit 1/1;
+  exact pinned clean strings present (`(queue note 5: handed_off_to Wave 2;`). No gratuitous churn. PASS.
+- (e) Live read-only run: `python3 scripts/reconcile.py --live --tracker <mission>/{phase0,wave1,wave2}-dispatch-tracker.md`
+  -> exit 1, `reconcile: 14 diff(s) across 23 row(s); TPM approval required — no files modified.`
+  (identical to audit baseline); mission md5s identical before/after AND equal to the audit baseline
+  (phase0 d7678fce…, wave1 a24fca86…, wave2 74f93824…); mission `git diff --stat` empty. PASS.
+- Scope: fix commit touches exactly 3 files (docs/reports/wave-39-review-fixes-implementation.md,
+  scripts/reconcile.py, tests/test_reconcile.py); no specs//rigs//rosters//registry/ drift. PASS.
+- Residual (reported, not fixed — see QA report F1): stale-terminal branch proposal
+  (`queue-side evidence: {latest_note or ...}`, reconcile.py ~line 414) still interpolates the raw note.
+  Single-row probe (tracker QA PASS terminal vs queue in-progress, note `"wip update x|y\nz   w ongoing"`)
+  fires stale-state exit 1 with corrupted proposal lines (full text in
+  /tmp/opencode/hr39review2/residual_stale_terminal.txt):
+    PROPOSED Status cell:
+      Re-verify W1-01 demo with QA, or correct the tracker cell; queue-side evidence: wip update x|y
+    z   w ongoing
+  A pasted PROPOSED-CELL would split the tracker table row at `|` and break across lines. Out of the
+  principal-approved review scope (scoped to propose_cell + missing-annotation site); recorded as advisory F1.
+- `git status --short` clean except the two QA deliverables (this log + qa-wave-39-reconcile.md new section).
+  No production/test file modified (all sabotage in /tmp scratch copies). No commit/merge/push.
+
+## 18. 2026-10-23 — wave-39-optionA-reverify: fix commit df6e6cb red-proofs (scratch /tmp/opencode/hr39reverify3 only; worktree read-only)
+- Baseline (unmodified tree): `make test` → 98 tests OK (5.366s); `make verify` → SUMMARY: 26 checks passed, 0 failed (+ unchanged heartbeat/idleness advisory); `openspec validate remediate-39-reconcile` → valid. All exit 0.
+- Scope: `git show --stat HEAD` → exactly 2 files (scripts/reconcile.py 5 +-, tests/test_reconcile.py +123). No specs//rigs//rosters//registry/ drift. PASS.
+- (a) Stale-terminal hostile note. Fixed script + note `"wip ev|idence\nline2   spaced"` → exit 1, stale-state, one PROPOSED-CELL line, pipe-free:
+  `PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the tracker cell; queue-side evidence: wip ev/idence line2 spaced`.
+  Same script + clean note `"awaiting review"` → exit 1, same class (class/exit unchanged vs clean variant). PASS.
+- (a) RED: scratch copy with `evidence_note = normalize_proposal_note(latest_note)` → `evidence_note = latest_note`
+  (worktree untouched) + hostile note → corrupted multi-line/pipe output, exit still 1 / class still stale-state:
+    `PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the tracker cell; queue-side evidence: wip ev|idence`
+    `line2   spaced`
+  (plus raw note also leaking into the `queue:` diagnostic continuation and SUGGESTED line). The real test
+  `test_hostile_note_proposal_single_line_pipe_free` run against the sabotaged copy FAILS
+  (`AssertionError: '|' unexpectedly found in 'PROPOSED-CELL:::...wip ev|idence'`, failures=1, errors=0) → check is load-bearing, NOT vacuous. PASS.
+- (b) Mode positive: real `--out` run (drifted fixture) → exit 1, file mode 0o600, `mode & 0o077 == 0`. PASS.
+- (b) RED: scratch copy with `0o600` → `0o644` (worktree untouched) → real test `TestProposalFileMode` run against it FAILS
+  (`AssertionError: 36 != 0 : mode 0o644 has group/other bits`, failures=1, errors=0) → check is load-bearing, NOT vacuous. PASS.
+- (c) latest_note use audit (`grep -n latest_note scripts/reconcile.py`): 8 use sites. Proposal (paste-ready) sites — all normalized:
+  `propose_cell` (line 334), missing-annotation proposal (line 409), stale-terminal evidence_note (line 415, the fix);
+  two no-qitem proposals are static text with no note. Raw-note sites — all four `queue:` diagnostics (lines 388, 395, 406, 420),
+  which render only on the `queue:` diagnostic line (render_diff line 439), never in PROPOSED-CELL (line 442) or as proposal text:
+  fixed-script hostile run keeps raw `wip ev|idence` + newline inside the `queue:` diagnostic (proves normalization masks no finding).
+  SUGGESTED line (lines 443-445) interpolates only `diff['tracker']` (single-line parsed table cell) + normalized `diff['proposal']`.
+  Full drifted fixture: 7 diffs → 7 PROPOSED-CELL lines, all pipe-free. No other proposal site uses a raw note. PASS.
+- Regression (live, read-only): `python3 scripts/reconcile.py --live --tracker <mission>/{phase0,wave1,wave2}-dispatch-tracker.md`
+  → exit 1, `reconcile: 14 diff(s) across 23 row(s); TPM approval required — no files modified.` (== audit baseline);
+  mission md5s identical before/after AND equal to baseline (phase0 d7678fce…, wave1 a24fca86…, wave2 74f93824…).
+  Auditor F1 repro re-run (scratch tracker-shaped victim as --out) → exit 2 refused, victim bytes intact → F1 stays cleared.
+  `gh issue view 57` → state OPEN (deferred generate follow-up, still an issue not code) → F2 context unchanged. PASS.
+- `git status --short` clean (no worktree modifications; all sabotage in /tmp scratch copies). No commit/merge/push.

@@ -1465,6 +1465,74 @@ if _hr41_match:
 if len(failures) == _hr41_before:
     ok(f"Policy-text verifier (issue #41) green: staged policy files resolve against the pinned authority (tests/test_policy_verifier.py {_hr41_ran} tests pass)")
 
+print("\n== V10. Tracker-vs-Queue Reconcile Diff (issue #39) ==")
+# HR-39 (fail-closed read-only diff, no auto-edit): the reconcile command must
+# flag every drift class on a synthetic pre-convergence pair (stale-state,
+# parked-satisfied-but-tracker-silent, missing-convergence-annotation), pass a
+# converged pair with exit 0 "in sync", and fail closed (exit 2, named file:line)
+# on an unparseable row — proven by tests/test_reconcile.py synthetic fixtures
+# (/tmp only, never the live mission checkout) plus an offline end-to-end run
+# below. Appended at the end — no existing check renumbered or reworded.
+# Exactly one ok() below.
+_hr39_before = len(failures)
+_hr39r = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_reconcile.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _hr39r.returncode != 0:
+    fail(f"tests/test_reconcile.py failed:\n{_hr39r.stderr}")
+import tempfile as _tf39
+_hr39_tmp = _tf39.mkdtemp(prefix="hr39-verify-")
+try:
+    _hr39_tracker = Path(_hr39_tmp) / "wave9-dispatch-tracker.md"
+    _hr39_tracker.write_text(
+        "# Wave 9 Dispatch Tracker (verify fixture)\n\n## Slices\n"
+        "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+        "|---|---|---|---|---|\n"
+        "| W9-01 demo | seat | out | qitem-20261022000001-aaaaaaaaaaaaaaaa | STAGED awaiting QA |\n"
+    )
+    _hr39_qlist = Path(_hr39_tmp) / "queue_list.json"
+    _hr39_qlist.write_text(json.dumps([{"qitemId": "qitem-20261022000001-aaaaaaaaaaaaaaaa", "state": "closed"}]))
+    _hr39_trans = Path(_hr39_tmp) / "transitions.json"
+    _hr39_trans.write_text(json.dumps({"qitem-20261022000001-aaaaaaaaaaaaaaaa": [{"transitionId": 7, "qitemId": "qitem-20261022000001-aaaaaaaaaaaaaaaa", "ts": "2026-10-22T11:45:00.000Z", "state": "closed", "transitionNote": "handed_off_to Next"}]}))
+    _hr39_drift = subprocess.run(
+        [sys.executable, str(root / "scripts/reconcile.py"), "--tracker", str(_hr39_tracker), "--queue-list", str(_hr39_qlist), "--transitions", str(_hr39_trans)],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if _hr39_drift.returncode != 1 or "stale-state" not in _hr39_drift.stdout or "W9-01" not in _hr39_drift.stdout:
+        fail(f"scripts/reconcile.py offline drifted run must exit 1 naming W9-01 stale-state (got {_hr39_drift.returncode}: {_hr39_drift.stdout[:200]}{_hr39_drift.stderr[:200]})")
+    _hr39_before_bytes = _hr39_tracker.read_bytes()
+    _hr39_conv = Path(_hr39_tmp) / "converged.md"
+    _hr39_conv.write_text(
+        "# Wave 9 Dispatch Tracker (verify fixture)\n\n## Slices\n"
+        "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+        "|---|---|---|---|---|\n"
+        "| W9-01 demo | seat | out | qitem-20261022000001-aaaaaaaaaaaaaaaa | QA PASS + PLACED canonical (queue note 7; operator note appended) |\n"
+    )
+    _hr39_sync = subprocess.run(
+        [sys.executable, str(root / "scripts/reconcile.py"), "--tracker", str(_hr39_conv), "--queue-list", str(_hr39_qlist), "--transitions", str(_hr39_trans)],
+        cwd=str(root),
+        capture_output=True,
+        text=True,
+    )
+    if _hr39_sync.returncode != 0 or "in sync" not in _hr39_sync.stdout:
+        fail(f"scripts/reconcile.py offline converged run must exit 0 in sync (got {_hr39_sync.returncode}: {_hr39_sync.stdout[:200]}{_hr39_sync.stderr[:200]})")
+    if _hr39_tracker.read_bytes() != _hr39_before_bytes:
+        fail("scripts/reconcile.py modified the tracker (must be read-only)")
+finally:
+    import shutil as _sh39
+    _sh39.rmtree(_hr39_tmp, ignore_errors=True)
+_hr39_ran = "?"
+_hr39_match = re.search(r"Ran (\d+) tests", _hr39r.stderr)
+if _hr39_match:
+    _hr39_ran = _hr39_match.group(1)
+if len(failures) == _hr39_before:
+    ok(f"Tracker-vs-queue reconcile (issue #39) green: drifted pair diffs, converged pair in sync, run read-only (tests/test_reconcile.py {_hr39_ran} tests pass)")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

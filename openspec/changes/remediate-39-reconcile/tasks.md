@@ -23,8 +23,13 @@ change.
       zero diffs, exit 0 with "in sync" summary (REQ-R3).
 - [ ] T5 — Acceptance: wire a `make` target (e.g. `make reconcile
       TRACKER=...`) usable as a pre-handoff gate; record outputs.
-- [ ] T6 — Report: write
+- [x] T6 — Report: write
       `docs/reports/remediate-39-reconcile-implementation.md`
       (files changed, verification outputs) and file the deferred
       `remediate-39-generate` follow-up design sketch as an issue, not
       code.
+      → Done: report written as `docs/reports/wave-39-reconcile-implementation.md`
+      (stage binding); follow-up filed as
+      https://github.com/Heretek-AI/heretek-rigs/issues/57
+      (design sketch from design.md as the body; reconcile-diff prerequisite
+      + TPM-approval requirement recorded there).
