@@ -1,0 +1,54 @@
+# QA checks — spike-12-builds (investigation spike, report-claim verification)
+Date: 2026-10-23 (UTC) | Verifier: Agency QA (subagent, read-only + canary denial re-probes)
+Worktree: .lane/trees/spike-12-builds | Branch: docs/spike-12-build-capability @ e6914ae (confirmed)
+Scope: verify REPORT claims. No implementation exists to red-proof. No commits made by QA.
+
+## 0. Branch / cleanliness — PASS
+- `git rev-parse --abbrev-ref HEAD` -> docs/spike-12-build-capability; `git rev-parse --short HEAD` -> e6914ae (matches tasking).
+- `git status --short` at start AND end: empty (clean). Report + draft package are committed as e6914ae.
+- NOTE: report §0 cites branch @ 5a244ac (pre-report-commit HEAD). Expected staleness, not a defect.
+
+## 1. Fleet integrity — PASS
+- `rig ps` (run 2x, start + end): `1 rig · 51 seats · 0 need attention` / heretek-omni-fleet 51/51 running, 0 ATTN. Unchanged across QA.
+- `git diff main --stat` / `--name-only`: EXACTLY 5 files, all report + draft package:
+    docs/reports/spike-12-build-capability.md (281 lines added)
+    openspec/changes/issue-12-build-capability/design.md
+    openspec/changes/issue-12-build-capability/proposal.md
+    openspec/changes/issue-12-build-capability/specs/build-capability/spec.md
+    openspec/changes/issue-12-build-capability/tasks.md
+  No fleet/fleet.yaml, no scripts/, no Makefile, no verify-rigs.sh changes. PASS.
+
+## 2. Claim spot-checks — PASS (3/3)
+### 2a. BC-L1 canary denials re-run (2 of 5) — PASS, verbatim match
+- Verb: `rig send 'engine-engine-systems-eng@heretek-omni-fleet' "<QA-labeled 2-probe tasking>"` (denied commands only — incapable of mutation by design); read via `rig transcript 'engine-engine-systems-eng@heretek-omni-fleet' --tail 40`.
+- Seat reply (verbatim from transcript):
+  1. `cmake --preset linux-release` — DENIED — `[pi-permission-system] Denied by policy: 'bash' (rule '*').`
+     == report §3 row 1 verbatim. PASS.
+  2. `git add src/engine tests/engine .` — DENIED — `[pi-permission-system] Denied by policy: 'path' for tool 'bash' for path 'src/engine' (rule '*').`
+     == report §3 row 5 denial text verbatim (bash-rule vs path-rule shape preserved). PASS.
+- NUANCE: QA added a trailing `.` to probe 2 vs the report's exact `git add src/engine tests/engine`. Denial still fires on the `src/engine` path rule with identical text; no material deviation.
+- Receipt matched report convention: 2/2 bare, 0 ALLOWED / 2 DENIED, no artifacts, no qitem (PENDING_DISPATCH).
+
+### 2b. Gate suite git-drift-coord — PASS, count confirmed
+- `bash scripts/gate-role.sh git-drift-coord` -> exit=0, `grep -c "^ok"` = 40, `grep -cE "FAIL|not ok"` = 0.
+- Matches report §8: "git-drift-coord PASS (40 ok, 0 FAIL)". (Other three suites not re-run — tasking required one.)
+
+### 2c. verify-rigs.sh --check-only — PASS, SUMMARY confirmed
+- `./scripts/verify-rigs.sh --check-only` -> `SUMMARY: 27 checks passed, 0 failed.`
+- Matches report §0/§7 claim of 27/0 (floor was 26/0 at AGENTS.md writing; report notes the +1). PASS.
+
+## 3. Draft hygiene — PASS with 1 MINOR note
+- DRAFT marking: proposal.md, design.md, tasks.md, spec.md each carry `# DRAFT` title + `Status: DRAFT` banner (grep -c "DRAFT" = 2 per file). PASS.
+- BC-L1..L5 acceptance criteria: ALL present in tasks.md —
+  L1: verbatim-denial table (MEASURED, cited); L2: build log exit 0 + CTest N/N + tree SHA + ELAPSED on #12; L3: live relay transcript ACK quoted verbatim; L4: snapshot ID + --plan output + audit excerpts, --stop gated on TPM sign-off; L5: D5 scoped stage+commit + D6/D7 merge + re-proof. PASS.
+- MINOR (not FAIL): proposal.md banner (ll.3-7) + design.md banner (ll.3-6) still read "every live measurement is marked STAGED / fleet DOWN, no live-seat contact" — stale after the 2026-10-23 live update. The correction lives in report §0/§8 + tasks.md L1/L3/L4, so no promise is broken, but the two banners are internally inconsistent with the package they head. Recommend a one-line banner amendment on each.
+
+## 4. Bounds audit — PASS
+- Report experiment log contacts exactly 4 seats, all with non-mutating verbs:
+  canary engine-engine-systems-eng (5 denied probes + --plan + --dry-run previews); systems-cpp-lowlevel-eng (cmake --version, ./build.sh --help exit-127 file-absent); delivery-git-drift-coord (git status --short); platform-dependency-patcher (git status + charter self-check). No other seat received any verb; capture/transcript reads only elsewhere.
+- No --stop execution, no re-seed/restore, no queue writes, no file writes outside worktree + /tmp scratch. Single fleet-side artifact: one rollback snapshot (by-design hygiene, ID recorded).
+- Secrets: diff scan for secret-shaped content clean (only hits: the words "decisions"/"disk-side" and `printf dummy` lines writing literal "dummy" to /tmp paths). No real credential material in report or draft package.
+- QA's own contact: 1 rig send to canary only (2 denied probes) + 1 transcript read. Fleet 51/51 + status clean after. PASS.
+
+## Verdict: PASS (4/4 items; 0 FAIL; 1 MINOR hygiene note in §3)
+No vacuous checks found (every re-run check returns real measured output). Nothing committed by QA.

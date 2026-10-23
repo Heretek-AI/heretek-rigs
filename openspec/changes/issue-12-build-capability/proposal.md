@@ -3,7 +3,9 @@
 > **Status: DRAFT.** Produced by spike-12-builds (issues #12 + #9 + #11 design
 > decisions, canary validation). Disk-side evidence only: the live fleet was
 > DOWN at spike time (`rig ps`: 0 rigs running), so every live measurement is
-> marked STAGED. Nothing in this package authorizes implementation; the
+> marked STAGED. CORRECTION 2026-10-23: after restore (51/51 verified),
+> BC-L1/companions/dry-run/#11-previews MEASURED same-day; D1–D7/BC-L3/BC-L4
+> stay STAGED with reasons (§3 of the findings report). Nothing in this package authorizes implementation; the
 > implementation wave is separately gated on principal approval.
 
 ## Problem

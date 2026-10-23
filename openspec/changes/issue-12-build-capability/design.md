@@ -3,7 +3,9 @@
 > **Status: DRAFT.** Companion to `proposal.md`. All static claims verified
 > read-only from disk in worktree `.lane/trees/spike-12-builds`
 > (branch `docs/spike-12-build-capability` @ `5a244ac`). All live claims
-> STAGED (fleet DOWN: `rig ps` → 0 rigs running at spike time).
+> STAGED (fleet DOWN: `rig ps` → 0 rigs running at spike time). CORRECTION
+> 2026-10-23: after restore (51/51 verified), BC-L1/companions/dry-run/
+> #11-previews MEASURED same-day; D1–D7/BC-L3/BC-L4 stay STAGED with reasons.
 
 ## 1. Corrected capability matrix (static, verified)
 
