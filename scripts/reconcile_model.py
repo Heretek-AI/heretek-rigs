@@ -108,7 +108,7 @@ def write_out_exclusive(out, text):
     except OSError as exc:
         raise ReconcileError(f"UNWRITABLE --out '{out}' ({exc})")
     try:
-        with os.fdopen(fd, "w") as handle:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(text)
     except OSError as exc:
         raise ReconcileError(f"UNWRITABLE --out '{out}' ({exc})")
@@ -116,7 +116,7 @@ def write_out_exclusive(out, text):
 
 def load_json_file(path, what):
     try:
-        text = Path(path).read_text()
+        text = Path(path).read_text(encoding="utf-8")
     except OSError as exc:
         raise ReconcileError(f"UNREADABLE {what} '{path}' ({exc})")
     try:
@@ -141,7 +141,7 @@ def is_separator(cells):
 def parse_tracker(path):
     """Parse the Slices table of one tracker; fail closed with named errors."""
     try:
-        lines = Path(path).read_text().splitlines()
+        lines = Path(path).read_text(encoding="utf-8").splitlines()
     except OSError as exc:
         raise ReconcileError(f"UNREADABLE TRACKER '{path}' ({exc})")
     start = None

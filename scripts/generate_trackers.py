@@ -237,8 +237,10 @@ def build_proposal(tracker, queue_by_id, transitions_by_id):
             )
             n_review += 1
             continue
-        terminal = queue_terminal(entry, trail)[0] if entry is not None else False
-        if diff["class"] in PASTE_READY_CLASSES and terminal:
+        terminal, latest_id = (
+            queue_terminal(entry, trail)[:2] if entry is not None else (False, None)
+        )
+        if diff["class"] in PASTE_READY_CLASSES and terminal and latest_id is not None:
             blocks.append(
                 render_proposal(
                     row,
@@ -248,6 +250,28 @@ def build_proposal(tracker, queue_by_id, transitions_by_id):
                     False,
                 )
             )
+        elif diff["class"] in PASTE_READY_CLASSES and terminal:
+            # Terminal by entry state alone with NO transition trail (Q7/Q8):
+            # a paste-ready cell would cite a nonexistent "queue note None",
+            # so the row routes to human review with no paste marker and a
+            # no-evidence proposal naming both-side evidence.
+            review_diff = dict(diff)
+            review_diff["proposal"] = (
+                "TPM: confirm the terminal queue state with QA and record "
+                "the closing transition note before pasting a canonical "
+                f"cell; queue-side evidence: {evidence}; status NEVER guessed"
+            )
+            blocks.append(
+                render_proposal(
+                    row,
+                    arm,
+                    "terminal-state without transition evidence => "
+                    "NEEDS-HUMAN-REVIEW, no paste-ready cell",
+                    review_diff,
+                    True,
+                )
+            )
+            n_review += 1
         else:
             # Stale-terminal (tracker claims terminal while the queue is not
             # terminal): re-verify guidance, never a pasted terminal cell.

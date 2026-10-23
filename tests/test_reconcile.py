@@ -836,6 +836,100 @@ class TestProposalFileMode(unittest.TestCase):
             self.assertEqual(mode & 0o077, 0, f"mode {oct(mode)} has group/other bits")
 
 
+NON_ASCII_SAMPLE = "caf\u00e9 \u2014 \u6f22\u5b57"
+
+
+class TestUtf8FileIO(unittest.TestCase):
+    def test_non_ascii_round_trip_under_c_locale(self):
+        """File I/O must pin UTF-8: a tracker + queue JSON carrying non-ASCII
+        (em-dash, CJK) parse/load/write byte-identical under LC_ALL=C, where
+        the platform default encoding is ASCII."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = Path(tmp) / "tracker.md"
+            tracker.write_text(
+                "# Wave 1 Dispatch Tracker (synthetic non-ASCII)\n\n"
+                "## Slices\n"
+                "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+                "|---|---|---|---|---|\n"
+                "| W1-01 %s | seat | output | %s | STAGED %s |\n"
+                % (NON_ASCII_SAMPLE, QIDS["W1-01"], NON_ASCII_SAMPLE),
+                encoding="utf-8",
+            )
+            qlist = Path(tmp) / "queue_list.json"
+            qlist.write_text(
+                json.dumps(
+                    [{"qitemId": QIDS["W1-01"], "state": "closed"}],
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            trans = Path(tmp) / "transitions.json"
+            trans.write_text(
+                json.dumps(
+                    {
+                        QIDS["W1-01"]: [
+                            {
+                                "transitionId": 7,
+                                "qitemId": QIDS["W1-01"],
+                                "ts": "2026-10-22T11:45:00.000Z",
+                                "state": "closed",
+                                "transitionNote": "handed_off %s" % NON_ASCII_SAMPLE,
+                            }
+                        ]
+                    },
+                    ensure_ascii=False,
+                ),
+                encoding="utf-8",
+            )
+            dest = Path(tmp) / "proposal.txt"
+            child = Path(tmp) / "roundtrip_child.py"
+            child.write_text(
+                "import sys\n"
+                "sys.path.insert(0, sys.argv[4])\n"
+                "from reconcile_model import (\n"
+                "    parse_tracker, load_json_file, write_out_exclusive,\n"
+                ")\n"
+                "EXPECTED = " + json.dumps(NON_ASCII_SAMPLE) + "\n"
+                "rows = parse_tracker(sys.argv[1])\n"
+                "assert EXPECTED in rows[0]['slice'], rows\n"
+                "qlist = load_json_file(sys.argv[2], 'QUEUE LIST')\n"
+                "trans = load_json_file(sys.argv[3], 'TRANSITIONS')\n"
+                "note = trans[qlist[0]['qitemId']][0]['transitionNote']\n"
+                "assert EXPECTED in note, note\n"
+                "text = 'cells ' + EXPECTED + ' end\\n'\n"
+                "write_out_exclusive(sys.argv[5], text)\n"
+                "raw = open(sys.argv[5], 'rb').read()\n"
+                "assert raw == text.encode('utf-8'), raw\n"
+                "print('ROUNDTRIP-OK')\n",
+                encoding="utf-8",
+            )
+            env = dict(
+                os.environ,
+                LC_ALL="C",
+                LANG="C",
+                LANGUAGE="C",
+                PYTHONUTF8="0",
+                PYTHONCOERCECLOCALE="0",
+            )
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    str(child),
+                    str(tracker),
+                    str(qlist),
+                    str(trans),
+                    str(REPO_ROOT / "scripts"),
+                    str(dest),
+                ],
+                capture_output=True,
+                text=True,
+                env=env,
+                cwd=str(REPO_ROOT),
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertIn("ROUNDTRIP-OK", proc.stdout)
+
+
 def _shq(s):
     return "'" + s.replace("'", "'\\''") + "'"
 

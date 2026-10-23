@@ -460,6 +460,46 @@ class TestOtherAndOrphan(unittest.TestCase):
             self.assertIn("Re-verify W1-01 with QA", proc.stdout)
             self.assertIn("NEEDS-HUMAN-REVIEW", proc.stdout)
 
+    def test_terminal_state_without_transition_evidence_is_review_not_paste_ready(self):
+        """Q7/Q8: terminal-by-entry-state queue with NO transition trail must
+        not emit a paste-ready canonical cell citing a nonexistent note; the
+        row routes to NEEDS-HUMAN-REVIEW with a no-evidence label, exit 1."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(
+                tmp,
+                "# Wave 1 Dispatch Tracker (synthetic no-evidence terminal)\n\n"
+                "## Slices\n"
+                "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+                "|---|---|---|---|---|\n"
+                "| W1-01 | seat | output | %s | STAGED awaiting QA |\n" % QIDS["W1-01"],
+            )
+            qlist = [
+                {
+                    "qitemId": QIDS["W1-01"],
+                    "state": "done",
+                    "destinationSession": "seat@rig",
+                    "tsUpdated": "2026-10-22T12:00:00.000Z",
+                }
+            ]
+            trans = {}
+            qlist_path = str(Path(tmp) / "queue_list.json")
+            trans_path = str(Path(tmp) / "transitions.json")
+            Path(qlist_path).write_text(json.dumps(qlist))
+            Path(trans_path).write_text(json.dumps(trans))
+            proc = run_generate(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist_path,
+                "--transitions",
+                trans_path,
+            )
+            combined = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 1, combined)
+            self.assertIn("NEEDS-HUMAN-REVIEW", proc.stdout)
+            self.assertNotIn("PROPOSED-CELL:::", proc.stdout)
+            self.assertNotIn("queue note None", combined)
+
 
 class TestReadOnlyAndFreshOut(unittest.TestCase):
     def test_run_leaves_tree_untouched_with_and_without_out(self):

@@ -1575,7 +1575,16 @@ try:
     )
     if _hr57_drift.returncode != 1 or "PROPOSED-CELL:::" not in _hr57_drift.stdout or "W9-01" not in _hr57_drift.stdout:
         fail(f"scripts/generate_trackers.py offline drifted run must exit 1 with a W9-01 paste-ready cell (got {_hr57_drift.returncode}: {_hr57_drift.stdout[:200]}{_hr57_drift.stderr[:200]})")
-    if "PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 7: handed_off_to Next; operator note appended)" not in _hr57_prop.read_text():
+    _hr57_prop_text = None
+    if not _hr57_prop.is_file():
+        fail("scripts/generate_trackers.py proposal file missing because the drifted run failed (no proposal emitted; skipping paste-ready cell content check)")
+    else:
+        try:
+            _hr57_prop_text = _hr57_prop.read_text()
+        except OSError as _hr57_prop_exc:
+            fail(f"scripts/generate_trackers.py proposal file unreadable ({_hr57_prop_exc}; skipping paste-ready cell content check)")
+            _hr57_prop_text = None
+    if _hr57_prop_text is not None and "PROPOSED-CELL:::QA PASS + PLACED canonical (queue note 7: handed_off_to Next; operator note appended)" not in _hr57_prop_text:
         fail("scripts/generate_trackers.py --out proposal must carry the exact Q8 paste-ready cell")
     if _hr57_tracker.read_bytes() != _hr57_before_bytes:
         fail("scripts/generate_trackers.py modified the tracker (must be read-only)")
