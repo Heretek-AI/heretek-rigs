@@ -561,6 +561,158 @@ class TestLiveMode(unittest.TestCase):
             self.assertNotIn("in sync", proc.stdout)
 
 
+class TestProposalNoteNormalization(unittest.TestCase):
+    def _hostile_state(self, tmp):
+        """Queue state whose latest notes carry |, newline, and multi-space."""
+        tracker = write_tracker(tmp, DRIFTED_TRACKER)
+        qlist, trans = make_queue_state(tmp)
+        data = json.loads(Path(trans).read_text())
+        for qid in data:
+            data[qid][-1]["transitionNote"] = "QA PASS a|b\nc   d  placed"
+        hostile = str(Path(tmp) / "transitions_hostile.json")
+        Path(hostile).write_text(json.dumps(data))
+        return tracker, qlist, hostile
+
+    def test_hostile_note_proposal_is_single_line_with_slash(self):
+        """Pipe/newline/multi-space note -> single-line proposal with / and
+        single spaces; the finding still fires with its class unchanged."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, hostile = self._hostile_state(tmp)
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                hostile,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("stale-state", proc.stdout)
+            self.assertIn("parked-satisfied-but-tracker-silent", proc.stdout)
+            self.assertIn("missing-convergence-annotation", proc.stdout)
+            proposed = [
+                ln
+                for ln in proc.stdout.splitlines()
+                if ln.startswith("PROPOSED-CELL:::")
+            ]
+            self.assertEqual(len(proposed), 7, proc.stdout)
+            for line in proposed:
+                self.assertNotIn("|", line)
+            self.assertIn("(queue note 5: QA PASS a/b c d placed;", proc.stdout)
+            self.assertIn(
+                "PROPOSED-CELL:::QA PASS 4+merge (row note 3) "
+                "(queue note 5: QA PASS a/b c d placed; "
+                "operator note appended)",
+                proc.stdout,
+            )
+
+    def test_clean_note_proposal_byte_identical(self):
+        """A clean note normalizes to itself: no gratuitous churn."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn(
+                "PROPOSED-CELL:::QA PASS + PLACED canonical "
+                "(queue note 5: handed_off_to Wave 2; "
+                "operator note appended)",
+                proc.stdout,
+            )
+            self.assertIn(
+                "PROPOSED-CELL:::QA PASS 4+merge (row note 3) "
+                "(queue note 5: handed_off_to Wave 2; "
+                "operator note appended)",
+                proc.stdout,
+            )
+
+
+class TestMalformedInputFailClosed(unittest.TestCase):
+    def test_non_dict_trail_items_exit_2_no_traceback(self):
+        """Transitions trail holding non-dict items is malformed input:
+        exit 2 with a concise message, never a traceback exit 1."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            data = json.loads(Path(trans).read_text())
+            data[QIDS["W1-01"]] = [42, "not-a-dict"]
+            bad = str(Path(tmp) / "transitions_bad.json")
+            Path(bad).write_text(json.dumps(data))
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                bad,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            combined = proc.stdout + proc.stderr
+            self.assertNotIn("Traceback", combined)
+            self.assertIn("malformed input", proc.stderr)
+            self.assertIn("AttributeError", proc.stderr)
+            self.assertNotIn("in sync", proc.stdout)
+
+    def test_unhashable_queue_qitem_id_exit_2_no_traceback(self):
+        """Queue entry whose qitemId is unhashable is malformed input:
+        exit 2 with a concise message, never a traceback exit 1."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            data = json.loads(Path(qlist).read_text())
+            data.append({"qitemId": ["list-is-unhashable"], "state": "closed"})
+            bad = str(Path(tmp) / "queue_list_bad.json")
+            Path(bad).write_text(json.dumps(data))
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                bad,
+                "--transitions",
+                trans,
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            combined = proc.stdout + proc.stderr
+            self.assertNotIn("Traceback", combined)
+            self.assertIn("malformed input", proc.stderr)
+            self.assertIn("TypeError", proc.stderr)
+            self.assertNotIn("in sync", proc.stdout)
+
+    def test_tracker_row_missing_key_exit_2_no_traceback(self):
+        """A tracker-derived row missing its expected key is malformed
+        input: main maps the KeyError to exit 2, never a traceback."""
+        import contextlib
+        import importlib.util
+        import io
+
+        spec = importlib.util.spec_from_file_location(
+            "reconcile_under_test", str(SCRIPT)
+        )
+        rec = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(rec)
+        rec.parse_tracker = lambda *a: [
+            {"file": "t.md", "line": 1, "slice": "W1-01", "qitem": QIDS["W1-01"]}
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            qlist, trans = make_queue_state(tmp)
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                rc = rec.main(
+                    ["--tracker", "t.md", "--queue-list", qlist, "--transitions", trans]
+                )
+            self.assertEqual(rc, 2)
+            self.assertNotIn("Traceback", err.getvalue())
+            self.assertIn("malformed input", err.getvalue())
+            self.assertIn("KeyError", err.getvalue())
+
+
 def _shq(s):
     return "'" + s.replace("'", "'\\''") + "'"
 

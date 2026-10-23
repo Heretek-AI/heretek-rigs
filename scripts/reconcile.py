@@ -318,14 +318,27 @@ def run_rig(rig_bin, args, timeout=60):
         )
 
 
+def normalize_proposal_note(note):
+    """Collapse a queue note to a single paste-safe line for proposals.
+
+    Queue notes are interpolated into markdown table Status cells, where a
+    raw `|` would split the row and embedded newlines/multi-space would
+    break the proposal lines. `|` becomes `/` and every whitespace run
+    (including newlines) collapses to a single space. Proposal insertions
+    only — the `queue:` diagnostic fields keep the raw note byte-identical.
+    """
+    return " ".join(str(note).replace("|", "/").split())
+
+
 def propose_cell(row, latest_id, latest_note, parked):
+    note = normalize_proposal_note(latest_note)
     if parked:
         return (
-            f"QA PASS + PLACED canonical (queue note {latest_id}: {latest_note}; "
+            f"QA PASS + PLACED canonical (queue note {latest_id}: {note}; "
             f"operator note appended \u2014 parked-on-QA blocker satisfied)"
         )
     return (
-        f"QA PASS + PLACED canonical (queue note {latest_id}: {latest_note}; "
+        f"QA PASS + PLACED canonical (queue note {latest_id}: {note}; "
         f"operator note appended)"
     )
 
@@ -392,7 +405,8 @@ def diff_row(row, queue_by_id, transitions_by_id):
                 "tracker": cell,
                 "queue": f"state={entry.get('state')} latest_transition={latest_id} ({latest_note})",
                 "proposal": (
-                    f"{cell} (queue note {latest_id}: {latest_note}; "
+                    f"{cell} (queue note {latest_id}: "
+                    f"{normalize_proposal_note(latest_note)}; "
                     f"operator note appended)"
                 ),
             }
@@ -518,6 +532,13 @@ def main(argv=None):
         return 0
     except ReconcileError as exc:
         print(f"reconcile: FAILED: {exc}", file=sys.stderr)
+        return 2
+    except (AttributeError, TypeError, ValueError, KeyError) as exc:
+        detail = " ".join(str(exc).split())
+        print(
+            f"reconcile: FAILED: malformed input ({type(exc).__name__}: {detail})",
+            file=sys.stderr,
+        )
         return 2
 
 
