@@ -49,6 +49,8 @@ only — note-only, **no `--state` surgery by the operator**:
 rig queue update <qitemId> --note "SATISFIED: <blocker> <evidence-ref>"
 ```
 
+(Paste `<qitemId>` as the full ID copied from `rig queue list --json` output — never retype it.)
+
 - `<blocker>` must be the row's `blockedOn` value (or its `<what>` suffix).
 - `<evidence-ref>` is mandatory: a report path, placement location,
   transition ref (`t928`), or verdict qitem id. A bare `SATISFIED:` or

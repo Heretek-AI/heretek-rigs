@@ -124,7 +124,7 @@ Verify that all 51 AgentSpecs, 8 RigBundles, JSON schemas, cryptographic digests
 make verify
 ```
 
-You should see `SUMMARY: 22 checks passed, 0 failed.`
+You should see `SUMMARY: 26 checks passed, 0 failed.`
 
 ### Step 2: Seed the Pi Seats for Your Target Rig
 
