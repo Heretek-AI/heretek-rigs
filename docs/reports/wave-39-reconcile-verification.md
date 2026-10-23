@@ -38,4 +38,34 @@
 - Audit scratch (outside both repos): `/tmp/opencode/hr39audit/` (sabotage copies, cross-tracker victim + md5s, live-run output `/tmp/opencode/hr39audit-live.txt`).
 - No commit/merge/push performed by this audit. Mission repo saw reads only (md5-verified).
 
-VERDICT: FAIL
+> VERDICT: FAIL (prior audit 38262a0+2a1c6a2 — superseded; preserved as history)
+
+## Re-audit — wave-39-rework-1-reaudit (2026-10-23, rework cd262e6 + evidence 6f916cf) — drift-guard re-audit
+
+- Stage/wave: `wave-39-rework-1-reaudit` · Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-39-reconcile`
+- Commits under audit: `cd262e6` (rework) + `6f916cf` (evidence on top). `git log --oneline -5` confirms; `git status --short` clean at audit time.
+- Spec read from disk first: this report (prior FAIL F1/F2 above), `openspec/changes/remediate-39-reconcile/tasks.md` (T6 now `[x]` with issue URL), `openspec/changes/remediate-39-reconcile/specs/`, `docs/reports/qa-wave-39-reconcile.md` (§Rework-1 re-verification), `docs/reports/wave-39-rework-1-implementation.md`, `docs/evidence/wave-39-reconcile/red-proofs.log` (§16), `AGENTS.md`.
+- Auditor touched no worktree sources and no mission files: all write probes ran against `/tmp/opencode/hr39reaudit/` copies. No commit/merge/push.
+
+### F1 — CLEARED (REQ-R2 overwrite gap closed; guard complete at both write sites)
+
+- Guard read: `scripts/reconcile.py:95-134` `refuse_out_path()` refuses fail-closed (exit 2, bytes untouched): (a) `--out` resolving to any input `--tracker` (`:108-118`); (b) tracker-shaped by NAME (`:119-123` `*dispatch-tracker.md`) AND by LOCATION (`:124-128` any `sprints/` path part), regardless of the input set; (c) ANY existing file (`:129-134` `os.path.lexists` or resolved exists). Up-front call at `:450` before any parsing; BOTH write sites (`:507-508` diffs branch, `:515-516` in-sync branch) go through `write_out_exclusive()` (`:137-157`, `os.O_CREAT|O_EXCL`), so a file appearing after the up-front check is still refused, never clobbered. No `write_text` remains on the `--out` path (grep confirms only `os.open` at `:144`). TOCTOU-meaningful gap for this threat model: none — the O_EXCL create is the write-time re-check.
+- Independent repro of the auditor's exact attack (scratch only): `--tracker /tmp/opencode/hr39reaudit/input-tracker.md --out /tmp/opencode/hr39reaudit/phase0-dispatch-tracker.md` (victim byte-copy of live mission phase-0, md5 `d7678fce…` pre-run matching the mission file) → exit 2 `refusing to write proposal to tracker-shaped path`, victim md5 `d7678fce…` post-run — BYTES IDENTICAL. Existing non-tracker `--out` → exit 2, bytes untouched. Fresh non-tracker `--out` → exit 1 with proposal written (positive path not over-blocked). `sprints/`-location sub-case covered by `test_out_refusing_tracker_named_path_in_fresh_dir`, green in-suite.
+- Tests: `python3 -m unittest tests.test_reconcile` → 19/19 OK (4 new F1 tests green alongside the untouched original exact-match test). QA red-proofs §16 two-layer sabotage (guard noop + O_EXCL→O_TRUNC) claim spot-checked via code read (both sites exclusive) and the passing refusal/positive test split — load-bearing, no vacuous check.
+
+### F2 — CLEARED (T6 follow-up issue filed, URL recorded in-package)
+
+- `gh issue view 57` → OPEN, `https://github.com/Heretek-AI/heretek-rigs/issues/57`, title carries the `remediate-39-generate` sketch marker; body is the design-sketch transcription (deferred generate scope, reconcile-diff prerequisite + row-model consumption, TPM-approval requirement, REQ-R3 convergence acceptance) — read-only `gh` reads only.
+- `tasks.md:26-35` T6 is `[x]` with the issue URL + filing note (grep count 1). In-package recording complete.
+
+### Scope / regression / gates (all independently re-run)
+
+- Rework diff `2a1c6a2..cd262e6`: 6 files only (`scripts/reconcile.py`, `tests/test_reconcile.py`, `tasks.md`, 2 reports + this verification record). No `specs/`/`rigs/`/`rosters/`/`registry/` edits; `Makefile` + `scripts/verify-rigs.sh` untouched by rework (V1–V9 byte-identical); no scope creep beyond F1/F2.
+- `make verify` → `SUMMARY: 26 checks passed, 0 failed`, exit 0 (+ standing live-health advisory WARN/SKIP, unchanged); V10 reports 19 tests pass. `openspec validate remediate-39-reconcile` → valid, exit 0. Secrets scan over the rework diff (token-shaped patterns): 0 real hits.
+- Live read path unchanged: `--live` over the 3 mission trackers → exit 1, `14 diff(s) across 23 row(s); TPM approval required — no files modified.` Mission md5s identical before/after (`phase0 d7678fce…`, `wave1 a24fca86…`, `wave2 74f93824…`, matching QA §16). QA re-verification claims spot-checked and confirmed (26/0, 19/19, F1 repro md5, #57 OPEN, 14-diffs live).
+
+### Ruling
+
+- F1: CLEARED. F2: CLEARED. No new blocking defects. Both binding findings closed with red-proofed guards.
+
+VERDICT: PASS
