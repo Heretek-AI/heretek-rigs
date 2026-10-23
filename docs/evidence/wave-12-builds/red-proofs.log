@@ -1,0 +1,129 @@
+# wave-12-builds QA — red-proofs + acceptance log
+Verifier: Agency QA subagent. Stage: wave-12-builds, branch feat/12-build-capability @ 7d33851.
+Worktree: .lane/trees/wave-12-builds. Date: 2026-10-23 (UTC).
+Rule honored: NO worktree file touched for sabotage (all sabotage in /tmp/opencode/wave12qa scratch);
+no commit; canary-only live contact; fleet never bounced. Scratch removed after run.
+
+## 0. Baseline
+- `git rev-parse --abbrev-ref HEAD` -> feat/12-build-capability; `git rev-parse --short HEAD` -> 7d33851
+- `git status --short` at start: CLEAN (empty). At end: only docs/evidence/wave-12-builds/red-proofs.log (this file).
+
+## 1. Scope (PASS)
+- `git diff main --stat` -> 33 files; catalog edit is ONE line: `git diff main -- fleet/fleet.yaml`
+  shows only `+      - date +%s*` under engine-systems-eng.bash_allow. No other +/- catalog lines.
+- Sample regen leaf: `git diff main -- specs/agents/gamedev/engine-systems-eng/runtime/pi-permission-config.json`
+  -> only `+      "date +%s*": "allow"`.
+- `git diff main -- '*pi-permission-config.json' '*policy-enforcement.json' | grep -E "^[+-]" | grep -v "^[+-][+-]"`
+  -> exactly 6 identical lines `+      "date +%s*": "allow",` (spec + 2 rig copies x 2 files). Zero non-date churn.
+- `grep -c "git add" fleet/fleet.yaml` -> 0. engine-systems-eng block: bash_allow has cmake --build*/ctest*
+  (pre-existing), cmake/clang --version probes, NEW date +%s*; NO `cmake --preset`, NO compiler invocation
+  (bare clang++), NO `./build.sh*` (only path_write `build.sh`, pre-existing). REQ-BC3 holds.
+
+## 2. Suites (PASS)
+- `python3 -m unittest tests/test_check_envelope.py tests/test_build_canary.py` -> Ran 47 tests, OK, exit 0 (29.2s).
+- `make test` -> Ran 125 tests, OK, exit 0.
+- `./scripts/verify-rigs.sh --check-only` -> SUMMARY: 27 checks passed, 0 failed, exit 0.
+- `bash scripts/gate-role.sh engine-systems-eng` -> 40 ok lines, exit 0, no FAIL (existing baseline unbroken).
+- RED-first evidence (from implementation report, re-verified present): pre-implementation runs failed as
+  designed (test_check_envelope 34 failures on missing script; canary pins failed on absent grant).
+
+## 3. Live canary, engine-engine-systems-eng@heretek-omni-fleet ONLY (PASS)
+- Pre: `rig queue list --destination <canary> --json` -> [] (drain-to-zero).
+- Relay via scripts/send-authenticated.sh (never raw rig send; --source + --summary verified in --dry-run):
+  created qitem-20261023201301-8a4f28c43e9531df state=pending persisted=True, exit 0.
+- `rig queue show <qitem> --full --json` (90s later) -> state done, closureReason no-follow-on,
+  actorSession engine-engine-systems-eng@heretek-omni-fleet, resolution qa-reproof-reported.
+- Transcript verbatim results (each command run separately, no files created/modified):
+  1. `date +%s` -> EXECUTED, `1792786388`, exit 0. ALLOWED (designed supersession). PASS.
+  2. `cmake --preset linux-release` -> DENIED, `[pi-permission-system] Denied by policy: 'bash' (rule '*').` PASS.
+  3. `./build.sh --help` -> DENIED, `[pi-permission-system] Denied by policy: 'bash' (rule '*').` PASS.
+  4. `git add .` -> seat skipped execution (mutating; per relay instruction). Covered instead by:
+     (a) mock gate-run.sh probe of EXACT string `git add .` on current-catalog render ->
+         `[pi-permission-system] Denied by policy: 'path' for tool 'bash' for path '.' (rule '*').`,
+         isError true; (b) wave round-2 live record `git add src/engine tests/engine` DENIED (report §4).
+     No standing `git add` grant anywhere (grep count 0). PASS (with noted substitution).
+  5. `git status --short` -> EXECUTED exit 0, untracked-only listing (?? lines, no M/A/D staged) ->
+     workspace unmodified. PASS.
+- Post: `rig ps --rig heretek-omni-fleet` -> 51 running, 0 need attention; queue list -> [].
+  No non-canary seat contacted. Fleet untouched otherwise. PASS.
+
+## 4. Envelope verifier scripts/check-envelope.py (PASS)
+- `--help` exit 0. Code read (383 lines): no socket/urllib/requests/http imports, no open-for-write —
+  read-only verifier, no network/file writes.
+- Valid envelope (/tmp scratch copy of suite VALID_ENVELOPE) -> `ACCEPT WAVE12-CANARY-001`, exit 0. PASS.
+- Invalid 1 (path-scope lines stripped) -> `REFUSE (Path scope: no enumerated paths ...)`, exit 1. PASS.
+- Invalid 2 (action REBASE) -> `REFUSE (Permitted operator actions: 'REBASE' is not ...)`, exit 1. PASS.
+- Invalid 3 (Expiry: never) -> `REFUSE (Expiry: open-ended expiry ...)`, exit 1. PASS.
+- No `--envelope` -> argparse usage error, exit 2. PASS.
+
+## 5. Red-proofs, /tmp scratch only (PASS, both non-vacuous)
+- (a) Catalog-pin: copied fleet/fleet.yaml to /tmp/opencode/wave12qa/fleet-copy.yaml, removed the
+  `date +%s*` entry in the COPY -> `test_clock_read_grant_present` assertIn would FAIL. Non-vacuous. PASS.
+- (b) Canary-scope guard: in scratch COPY added `date +%s*` to cpp-lowlevel-eng.bash_allow, replicated
+  test_canary_scope_only logic vs `git show HEAD:fleet/fleet.yaml` -> changed==['cpp-lowlevel-eng'],
+  `assertIn changed ([], ['engine-systems-eng'])` FAILS. Guard is non-vacuous. PASS.
+- (c) F6 sabotage replays: `CanaryMockProbes.test_deny_cases_rejected` re-run standalone -> ok (23.6s);
+  10 DENY subtests (;/|/>/$()/backtick/bare-date/cmake/build.sh/clang++/git-add) all DENY-classified
+  STRICT on the current-catalog render; `test_allow_cases_execute` (date +%s) ALLOW. PASS.
+- Restore proof: worktree file NEVER touched (all edits in /tmp); `git status --short` clean afterwards;
+  scratch dir /tmp/opencode/wave12qa removed (rm -rf) after run.
+
+## 6. Anti-stub + secrets scan of wave diff (PASS)
+- `grep -rnE "TODO|FIXME|XXX|stub|placeholder|\|\| true|except.*pass"` on scripts/check-envelope.py,
+  tests/test_build_canary.py, tests/test_check_envelope.py -> CLEAN (no hits).
+- Credential-shaped grep on wave diff -> only dummy/mock test values (`write_text("dummy")`,
+  `"apiKey": "mock"`, `--allow-missing-secrets`); no real keys, no ~/.config/heretek-rigs/secrets reads. PASS.
+
+## Verdict
+1 Scope PASS | 2 Suites PASS (47 OK / 125 OK / 27-0 / gate 40-ok) | 3 Live canary PASS (1 ALLOWED + denials
+verbatim; git-add denial via exact-string mock + wave live record) | 4 Envelope PASS (0/1/2 exits correct,
+no network/writes) | 5 Red-proofs PASS (no vacuous checks) | 6 Scans PASS.
+Vacuous checks: NONE. Overall: PASS.
+
+=== REWORK CYCLE 1 === (2026-10-23, re-verify @ ce20926, branch feat/12-build-capability)
+Re-verifier: QA subagent. Worktree .lane/trees/wave-12-builds, HEAD ce20926, clean at start AND end.
+Fix-commit confirm: `git show ce20926 --stat` = 33 files: fleet/fleet.yaml 1-line
+(`- date +%s*` -> `+ date +%s`), scripts/check-envelope.py +92 hardening, tests
+(+22/+95), report wording, 28 regen leaves (mechanical digest/provenance churn).
+Nothing else: no Makefile/verify-rigs.sh/gate-role.sh edits (name-grep clean);
+non-date allow churn in baked leaves EMPTY; fleet.yaml +- lines = the date line only.
+
+1. GATES (all exit 0, run for real):
+- `python3 -m unittest tests.test_check_envelope tests.test_build_canary` -> 60 tests OK (49+11).
+- Exact pasted 7-file form from report §5:
+  `python3 -m unittest tests/test_render_seat.py tests/test_sweep_typed_blocks.py tests/test_regen_gate.py tests/test_queue_id_discipline.py tests/test_queue_json_discipline.py tests/test_reconcile.py tests/test_generate_trackers.py` -> 125 tests OK.
+- `make test` -> 125 tests OK.
+- `./scripts/verify-rigs.sh --check-only` -> 27 passed, 0 failed.
+- `bash scripts/gate-role.sh engine-systems-eng` -> 40 ok, 0 FAIL.
+- `python3 ./scripts/audit_loop.py --self-test` -> SELF-TEST PASSED.
+F1 executability proof: the pasted command typed by hand, 125 OK. PASS.
+
+2. F3 LIVE (canary ONLY, documented verbs, non-mutating, no bounce):
+- Live half: `scripts/send-authenticated.sh --destination engine-engine-systems-eng@heretek-omni-fleet`
+  qitem-20261023204831-fb7ab49521b7d54c persisted=True -> done (closureReason no-follow-on).
+  Seat transcript verdict verbatim: command `date +%s`, stdout `1792788517`, exit 0. ALLOWED. PASS.
+- HONEST CAVEAT: live seat still runs the PRE-narrowing wildcard render until its next
+  refresh, so `date +%s -u` may still ALLOW live. Narrowed behavior proven on MOCK render
+  of the CURRENT catalog instead:
+  * catalog line exact: fleet/fleet.yaml:1807 `      - date +%s` (no wildcard).
+  * dry-run render (`render-seat.py --role engine-systems-eng --rig heretek-omni-fleet --pod engine --dry-run) permission config contains exact `"date +%s": allow` (no suffixed grants).
+  * `CanaryMockProbes` (mock harness, gate-role path) green: ALLOW `date +%s` executes;
+    13 DENY incl `date +%s -u`, `date +%s --help`, `;`/`|`/`>`/`$()`/backtick chains, bare `date`. PASS (both halves recorded).
+
+3. F2/F4/F5/F6/F7 RED-PROOFS (scratch /tmp/opencode/w12r1 ONLY, worktree never touched; pre-fix checker = `git show ce20926^:scripts/check-envelope.py`):
+- F2 combined-expiry: pre-fix exit=0 ACCEPT vs fixed exit=1 REFUSE (names Expiry). NON-VACUOUS. PASS.
+- F4 embedded-marker (`whatever ...` mid-record, no colon): pre-fix exit=0 ACCEPT vs fixed exit=1 REFUSE (names WHAT). NON-VACUOUS. PASS.
+- F5 duplicate-actions (appended second section w/ REBASE): pre-fix exit=0 ACCEPT (first wins, REBASE ignored) vs fixed exit=1 REFUSE (AMBIGUOUS). NON-VACUOUS. PASS.
+- F6 path scopes: `src/*` / `.` / `./` / `~/evil` / `src/[a-z]` ALL pre-fix exit=0 ACCEPT vs fixed exit=1 REFUSE (names Path scope). NON-VACUOUS. PASS.
+- F7 PUSH branch: `PUSH +main` pre-fix exit=0 ACCEPT vs fixed exit=1 REFUSE (bad branch ref). NON-VACUOUS. PASS.
+  `PUSH :main` / `PUSH HEAD:main`: pre-fix exit=1 BUT via wrong gate (unknown-section fired first on the colon — root cause documented in report §8 F7); fixed exit=1 via CORRECT gate (bad branch ref). Fail-closed either way; fixed attributes correctly; `test_push_colon/head_refspec_refused` assert the `action` reason. REASON-NARROWING proven. PASS.
+  `PUSH main` + VALID envelope: exit=0 ACCEPT on BOTH (no over-refusal). PASS.
+- Restore proof: sabotage envelopes staged only under /tmp/opencode/w12r1/tmp*; `git status --short` clean after; scratch removed after run (rm -rf /tmp/opencode/w12r1).
+
+4. N1/N2 (run explicitly):
+- N1: `tests.test_build_canary.CanaryCatalogPins.test_canary_scope_only` pins base a33f3bb, asserts `changed == [CANARY_ROLE]` exactly -> OK. PASS.
+- N2: `tests.test_check_envelope.EnvelopeRobustnessTests.test_unknown_top_level_section_refused` asserts `unknown section` in output -> OK. PASS.
+
+5. REGRESSION: fleet `rig ps --rig heretek-omni-fleet` -> 51/51 running, 0 need attention (only canary contacted, via queue relay; no send/relay left the canary; no bounce). Workspace unmodified (`git status --short` clean, no drift vs ce20926). No stubs (`TODO|FIXME||| true|except-pass` clean), no credential-shaped strings (only dummy/mock test values + --allow-missing-secrets). PASS.
+
+Vacuous checks: NONE. Overall: PASS.
