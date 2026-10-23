@@ -68,4 +68,46 @@
 
 - F1: CLEARED. F2: CLEARED. No new blocking defects. Both binding findings closed with red-proofed guards.
 
+> VERDICT: PASS (prior re-audit cd2626e+6f916cf — superseded; preserved as history)
+
+## Re-audit — wave-39-review2-reaudit (2026-10-23, review fixes d9b6504 + evidence 6d56b10) — drift-guard re-audit
+
+- Stage/wave: `wave-39-review2-reaudit` · Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-39-reconcile`
+- Commits under audit: `d9b6504` (review fixes) + `6d56b10` (evidence/QA on top). `git log --oneline -6` confirms; `git status --short` clean at audit time (before this append; no commit/merge/push by this audit).
+- Spec read from disk first: this report (history above), `openspec/changes/remediate-39-reconcile/tasks.md` (T6 still `[x]` with issue #57 URL), `openspec/changes/remediate-39-reconcile/specs/tracker-reconcile/spec.md`, `docs/reports/qa-wave-39-reconcile.md` (§Review-fixes re-verification + F1 advisory), `docs/reports/wave-39-review-fixes-implementation.md`, `docs/evidence/wave-39-reconcile/red-proofs.log` (§17), `AGENTS.md`.
+- Auditor touched no worktree sources and no mission files: all probes ran against `/tmp/opencode/hr39reaudit2/` copies or fresh `tempfile` fixtures; mission repo never written.
+
+### 1. Diff audit — scope CLEAN
+
+- `git diff b2f107f...d9b6504 --stat`: exactly 3 files (`docs/reports/wave-39-review-fixes-implementation.md` new, `scripts/reconcile.py` +27/−3, `tests/test_reconcile.py` +152). Evidence commit `6d56b10`: 2 files (`docs/evidence/wave-39-reconcile/red-proofs.log` §17, `docs/reports/qa-wave-39-reconcile.md` §Review-fixes). Total `b2f107f...HEAD`: 5 files.
+- No V1–V9 changes: `Makefile` + `scripts/verify-rigs.sh` untouched by review-2 (V10 reports 24 tests pass, matching the new suite size). No `specs/`/`rigs/`/`rosters/`/`registry/` edits (`grep` over diff names: NO_FORBIDDEN). No scope creep beyond the two approved review items.
+
+### 2. Changed-region reads — both items CORRECT
+
+- Normalization helper `scripts/reconcile.py:321-330`: `" ".join(str(note).replace("|", "/").split())` — `|`→`/` then EVERY whitespace run (spaces, tabs, newlines) collapses to one space; `str()` coerces non-string notes. Independently exercised: `"QA PASS a|b\nc   d  placed"` → `"QA PASS a/b c d placed"`; `"a\tb\n\nc"` → `"a b c"`; clean notes normalize to themselves. Correct.
+- Application sites: `propose_cell()` both branches (`:333-343` parked True/False via shared `note`) + missing-convergence-annotation site (`:407-411`). `queue:` diagnostic fields keep the RAW note byte-identical (independent probe: `PROPOSED-CELL` normalized `wip x/y z w ongoing` while `queue:` line kept raw `wip x|y` + multi-space) — normalization masks no finding. Correct.
+- Except-clause `main` (`:536-542`): `except (AttributeError, TypeError, ValueError, KeyError)` AFTER the `ReconcileError` handler — concise one-line `reconcile: FAILED: malformed input (<Type>: <detail>)` with whitespace-collapsed detail, exit 2, no traceback. `ReconcileError`→2, diffs→1, in-sync→0 paths untouched (suite + live run confirm). Legitimate-flow check by reading the `try` block: `JSONDecodeError` (a `ValueError` subclass) is consumed by local handlers in `run_rig`/`load_json_file` first; `refuse_out_path`/`parse_tracker` raise `ReconcileError` (first handler wins); `parser.error()` raises `SystemExit` (`BaseException`, uncaught); `queue_terminal`/`diff_row` `AttributeError`/`TypeError`/`KeyError` arise only from non-dict trails, unhashable ids, missing row keys — all malformed-input signals. No legitimate control flow broken. Correct.
+- Independent spot-checks of QA's two load-bearing claims (fresh `tempfile` fixtures, not reusing test helpers): (SPOT1) hostile note `wip x|y\nz   w ongoing` → exit 1, single `PROPOSED-CELL` pipe-free/newline-free with `wip x/y z w ongoing`, raw note preserved in `queue:` line; (SPOT2) trail `[42, "not-a-dict"]` → exit 2 `malformed input (AttributeError: 'int' object has no attribute 'get')`, no traceback. Both match QA §17.
+
+### 3. QA F1 advisory — ruling: PASS-WITH-NOTE (not a finding)
+
+- Independently reproduced: the `stale-terminal` branch (`reconcile.py:414-424`, tracker-claims-terminal while queue is not) interpolates the RAW note — direct `diff_row` probe returned proposal `'Re-verify W1-01 with QA, or correct the tracker cell; queue-side evidence: wip update x|y\nz   w ongoing'`, where the `|` WOULD split a pasted markdown table row into an extra column and the newline WOULD break the row across lines. The corruption is real, not hypothetical.
+- Nevertheless PASS-with-note, for three independent reasons: (a) the branch was explicitly OUTSIDE the approved review brief (scoped to `propose_cell` + missing-annotation site) — the fix commit did exactly what was approved, so this is not a missing deliverable; (b) it is pre-existing behavior, not a review-2 regression (no previously-passing shape now fails); (c) it is fully disclosed in both the implementer's report (Residual) and QA's F1 with exact blast radius, so nothing is silent. The stale-terminal proposal is also a `Re-verify…` instruction rather than a paste-into-Status-cell replacement, which weakens any REQ-R2/T2 paste-ready claim against it. Recommend a follow-up review item to extend normalization to that branch — advisory only, no action for this stage.
+
+### 4. F1/F2 from the original FAIL remain CLEARED (quick re-probe)
+
+- F1 (overwrite gap): auditor's exact attack re-run on scratch (`--tracker …/input-tracker.md --out …/phase0-dispatch-tracker.md`, victim byte-copy md5 `d7678fce…`): refused exit 2 `refusing to write proposal to tracker-shaped path`, victim md5 `d7678fce…` post-run — BYTES IDENTICAL. Existing-file variant likewise refused exit 2, bytes identical. Positive path unblocked (suite green).
+- F2 (unfiled follow-up): `gh issue view 57` → OPEN, `https://github.com/Heretek-AI/heretek-rigs/issues/57`, title carries the `remediate-39-generate` sketch marker; `tasks.md` T6 still `[x]` with the URL. Cleared.
+
+### 5. Gates re-run by this auditor
+
+- `make verify` → `SUMMARY: 26 checks passed, 0 failed`, exit 0 (+ standing live-health heartbeat WARN / seat-idleness SKIP advisory, unchanged); V10 reports 24 tests pass.
+- `openspec validate remediate-39-reconcile` → `Change 'remediate-39-reconcile' is valid`, exit 0.
+- `python3 -m unittest tests.test_reconcile` → 24/24 OK (incl. the 5 review-2 tests, also run standalone: 5/5 OK).
+- Secrets scan over the review-2 diff (token-shaped patterns): 0 hits. `docs/evidence/wave-39-reconcile/red-proofs.log` §17 present with the review-2 sabotage record.
+
+### Ruling
+
+- Scope clean, both approved review items correct with load-bearing non-vacuous tests, QA's claims independently confirmed, F1/F2 stay cleared, all gates green. QA's F1 is a real but explicitly out-of-scope, pre-existing, fully disclosed residual → advisory, not a finding. No new blocking defects.
+
 VERDICT: PASS
