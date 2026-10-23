@@ -120,3 +120,42 @@
   `docs/evidence/wave-39-reconcile/red-proofs.log` (this file) and `docs/reports/qa-wave-39-reconcile.md`.
   All sabotaged production/spec files restored byte-identical (pristine diffs confirmed in §§8–9, §13).
   No commit/merge/push performed. No mission-repo writes (md5 proof §11).
+
+## 16. Rework-1 re-verification (2026-10-23, commit cd262e6, stage wave-39-rework-1-verify) — F1/F2 closure proof
+All probes ran against /tmp/opencode/hr39verify/ scratch ONLY (own fixtures + byte-copy of live phase-0 tracker).
+Worktree sources untouched; `git status --short` clean before and after. Mission repo reads only (md5-verified).
+
+- Baseline: `make verify` → SUMMARY: 26 checks passed, 0 failed, exit 0 (+ standing live-health advisory
+  WARN heartbeat / SKIP seat-idleness, unchanged); V10 reports 19 tests pass. `openspec validate
+  remediate-39-reconcile` → valid, exit 0. `python3 -m unittest tests.test_reconcile` → 19/19 OK, exit 0.
+- F1(a) auditor-repro replay: --tracker <scratch input> --out <byte-copy of live phase0 tracker> → exit 2
+  ("refusing to write proposal to tracker-shaped path"), victim md5 d7678fce before AND after (identical).
+  Live mission phase0 md5 d7678fce confirmed pre/post. PASS.
+- F1(b) --out to tracker-NAMED path in fresh dir (victim-dispatch-tracker.md) → exit 2, nothing created. PASS.
+  (sprints/-location sub-case covered by unit test, green in19/19.)
+- F1(c) --out to existing non-tracker file → exit 2, bytes untouched. PASS.
+- F1(d) --out to fresh non-tracker path → exit 1, proposal written (4836 bytes in probe fixture). PASS.
+- F1(e) sabotage, layer 1 (refuse_out_path neutered to `return None` in scratch copy): fresh tracker-named
+  path WRITTEN (exit 1) → RED-CONFIRMED shape-guard load-bearing; pre-existing victims (a),(c) still refused
+  via O_EXCL (defense-in-depth, expected). Layer 1+2 (O_EXCL→O_TRUNC as well): (a),(b),(c) ALL clobber
+  (exit 1, bytes changed) → RED-CONFIRMED both layers load-bearing. Unit-test cross-check: 4 new tests are
+  (i)scratch-copy (ii)tracker-named (iii)existing-nontracker (iv)fresh-writes; against fully-neutered copy the
+  4 refusal tests FAIL (3 new + 1 original exact-match) while the fresh-writes positive test stays green —
+  exactly the load-bearing pattern (refusals depend on the guard; the allowed path does not). No vacuous check.
+- F1(f) race/append: code read confirms BOTH write sites (reconcile.py:508,516) go through write_out_exclusive()
+  (os.O_CREAT|O_EXCL); behavioral proof: first --out to fresh path writes (exit 1), immediate re-run to same
+  path refused (exit 2, bytes identical). PASS.
+- F2: `gh issue view 57` → OPEN, title "Follow-up (deferred from #39): generate dispatch trackers from queue
+  state (remediate-39-generate sketch)", body = design.md sketch (generate scope, reconcile-diff prerequisite,
+  row-model consumption, TPM approval ×3, REQ-R3 convergence acceptance). URL recorded in tasks.md T6 [x] +
+  wave-39-reconcile-implementation.md:116 + rework-1 report §F2. PASS.
+- Regression: drift-class tests (STAGED/DISPATCHED, PARKED, stale-note, + ≥7-diffs naming file+row+both values),
+  converged-pair zero-diffs, unparseable-row file:line diagnostic, missing-qitem diff-not-drop, unreachable-queue
+  fail-closed — all green in 19/19. Live read-only run (phase0+wave1+wave2 --live): exit 1, "14 diff(s) across
+  23 row(s); TPM approval required — no files modified." (identical to audit baseline); mission md5s
+  phase0 d7678fce / wave1 a24fca86 / wave2 74f93824 intact before+after; mission `git diff --stat` empty. PASS.
+- Scope: `git diff 2a1c6a2..HEAD --stat` = 6 files only (reconcile.py, test_reconcile.py, tasks.md, 2 reports +
+  verification.md audit record). No specs//rigs//rosters//registry/ edits; Makefile + verify-rigs.sh untouched
+  by rework (V1–V9 byte-identical). Secrets scan (token-shaped patterns): 0 hits. PASS.
+- Sabotage artifacts live ONLY in /tmp/opencode/hr39verify/ (neutered copy, probe scripts, mission md5
+  before-file, live output). Nothing to restore in worktree; `git status --short` verified clean post-run.

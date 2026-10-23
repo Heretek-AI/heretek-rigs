@@ -59,3 +59,22 @@ No vacuous checks: every gate above that can go RED was driven RED (or driven RE
 - QA deliverables (only tree modifications): `docs/evidence/wave-39-reconcile/red-proofs.log`,
   `docs/reports/qa-wave-39-reconcile.md`.
 - Final `git status --short`: clean except the two QA files above. No commit/merge/push. Mission repo untouched.
+
+## Rework-1 re-verification (2026-10-23, commit cd262e6, stage wave-39-rework-1-verify) — QA-CLEAN
+
+Prior verdict FAIL (F1 overwrite-gap + F2 unfiled-follow-up) re-audited against the rework commit. All probes in
+/tmp/opencode/hr39verify/ scratch only; worktree untouched; mission repo read-only (md5-verified); no
+commit/merge/push. Full evidence in docs/evidence/wave-39-reconcile/red-proofs.log §16.
+
+- Suite: `make verify` 26/0 exit 0 (+ unchanged advisory), `openspec validate` exit 0, 19/19 unit tests OK.
+- F1 CLOSED: auditor repro refused exit 2 with victim bytes identical; tracker-named/existing-file outs refused;
+  fresh non-tracker out writes; two-layer sabotage (guard noop + O_EXCL→O_TRUNC) turns all refusals RED while the
+  positive-path test stays green — guard load-bearing, no vacuous check; O_EXCL at both write sites confirmed by
+  code read + pre-created-destination refusal.
+- F2 CLOSED: issue #57 OPEN with the design sketch (generate scope, reconcile prerequisite, TPM approval); URL in
+  tasks.md T6 (checked off) + implementation report.
+- Regression CLEAN: drift classes, converged pair, fail-closed diagnostics, and live 14-diffs/23-rows read-only
+  run all match the audit baseline; mission md5s intact.
+- Scope CLEAN: 6 intended files only; no forbidden dirs; V1–V9 untouched; no secrets.
+
+Ruling: both binding findings closed with red-proofed guards. QA-CLEAN — no new findings.
