@@ -114,3 +114,29 @@ mission repo read-only (md5-verified); no commit/merge/push. Full evidence: red-
 
 Ruling: both approved review items verified with red-proofed, non-vacuous checks; residual disclosed with
 exact blast radius. QA-CLEAN — no blocking findings.
+
+## Re-verification 2026-10-23 — wave-39-optionA-reverify (commit df6e6cb; originals above intact)
+
+Scope: fix commit touches exactly the 2 intended files (`scripts/reconcile.py` ±5, `tests/test_reconcile.py` +123).
+
+| # | Check | Result | Evidence |
+|---|---|---|---|
+| 1 | `make test` full suite | PASS | 98 tests OK |
+| 2 | `make verify` | PASS | 26 checks passed, 0 failed (+ unchanged advisory) |
+| 3 | `openspec validate remediate-39-reconcile` | PASS | valid, exit 0 |
+| 4a | Hostile-note proposal single-line pipe-free, class/exit unchanged vs clean | PASS | Hostile → exit 1 stale-state, `queue-side evidence: wip ev/idence line2 spaced`; clean note → exit 1 same class |
+| 4b | RED-proof (a): raw-interpolation sabotage corrupts output + real test fails | PASS | Scratch-only revert → multi-line `wip ev\|idence` + dangling `line2   spaced`; real hostile-note test FAILs (1 failure, 0 errors). Load-bearing, not vacuous |
+| 5a | Proposal file owner-only (real --out run) | PASS | mode 0o600, `mode & 0o077 == 0` |
+| 5b | RED-proof (b): 0o644 sabotage + real mode test fails | PASS | Scratch-only revert → real `TestProposalFileMode` FAILs (`36 != 0 : mode 0o644 has group/other bits`). Load-bearing, not vacuous |
+| 6 | No other proposal site interpolates a raw note | PASS | All paste-ready sites normalized (`propose_cell`, missing-annotation, stale-terminal fix); raw uses are the 4 `queue:` diagnostics only, never in PROPOSED-CELL; 7/7 fixture cells pipe-free |
+| 7 | Live read-only regression | PASS | exit 1, `14 diff(s) across 23 row(s)` = baseline; mission md5s intact (d7678fce…/a24fca86…/74f93824…) |
+| 8 | F1/F2 stay cleared, #57 OPEN | PASS | Auditor --out repro refused exit 2, victim intact; `gh issue view 57` → OPEN |
+
+### Findings
+
+- None. Prior advisory F1 (stale-terminal raw note, disclosed in the previous section) is the exact defect this
+  commit fixes — verified closed by 4a/4b above, including the RED proof that the pre-fix shape corrupts output.
+
+Ruling: both Option A + CodeQL fixes verified with red-proofed, non-vacuous checks; scope exact; regression clean.
+QA-CLEAN — no blocking findings. No commit/merge/push (sabotage confined to /tmp scratch; `git status` shows
+only the two QA deliverables).

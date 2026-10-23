@@ -209,3 +209,33 @@ Worktree sources untouched; `git status --short` clean before and after. Mission
   principal-approved review scope (scoped to propose_cell + missing-annotation site); recorded as advisory F1.
 - `git status --short` clean except the two QA deliverables (this log + qa-wave-39-reconcile.md new section).
   No production/test file modified (all sabotage in /tmp scratch copies). No commit/merge/push.
+
+## 18. 2026-10-23 — wave-39-optionA-reverify: fix commit df6e6cb red-proofs (scratch /tmp/opencode/hr39reverify3 only; worktree read-only)
+- Baseline (unmodified tree): `make test` → 98 tests OK (5.366s); `make verify` → SUMMARY: 26 checks passed, 0 failed (+ unchanged heartbeat/idleness advisory); `openspec validate remediate-39-reconcile` → valid. All exit 0.
+- Scope: `git show --stat HEAD` → exactly 2 files (scripts/reconcile.py 5 +-, tests/test_reconcile.py +123). No specs//rigs//rosters//registry/ drift. PASS.
+- (a) Stale-terminal hostile note. Fixed script + note `"wip ev|idence\nline2   spaced"` → exit 1, stale-state, one PROPOSED-CELL line, pipe-free:
+  `PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the tracker cell; queue-side evidence: wip ev/idence line2 spaced`.
+  Same script + clean note `"awaiting review"` → exit 1, same class (class/exit unchanged vs clean variant). PASS.
+- (a) RED: scratch copy with `evidence_note = normalize_proposal_note(latest_note)` → `evidence_note = latest_note`
+  (worktree untouched) + hostile note → corrupted multi-line/pipe output, exit still 1 / class still stale-state:
+    `PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the tracker cell; queue-side evidence: wip ev|idence`
+    `line2   spaced`
+  (plus raw note also leaking into the `queue:` diagnostic continuation and SUGGESTED line). The real test
+  `test_hostile_note_proposal_single_line_pipe_free` run against the sabotaged copy FAILS
+  (`AssertionError: '|' unexpectedly found in 'PROPOSED-CELL:::...wip ev|idence'`, failures=1, errors=0) → check is load-bearing, NOT vacuous. PASS.
+- (b) Mode positive: real `--out` run (drifted fixture) → exit 1, file mode 0o600, `mode & 0o077 == 0`. PASS.
+- (b) RED: scratch copy with `0o600` → `0o644` (worktree untouched) → real test `TestProposalFileMode` run against it FAILS
+  (`AssertionError: 36 != 0 : mode 0o644 has group/other bits`, failures=1, errors=0) → check is load-bearing, NOT vacuous. PASS.
+- (c) latest_note use audit (`grep -n latest_note scripts/reconcile.py`): 8 use sites. Proposal (paste-ready) sites — all normalized:
+  `propose_cell` (line 334), missing-annotation proposal (line 409), stale-terminal evidence_note (line 415, the fix);
+  two no-qitem proposals are static text with no note. Raw-note sites — all four `queue:` diagnostics (lines 388, 395, 406, 420),
+  which render only on the `queue:` diagnostic line (render_diff line 439), never in PROPOSED-CELL (line 442) or as proposal text:
+  fixed-script hostile run keeps raw `wip ev|idence` + newline inside the `queue:` diagnostic (proves normalization masks no finding).
+  SUGGESTED line (lines 443-445) interpolates only `diff['tracker']` (single-line parsed table cell) + normalized `diff['proposal']`.
+  Full drifted fixture: 7 diffs → 7 PROPOSED-CELL lines, all pipe-free. No other proposal site uses a raw note. PASS.
+- Regression (live, read-only): `python3 scripts/reconcile.py --live --tracker <mission>/{phase0,wave1,wave2}-dispatch-tracker.md`
+  → exit 1, `reconcile: 14 diff(s) across 23 row(s); TPM approval required — no files modified.` (== audit baseline);
+  mission md5s identical before/after AND equal to baseline (phase0 d7678fce…, wave1 a24fca86…, wave2 74f93824…).
+  Auditor F1 repro re-run (scratch tracker-shaped victim as --out) → exit 2 refused, victim bytes intact → F1 stays cleared.
+  `gh issue view 57` → state OPEN (deferred generate follow-up, still an issue not code) → F2 context unchanged. PASS.
+- `git status --short` clean (no worktree modifications; all sabotage in /tmp scratch copies). No commit/merge/push.
