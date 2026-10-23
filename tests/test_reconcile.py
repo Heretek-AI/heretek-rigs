@@ -713,6 +713,129 @@ class TestMalformedInputFailClosed(unittest.TestCase):
             self.assertIn("KeyError", err.getvalue())
 
 
+class TestStaleTerminalEvidenceNormalization(unittest.TestCase):
+    """Option A: the stale-terminal branch (tracker claims terminal while the
+    queue is not terminal) must normalize the queue note in its proposal, so
+    no proposal string interpolates a raw queue note."""
+
+    QID = QIDS["W1-01"]
+
+    def _stale_terminal_state(self, tmp, note):
+        tracker = write_tracker(
+            tmp,
+            "# Wave 1 Dispatch Tracker (synthetic stale-terminal)\n\n"
+            "## Slices\n"
+            "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+            "|---|---|---|---|---|\n"
+            "| W1-01 | seat | output | %s | QA PASS + PLACED canonical "
+            "(queue note 5; operator note appended) |\n" % self.QID,
+        )
+        qlist = [
+            {
+                "qitemId": self.QID,
+                "state": "in-progress",
+                "destinationSession": "seat@rig",
+                "tsUpdated": "2026-10-22T12:00:00.000Z",
+            }
+        ]
+        trans = {
+            self.QID: [
+                {
+                    "transitionId": 1,
+                    "qitemId": self.QID,
+                    "ts": "2026-10-22T05:24:00.000Z",
+                    "state": "in-progress",
+                    "transitionNote": note,
+                }
+            ]
+        }
+        qlist_path = str(Path(tmp) / "queue_list.json")
+        trans_path = str(Path(tmp) / "transitions.json")
+        Path(qlist_path).write_text(json.dumps(qlist))
+        Path(trans_path).write_text(json.dumps(trans))
+        return tracker, qlist_path, trans_path
+
+    def test_hostile_note_proposal_single_line_pipe_free(self):
+        """Hostile note in a stale-terminal row -> proposal single-line and
+        pipe-free, class/exit unchanged."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, trans = self._stale_terminal_state(
+                tmp, "wip ev|idence\nline2   spaced"
+            )
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("stale-state", proc.stdout)
+            self.assertIn("tracker claims terminal", proc.stdout)
+            proposed = [
+                ln
+                for ln in proc.stdout.splitlines()
+                if ln.startswith("PROPOSED-CELL:::")
+            ]
+            self.assertEqual(len(proposed), 1, proc.stdout)
+            for line in proposed:
+                self.assertNotIn("|", line)
+                self.assertNotIn("\n", line)
+            self.assertIn(
+                "PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the "
+                "tracker cell; queue-side evidence: wip ev/idence line2 spaced",
+                proc.stdout,
+            )
+
+    def test_clean_note_output_unchanged(self):
+        """A clean note in the stale-terminal branch renders byte-identical
+        to before (no gratuitous churn)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, trans = self._stale_terminal_state(tmp, "awaiting review")
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn(
+                "PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the "
+                "tracker cell; queue-side evidence: awaiting review",
+                proc.stdout,
+            )
+
+    def test_empty_note_falls_back_to_state(self):
+        """Empty/blank note -> fall back to the queue state, as today."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, trans = self._stale_terminal_state(tmp, "")
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn(
+                "PROPOSED-CELL:::Re-verify W1-01 with QA, or correct the "
+                "tracker cell; queue-side evidence: in-progress",
+                proc.stdout,
+            )
+
+
+class TestProposalFileMode(unittest.TestCase):
+    def test_out_file_is_owner_only(self):
+        """CodeQL overly-permissive permissions: proposal files must carry
+        no group/other permission bits (owner-only)."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp, DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            dest = str(Path(tmp) / "review-proposal.txt")
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--out",
+                dest,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            mode = stat.S_IMODE(os.stat(dest).st_mode)
+            self.assertEqual(mode & 0o077, 0, f"mode {oct(mode)} has group/other bits")
+
+
 def _shq(s):
     return "'" + s.replace("'", "'\\''") + "'"
 

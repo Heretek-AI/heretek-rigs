@@ -141,7 +141,7 @@ def write_out_exclusive(out, text):
     the up-front refuse_out_path() check is still refused, never clobbered.
     """
     try:
-        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o644)
+        fd = os.open(out, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
         raise ReconcileError(
             f"refusing to overwrite existing file '{out}' "
@@ -412,6 +412,7 @@ def diff_row(row, queue_by_id, transitions_by_id):
             }
         return None
     if enum_terminal:
+        evidence_note = normalize_proposal_note(latest_note)
         return {
             "class": "stale-state",
             "reason": f"tracker claims terminal while queue is {entry.get('state')}",
@@ -419,7 +420,7 @@ def diff_row(row, queue_by_id, transitions_by_id):
             "queue": f"state={entry.get('state')} latest_transition={latest_id} ({latest_note})",
             "proposal": (
                 f"Re-verify {row['slice']} with QA, or correct the tracker cell; "
-                f"queue-side evidence: {latest_note or entry.get('state')}"
+                f"queue-side evidence: {evidence_note or entry.get('state')}"
             ),
         }
     return None
