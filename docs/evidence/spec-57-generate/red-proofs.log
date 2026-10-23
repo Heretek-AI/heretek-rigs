@@ -1,0 +1,86 @@
+# Red-proofs log — spec-57-generate (QA verifier, 2026-10-23)
+
+Worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/spec-57-generate
+Branch: docs/issue-57-generate-trackers @ 6fd6611 (verified via `git log --oneline -2`;
+pre-run `git status --short` clean; post-run clean — see revert proofs below).
+Inputs read from disk: AGENTS.md, /home/john/.opencode/plan/issue-57-generate-trackers-plan.md
+(12/12 binding decisions), proposal.md, design.md, specs/generate-trackers/spec.md,
+tasks.md, docs/reports/spec-57-generate-implementation.md.
+
+## 1. `openspec validate issue-57-generate-trackers` → PASS (exit 0)
+Output: `Change 'issue-57-generate-trackers' is valid`
+
+## 2. `./scripts/verify-rigs.sh --check-only` → PASS (exit 0)
+Output tail: `SUMMARY: 26 checks passed, 0 failed.` (incl. V10 reconcile 28/28 green)
+
+## 3. Structure → PASS
+- Four artifacts present: proposal.md, design.md, specs/generate-trackers/spec.md, tasks.md.
+- Spec has `## ADDED Requirements`; 17× `MUST` hits; STRUCT3 per-requirement gate:
+  REQ-G1/G2/G3/G4/G5 each contain MUST → GREEN (5 blocks).
+- Map 1:1: tasks.md references REQ-G1..G5 all present; G-T1..G-T5 all present;
+  header declares G-T1→G1+G5, G-T2→G1, G-T3→G2+G4, G-T4→G3, G-T5→wiring+docs.
+  Every requirement covered, every task mapped.
+- Binary acceptance: 5× `Testable:` blocks (one per task), each with runnable
+  command + exit-code criterion (exit 2 / non-zero / exit 0 / exit 1).
+
+## 4. AGENTS.md diff → PASS (single surgical row)
+`git diff main -- AGENTS.md` shows exactly one added table row (`Tracker proposals`
+with --json discipline, propose-only invariant, fresh-out refusal rule,
+`make generate-tracker`). Nothing else in AGENTS.md.
+Full `git diff main --stat`: AGENTS.md +1, 4 spec-package files + report (expected).
+
+## 5. RED-PROOFS
+### (a) Delete Required artifact → validate FAILS (RED, exit 1) — for the delta spec
+- Sabotage: `rm openspec/changes/issue-57-generate-trackers/specs/generate-trackers/spec.md`
+- Result: `Change 'issue-57-generate-trackers' has issues / [ERROR] Change must have
+  at least one delta. No deltas found...` EXIT:1 → RED confirmed (non-vacuous).
+- Revert: restored from /tmp/opencode/spec57-qa/spec.md.bak → validate exit 0 again.
+- LIMITATION FOUND (logged, not a stage failure): deleting tasks.md does NOT fail
+  validate (`is valid`, exit 0). tasks.md is not schema-required; its presence is
+  guarded by the STRUCTURE four-artifact gate (check 3), not by `openspec validate`.
+  Validate alone is vacuous w.r.t. tasks.md — the four-artifact check is the real guard.
+
+### (b) Strip MUST keyword from spec → per-requirement STRUCT3 check FAILS (RED)
+- Sabotage: replaced MUST→SHOULD inside the REQ-G3 block only (REQ-G3 MUST count 0).
+- Result STRUCT3: REQ-G1 PASS, REQ-G2 PASS, REQ-G3 FAIL (NO-MUST), REQ-G4/G5 PASS
+  → `STRUCT3: RED (caught)` → non-vacuous.
+- Note: `openspec validate` under this sabotage stays exit 0 with only
+  `⚠ [WARNING] ... should contain SHALL or MUST (RFC 2119 best practice)`.
+  Validate alone is vacuous w.r.t. RFC 2119 enforcement; STRUCT3 is the real guard.
+- Revert: restored spec.md → STRUCT3 all-PASS, validate exit 0, `git status` clean.
+
+### (c) Break task↔requirement link → MAP check FAILS (RED)
+- Sabotage: `G-T4→G3` → `G-T4→Gx`, `G-T4 — REQ-G3` → `G-T4 — REQ-Gx` in tasks.md.
+- Result MAP: REQ-G1 OK, REQ-G2 OK, REQ-G3 MAP-FAIL, REQ-G4/G5 OK → RED caught;
+  `openspec validate` stays exit 0 (blind to task links — expected; MAP is the guard).
+- Revert: restored tasks.md → all MAP-OK, validate exit 0, `git status` clean.
+
+### (d) `make generate` vs `make generate-tracker` → PASS by grep (no edit needed)
+- `Makefile:24`: `generate: ## Deterministically generate all 51 AgentSpecs...`
+  intact (fleet generator, `python3 ./scripts/generate-rigs.py`).
+- Spec package wires only `make generate-tracker` (tasks.md G-T5, proposal.md
+  boundaries, AGENTS.md row); the only `make generate` mentions state it MUST NOT
+  be shadowed/overloaded. No shadowing. Untouched — verified read-only.
+
+## 6. Anti-stub scan → PASS (clean)
+`grep -rniE 'TODO|FIXME|XXX|placeholder|stub|NotImplemented|lorem|TBD'`
+over the new package + AGENTS.md + report: sole hit is the report's own sentence
+"Stub scan ... → clean" (meta-mention, not a stub). No placeholders in artifacts.
+
+## Revert proofs (all sabotage reverted, tree clean)
+- After (a): `git status --short` clean, validate exit 0.
+- After (b): spec.md byte-restored, STRUCT3 GREEN, `git status` clean.
+- After (c): tasks.md byte-restored, MAP all-OK, validate exit 0.
+- Final: `git log --oneline -2` = 6fd6611 / 88af294; `git status --short` empty
+  (only this untracked log file under docs/evidence/, which is a sanctioned stray
+  location and is NOT committed, per instructions).
+
+## Verdict
+PASS on all 6 acceptance items. No vacuous checks among the QA-defined gates
+(STRUCT3, MAP, four-artifact): each went RED under targeted sabotage and GREEN
+on restore. Two documented limitations of `openspec validate` (blind to tasks.md
+presence and to RFC 2119 MUST enforcement — warning-only) are covered by the
+structure gates, so the stage's acceptance as a whole is non-vacuous.
+Deliberate deviation in the spec (wiring named `make generate-tracker` instead of
+the plan's literal `make generate`, to avoid shadowing the fleet target at
+Makefile:24) is flagged in the implementation report and verified sound.
