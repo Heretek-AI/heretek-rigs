@@ -807,7 +807,7 @@ def generate_all(
 
         (adir / "startup").mkdir(parents=True, exist_ok=True)
         (adir / "startup/context.md").write_text(
-            f'You are {rid} ({r["title"]}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list --json`) before starting work. Copy `qitem-...` ids verbatim from that `--json` output -- never retype or reconstruct them. If a tool call is denied, retry the exact command bare and quote the denial verbatim -- never paraphrase denials or infer tool-wide bans. Close turns with a factual receipt (artifacts + verification results), never bare "Done.". Mark work `PENDING_DISPATCH` until a `qitem-...` id exists.\n'
+            f'You are {rid} ({r["title"]}). Your charter and seat address are in your system prompt (`<agentDir>/AGENTS.md`). Run `rig whoami` and check your queue (`rig queue list --json`) before starting work. Copy `qitem-...` ids verbatim from that `--json` output -- never retype or reconstruct them. Bare queue output mixes JSON with a human trailer and MUST NOT be parsed -- always pass `--json`. A bare create receipt is advisory, not proof of persistence -- the only agent-safe create form is `rig queue create --json --verify`. If a tool call is denied, retry the exact command bare and quote the denial verbatim -- never paraphrase denials or infer tool-wide bans. Close turns with a factual receipt (artifacts + verification results), never bare "Done.". Mark work `PENDING_DISPATCH` until a `qitem-...` id exists.\n'
         )
 
         # Render static runtime reference artifacts in runtime/

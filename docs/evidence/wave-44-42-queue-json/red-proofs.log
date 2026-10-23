@@ -1,0 +1,130 @@
+# Red-proof log: wave-44-42-queue-json
+# Worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/wave-44-42-queue-json
+# Commit under test: 9a8c272
+# Protocol: 7-step sabotage per check (identify, minimal defect, inject, RED assert, restore, clean verify, log).
+--- baseline ---
+9a8c2727255ea9838996b2e466d17f9fab61b932
+?? docs/evidence/wave-44-42-queue-json/
+
+=== SABOTAGE (a): bare queue example without --json ===
+Target assertion: test_every_queue_example_carries_json (REQ-44-A1) — grep finds no bare queue example.
+Minimal defect: append ONE bare `rig queue list` line (no --json) to README.md.
+Command: python3 -m unittest tests.test_queue_json_discipline.TestQueueJsonExamples.test_every_queue_example_carries_json
+RED: FAILED (failures=1), names the sabotaged file: README.md:88 bare example. unittest exit non-zero (see below).
+Restore: git checkout -- README.md; git status clean (only untracked evidence dir).
+Ran 1 test in 0.002s
+
+FAILED (failures=1)
+EXIT:1
+
+=== SABOTAGE (a2): bare create example without --verify ===
+Target: test_every_create_example_carries_verify (REQ-42-A1).
+Defect: append `rig queue create --json --destination foo` (has --json, lacks --verify) to docs/USER_GUIDE.md.
+----------------------------------------------------------------------
+Ran 1 test in 0.002s
+
+FAILED (failures=1)
+EXIT:1
+Restore: git checkout -- docs/USER_GUIDE.md; clean.
+
+=== SABOTAGE (b): byte-exact bare-trailer reproduction (live read-only) ===
+Claim under test: bare `rig queue show` stdout ends with human trailer → json.loads fails Extra data; `--json` parses first try.
+Method: NO create; read-only show/list only. Daemon assumed live per implementation report.
+Bare show: exit 0, 3628 bytes stdout / 0 bytes stderr (matches report).
+Tail trailer: … (bounded preview — complete body is 815 bytes; full record 3017 JSON bytes: rig queue show 'qitem-20261022111416-78213c07c3272cbc' --full --json)
+json.loads(bare) exit: 1 → JSONDecodeError: Extra data: line 96 column 1 (char 3472) (matches report byte-exact).
+--json show: exit 0, 2953 bytes stdout / 0 stderr; json.loads exit 0, qitemId + full key set present.
+FAKE-RIG proof (no live daemon dependence for the parse contrast):
+fake-bare-parse-exit:1 json.decoder.JSONDecodeError: Extra data: line 96 column 1 (char 3472)
+fake-json-parse-exit:0 qitemId=qitem-20261022111416-78213c07c3272cbc
+RED-PROOF (b): PASS — bare unparseable (exit 1), --json parses (exit 0). No queue create issued.
+
+=== SABOTAGE (c): fake create receipt paths (fixture/fake-rig ONLY, never live create) ===
+4:# Never invokes `rig send`: delivery is always `rig queue create --json --verify --source <session> --destination <session> --summary <text> --body-file <file>`,
+33:  --summary <text>              Optional (default: deterministic "Operator relay (grounded: <human-ref>) at <UTC>"). Always passed to `rig queue create` so the 0.6.13 warning never fires.
+34:  --dry-run                     Print the exact `rig queue create` invocation plus the fully rendered body; execute nothing.
+44:channel (`rig queue create --json --verify --source <session> --destination <session> --summary <text> --body-file <file>`) INSTEAD of raw
+52:`rig queue create --destination <session> --body-file <file>`. This script codifies
+56:`rig queue create` fails closed with `--source is required when
+161:  printf '  rig queue create --json --verify --source %q --destination %q --summary %q --body-file %q\n' "$SOURCE" "$DESTINATION" "$SUMMARY" "$STAGED"
+175:CREATE_OUT="$(rig queue create --json --verify --source "$SOURCE" --destination "$DESTINATION" --summary "$SUMMARY" --body-file "$STAGED")" || CREATE_RC=$?
+177:  echo "error: rig queue create failed (exit $CREATE_RC); no delivery claimed" >&2
+EXIT:0
+OK
+--- (c3) --verify-less shape must NOT be agent-safe ---
+Wrapper execution lines (code, not comments):
+44:channel (`rig queue create --json --verify --source <session> --destination <session> --summary <text> --body-file <file>`) INSTEAD of raw
+161:  printf '  rig queue create --json --verify --source %q --destination %q --summary %q --body-file %q\n' "$SOURCE" "$DESTINATION" "$SUMMARY" "$STAGED"
+175:CREATE_OUT="$(rig queue create --json --verify --source "$SOURCE" --destination "$DESTINATION" --summary "$SUMMARY" --body-file "$STAGED")" || CREATE_RC=$?
+177:  echo "error: rig queue create failed (exit $CREATE_RC); no delivery claimed" >&2
+Dry-run (fake rig, executes nothing):
+dry-run: would execute:
+  rig queue create --json --verify --source operator --destination exec-exec-director@executive-and-architecture --summary Operator\ relay\ \(grounded:\ docs/adr/ADR-0042.md\)\ at\ 2026-10-23T02:33:05Z --body-file /tmp/tmp.zLfKfKCgWh/relay-body.txt
+dry-run: rendered body (/tmp/tmp.zLfKfKCgWh/relay-body.txt):
+Discipline test (green on clean tree):
+Ran 1 test in 0.011s
+
+OK
+NOTE: send-authenticated.sh:52 prose mentions bare-form history inside print_help (out of T1 grep scope: only generator+3 guides+AGENTS.md scanned); not an invocation.
+
+=== SABOTAGE (d): neuter fail-closed parse (accept anything) ===
+Target: REQ-42-A2 — wrapper must exit non-zero on unparseable/identity-less receipt.
+Defect: replace both sys.exit(3) and sys.exit(4) in the receipt parser with pass (parse always succeeds).
+Partial neuter (exit-swap only): FAILED (failures=1) exit 1 — identity-less test RED; malformed path still RED-guarded via NameError (d unbound). Strengthening to full accept-anything:
+Defect d2: replace receipt parser body with unconditional `print("x state=y persisted=z")`.
+FAIL: test_json_receipt_parsed_to_qitem_id_and_state (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_json_receipt_parsed_to_qitem_id_and_state)
+FAILED (failures=1)
+Restore: git checkout -- scripts/send-authenticated.sh; clean (only untracked evidence dir).
+Full accept-anything neuter (spoof defaults + skipped identity check):
+FAIL: test_non_json_stdout_fails_closed (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_non_json_stdout_fails_closed)
+FAIL: test_receipt_missing_identity_fails_closed (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_receipt_missing_identity_fails_closed)
+FAILED (failures=2)
+EXIT:1 (unittest, both fail-closed tests RED under accept-anything)
+Restore: git checkout -- scripts/send-authenticated.sh; clean.
+
+=== SABOTAGE (e): argv audit — wrapper CANNOT issue a live create under test ===
+Method: shadow real `rig` with a tripwire that logs argv + exits 42. Tests prepend their OWN fake-rig bindir ahead of PATH, so the tripwire fires only if a create escapes the fake. Empty tripwire log + green tests = zero live creates.
+Wrapper suite under tripwire-rig: 7/7 ok; tripwire hits: 0
+git status: ?? docs/evidence/wave-44-42-queue-json/;
+openspec/changes/remediate-44-json-trailer/proposal.md:38:- https://github.com/mvschwarz/openrig/issues/1806 (filed 2026-10-23;
+openspec/changes/remediate-42-create-receipt/proposal.md:32:- https://github.com/mvschwarz/openrig/issues/1806 (filed 2026-10-23;
+docs/evidence/upstream-queue-stdout-issue.md:87:- https://github.com/mvschwarz/openrig/issues/1806 (filed 2026-10-23)
+=== REGEN HONESTY ===
+--- commit file count by area ---
+189 /tmp/commit_files.txt
+--- non-generated-leaf files (not specs/ rigs/ rosters/ registry/) ---
+AGENTS.md
+Makefile
+README.md
+docs/USER_GUIDE.md
+docs/evidence/upstream-queue-stdout-issue.md
+docs/reports/wave-44-42-queue-json-implementation.md
+openspec/changes/remediate-42-create-receipt/proposal.md
+openspec/changes/remediate-44-json-trailer/proposal.md
+scripts/generate-rigs.py
+scripts/send-authenticated.sh
+tests/test_queue_json_discipline.py
+=== WAVE-6 OVERLAP: claimed already-fixed anchors ===
+--- generate-rigs.py:810 primer (has --json since wave-6; this wave appended statements) ---
+rig queue list --json
+--- AGENTS.md queue row history: was --json present before this commit? ---
+rig queue create --destination <session> --body-file <file>` / `rig queue list --json [--destination S] [-a]` (copy qitem IDs only from `--json` output — never retype) 
+--- README wave-6 line: was --json present before? ---
+61:rig queue list --destination exec-exec-director@executive-and-architecture --json
+--- USER_GUIDE wave-6 line: was --json present before? ---
+207:In `heretek-rigs`, work moves in small, verifiable slices through OpenRig queues (`mission-slice-sop` and `queue-handoff`). Send your high-level objective to a pod lead or director seat, and track progress through `rig queue`:
+215:rig queue list --destination exec-exec-director@executive-and-architecture --limit 100 --json
+227:> (`rig queue create --destination <session> --body-file <file>`) self-identified as
+=== SKIPPED / OUT-OF-SCOPE ===
+--- no CLI code in this repo (fix is local + upstream) ---
+ls: cannot access 'dist/': No such file or directory
+(no dist/queue.js in repo = nothing to patch locally)
+--- commit touches no CLI/vendor paths ---
+confirmed: zero CLI/vendor files in commit
+--- QA live-mutation audit: commands issued by verifier ---
+(above: only references in prose/logs, no executed mutating commands)
+--- git state: only evidence dir untracked ---
+?? docs/evidence/wave-44-42-queue-json/
+
+=== FINAL STATE ===
+All sabotage edits restored via git checkout. git status shows ONLY untracked docs/evidence/wave-44-42-queue-json/ (this QA's own log dir). Full suite re-run green after restores. No live queue creates/sends issued at any point (read-only show/list + fake-rig only). QA-CLEAN.

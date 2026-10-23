@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Send an operator decision/relay as an authenticated queue item (issue #9 workaround).
 # usage: scripts/send-authenticated.sh --destination <seat-session> (--body-file <file> | --message <text>) --human-ref <text> [--source <session>] [--summary <text>] [--dry-run] [--help]
-# Never invokes `rig send`: delivery is always `rig queue create --source <session> --destination <session> --summary <text> --body-file <file>`,
-# whose queue-item ID is the verifiable identity seats can trust (raw `rig send` from outside a
+# Never invokes `rig send`: delivery is always `rig queue create --json --verify --source <session> --destination <session> --summary <text> --body-file <file>`,
+# whose JSON receipt (qitemId + state, parsed fail-closed below) is the verifiable identity seats can trust (raw `rig send` from outside a
 # managed seat arrives with no sender identity, so seats hold it as UNVERIFIED).
 # CLI 0.6.13 requires --source outside a managed seat (fails closed with
 # `--source is required when OPENRIG_SESSION_NAME is not set`); it is recorded as
@@ -41,7 +41,7 @@ print_help() {
 send-authenticated.sh — file a human decision / operator relay as a queue-recorded relay item.
 
 Purpose: deliver operator-relayed content to a seat through the authenticated queue
-channel (`rig queue create --source <session> --destination <session> --summary <text> --body-file <file>`) INSTEAD of raw
+channel (`rig queue create --json --verify --source <session> --destination <session> --summary <text> --body-file <file>`) INSTEAD of raw
 `rig send`. The queue item's own ID is a durable reference the seat can quote and verify against the queue itself; the seat can trust,
 quote, and act on it without the UNVERIFIED hold applied to anonymous relays.
 
@@ -158,11 +158,45 @@ fi
 
 if [[ "$DRY_RUN" -eq 1 ]]; then
   printf 'dry-run: would execute:\n'
-  printf '  rig queue create --source %q --destination %q --summary %q --body-file %q\n' "$SOURCE" "$DESTINATION" "$SUMMARY" "$STAGED"
+  printf '  rig queue create --json --verify --source %q --destination %q --summary %q --body-file %q\n' "$SOURCE" "$DESTINATION" "$SUMMARY" "$STAGED"
   printf 'dry-run: rendered body (%q):\n' "$STAGED"
   cat "$STAGED"
   printf 'dry-run: staged body retained at %q; no queue item created.\n' "$STAGED"
   exit 0
 fi
 
-rig queue create --source "$SOURCE" --destination "$DESTINATION" --summary "$SUMMARY" --body-file "$STAGED"
+# Agent-safe create form (issues #44 + #42): --json keeps stdout parseable
+# (bare output mixes JSON with a human trailer/advisory and MUST NOT be
+# parsed); --verify boundedly waits for persistence + delivery outcome so the
+# receipt carries qitemId and row state with no follow-up show. The receipt is
+# parsed fail-closed: unparseable stdout (or a receipt without qitemId/state)
+# aborts non-zero and reports the raw stdout instead of claiming delivery.
+CREATE_RC=0
+CREATE_OUT="$(rig queue create --json --verify --source "$SOURCE" --destination "$DESTINATION" --summary "$SUMMARY" --body-file "$STAGED")" || CREATE_RC=$?
+if [[ "$CREATE_RC" -ne 0 ]]; then
+  echo "error: rig queue create failed (exit $CREATE_RC); no delivery claimed" >&2
+  exit "$CREATE_RC"
+fi
+PARSE_RC=0
+PARSED="$(printf '%s' "$CREATE_OUT" | python3 -c '
+import json, sys
+raw = sys.stdin.read()
+try:
+    d = json.loads(raw)
+except json.JSONDecodeError as e:
+    print(f"unparseable receipt: {e}", file=sys.stderr)
+    sys.exit(3)
+q = d.get("qitemId")
+st = d.get("state")
+if not isinstance(q, str) or not q or not isinstance(st, str) or not st:
+    print(f"receipt lacks qitemId/state: {raw[:500]}", file=sys.stderr)
+    sys.exit(4)
+persisted = d.get("persisted")
+print(f"{q} state={st} persisted={persisted}")
+')" || PARSE_RC=$?
+if [[ "$PARSE_RC" -ne 0 ]]; then
+  echo "error: create stdout did not parse as a JSON receipt (exit $PARSE_RC); raw stdout follows — no delivery claimed" >&2
+  printf '%s\n' "$CREATE_OUT" >&2
+  exit "$PARSE_RC"
+fi
+echo "created $PARSED"
