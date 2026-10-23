@@ -1,0 +1,84 @@
+=== QA RUN 2026-10-23T02:31:45Z ===
+commit: 9a8c2727255ea9838996b2e466d17f9fab61b932 9a8c272 feat(44-42-queue-json): mandate --json/--verify queue discipline, fail-closed create wrapper, shared upstream issue
+bash ./scripts/verify-rigs.sh
+== V1. 51-Role Catalog Parity, Fleet YAML & Shared Skill Lock ==
+  [PASS] fleet/fleet.yaml declares all 51 canonical specialist roles
+  [PASS] All 51 canonical specialist roles present in specs/agents/<domain>/<role>/
+  [PASS] All 68 shared skills vendored in specs/agents/_shared/skills/ and locked in fleet/skills-lock.json
+  [PASS] All 51 AgentSpecs validate v1.0 schema, Muse Spark 1.3 Contributor model pin, skills, and pi-permission-system rules
+
+== V2 & V3. 8-Rig Topology, DAG Ordering, Symlink & Bundle Check ==
+  [PASS] Zero symlinks in specs/ and rigs/ (satisfies OpenRig assertTreeHasNoSymlinks & bundle-check)
+  [PASS] Rig 'executive-and-architecture' (6 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'fullstack-and-web-studio' (11 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'systems-and-mobile-foundry' (4 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'game-dev-and-sim-rig' (6 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'cloud-sre-and-data-platform' (11 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'qa-and-verification-gauntlet' (6 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'defensive-sec-and-red-team' (7 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rig 'heretek-omni-fleet' (3 default seats) passed RigSpec v0.2, DAG cycle check, and bundle containment
+  [PASS] Rigs 1-7 partition all 51 specialist roles with 100% coverage and zero duplicates/omissions
+  [PASS] Rig 8 (heretek-omni-fleet) includes 15 pod fragments, 51 member fragments, and rig.all-51.yaml
+  [PASS] rig.all-51.yaml (51 seats) and all pod/member fragments validate
+
+== V4 & V5. JSON Schema Draft 2020-12 & Cryptographic Digest Verification ==
+  [PASS] registry/status.json RFC 8785 JCS bodyDigest verified (47376c85bd79fa66...)
+  [PASS] identity-vectors.json digest vectors replayed (utf16 order, JCS form, coverage)
+  [PASS] All 8 configurations.yaml, 8 behaviour.json, 8 registry entries, bundle.yaml hashes, and status.json pass OpenRig v1 schemas & digests
+
+== V6. MCP Catalog, Sidecar Compose & Unit Tests ==
+  [PASS] All 21 MCP servers in fleet/mcp-servers.yaml verified (pinned, command-backed secrets)
+  [PASS] Sidecar Docker Compose verified (loopback-only ports, zero :latest tags, GET-only docker-socket-proxy)
+  [PASS] tests/test_render_seat.py (7/7 unit tests) passed
+
+== V7. Regen-Gate Sanctioned-Untracked Allowlist ==
+  [PASS] Regen-gate sanctioned-untracked allowlist covers AGENTS.md strays with justified entries and refuses synthetic dirt (tests/test_regen_gate.py 9/9)
+
+== V8. Manifest-Closure Lint (issue #40) ==
+  [PASS] Manifest-closure lint (issue #40) green: staged manifests resolve with zero undeclared binaries (tests/test_manifest_closure.py 28 tests pass)
+
+== V9. Policy-Text Verifier (issue #41) ==
+  [PASS] Policy-text verifier (issue #41) green: staged policy files resolve against the pinned authority (tests/test_policy_verifier.py 34 tests pass)
+
+SUMMARY: 25 checks passed, 0 failed.
+python3 ./scripts/live-health.py
+LIVE-HEALTH WARN (advisory, exit 0): breaching rows/seats listed below; warn-first, not yet failing
+effective thresholds: T_pickup_min=15, T_stuck_min=30, T_undelivered_min=15, T_hb_mult=3
+[PASS] pickup: all claimed rows progressed within T_pickup=15m
+[PASS] stuck-overdue: no overdue rows past grace T_stuck=30m | histogram: <=T_stuck(30m)=0, T_stuck-2xT(30m-60m)=0, >2xT(>60m)=0
+[PASS] undelivered: no undelivered rows beyond grace T_undelivered=15m
+[WARN] heartbeat: stale/missing heartbeat: build-ts-node-fullstack@heretek-omni-fleet (age-unknown), delivery-tpm-scrum-lead@heretek-omni-fleet (age-unknown), design-a11y-specialist@heretek-omni-fleet (age-unknown), design-design-system-eng@heretek-omni-fleet (age-unknown), design-ui-ux-designer@heretek-omni-fleet (age-unknown), design-ux-research-analyst@heretek-omni-fleet (age-unknown), exec-product-director@heretek-omni-fleet (age-unknown)
+[SKIP] seat-idleness: activity state unparseable/unknown (never healthy): build-ts-node-fullstack@heretek-omni-fleet (activity='unknown'), delivery-tpm-scrum-lead@heretek-omni-fleet (activity='unknown'), design-a11y-specialist@heretek-omni-fleet (activity='unknown'), design-design-system-eng@heretek-omni-fleet (activity='unknown'), design-ui-ux-designer@heretek-omni-fleet (activity='unknown'), design-ux-research-analyst@heretek-omni-fleet (activity='unknown'), exec-product-director@heretek-omni-fleet (activity='unknown')
+sources: 4 ok, 1 skipped
+EXIT:0
+Change 'remediate-44-json-trailer' is valid
+ℹ [INFO] queue-json-output/spec.md: Archive would refuse this delta: queue-json-output: target spec does not exist; only ADDED requirements are allowed for new specs. MODIFIED and RENAMED operations require an existing spec.
+EXIT44:0
+Change 'remediate-42-create-receipt' is valid
+ℹ [INFO] queue-create-receipt/spec.md: Archive would refuse this delta: queue-create-receipt: target spec does not exist; only ADDED requirements are allowed for new specs. MODIFIED and RENAMED operations require an existing spec.
+EXIT42:0
+REQ-37-M1: every rendered startup/context.md carries the primer. ... ok
+test_bare_output_statements_present (tests.test_queue_json_discipline.TestQueueJsonExamples.test_bare_output_statements_present)
+REQ-44-A1 + REQ-42-A1: MUST-NOT-parse + advisory statements. ... ok
+test_every_create_example_carries_verify (tests.test_queue_json_discipline.TestQueueJsonExamples.test_every_create_example_carries_verify)
+REQ-42-A1: create examples use the agent-safe --json --verify form. ... ok
+test_every_queue_example_carries_json (tests.test_queue_json_discipline.TestQueueJsonExamples.test_every_queue_example_carries_json)
+REQ-44-A1 + REQ-42-A1: no bare list/show/create example. ... ok
+test_dry_run_shows_agent_safe_flags (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_dry_run_shows_agent_safe_flags)
+REQ-42-A2: --dry-run prints the flagged create invocation. ... ok
+test_json_receipt_parsed_to_qitem_id_and_state (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_json_receipt_parsed_to_qitem_id_and_state)
+REQ-42-A2: valid JSON receipt yields qitemId + state. ... ok
+test_non_json_stdout_fails_closed (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_non_json_stdout_fails_closed)
+REQ-42-A2: human/advisory stdout exits non-zero, no delivery claim. ... ok
+test_receipt_missing_identity_fails_closed (tests.test_queue_json_discipline.TestSendAuthenticatedWrapper.test_receipt_missing_identity_fails_closed)
+REQ-42-A2: JSON without qitemId/state exits non-zero. ... ok
+
+----------------------------------------------------------------------
+Ran 70 tests in 2.689s
+
+OK
+......................
+----------------------------------------------------------------------
+Ran 153 tests in 8.753s
+
+OK
