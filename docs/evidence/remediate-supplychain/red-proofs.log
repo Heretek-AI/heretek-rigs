@@ -1,0 +1,131 @@
+=== SAB1: strip @sha256 digest from qdrant pin ===
+  [FAIL] V13/#70: sidecar qdrant must pin its image by digest (got 'qdrant/qdrant:v1.15.3')
+SUMMARY: 28 checks passed, 1 failed.
+VERIFY_EXIT:1
+SUMMARY: 29 checks passed, 0 failed.
+RESTORE_EXIT:0
+?? docs/evidence/remediate-supplychain/
+--- SAB1 done
+=== SAB2: weaken radare2.args ['-R'] -> [] ===
+121:  radare2:
+122-    pin: git:https://github.com/radareorg/radare2-mcp@1.9.0
+123-    source: https://github.com/radareorg/radare2-mcp
+124-    license: MIT
+=== SAB2: weaken radare2.args ['-R'] -> [] ===
+27:    args: []
+37:    args: []
+63:    args: []
+76:    args: ["--headless", "--isolated"]
+86:    args: ["--headless", "--isolated"]
+97:    args: []
+108:    args: ["openapi/openapi.yaml"]
+118:    args: ["semgrep==1.181.0", "mcp", "-t", "stdio"]
+130:    args: []
+141:    args: ["awslabs.aws-api-mcp-server==1.5.6"]
+159:    args: ["mcp-server-motherduck==1.1.0", "--db-path", ":memory:"]
+170:    args: ["postgres-mcp==0.3.0", "--access-mode=restricted"]
+  [FAIL] V13/#71: radare2.args must be exactly ['-R'] (got [])
+SUMMARY: 28 checks passed, 1 failed.
+VERIFY_EXIT:1
+SUMMARY: 29 checks passed, 0 failed.
+?? docs/evidence/remediate-supplychain/
+--- SAB2 done
+=== SAB3: re-add banned r2mcp pin line ===
+  docker: "docker-mcp==0.2.0 (last release 2024-12) gave daemon-level access; mlops/k8s seats use explicit bash allows instead."
+
+# SABOTAGE-QA (reverted): r2mcp==0.2.5
+  [FAIL] V13/#71: fleet/mcp-servers.yaml active pin contains rejected form: # SABOTAGE-QA (reverted): r2mcp==0.2.5
+SUMMARY: 28 checks passed, 1 failed.
+VERIFY_EXIT:1
+SUMMARY: 29 checks passed, 0 failed.
+?? docs/evidence/remediate-supplychain/
+--- SAB3 done
+=== SAB4: plant TODO stub in specs role dir ===
+agent.yaml
+guidance
+runtime
+skills
+startup
+# TODO: sabotage-qa stub (reverted)
+  [FAIL] V13/#87: specs/agents/executive/exec-director/role.md contains stub marker 'TODO'
+SUMMARY: 28 checks passed, 1 failed.
+VERIFY_EXIT:1
+SUMMARY: 28 checks passed, 1 failed.
+?? docs/evidence/remediate-supplychain/
+?? specs/agents/executive/exec-director/role.md
+--- SAB4 done
+=== SAB4b: plant TODO in TRACKED specs/agents/executive/exec-director/guidance/role.md ===
+  [FAIL] V13/#87: specs/agents/executive/exec-director/guidance/role.md contains stub marker 'TODO'
+SUMMARY: 26 checks passed, 3 failed.
+VERIFY_EXIT:1
+SUMMARY: 29 checks passed, 0 failed.
+?? docs/evidence/remediate-supplychain/
+--- SAB4b done
+=== SAB5: remove one roster member ===
+members before: 51
+members after: 50
+  [FAIL] V13/#86: roster seats (50) must equal the 51 fleet sessions
+SUMMARY: 28 checks passed, 1 failed.
+VERIFY_EXIT:1
+=== ENV-NOTE: skopeo rate-limit causing V13/#70 existence FAILs (not sabotage residue) ===
+time="2026-10-24T02:52:55-04:00" level=fatal msg="Error parsing image name \"docker://qdrant/qdrant@sha256:31407c0e8e32eb771b71718f1a4772e2ad47a07557917b21ac96792f40eb8007\": reading manifest sha256:31407c0e8e32eb771b71718f1a4772e2ad47a07557917b21ac96792f40eb8007 in docker.io/qdrant/qdrant: toomanyrequests: You have reached your unauthenticated pull rate limit. https://www.docker.com/increase-rate-limit"
+--- ghcr probe:
+time="2026-10-24T02:52:55-04:00" level=fatal msg="Error parsing image name \"docker://ghcr.io/browserless/chromium@sha256:899026f6995003a35989dc32e240711735ac17069a9d476081bcc20b24da9\": invalid checksum digest length"
+?? docs/evidence/remediate-supplychain/
+=== SAB6: remove one entry from verify-rigs mirror tuple (S2a) ===
+  [FAIL] V13/S2a: verify-rigs mirror tuple != render-seat TERMINAL_BASH_DENIES (must be ordered-identical)
+SUMMARY: 25 checks passed, 59 failed.
+VERIFY_EXIT:1
+== V13. Supply-Chain Pins (#70, #71, #85, #86, #87, #97, #99, S2a) ==
+SUMMARY: 28 checks passed, 4 failed.
+RESTORE_EXIT:1
+?? docs/evidence/remediate-supplychain/
+--- SAB6 done
+
+SUMMARY: 29 checks passed, 0 failed.
+EXIT:0
+?? docs/evidence/remediate-supplychain/
+=== SAB7: dirty tree + ALLOW_DIRTY regen => DIRTY- stamp, verify rejects ===
+  resolvedCommit: 2bc45e593e9b8fe53ae926df259c568e174e3a7a
+ M README.md
+?? docs/evidence/remediate-supplychain/
+wrote 51 specialist AgentSpecs, 68 shared skills, 8 RigBundles, Roster, and Registry views under /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/remediate-supplychain
+REGEN_EXIT:0
+  resolvedCommit: DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740
+  [FAIL] executive-and-architecture: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] executive-and-architecture: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] fullstack-and-web-studio: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] fullstack-and-web-studio: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] systems-and-mobile-foundry: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] systems-and-mobile-foundry: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] game-dev-and-sim-rig: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+  [FAIL] game-dev-and-sim-rig: resolvedCommit must be 40-hex or SYNTHETIC- (got 'DIRTY-53573f899a4f6f9f89e08fa805cfc1778fc2d740'
+VERIFY_EXIT:1
+  [FAIL] V13/#99: registry/entries/executive-and-architecture.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/fullstack-and-web-studio.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/systems-and-mobile-foundry.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/game-dev-and-sim-rig.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/cloud-sre-and-data-platform.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/qa-and-verification-gauntlet.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/defensive-sec-and-red-team.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/entries/heretek-omni-fleet.yaml carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/executive-and-architecture/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/fullstack-and-web-studio/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/systems-and-mobile-foundry/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/game-dev-and-sim-rig/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/cloud-sre-and-data-platform/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/qa-and-verification-gauntlet/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/defensive-sec-and-red-team/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+  [FAIL] V13/#99: registry/views/heretek-omni-fleet/behaviour.json carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)
+SUMMARY: 27 checks passed, 32 failed.
+--- restoring clean tree ---
+?? docs/evidence/remediate-supplychain/
+SUMMARY: 29 checks passed, 0 failed.
+RESTORE_EXIT:0
+--- SAB7 done
+=== QA clarifications (2026-10-24) ===
+- SAB4 planted role.md as a NEW file (role dir had no role.md; >> created it). The V13/#87 scan still went RED (named gate), proving the scan covers untracked files too. Restore was `rm` (git checkout cannot restore untracked). SAB4b repeats against a TRACKED file (guidance/role.md) with git-checkout restore — the authoritative stub red-proof (26+3 RED: stub marker trips V13 plus content-hash digest checks; 29/0 GREEN after).
+- SAB5 restore: roster file restored to 51 members (verified by member count + git clean) before the post-restore verify; that verify's 7 FAILs were all docker.io skopeo rate-limit (toomanyrequests), V13/#86 roster check GREEN among them. Full 29/0 re-confirmed on later runs.
+- SAB6 restore line "28+4/EXIT:1" was docker.io rate-limit residue (4 existence probes), S2a GREEN; subsequent run 29/0 GREEN.
+- Rate-limit root cause: ~11 full verify runs x 10 skopeo probes exhausted unauthenticated docker.io quota. V13 existence skip-regex matches transport errors but NOT rate-limit strings (toomanyrequests/rate limit) -> FAIL instead of recorded skip. Follow-up candidate: extend the offline pattern. NOT a merge-blocker: digests are content-addressed (security property holds without the probe); format asserts are the hard gate and red-prove cleanly.
+- Baseline (unmodified tree): verify-rigs 29/0, make test 257 OK (11 suites), audit_loop self-test 15 vectors OK — all recorded before any sabotage.
