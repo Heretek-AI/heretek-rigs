@@ -1,0 +1,57 @@
+=== QA red-proofs log: remediate-foundation (M0-M3) ===
+date: 2026-10-24T03:59:51Z
+worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/remediate-foundation
+head: 3d9851a
+
+--- Sabotage 1: render terminal-deny removal (verify-rigs V12 + source assert) ---
+target: scripts/render-seat.py render tuple ("*--textconv*",) — 7-step: break, run, revert
+defect: deleted the `"*--textconv*",` line from the for _deny_pat tuple (minimal, targeted)
+run: ./scripts/verify-rigs.sh --check-only
+RED output:
+  [FAIL] scripts/render-seat.py must emit terminal "*--textconv*" bash deny
+  [FAIL] tests/test_render_seat.py failed: KeyError: '*--textconv*'
+  SUMMARY: 27 checks passed, 2 failed.
+exit code: 1 (RED confirmed — gate is not vacuous; both the V12 source assert and the unit test catch it)
+revert: git checkout -- scripts/render-seat.py; diff vs pre-sabotage backup: identical (RESTORED-IDENTICAL)
+green: ./scripts/verify-rigs.sh --check-only -> SUMMARY: 28 checks passed, 0 failed (exit 0)
+git status --short (scripts/): clean
+--- Sabotage 2: M2 version-drift guard (render-seat.py pps pin) ---
+target: scripts/render-seat.py `if _pps_ver != "41.0.0":` guard (M2 fail-closed)
+defect: changed comparison literal to "99.9.9" (simulates drifted pps vs pin); die message text untouched
+run: HERETEK_SECRETS=~/.config/heretek-rigs/secrets python3 scripts/render-seat.py --role exec-director --rig executive-and-architecture --pod exec --allow-missing-secrets --out $(mktemp -d)  [real HERETEK_TOOLS]
+RED output: error: .../@gotgenes/pi-permission-system version 41.0.0, need 41.0.0
+exit code: 2 (RED confirmed — version-drift arm fires even with a present tools dir; no --allow-missing escape)
+missing-path arm (acceptance run, unmodified tree): HERETEK_TOOLS=/nonexistent -> "is mandatory", exit 2 (RED confirmed)
+revert: git checkout -- scripts/render-seat.py; diff vs pre-sabotage backup: identical (RESTORED-IDENTICAL)
+green: real-tools render -> exit 0 ("rendered exec-exec-director@executive-and-architecture")
+note: first attempt captured tail's exit via pipe; re-ran with direct redirect to record true exit 2
+--- Sabotage 3: orphan-suite wiring (Makefile test target) ---
+target: Makefile test: target (M3 wired test_build_canary, test_check_envelope, test_live_health)
+defect: removed ` tests/test_live_health.py` from the unittest invocation (simulates re-orphaning)
+run: make test
+RED output: Ran 187 tests (was 208; -21 live_health tests), suite list drops to 9 (test_live_health absent)
+exit code: 0 with OK — NOTE: unittest itself stays green, which is exactly why the acceptance
+criterion is the SUITE COUNT (10), not just OK. Count 9 != 10 => check goes RED (non-vacuous only
+when the count is asserted; a bare "ends OK" assertion would be VACUOUS for this defect class).
+revert: git checkout -- Makefile; diff vs pre-sabotage backup: identical (RESTORED-IDENTICAL)
+green: suite count back to 10, Ran 208 tests, OK
+--- Sabotage 4: V12 missing-binary naming + M2-guard source assert ---
+target: scripts/verify-rigs.sh == V12 == tool-existence block (M3)
+part A (confirm naming, clean tree): ./scripts/verify-rigs.sh --check-only lists 19
+  `command not found` [NOTE] lines naming server + seat + absolute path, including
+  `server 'radare2' command not found: .../tools/bin/r2mcp` (firmware-sec-analyst,
+  binary-reverse-eng); PASS summary names the missing set
+  (chrome-devtools, kubernetes, memory, mobile, openapi, playwright, radare2);
+  SUMMARY: 28 checks passed, 0 failed (exit 0). Naming WITHOUT failing = per the
+  documented M3 severity decision (host tooling completeness is M9 scope). CONFIRMED.
+part B (sabotage naming): suppressed the per-seat [NOTE] print -> 0 "command not found"
+  lines, SUMMARY still 28/0 exit 0. The naming half is informational-only BY DESIGN
+  (no fail-closed assertion on NOTE text); reverted via git checkout (identical).
+  NOT vacuous: the fail-closed halves below carry the gate.
+part C (sabotage M2-guard source): neutered die message "is mandatory" -> "is optional"
+  in scripts/render-seat.py -> RED on two fronts:
+  [FAIL] tests/test_render_seat.py ... test_missing_pps_is_hard_error_despite_allow_missing_secrets
+  [FAIL] scripts/render-seat.py must die on a missing @gotgenes/pi-permission-system (M2 fail-closed guard)
+  SUMMARY: 26 checks passed, 2 failed; exit code 1 (RED confirmed)
+revert: git checkout -- scripts/render-seat.py (+ verify-rigs.sh from part B); diffs identical
+green: SUMMARY: 28 checks passed, 0 failed (exit 0); git status --short clean except docs/evidence/
