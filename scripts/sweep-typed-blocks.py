@@ -265,6 +265,76 @@ def note_names_blocker(note, key_tokens):
     return any(re.search(rf"\b{re.escape(tok)}\b", text) for tok in key_tokens)
 
 
+def _fleet_catalog_path():
+    return Path(__file__).resolve().parent.parent / "fleet" / "fleet.yaml"
+
+
+def load_tpm_seat_ids(catalog_path=None):
+    """Ids staffing a tpm/scrum role: the auth: verifier set beyond operator.
+
+    Read-only load of fleet.yaml: every role id containing tpm/scrum, plus
+    the session/address ids (and their @-local-parts) of members bound to
+    such a role, so `seat@rig` actorSessions match. Fail-closed: an
+    unreadable catalog yields the empty set, so only `operator` stays
+    authoritative (stay-blocked bias, never an unpark).
+    """
+    path = Path(catalog_path) if catalog_path is not None else _fleet_catalog_path()
+    try:
+        import yaml
+    except ImportError:
+        return frozenset()
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, yaml.YAMLError):
+        return frozenset()
+    ids = set()
+    if isinstance(data, dict):
+        for role_id in data.get("roles", {}) or {}:
+            if isinstance(role_id, str) and (
+                "tpm" in role_id.lower() or "scrum" in role_id.lower()
+            ):
+                ids.add(role_id)
+
+    def _walk(node):
+        if isinstance(node, dict):
+            role = node.get("role")
+            if isinstance(role, str) and (
+                "tpm" in role.lower() or "scrum" in role.lower()
+            ):
+                ids.add(role)
+                for key in ("session", "address"):
+                    value = node.get(key)
+                    if isinstance(value, str) and value:
+                        ids.add(value)
+                        ids.add(value.split("@")[0])
+            for value in node.values():
+                _walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value)
+
+    _walk(data)
+    return frozenset(ids)
+
+
+_TPM_SEAT_CACHE = None
+
+
+def default_authorized_actors():
+    """Fleet-derived auth: verifier ids (cached; safe at import time)."""
+    global _TPM_SEAT_CACHE
+    if _TPM_SEAT_CACHE is None:
+        _TPM_SEAT_CACHE = load_tpm_seat_ids()
+    return _TPM_SEAT_CACHE
+
+
+def is_authoritative_actor(actor, auth_allow):
+    """operator or a TPM-seat id (full `seat@rig` or bare local-part)."""
+    actor = actor or ""
+    prefix = actor.split("@")[0]
+    return prefix == "operator" or actor in auth_allow or prefix in auth_allow
+
+
 def find_qitem_refs(note):
     return set(re.findall(r"\bqitem-[0-9A-Za-z-]+\b", note or ""))
 
@@ -317,7 +387,11 @@ def _max_tid(transitions, default):
 
 
 def evaluate_row(
-    row, transitions, fetch_blocker_transitions=None, blocker_transitions=None
+    row,
+    transitions,
+    fetch_blocker_transitions=None,
+    blocker_transitions=None,
+    authorized_actors=None,
 ):
     """Re-evaluate one row. Returns a verdict dict.
 
@@ -338,6 +412,16 @@ def evaluate_row(
         }
     blocked_on = row.get("blockedOn")
     key_tokens = blocker_key_tokens(blocked_on)
+    # M7 (#83): auth: parks are the governance gate — exact blocker-string
+    # equality only (no token overlap, no whole-word-substring matcher), and
+    # only operator/TPM-seat authors count. Non-auth: blockers keep the
+    # existing overlap/substring matching.
+    is_auth = blocked_on.startswith("auth:")
+    auth_allow = (
+        default_authorized_actors()
+        if authorized_actors is None
+        else frozenset(authorized_actors)
+    )
     ordered = sorted(
         (t for t in transitions if isinstance(t, dict)),
         key=lambda t: t.get("transitionId") or 0,
@@ -377,6 +461,7 @@ def evaluate_row(
         return text
 
     malformed = []
+    suppressed = []  # auth: SATISFIED: records refused (REQ-BU5 audit trail)
     satisfaction = None  # (transitionId, citation)
     rearm = None  # (transitionId, excerpt)
     for t in combined:
@@ -387,12 +472,33 @@ def evaluate_row(
             if status == "malformed":
                 malformed.append(t.get("transitionId"))
                 continue
-            if (
-                blocker == blocked_on
-                or blocker_key_tokens(blocker) & key_tokens
-                or note_names_blocker(blocker, key_tokens)
+            if blocker == blocked_on or (
+                not is_auth
+                and (
+                    blocker_key_tokens(blocker) & key_tokens
+                    or note_names_blocker(blocker, key_tokens)
+                )
             ):
                 refs = find_qitem_refs(evidence)
+                if is_auth:
+                    # #83: auth: satisfaction needs an authoritative author
+                    # (operator or TPM seat — never the parked seat itself)
+                    # plus a cited evidence qitem (resolved when fetchable).
+                    actor_here = t.get("actorSession") or ""
+                    if not is_authoritative_actor(actor_here, auth_allow):
+                        suppressed.append(
+                            (
+                                t.get("transitionId"),
+                                f"author {actor_here or '?'} not in "
+                                "{operator, TPM seat}",
+                            )
+                        )
+                        continue
+                    if not refs:
+                        suppressed.append(
+                            (t.get("transitionId"), "no evidence qitem ref")
+                        )
+                        continue
                 dangling = []
                 if fetch_blocker_transitions is not None:
                     for ref in sorted(refs):
@@ -417,14 +523,23 @@ def evaluate_row(
                 continue
             # Well-formed but naming a different blocker: not evidence for us.
             continue
-        if not note_names_blocker(note, key_tokens):
+        if is_auth:
+            # #83: for auth: the note must carry the exact full blocker
+            # string — token overlap alone satisfies nothing.
+            names_blocker = blocked_on.lower() in note.lower()
+        else:
+            names_blocker = note_names_blocker(note, key_tokens)
+        if not names_blocker:
             continue
         sat_hits = _word_hits(note, SAT_TOKENS)
         rearm_hits = _word_hits(note, REARM_TOKENS)
         if sat_hits and not rearm_hits:
             cited = CITATION_RE.search(note) is not None
             actor = t.get("actorSession") or ""
-            authoritative = actor.split("@")[0] == "operator"
+            if is_auth:
+                authoritative = is_authoritative_actor(actor, auth_allow)
+            else:
+                authoritative = actor.split("@")[0] == "operator"
             if cited or authoritative:
                 citation_bits = [cite(t, note.strip()[:220])]
                 satisfaction = (t.get("transitionId"), " | ".join(citation_bits))
@@ -454,6 +569,14 @@ def evaluate_row(
         details.append(
             f"malformed SATISFIED: record(s) at transition(s) "
             f"{malformed} ignored (need 'SATISFIED: <blocker> <evidence-ref>')"
+        )
+    if suppressed:
+        details.append(
+            "auth: %d SATISFIED: record(s) suppressed (%s)"
+            % (
+                len(suppressed),
+                "; ".join(f"transition {tid}: {why}" for tid, why in suppressed),
+            )
         )
     evaluative = [
         t
@@ -518,7 +641,7 @@ def save_cursor(path, cursor):
     dest.write_text(json.dumps(cursor, indent=1, sort_keys=True) + "\n")
 
 
-def run_sweep(client, cursor, dry_run=False, log_lines=None):
+def run_sweep(client, cursor, dry_run=False, log_lines=None, authorized_actors=None):
     """One sweep cycle. Returns a report dict; appends audit lines to log_lines.
 
     cursor: {qitemId: {"row": last evaluated parked-row transitionId,
@@ -529,6 +652,11 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None):
     """
     if log_lines is None:
         log_lines = []
+    auth_allow = (
+        default_authorized_actors()
+        if authorized_actors is None
+        else frozenset(authorized_actors)
+    )
     report = {
         "evaluated": [],
         "unparked": [],
@@ -609,6 +737,7 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None):
                 transitions,
                 fetch_blocker_transitions=fetch_cached,
                 blocker_transitions=blocker_maps,
+                authorized_actors=auth_allow,
             )
         except DataSourceError as exc:
             log_lines.append(

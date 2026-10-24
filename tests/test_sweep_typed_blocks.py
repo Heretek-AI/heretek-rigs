@@ -880,3 +880,247 @@ class TestParkArgvSafety(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# M7 (#83) — auth: parks need operator/TPM actor, exact blocker string, and a
+# resolvable evidence qitem. Non-auth: blockers keep existing matching.
+# ---------------------------------------------------------------------------
+
+AUTH_BLOCKER = "auth:wave2-tpm-release"
+
+
+def auth_shape(actor="operator@fleet", evidence="qitem-V9 QA PASS placed",
+               blocker=AUTH_BLOCKER):
+    """Parked auth: row + a SATISFIED: note from the given actor."""
+    row = {
+        "qitemId": "qitem-AUTH",
+        "state": "blocked",
+        "blockedOn": AUTH_BLOCKER,
+        "destinationSession": "owner@fleet",
+        "summary": "auth-gated release",
+    }
+    transitions = [
+        _bt(
+            "qitem-AUTH",
+            1,
+            "blocked",
+            "SATISFY-WHEN: TPM release VIA qitem-V9 verdict row; "
+            "parked on auth:wave2-tpm-release",
+            "owner@fleet",
+        ),
+        _bt(
+            "qitem-AUTH",
+            2,
+            "blocked",
+            f"SATISFIED: {blocker} {evidence}",
+            actor,
+        ),
+    ]
+    return row, transitions
+
+
+class TestAuthBlockerHardening(unittest.TestCase):
+    def test_tpm_seat_set_loads_from_fleet(self):
+        """The verifier set is fleet-derived, not hardcoded: it must contain
+        the TPM role and its bound session."""
+        ids = sweep.load_tpm_seat_ids()
+        self.assertIn("tpm-scrum-lead", ids)
+        self.assertIn(
+            "delivery-tpm-scrum-lead@executive-and-architecture", ids
+        )
+
+    def test_auth_self_written_satisfy_stays_blocked(self):
+        """#83 case A: the parked seat writes its own SATISFIED: note."""
+        row, transitions = auth_shape(actor="owner@fleet")
+        verdict = sweep.evaluate_row(
+            row,
+            transitions,
+            fetch_blocker_transitions=lambda ref: [],
+            authorized_actors={"tpm-scrum-lead"},
+        )
+        self.assertEqual(verdict["verdict"], "stay-blocked")
+
+    def test_auth_operator_exact_satisfy_with_evidence_unparks(self):
+        """Control: operator-authored exact SATISFIED: with evidence still unparks."""
+        row, transitions = auth_shape(actor="operator@fleet")
+        verdict = sweep.evaluate_row(
+            row,
+            transitions,
+            fetch_blocker_transitions=lambda ref: [],
+            authorized_actors={"tpm-scrum-lead"},
+        )
+        self.assertEqual(verdict["verdict"], "unpark")
+
+    def test_auth_tpm_seat_satisfy_unparks_via_fleet_default(self):
+        """Control: a TPM-seat-authored SATISFIED: unparks using the default
+        fleet-derived verifier set (no explicit pass-through)."""
+        row, transitions = auth_shape(
+            actor="delivery-tpm-scrum-lead@executive-and-architecture"
+        )
+        verdict = sweep.evaluate_row(
+            row, transitions, fetch_blocker_transitions=lambda ref: []
+        )
+        self.assertEqual(verdict["verdict"], "unpark")
+
+    def test_auth_token_overlap_blocker_stays_blocked(self):
+        """#83 case B: SATISFIED: naming auth:wave2-tpm (overlap, not equal)."""
+        row, transitions = auth_shape(
+            actor="operator@fleet", blocker="auth:wave2-tpm"
+        )
+        overlap = sweep.blocker_key_tokens(
+            "auth:wave2-tpm"
+        ) & sweep.blocker_key_tokens(AUTH_BLOCKER)
+        self.assertTrue(
+            overlap,
+            "fixture must genuinely token-overlap (else the test is vacuous)",
+        )
+        verdict = sweep.evaluate_row(
+            row,
+            transitions,
+            fetch_blocker_transitions=lambda ref: [],
+            authorized_actors={"tpm-scrum-lead"},
+        )
+        self.assertEqual(verdict["verdict"], "stay-blocked")
+
+    def test_auth_legacy_overlap_note_stays_blocked(self):
+        """#83 case B (legacy path): overlapping tokens without the full
+        blocker string must not satisfy an auth: park."""
+        row = {
+            "qitemId": "qitem-AL",
+            "state": "blocked",
+            "blockedOn": AUTH_BLOCKER,
+            "destinationSession": "owner@fleet",
+            "summary": "auth-gated release",
+        }
+        transitions = [
+            _bt(
+                "qitem-AL",
+                1,
+                "blocked",
+                "parked on auth:wave2-tpm-release awaiting TPM release",
+                "owner@fleet",
+            ),
+            _bt(
+                "qitem-AL",
+                2,
+                "blocked",
+                "wave2 TPM release PASS per wave1-qa-report, notes attached",
+                "operator@fleet",
+            ),
+        ]
+        verdict = sweep.evaluate_row(
+            row, transitions, authorized_actors={"tpm-scrum-lead"}
+        )
+        self.assertEqual(verdict["verdict"], "stay-blocked")
+
+    def test_auth_legacy_full_string_note_needs_authority(self):
+        """A legacy note naming the full auth: string unparks only from an
+        authoritative actor (TPM seat), never from the parked seat itself."""
+        row = {
+            "qitemId": "qitem-AF",
+            "state": "blocked",
+            "blockedOn": AUTH_BLOCKER,
+            "destinationSession": "owner@fleet",
+            "summary": "auth-gated release",
+        }
+        note = "auth:wave2-tpm-release QA PASS placed, verdict recorded"
+        park = _bt(
+            "qitem-AF",
+            1,
+            "blocked",
+            "parked on auth:wave2-tpm-release awaiting TPM release",
+            "owner@fleet",
+        )
+        tpm_verdict = sweep.evaluate_row(
+            row,
+            [park, _bt("qitem-AF", 2, "blocked", note,
+                       "delivery-tpm-scrum-lead@executive-and-architecture")],
+            authorized_actors=sweep.load_tpm_seat_ids(),
+        )
+        self.assertEqual(tpm_verdict["verdict"], "unpark")
+        seat_verdict = sweep.evaluate_row(
+            row,
+            [park, _bt("qitem-AF", 2, "blocked", note, "owner@fleet")],
+            authorized_actors=sweep.load_tpm_seat_ids(),
+        )
+        self.assertEqual(seat_verdict["verdict"], "stay-blocked")
+
+    def test_auth_evidence_without_qitem_ref_stays_blocked(self):
+        """auth: requires a resolvable evidence qitem: an operator SATISFIED:
+        with no qitem ref in the evidence stays blocked."""
+        row, transitions = auth_shape(
+            actor="operator@fleet", evidence="per wave1-qa-report QA PASS"
+        )
+        verdict = sweep.evaluate_row(
+            row,
+            transitions,
+            fetch_blocker_transitions=lambda ref: [],
+            authorized_actors={"tpm-scrum-lead"},
+        )
+        self.assertEqual(verdict["verdict"], "stay-blocked")
+
+    def test_auth_dangling_qitem_ref_stays_blocked_and_names_ref(self):
+        """auth: evidence qitem that cannot be resolved stays blocked."""
+        row, transitions = auth_shape(
+            actor="operator@fleet", evidence="qitem-GONE-1 QA PASS"
+        )
+
+        def fetch_missing(ref):
+            raise sweep.DataSourceError(f"no such qitem: {ref}")
+
+        verdict = sweep.evaluate_row(
+            row,
+            transitions,
+            fetch_blocker_transitions=fetch_missing,
+            authorized_actors={"tpm-scrum-lead"},
+        )
+        self.assertEqual(verdict["verdict"], "stay-blocked")
+        self.assertIn("qitem-GONE-1", verdict["reason"])
+
+    def test_empty_verifier_set_leaves_operator_only(self):
+        """Fail-closed catalog: with no resolvable TPM set, a TPM actor is
+        not authoritative but the operator still is."""
+        row, transitions = auth_shape(
+            actor="delivery-tpm-scrum-lead@executive-and-architecture"
+        )
+        verdict = sweep.evaluate_row(
+            row,
+            transitions,
+            fetch_blocker_transitions=lambda ref: [],
+            authorized_actors=set(),
+        )
+        self.assertEqual(verdict["verdict"], "stay-blocked")
+
+    def test_non_auth_overlap_still_unparks(self):
+        """Scope guard: exact-equality is auth:-only. An external: SATISFIED:
+        naming an overlapping (non-equal) blocker still unparks."""
+        row = {
+            "qitemId": "qitem-OV",
+            "state": "blocked",
+            "blockedOn": "external:wave2-tpm-release",
+            "destinationSession": "owner@fleet",
+            "summary": "external overlap",
+        }
+        transitions = [
+            _bt(
+                "qitem-OV",
+                1,
+                "blocked",
+                "SATISFY-WHEN: release VIA wave2-tpm-report; parked",
+                "owner@fleet",
+            ),
+            _bt(
+                "qitem-OV",
+                2,
+                "blocked",
+                "SATISFIED: external:wave2-tpm qitem-V9 QA PASS",
+                "operator@fleet",
+            ),
+        ]
+        overlap = sweep.blocker_key_tokens(
+            "external:wave2-tpm"
+        ) & sweep.blocker_key_tokens("external:wave2-tpm-release")
+        self.assertTrue(overlap, "fixture must genuinely token-overlap")
+        verdict = sweep.evaluate_row(row, transitions)
+        self.assertEqual(verdict["verdict"], "unpark")

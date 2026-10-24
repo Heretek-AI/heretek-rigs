@@ -27,10 +27,12 @@ Usage:
 
 Queue-to-tracker mapping table (locked enum STAGED, DISPATCHED, PARKED,
 QA PASS, PLACED, DONE, CLOSED + OTHER(<raw>)):
-  terminal queue (state in closed/done/handed_off/handed-off/complete/
-  completed, OR latest-transition state in that set, OR latest note matching
-  qa pass|placed|closed|handed-off|done) => propose the QA PASS + PLACED
-  canonical cell (exact design Q8 shapes via the shared propose_cell).
+  terminal queue (entry state or latest-transition state in
+  closed/done/handed_off/handed-off/complete/completed — note text is never
+  terminal) => propose the QA PASS + PLACED canonical cell (exact design Q8
+  shapes via the shared propose_cell). A queue note or tracker cell counts
+  as a QA affirmation only when it opens with `QA PASS` and carries no
+  negator (not/no/never/n't) or fail token.
   non-terminal queue => no terminal proposal; a terminal tracker claim
   becomes a Re-verify proposal carrying NEEDS-HUMAN-REVIEW.
 Tracker prose matching no enum arm => OTHER(<raw>) + NEEDS-HUMAN-REVIEW
@@ -75,12 +77,12 @@ from reconcile_model import (  # noqa: E402
 )
 
 # Queue-side signal -> tracker-side meaning (display + branch contract).
-# Terminal detection itself is queue_terminal() from the shared model; this
-# table only names the mapping for proposal readers.
+# Terminal detection itself is queue_terminal() from the shared model — state
+# ONLY, never note text; this table only names the mapping for proposal readers.
 QUEUE_TO_TRACKER_MAP = (
-    "terminal queue (state closed/done/handed_off/handed-off/complete/completed, "
-    "or latest-transition state in that set, or latest note matching "
-    "qa pass|placed|closed|handed-off|done) => QA PASS + PLACED canonical cell; "
+    "terminal queue (entry or latest-transition state in "
+    "closed/done/handed_off/handed-off/complete/completed; note text never "
+    "terminal) => QA PASS + PLACED canonical cell; "
     "non-terminal queue => no terminal proposal "
     "(terminal tracker claims become Re-verify + NEEDS-HUMAN-REVIEW)"
 )

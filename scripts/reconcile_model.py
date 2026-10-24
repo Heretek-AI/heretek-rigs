@@ -14,8 +14,11 @@ no command may own a parallel parser, normalizer, or enum-mapping (REQ-G5).
 Behavior-identical to the former inline implementation in
 scripts/reconcile.py: the G-T1 refactor moved these definitions verbatim.
 The locked tracker enum is STAGED, DISPATCHED, PARKED, QA PASS, PLACED,
-DONE, CLOSED + OTHER(<raw>); the queue terminal signal is
-TERMINAL_QUEUE_STATES / latest-transition state / TERMINAL_NOTE_RE.
+DONE, CLOSED + OTHER(<raw>); the queue terminal signal is entry/last-transition
+state ONLY (note text never terminal). A QA PASS affirmation — in a queue note or
+a tracker cell — counts only when the text opens with `QA PASS` and carries no
+negator (not/no/never/n't) or fail token; `placed`/`closed` arms are likewise
+void under negation (`NOT placed` affirms nothing).
 """
 
 import json
@@ -32,9 +35,28 @@ TERMINAL_QUEUE_STATES = {
     "complete",
     "completed",
 }
-TERMINAL_NOTE_RE = re.compile(
-    r"qa\s*pass|placed|closed|handed[_\s-]?off|\bdone\b", re.IGNORECASE
-)
+
+# M7 (#84): an affirmation counts only when the text OPENS with QA PASS
+# (anchored — mid-cell "… QA PASS …" prose affirms nothing) and carries no
+# negator or fail token ("QA pass NOT granted", "QA PASS failed" affirm
+# nothing). Same rule for queue notes and tracker cells.
+QA_PASS_ANCHORED_RE = re.compile(r"^QA PASS\b", re.IGNORECASE)
+_NEGATOR_RE = re.compile(r"\b(not|no|never)\b|n['\u2019]t\b", re.IGNORECASE)
+_FAIL_TOKEN_RE = re.compile(r"\b(fail|failed|fails|failure|failing)\b", re.IGNORECASE)
+
+
+def _affirmative_qa_pass(text):
+    """True only for an un-negated, un-failed opening `QA PASS`."""
+    stripped = (text or "").strip()
+    if not QA_PASS_ANCHORED_RE.search(stripped):
+        return False
+    if _NEGATOR_RE.search(stripped):
+        return False
+    if _FAIL_TOKEN_RE.search(stripped):
+        return False
+    return True
+
+
 NOTE_ID_RES = (
     re.compile(r"[Nn]ote[s]?\s+(\d+)"),
     re.compile(r"\((\d{2,})\)"),
@@ -206,11 +228,17 @@ def parse_tracker(path):
 
 
 def normalize_tracker(cell):
+    # M7 (#84): negation-aware. qa_pass needs an affirmative opening QA PASS;
+    # placed/closed are void under negation or fail tokens (so "NOT placed"
+    # affirms nothing). staged/dispatched keep substring detection; parked
+    # keeps the "blocker satisfied" carve-out.
     low = cell.lower()
+    negated = bool(_NEGATOR_RE.search(cell)) or bool(_FAIL_TOKEN_RE.search(cell))
     return {
-        "qa_pass": "qa pass" in low,
-        "placed": "placed" in low,
-        "closed": "closed" in low or re.search(r"\bdone\b", low) is not None,
+        "qa_pass": _affirmative_qa_pass(cell),
+        "placed": "placed" in low and not negated,
+        "closed": ("closed" in low or re.search(r"\bdone\b", low) is not None)
+        and not negated,
         "staged": "staged" in low,
         "dispatched": "dispatched" in low,
         "parked": "parked" in low and "blocker satisfied" not in low,
@@ -225,17 +253,15 @@ def recorded_note_ids(cell):
 
 
 def queue_terminal(entry, transitions):
+    # M7 (#84): terminal ONLY on state (entry or latest-transition state).
+    # Note text — however QA-flavoured — is never terminal; negated notes
+    # ("QA pass NOT granted") must not converge a row.
     trail = transitions if isinstance(transitions, list) else []
     latest = max(trail, key=lambda t: t.get("transitionId", -1)) if trail else {}
     state = str(entry.get("state", "")).lower() if isinstance(entry, dict) else ""
     tstate = str(latest.get("state", "")).lower()
-    note = str(latest.get("transitionNote", ""))
     latest_id = latest.get("transitionId")
-    terminal = (
-        state in TERMINAL_QUEUE_STATES
-        or tstate in TERMINAL_QUEUE_STATES
-        or bool(TERMINAL_NOTE_RE.search(note))
-    )
+    terminal = state in TERMINAL_QUEUE_STATES or tstate in TERMINAL_QUEUE_STATES
     return terminal, latest_id, latest
 
 
