@@ -219,3 +219,28 @@
 ### Rollout split (stated in stage report + draft PR text there)
 - NOT no-bounce (needs relaunch or RPC reload per seat): settings.json `shellPath` (F1: pi reads settings at startup only) — the sandbox itself.
 - Canary-then-fleet WITHOUT bounce (permission config.json hot-reloads on mtime): git-diff terminal denies (M5), locked-seat verb removal, dependency-patcher commit strip, MCP flags.
+
+## 2026-10-24 — Audit #66 remediate-sandbox M5 git-diff bypass + identity forgery (wave remediate-sandbox)
+
+### Deny additions (renderer + mirror + asserts, kept identical)
+- render-seat.py terminal tuple appended (same order as verify mirror): `* -u*`, `*\t-u*`, `* -U*`, `*\t-U*`, `*--unified*`, `*--cc*`, `* -c *`, `* -m *`, `* -W*`, `*--function-context*`, `*--word-diff*`, `*--color-words*`, `*--binary*`, `*--raw*`, plus `*OPENRIG_SESSION_NAME=*`, `*OPENRIG_URL=*`.
+- Over-block pre-scan (python3+yaml+fnmatch over all 51 roles): NO fleet bash_allow contains any new deny infix as a literal substring — emission is purely additive. Anti-overblock probe (`git log --oneline -- README.md`) still allows post-regen (gate-role green).
+- verify-rigs.sh: :588 mirror tuple extended identically (order matches emission; sortedness + no-allow-after-deny gates hold); :1153-1160 renderer asserts extended to all 16 new denies. tests/test_render_seat.py deny tuple extended likewise.
+
+### send-authenticated.sh hardening (#72, #93)
+- Top-of-script: exit 2 when OPENRIG_SESSION_NAME is set (refuse, never silently unset). Verified: `OPENRIG_SESSION_NAME=exec-...@... ... --destination ...` → `error: refusing ...`, rc=2.
+- Receipt fail-closed: state must be in {pending, in-progress} (rc=5), persisted===true (rc=6), no createWarning (rc=7); pre-existing qitemId/state presence (rc=4) kept. Stub-rig matrix (PATH-shadowed `rig` executable): `{"state":"failed","persisted":false}` → rc=4; +qitemId failed/false → rc=5; pending/true+createWarning → rc=7; pending/false → rc=6; pending/true and in-progress/true → rc=0 `created ...`.
+- BUG FOUND BY THE STUB TEST (fixed, not shipped): first version used `d.get('createWarning')` inside an f-string within `python3 -c '...'` — bash strips nested single quotes before python sees them, so python received `d.get(createWarning)` → NameError → rc=1 via the generic path. Fixed by hoisting to `_w`/`_p` temp vars (no inner quotes). Lesson recorded: never nest single quotes inside `python3 -c '...'` in shell scripts.
+- --source: existing @-rejection kept; ADDED fleet member/role-id rejection (python3+yaml over fleet/fleet.yaml relative to the script dir: all role ids, rig pod member ids, omni core/pod/member ids; fail-closed rc=2 if catalog unreadable, uv fallback for PyYAML). Verified: `--source exec-director` → rc=2 `not a fleet member/role id`; `--source blue-appsec@rig` → rc=2 (@-form); `--source operator --dry-run` → rc=0.
+
+### gate-role.sh probes + F9 residual evidence
+- Added after :76 (canary :32-40 and anti-overblock probes untouched): `git log --oneline -u`, `git log --oneline --cc`, `env OPENRIG_SESSION_NAME=x rig whoami` — all expect-deny.
+- `bash scripts/gate-role.sh go-backend-eng` → exit 0, 43 ok / 0 FAIL (includes all M5 probes + pre-existing anti-overblock allow).
+- F9 residual CONFIRMED live (scratch render + gate-run.sh, mock model): bare leading `OPENRIG_SESSION_NAME=x rig whoami` EXECUTES (rc=0, rig resolved session `x`) — pps strips the leading assignment before matching so the `*OPENRIG_SESSION_NAME=*` terminal deny never sees it; `env OPENRIG_SESSION_NAME=x rig whoami` DENIES (isError:true). Consequence: the task text's literal probe (`OPENRIG_SESSION_NAME=x rig whoami` expect-deny) would fail against real pps behavior, so the committed probe uses the env-prefixed form and the leading-assignment form stays closed at the send-authenticated.sh layer (+ upstream request, per F9). Discrepancy vs task text is intentional and evidence-backed.
+- generate-rigs.py:493 charter denial-classification text still lists only the pre-M5 terminal guards — NOT updated (charter prose, out of M5 scope; suggested M10/PR follow-up so seats decode the new denial patterns).
+
+### Acceptance
+- `bash scripts/gate-role.sh go-backend-eng` denies all new git-diff forms and the env-prefixed rig call (43/0, exit 0).
+- send-authenticated.sh with OPENRIG_SESSION_NAME set refuses (rc=2); fake `{"state":"failed","persisted":false}` exits non-zero (rc=4; fuller fakes rc=5/6/7).
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.`; `make test` → `Ran 210 tests ... OK`; generate-rigs ×2 byte-identical (cmp clean).
+- Rollout split (unchanged from M4): sandbox shellPath needs relaunch/RPC reload; permission config.json changes (these M5 denies, M4 verb removals) go canary-then-fleet without bounce.

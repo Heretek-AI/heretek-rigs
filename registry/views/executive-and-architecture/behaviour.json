@@ -5,14 +5,14 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/executive-and-architecture",
-      "resolvedCommit": "0e43630b0c38a69d8910abdf0a360f11cccbf5ef",
+      "resolvedCommit": "04b13993550989ea0ebce6e11885f6b109c68885",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/0e43630b0c38a69d8910abdf0a360f11cccbf5ef/rigs/executive-and-architecture"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/04b13993550989ea0ebce6e11885f6b109c68885/rigs/executive-and-architecture"
     },
     "configurationId": "delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "7c0216a967d8ab840273bda9921ef0b99715b329e19311705db6ad8c5e8a913f",
+      "value": "b58ed5cbc2dbad2272e15ffad7a07e1ef187bef02dde9b93bb68e6fb07448279",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {

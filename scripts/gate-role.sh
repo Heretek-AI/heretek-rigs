@@ -74,6 +74,15 @@ expect deny  bash  '{"command":"git show --stat --patch HEAD -- fleet/fleet.yaml
 expect deny  bash  '{"command":"git log --oneline\t-p -- fleet/fleet.yaml"}' "bash git log tab-separated -p patch exfil past fleet/* read-deny"
 expect deny  bash  '{"command":"git log --oneline --full-diff -- fleet/fleet.yaml"}' "bash git log --full-diff past fleet/* read-deny"
 expect deny  bash  '{"command":"git show --textconv HEAD -- fleet/fleet.yaml"}' "bash git show --textconv past fleet/* read-deny"
+# M5 (#69): unified/cross-commit diff-output flags must deny even on allowed
+# git prefixes (same patch-exfil rationale as -p).
+expect deny  bash  '{"command":"git log --oneline -u -- fleet/fleet.yaml"}' "bash git log -u past fleet/* read-deny"
+expect deny  bash  '{"command":"git log --oneline --cc -- fleet/fleet.yaml"}' "bash git log --cc past fleet/* read-deny"
+# M5 (#72): env-prefixed identity override must deny via the
+# *OPENRIG_SESSION_NAME=* terminal deny. (A bare leading `VAR=x rig ...`
+# assignment is stripped by pps before matching (F9) so the policy layer
+# cannot catch it — closed in send-authenticated.sh instead; see NOTES.)
+expect deny  bash  '{"command":"env OPENRIG_SESSION_NAME=x rig whoami"}' "bash env-prefixed OPENRIG_SESSION_NAME rig call"
 # Anti-over-block: path-scoped git without patch flags must stay allowed on a
 # non-denied path (README.md is outside every `path` deny rule for all roles).
 expect allow bash  '{"command":"git log --oneline -- README.md"}' "bash git log --oneline path-scoped without patch flag"

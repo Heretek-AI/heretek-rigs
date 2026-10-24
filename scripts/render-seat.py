@@ -479,6 +479,29 @@ def build_seat_files(
         "*--patch*",
         "*--full-diff*",
         "*--textconv*",
+        # M5 (#69) git-diff read-bypass family: -u/-U/--unified/--cc and
+        # the spaced -c/-m/-W flag forms plus git's word/binary/raw
+        # diff-output flags (same last-match-wins rationale as -p).
+        "* -u*",
+        "*\t-u*",
+        "* -U*",
+        "*\t-U*",
+        "*--unified*",
+        "*--cc*",
+        "* -c *",
+        "* -m *",
+        "* -W*",
+        "*--function-context*",
+        "*--word-diff*",
+        "*--color-words*",
+        "*--binary*",
+        "*--raw*",
+        # M5 (#72/#93) identity-forgery forms: a leading VAR= assignment is
+        # stripped by pps before matching (F9), so this catches only the
+        # `env VAR=...` form at the policy layer; the leading-assignment
+        # form is closed in scripts/send-authenticated.sh instead.
+        "*OPENRIG_SESSION_NAME=*",
+        "*OPENRIG_URL=*",
     ):
         bash_map[_deny_pat] = "deny"
 

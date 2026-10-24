@@ -162,6 +162,23 @@ class TestRenderSeat(unittest.TestCase):
             "*--patch*",
             "*--full-diff*",
             "*--textconv*",
+            # M5 (#69) git-diff read-bypass family + (#72) env-forgery forms.
+            "* -u*",
+            "*\t-u*",
+            "* -U*",
+            "*\t-U*",
+            "*--unified*",
+            "*--cc*",
+            "* -c *",
+            "* -m *",
+            "* -W*",
+            "*--function-context*",
+            "*--word-diff*",
+            "*--color-words*",
+            "*--binary*",
+            "*--raw*",
+            "*OPENRIG_SESSION_NAME=*",
+            "*OPENRIG_URL=*",
         ):
             self.assertEqual(c["permission"]["bash"][_td], "deny")
         self.assertEqual(c["permission"]["external_directory"], "deny")

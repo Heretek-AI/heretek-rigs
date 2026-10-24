@@ -13,6 +13,14 @@
 # always passed so the 0.6.13 omission warning never fires.
 set -euo pipefail
 
+# M5 (#72): identity-forgery guard — a leaked OPENRIG_SESSION_NAME in this
+# operator script's environment would make `rig queue create` record a
+# transport-tier identity claim instead of an operator claim (F9). Refuse
+# instead of sending; never silently unset and proceed.
+if [[ -n "${OPENRIG_SESSION_NAME:-}" ]]; then
+  echo "error: refusing: OPENRIG_SESSION_NAME is set (${OPENRIG_SESSION_NAME}); unset it before sending operator relays" >&2; exit 2
+fi
+
 DESTINATION=""
 BODY_FILE=""
 MESSAGE=""
@@ -123,6 +131,71 @@ fi
 if [[ "$SOURCE" == *"@"* ]]; then
   echo "error: --source must be an operator-side label, not a seat session (contains '@'): $SOURCE" >&2; usage; exit 2
 fi
+# M5 (#93): reject any --source equal to a fleet member/role id (bare form;
+# the @-form is rejected above). A --source of `exec-director` would file
+# the relay as if that seat sent it. Fail closed if the fleet catalog is
+# unreadable.
+_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+_FLEET_IDS="$(python3 - "$_SCRIPT_DIR/../fleet/fleet.yaml" <<'PYEOF'
+import sys
+try:
+    import yaml
+except ImportError:
+    print("PYYAML_MISSING")
+    sys.exit(0)
+try:
+    fleet = yaml.safe_load(open(sys.argv[1]).read())
+except Exception as e:
+    print(f"error: cannot read fleet catalog: {e}", file=sys.stderr)
+    sys.exit(2)
+ids = set((fleet.get("roles") or {}).keys())
+for r in fleet.get("rigs", []) or []:
+    for p in r.get("pods", []) or []:
+        for m in p.get("members", []) or []:
+            if isinstance(m, str):
+                ids.add(m)
+            elif isinstance(m, dict) and m.get("id"):
+                ids.add(m["id"])
+o = fleet.get("omni", {}) or {}
+cp = o.get("core_pod", {}) or {}
+if cp.get("id"):
+    ids.add(cp["id"])
+for m in cp.get("members", []) or []:
+    if isinstance(m, str):
+        ids.add(m)
+for f in o.get("pod_fragments", []) or []:
+    if isinstance(f, dict) and f.get("pod"):
+        ids.add(f["pod"])
+for m in o.get("member_fragments", []) or []:
+    if isinstance(m, dict):
+        if m.get("role"):
+            ids.add(m["role"])
+print("\n".join(sorted(ids)))
+PYEOF
+)" || { echo "error: fleet member-id check failed (fail-closed)" >&2; exit 2; }
+if [[ "$_FLEET_IDS" == "PYYAML_MISSING" ]]; then
+  if command -v uv >/dev/null 2>&1; then
+    _FLEET_IDS="$(uv run --quiet --with pyyaml python3 - "$_SCRIPT_DIR/../fleet/fleet.yaml" <<'PYEOF'
+import sys, yaml
+fleet = yaml.safe_load(open(sys.argv[1]).read())
+ids = set((fleet.get("roles") or {}).keys())
+for r in fleet.get("rigs", []) or []:
+    for p in r.get("pods", []) or []:
+        for m in p.get("members", []) or []:
+            if isinstance(m, str):
+                ids.add(m)
+            elif isinstance(m, dict) and m.get("id"):
+                ids.add(m["id"])
+print("\n".join(sorted(ids)))
+PYEOF
+)" || { echo "error: fleet member-id check failed (fail-closed)" >&2; exit 2; }
+  else
+    echo "error: fleet member-id check needs PyYAML (or uv); fail-closed" >&2; exit 2
+  fi
+fi
+if printf '%s\n' "$_FLEET_IDS" | grep -Fxq -- "$SOURCE"; then
+  echo "error: --source must be an operator-side label, not a fleet member/role id: $SOURCE" >&2; exit 2
+fi
 
 PAYLOAD=""
 if [[ -n "$BODY_FILE" ]]; then
@@ -191,6 +264,20 @@ st = d.get("state")
 if not isinstance(q, str) or not q or not isinstance(st, str) or not st:
     print(f"receipt lacks qitemId/state: {raw[:500]}", file=sys.stderr)
     sys.exit(4)
+# M5 (#93): fail closed on unp persisted/failed receipts and daemon
+# warnings — a bare advisory or {"state":"failed","persisted":false} must
+# never read as a delivery.
+if st not in ("pending", "in-progress"):
+    print(f"receipt state {st!r} not in {{pending, in-progress}}; no delivery claimed", file=sys.stderr)
+    sys.exit(5)
+if d.get("persisted") is not True:
+    _p = d.get("persisted")
+    print(f"receipt not persisted (persisted={_p!r}); no delivery claimed", file=sys.stderr)
+    sys.exit(6)
+if d.get("createWarning"):
+    _w = d.get("createWarning")
+    print(f"receipt carries createWarning: {_w!r}; no delivery claimed", file=sys.stderr)
+    sys.exit(7)
 persisted = d.get("persisted")
 print(f"{q} state={st} persisted={persisted}")
 ')" || PARSE_RC=$?

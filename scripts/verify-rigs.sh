@@ -585,7 +585,7 @@ for rid, rdir in sorted(discovered_roles.items()):
     # direct-read denies hold).
     _bash_map = perm.get("bash", {})
     _bash_keys = list(_bash_map.keys())
-    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*")
+    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "* -m *", "* -W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
     for _td in _TERMINAL_BASH_DENIES:
         if _bash_map.get(_td) != "deny":
             fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
@@ -1155,7 +1155,7 @@ if '"*--output*"' not in _seed_text:
 # HR-5.5-git-patch-read-bypass (fail-closed): the renderer must emit the
 # patch-output flag denies LAST so `git log -p` / `git show --patch` cannot
 # exfiltrate file contents past path read-denies on allowed git prefixes.
-for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"'):
+for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"', '"* -u*"', '"*\\t-u*"', '"* -U*"', '"*\\t-U*"', '"*--unified*"', '"*--cc*"', '"* -c *"', '"* -m *"', '"* -W*"', '"*--function-context*"', '"*--word-diff*"', '"*--color-words*"', '"*--binary*"', '"*--raw*"', '"*OPENRIG_SESSION_NAME=*"', '"*OPENRIG_URL=*"'):
     if _ptd not in _seed_text:
         fail(f"scripts/render-seat.py must emit terminal {_ptd} bash deny")
 # HR-4.2 (fail-closed opt-in): when HERETEK_REQUIRE_SEATS=1, assert sampled
