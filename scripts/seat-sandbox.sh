@@ -49,8 +49,21 @@ os.execvp("rig", argv)
 fi
 
 # Scratch MUST NOT overlap cwd or any write root (see Gotcha 1).
-scratch=$(mktemp -d "${HERETEK_JAIL_SCRATCH:-/var/tmp}/seatjail.XXXXXX")
-trap 'rm -rf "$scratch"' EXIT
+# The dir name carries the wrapper's PID. pi aborts a command with SIGKILL to
+# its process group, which skips the EXIT trap, so each run first sweeps our
+# own dirs whose wrapper is gone. Legacy seatjail.XXXXXX dirs are left alone.
+# Removal is best effort: a jailed command can chmod 000 a dir in its scratch,
+# so restore our own modes first and never let a stuck orphan block a run.
+jail_rm() { chmod -R -- u+rwx "$1" 2>/dev/null || true; rm -rf -- "$1" 2>/dev/null || true; }
+jail_tmp=${HERETEK_JAIL_SCRATCH:-/var/tmp}
+for old in "$jail_tmp"/seatjail.[0-9]*.*; do
+  [[ -d "$old" && ! -L "$old" && -O "$old" ]] || continue
+  pid=${old##*/seatjail.}; pid=${pid%%.*}
+  [[ "$pid" =~ ^[0-9]+$ ]] && ! kill -0 "$pid" 2>/dev/null && jail_rm "$old"
+done
+scratch=$(mktemp -d "$jail_tmp/seatjail.$$.XXXXXX")
+# Cleaned on exit, so bwrap below must not be exec'd (exec drops the trap).
+trap 'jail_rm "$scratch"' EXIT
 
 # A write root may never resolve outside cwd (symlinked dir/file escape), and
 # never touch agent/VCS control paths (.git, .pi, .agents, AGENTS.md).
@@ -139,11 +152,31 @@ for p in .git .pi .agents AGENTS.md; do
   [[ -e "$cwd/$p" && ! -L "$cwd/$p" ]] && mask+=(--ro-bind "$cwd/$p" "$cwd/$p")
 done
 
-exec bwrap \
+# bwrap runs in the background so a signal sent only to this wrapper is
+# handled at once (bash defers traps until a foreground child exits). The
+# handler stops bwrap, reaps it and exits, which runs the EXIT cleanup; the
+# jailed tree goes with it (--die-with-parent). Stdin is passed on fd 3
+# because bash points a background command's stdin at /dev/null.
+child=""
+jail_stop() {
+  if [[ -n "$child" ]]; then
+    kill -TERM "$child" 2>/dev/null || true
+    wait "$child" 2>/dev/null || true
+  fi
+  exit "$1"
+}
+trap 'jail_stop 129' HUP; trap 'jail_stop 130' INT; trap 'jail_stop 143' TERM
+{ exec 3<&0; } 2>/dev/null || exec 3</dev/null
+bwrap \
   --die-with-parent --new-session \
   --unshare-pid --unshare-ipc --unshare-uts --unshare-net \
   --ro-bind / / --dev /dev --proc /proc \
   "${broad[@]}" --ro-bind "$cwd" "$cwd" \
   --bind "$scratch" "$scratch" --setenv TMPDIR "$scratch" \
   "${binds[@]}" "${mask[@]}" --chdir "$cwd" \
-  /bin/bash -c "$cmd"
+  /bin/bash -c "$cmd" <&3 3<&- &
+child=$!
+exec 3<&-
+rc=0
+wait "$child" || rc=$?
+exit "$rc"
