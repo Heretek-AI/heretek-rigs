@@ -13,7 +13,7 @@
 ARG BASE_IMAGE=debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251
 ARG NODE_VERSION=22.22.1
 ARG UV_VERSION=0.13.3
-ARG OPENRIG_VERSION=0.6.11
+ARG OPENRIG_VERSION=0.6.13
 ARG PI_VERSION=1.3.0
 
 # ---------------------------------------------------------------- builder ---
@@ -53,8 +53,8 @@ RUN set -eux; \
       pi-ast-grep@0.1.0; \
     npm --prefix "${HERETEK_TOOLS}/mcp" install --no-audit --no-fund \
       codebase-memory-mcp@0.12.1 \
-      @upstash/context7-mcp@4.4.2 \
-      @modelcontextprotocol/server-memory@1.0.0 \
+      @upstash/context7-mcp@4.4.4 \
+      @modelcontextprotocol/server-memory@2.0.0 \
       @playwright/mcp@0.0.83 \
       chrome-devtools-mcp@1.11.0 \
       @mobilenext/mobile-mcp@1.0.12 \

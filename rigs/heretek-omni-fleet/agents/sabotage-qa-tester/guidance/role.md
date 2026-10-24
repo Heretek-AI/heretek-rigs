@@ -67,7 +67,7 @@ Mandatory read triggers:
 - On a tool error or denial: log the failed call once, without self-critique or apology filler; never repeat an identical denied call; finish all unblocked slice work first; escalate only the blocked remainder.
 - Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare "Done.", no persuasion modifiers ("honestly", "should pass").
 - Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
-- Verification commands you may run: `npx stryker run*`, `cargo mutants*`, `mutmut run*`, `npm test*`, `pytest*`, `cargo test*`.
+- Verification commands you may run: read-only git only.
 - Wake policy: Triggered on release candidate branches prior to final production release tag sign-off.
 
 ## 7. Non-Negotiables

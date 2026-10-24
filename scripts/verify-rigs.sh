@@ -585,7 +585,7 @@ for rid, rdir in sorted(discovered_roles.items()):
     # direct-read denies hold).
     _bash_map = perm.get("bash", {})
     _bash_keys = list(_bash_map.keys())
-    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*")
+    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "*\t-c *", "* -c\t*", "*\t-c\t*", "* -m *", "*\t-m *", "* -m\t*", "*\t-m\t*", "* -W*", "*\t-W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
     for _td in _TERMINAL_BASH_DENIES:
         if _bash_map.get(_td) != "deny":
             fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
@@ -1155,7 +1155,7 @@ if '"*--output*"' not in _seed_text:
 # HR-5.5-git-patch-read-bypass (fail-closed): the renderer must emit the
 # patch-output flag denies LAST so `git log -p` / `git show --patch` cannot
 # exfiltrate file contents past path read-denies on allowed git prefixes.
-for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"'):
+for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"', '"* -u*"', '"*\\t-u*"', '"* -U*"', '"*\\t-U*"', '"*--unified*"', '"*--cc*"', '"* -c *"', '"*\\t-c *"', '"* -c\\t*"', '"*\\t-c\\t*"', '"* -m *"', '"*\\t-m *"', '"* -m\\t*"', '"*\\t-m\\t*"', '"* -W*"', '"*\\t-W*"', '"*--function-context*"', '"*--word-diff*"', '"*--color-words*"', '"*--binary*"', '"*--raw*"', '"*OPENRIG_SESSION_NAME=*"', '"*OPENRIG_URL=*"'):
     if _ptd not in _seed_text:
         fail(f"scripts/render-seat.py must emit terminal {_ptd} bash deny")
 # HR-4.2 (fail-closed opt-in): when HERETEK_REQUIRE_SEATS=1, assert sampled
@@ -1297,8 +1297,10 @@ for k in _PROXY_20:
 if set(dsp_env.keys()) != set(_PROXY_20):
     fail(f"docker-socket-proxy environment must be exactly the 20-toggle set (got {sorted(dsp_env.keys())})")
 dsp_img = dsp.get("image", "")
-if "tecnativa/docker-socket-proxy:0.5.0" not in dsp_img:
-    fail(f"docker-socket-proxy must be pinned tecnativa/docker-socket-proxy:0.5.0 (got {dsp_img})")
+# M9 (#70): `:0.5.0` never existed upstream (only `v0.5.0`); the gate pins
+# the verified tag + digest (spec-mandated stale-pin update, cf. M8 PUSH).
+if "tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459" not in dsp_img:
+    fail(f"docker-socket-proxy must be pinned tecnativa/docker-socket-proxy:v0.5.0@sha256:1f50…3459 (got {dsp_img})")
 dsp_vols = dsp.get("volumes", [])
 if not any("/var/run/docker.sock:/var/run/docker.sock:ro" in str(v) for v in dsp_vols):
     fail("docker-socket-proxy must mount /var/run/docker.sock:/var/run/docker.sock:ro")
@@ -1617,6 +1619,377 @@ if _hr57_match:
     _hr57_ran = _hr57_match.group(1)
 if len(failures) == _hr57_before:
     ok(f"Dispatch-tracker proposal generator (issue #57) green: drifted pair yields paste-ready cells, empty queue fails closed, run read-only (tests/test_generate_trackers.py {_hr57_ran} tests pass)")
+
+print("\n== V12. Tool-Existence Gate (#67, #74, #82) ==")
+# Fail-closed tool existence: every seat's settings packages[0] (the
+# mandatory @gotgenes/pi-permission-system) must exist when rendered against
+# a real tools dir, and every stdio MCP server bound to a seat must have a
+# resolvable command (absolute path on disk, or on PATH via shutil.which).
+# Missing host-optional MCP binaries are REPORTED per seat (naming the
+# server, e.g. radare2 when r2mcp is not installed) but do not fail the
+# gate — installing host tooling is M9 scope; a missing MANDATORY pps or a
+# deleted M2 render guard DOES fail. Appended at the end — no existing check
+# renumbered or reworded. Exactly one ok() below.
+_v12_before = len(failures)
+import shutil as _shutil12
+_v12_tools = Path(
+    os.environ.get("HERETEK_TOOLS", str(Path.home() / ".local/share/heretek-rigs/tools"))
+)
+_v12_mcp_servers = yaml.safe_load((root / "fleet/mcp-servers.yaml").read_text())["servers"]
+# (a) the M2 fail-closed guard must exist in the renderer source — deleting
+# the mandatory-pps die must flip this gate even on hosts without tools.
+_v12_render_src = (root / "scripts/render-seat.py").read_text()
+if "@gotgenes/pi-permission-system is mandatory" not in _v12_render_src:
+    fail("scripts/render-seat.py must die on a missing @gotgenes/pi-permission-system (M2 fail-closed guard)")
+if 'need 41.0.0' not in _v12_render_src:
+    fail("scripts/render-seat.py must pin @gotgenes/pi-permission-system at 41.0.0 (M2 version guard)")
+# (a2) M4 (#68) sandbox hook: the renderer must emit settings.json
+# shellPath to the wrapper and the per-seat sandbox.env; the wrapper must
+# exist, be executable, and bwrap must resolve (Gotcha 5) — a missing
+# shellPath fails closed at pi startup, so all three are hard fails.
+if '"shellPath"' not in _v12_render_src or 'seat-sandbox.sh' not in _v12_render_src:
+    fail("scripts/render-seat.py must emit settings.json shellPath to scripts/seat-sandbox.sh (M4 sandbox)")
+if 'sandbox.env' not in _v12_render_src:
+    fail("scripts/render-seat.py must emit sandbox.env (HERETEK_SANDBOX_WRITE/HERETEK_SECRET_STORE) (M4 sandbox)")
+_v12_wrapper = root / "scripts/seat-sandbox.sh"
+if not _v12_wrapper.is_file():
+    fail("scripts/seat-sandbox.sh missing (settings.json shellPath target)")
+elif not os.access(_v12_wrapper, os.X_OK):
+    fail("scripts/seat-sandbox.sh must be executable")
+if _shutil12.which("bwrap") is None:
+    fail("tool-existence: bwrap not found on PATH (seat sandbox needs bubblewrap)")
+# (b) per-seat settings packages[0]: resolve the committed
+# specs/.../runtime/pi-settings.json against the real tools dir.
+_v12_pps_pkg = "pi-packages/node_modules/@gotgenes/pi-permission-system"
+_v12_roles = fleet.get("roles", {})
+for _rid12 in sorted(_v12_roles):
+    _ps12 = root / "specs/agents" / _v12_roles[_rid12]["domain"] / _rid12 / "runtime/pi-settings.json"
+    if not _ps12.is_file():
+        fail(f"{_rid12}: missing committed runtime/pi-settings.json (cannot verify packages[0])")
+        continue
+    try:
+        _pkgs12 = json.loads(_ps12.read_text()).get("packages", [])
+    except Exception as _e12:
+        fail(f"{_rid12}: runtime/pi-settings.json unreadable ({_e12})")
+        continue
+    if not _pkgs12 or _v12_pps_pkg not in str(_pkgs12[0]):
+        fail(f"{_rid12}: settings packages[0] must be the mandatory {_v12_pps_pkg} (got {_pkgs12[:1]})")
+    # M4 (#68): committed reference settings must route bash through the jail.
+    try:
+        _shell12 = json.loads(_ps12.read_text()).get("shellPath", "")
+    except Exception:
+        _shell12 = ""
+    if not str(_shell12).endswith("scripts/seat-sandbox.sh"):
+        fail(f"{_rid12}: settings shellPath must route through scripts/seat-sandbox.sh (got {_shell12!r})")
+if _v12_tools.is_dir():
+    _v12_pps_json = _v12_tools / _v12_pps_pkg / "package.json"
+    if not _v12_pps_json.is_file():
+        fail(f"tool-existence: {_v12_pps_json} missing: @gotgenes/pi-permission-system is mandatory (render would die per M2)")
+    else:
+        try:
+            _v12_ver = json.loads(_v12_pps_json.read_text()).get("version")
+        except Exception as _e12:
+            fail(f"tool-existence: {_v12_pps_json} unreadable ({_e12})")
+            _v12_ver = None
+        if _v12_ver is not None and _v12_ver != "41.0.0":
+            fail(f"tool-existence: {_v12_pps_json} version {_v12_ver}, need 41.0.0")
+else:
+    print(f"  [NOTE] V12 tool-existence: tools dir {_v12_tools} absent on this host; packages[0] existence unchecked (render dies per M2)")
+# (c) per-seat MCP command resolution, missing reported per seat.
+_v12_cmd_cache = {}
+for _rid12 in sorted(_v12_roles):
+    for _b12 in (_v12_roles[_rid12].get("mcp") or []):
+        _srv12 = _b12.get("server")
+        _sdef12 = _v12_mcp_servers.get(_srv12, {})
+        if _sdef12.get("transport") == "http" or "command" not in _sdef12:
+            continue
+        if _srv12 not in _v12_cmd_cache:
+            _cmd12 = str(_sdef12["command"]).replace("@TOOLS@", str(_v12_tools))
+            if "@SECRETS@" in _cmd12 or "@SEAT@" in _cmd12:
+                _v12_cmd_cache[_srv12] = (True, _cmd12)
+            elif Path(_cmd12).is_absolute():
+                _v12_cmd_cache[_srv12] = (Path(_cmd12).is_file(), _cmd12)
+            else:
+                _v12_cmd_cache[_srv12] = (_shutil12.which(_cmd12.split()[0]) is not None, _cmd12)
+        _ok12, _cmd12 = _v12_cmd_cache[_srv12]
+        if not _ok12:
+            print(f"  [NOTE] V12 tool-existence: seat {_rid12}: server '{_srv12}' command not found: {_cmd12}")
+_v12_missing12 = sorted(_s for _s, (_o, _c) in _v12_cmd_cache.items() if not _o)
+if len(failures) == _v12_before:
+    if _v12_missing12:
+        ok(f"Tool-existence (issues #67/#74) green: pps packages[0] present at 41.0.0 with M2 render guard; {len(_v12_cmd_cache) - len(_v12_missing12)} bound MCP commands resolve, host-missing listed above ({', '.join(_v12_missing12)})")
+    else:
+        ok(f"Tool-existence (issues #67/#74) green: pps packages[0] present at 41.0.0 with M2 render guard; all {len(_v12_cmd_cache)} bound MCP commands resolve")
+
+print("\n== V13. Supply-Chain Pins (#70, #71, #85, #86, #87, #97, #99, S2a) ==")
+# M9: appended for the supply-chain wave — no V1-V12 line renumbered or
+# reworded. Exactly one ok() below.
+_v13_before = len(failures)
+
+# --- S2a: renderer emitter tuple == :588 mirror tuple, ordered-identical ---
+_rs13_spec = importlib.util.spec_from_file_location("render_seat_v13", str(root / "scripts/render-seat.py"))
+_rs13_mod = importlib.util.module_from_spec(_rs13_spec)
+try:
+    _rs13_spec.loader.exec_module(_rs13_mod)
+except Exception as _e13:
+    fail(f"V13/S2a: cannot load scripts/render-seat.py ({_e13})")
+    _rs13_mod = None
+if _rs13_mod is not None:
+    _emitter13 = list(getattr(_rs13_mod, "TERMINAL_BASH_DENIES", ()))
+    if not _emitter13:
+        fail("V13/S2a: render-seat.py must expose TERMINAL_BASH_DENIES (single source of truth)")
+    elif list(_TERMINAL_BASH_DENIES) != _emitter13:
+        fail("V13/S2a: verify-rigs mirror tuple != render-seat TERMINAL_BASH_DENIES (must be ordered-identical)")
+
+# --- #70: every sidecar image tag@digest-pinned and resolvable ---
+# Tagless `repo@sha256:` pins are allowed (strictly stronger than
+# tag@digest: no mutable tag involved); the tag form keeps provenance.
+_IMG13_RE = re.compile(r"^([^@\s]+)(:[^:@\s]+)?@sha256:[0-9a-f]{64}$")
+_v13_sidecars = yaml.safe_load((root / "docker-compose.sidecars.yml").read_text())
+for _sname13, _sdef13 in sorted(_v13_sidecars.get("services", {}).items()):
+    _img13 = str(_sdef13.get("image", ""))
+    if "@sha256:" not in _img13:
+        fail(f"V13/#70: sidecar {_sname13} must pin its image by digest (got {_img13!r})")
+    elif not _IMG13_RE.match(_img13):
+        fail(f"V13/#70: sidecar {_sname13} image must be <repo>:<tag>@sha256:<64hex> (got {_img13!r})")
+    elif ":latest" in _img13.split("@sha256:")[0]:
+        fail(f"V13/#70: sidecar {_sname13} uses forbidden :latest tag: {_img13}")
+# --- #70: networked image-existence check (skippable offline, skip recorded) ---
+# NOTE: skopeo rejects tag@digest refs ("both a tag and digest are
+# currently not supported"), so the existence probe strips the tag and
+# resolves the digest ref (the digest is the content address anyway).
+# A :tag suffix never contains '/'; a registry :port is followed by '/'.
+_v13_offline = False
+_v13_resolved = 0
+for _sname13, _sdef13 in sorted(_v13_sidecars.get("services", {}).items()):
+    _img13 = str(_sdef13.get("image", ""))
+    if not _IMG13_RE.match(_img13):
+        continue
+    _repo13, _dgst13 = _img13.split("@sha256:")
+    if ":" in _repo13 and "/" not in _repo13.rsplit(":", 1)[-1]:
+        _repo13 = _repo13.rsplit(":", 1)[0]
+    _ref13 = f"{_repo13}@sha256:{_dgst13}"
+    try:
+        _p13 = subprocess.run(["skopeo", "inspect", f"docker://{_ref13}"],
+                              capture_output=True, text=True, timeout=120)
+    except Exception as _e13:
+        print(f"  [NOTE] V13/#70 image-existence: cannot run skopeo for {_sname13} ({_e13}); existence unchecked")
+        _v13_offline = True
+        continue
+    if _p13.returncode != 0:
+        _err13 = (_p13.stderr or "")[:300]
+        if re.search(r"(network|timeout|timed out|connection|refused|Temporary failure|Could not resolve|no such host|TLS|certificate|proxyconnect|proxy connect)", _err13, re.IGNORECASE):
+            print(f"  [NOTE] V13/#70 image-existence: offline ({_err13[:120]}); {_sname13} existence unchecked")
+            _v13_offline = True
+            continue
+        fail(f"V13/#70: sidecar {_sname13} image does not resolve: {_img13} ({_err13[:160]})")
+    else:
+        _v13_resolved += 1
+if _v13_offline:
+    print(f"  [NOTE] V13/#70 image-existence: offline skip recorded; {_v13_resolved} images resolved")
+
+# --- #100: Dockerfile install lists match catalog/fleet pins (drift fails closed) ---
+_dockerfile13 = (root / "docker/Dockerfile").read_text()
+if "ARG OPENRIG_VERSION=0.6.13" not in _dockerfile13:
+    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.6.13")
+_expected_npm13 = {}
+for _n13, _s13 in mcp_catalog.items():
+    _pm13 = re.fullmatch(r"npm:(\S+)@(\S+)", str(_s13.get("pin", "")))
+    if _pm13 and str(_s13.get("command", "")).startswith("@TOOLS@/mcp"):
+        _expected_npm13[_pm13.group(1)] = _pm13.group(2)
+for _pkg13, _ver13 in sorted(_expected_npm13.items()):
+    if f"{_pkg13}@{_ver13}" not in _dockerfile13:
+        fail(f"V13/#100: docker/Dockerfile must install catalog-pinned {_pkg13}@{_ver13}")
+# Dockerfile-found literal name@version pins must be exactly the expected set
+# (3 fleet pi-packages + 8 catalog npm MCP servers): no drift either direction.
+_expected_pi13 = {}
+for _rid13, _r13 in fleet.get("roles", {}).items():
+    for _pp13 in _r13.get("pi_packages", []):
+        _pn13 = _pp13.split("@")[0] if not _pp13.startswith("@") else "@" + _pp13[1:].split("@")[0]
+        _pv13 = _pp13.rsplit("@", 1)[-1]
+        if _pn13 in ("@gotgenes/pi-permission-system", "pi-lsp-extension", "pi-ast-grep"):
+            _expected_pi13.setdefault(_pn13, set()).add(_pv13)
+for _pn13, _vers13 in sorted(_expected_pi13.items()):
+    if len(_vers13) != 1:
+        fail(f"V13/#100: fleet pi_packages disagree on {_pn13} (got {sorted(_vers13)})")
+    elif f"{_pn13}@{sorted(_vers13)[0]}" not in _dockerfile13:
+        fail(f"V13/#100: docker/Dockerfile must install fleet-pinned {_pn13}@{sorted(_vers13)[0]}")
+_found13 = set(re.findall(r"(?m)^\s*((?:@[\w./-]+|[\w./-]+)@\d[\dA-Za-z._+-]*)[\s\\;]*$", _dockerfile13))
+_want13 = {f"{k}@{v}" for k, v in _expected_npm13.items()} | {f"{k}@{sorted(v)[0]}" for k, v in _expected_pi13.items() if len(v) == 1}
+if _found13 != _want13:
+    fail(f"V13/#100: Dockerfile literal pins {sorted(_found13)} != catalog/fleet set {sorted(_want13)}")
+
+# --- #71: exact per-server security args/env + pin==args-pin ---
+_mcp13 = yaml.safe_load((root / "fleet/mcp-servers.yaml").read_text())["servers"]
+if list(_mcp13["radare2"].get("args", [])) != ["-R"]:
+    fail(f"V13/#71: radare2.args must be exactly ['-R'] (got {_mcp13['radare2'].get('args')!r})")
+if list(_mcp13["kubernetes"].get("args", [])) != ["--read-only"]:
+    fail(f"V13/#71: kubernetes.args must be exactly ['--read-only'] (got {_mcp13['kubernetes'].get('args')!r})")
+if "--access-mode=restricted" not in list(_mcp13["postgres"].get("args", [])):
+    fail(f"V13/#71: postgres.args must contain --access-mode=restricted (got {_mcp13['postgres'].get('args')!r})")
+if str(_mcp13["clickhouse"].get("env", {}).get("CLICKHOUSE_ALLOW_WRITE_ACCESS")) != "false":
+    fail("V13/#71: clickhouse env CLICKHOUSE_ALLOW_WRITE_ACCESS must be \"false\"")
+if str(_mcp13["aws"].get("env", {}).get("READ_OPERATIONS_ONLY")) != "true":
+    fail("V13/#71: aws env READ_OPERATIONS_ONLY must be \"true\"")
+def _want_ver13(pin):
+    pin = str(pin)
+    _m = re.search(r"==([0-9A-Za-z][0-9A-Za-z._+-]*)", pin)
+    if _m:
+        return _m.group(1)
+    _m = re.search(r"@([0-9][0-9A-Za-z._+-]*)$", pin)
+    if _m:
+        return _m.group(1)
+    _m = re.search(r":([0-9][0-9A-Za-z._+-]*)$", pin)
+    if _m:
+        return _m.group(1)
+    return None
+for _n13, _s13 in sorted(_mcp13.items()):
+    _want13 = _want_ver13(_s13.get("pin", ""))
+    if not _want13 or _s13.get("transport") != "stdio" or "command" not in _s13:
+        continue
+    if str(_s13["command"]).startswith("@TOOLS@/mcp"):
+        # npm-command servers bind their version at install time, not in
+        # args — exactness is enforced by the V13/#100 Dockerfile assert.
+        continue
+    _blob13 = " ".join(str(_a13) for _a13 in _s13.get("args", [])) + " " + str(_s13.get("install", ""))
+    if _want13 not in _blob13:
+        fail(f"V13/#71: {_n13} pin version {_want13} must be reflected in args/install (got {sorted(_s13.get('args', []))!r})")
+# --- #71 deny-lists: rejected r2mcp/aws-mcp pin forms (pi-subagents/pi-lsp@0.1.7 stay in V6) ---
+_BANNED13 = ("r2mcp==", "aws-mcp@", "pypi:r2mcp", "npm:aws-mcp")
+for _ln13 in (root / "fleet/mcp-servers.yaml").read_text().splitlines():
+    if any(_b13 in _ln13 for _b13 in _BANNED13) and not _ln13.strip().startswith("replaces:"):
+        fail(f"V13/#71: fleet/mcp-servers.yaml active pin contains rejected form: {_ln13.strip()[:100]}")
+_v13_shipped = [root / "fleet/fleet.yaml"]
+_v13_shipped += [p for p in list((root / "specs").rglob("*")) + list((root / "rigs").rglob("*")) if p.is_file()]
+_v13_shipped += [p for p in list((root / "scripts").glob("*.py")) + list((root / "scripts").glob("*.sh")) if p.name != "verify-rigs.sh"]
+for _p13 in _v13_shipped:
+    try:
+        _t13 = _p13.read_text(encoding="utf-8")
+    except Exception:
+        continue
+    for _b13 in _BANNED13:
+        if _b13 in _t13:
+            fail(f"V13/#71: {_p13.relative_to(root)} contains rejected pin form {_b13!r}")
+
+# --- #85: git-archive vendoring + dirty-clone refusal in the generator ---
+_gen13_src = (root / "scripts/generate-rigs.py").read_text()
+if "git archive" not in _gen13_src:
+    fail("V13/#85: generate-rigs.py must vendor pinned skills via `git archive <sha> <path>`")
+if "is dirty" not in _gen13_src:
+    fail("V13/#85: generate-rigs.py must refuse dirty vendor clones")
+
+# --- #86: roster seat-set == 51 fleet sessions; omni command pod ---
+_roster13 = json.loads((root / "rosters/heretek-omni-fleet.json").read_text())
+_roster_seats13 = sorted(_m13.get("seat") for _m13 in _roster13.get("members", []))
+_fleet_sessions13 = sorted(_r13.get("session") for _r13 in fleet.get("roles", {}).values())
+if len(_roster_seats13) != 51 or _roster_seats13 != _fleet_sessions13:
+    fail(f"V13/#86: roster seats ({len(_roster_seats13)}) must equal the 51 fleet sessions")
+_core13 = fleet.get("omni", {}).get("core_pod", {})
+if set(_core13.get("members", [])) != {"exec-director", "system-architect", "tpm-scrum-lead"}:
+    fail(f"V13/#86: omni command pod must be exactly {{exec-director, system-architect, tpm-scrum-lead}} (got {sorted(_core13.get('members', []))})")
+if _core13.get("lead") != "exec-director":
+    fail("V13/#86: omni command pod lead must be exec-director")
+
+# --- #87: stub-marker scan over specs/agents/*/<role>/ (skills/ excluded) ---
+_STUB13_RE = re.compile(r"\b(TODO|FIXME|TBD|PLACEHOLDER)\b|\{\{[A-Za-z_]+\}\}")
+for _dom13 in sorted((root / "specs/agents").iterdir()):
+    if not _dom13.is_dir() or _dom13.name == "_shared":
+        continue
+    for _role13 in sorted(_dom13.iterdir()):
+        if not _role13.is_dir():
+            continue
+        for _f13 in sorted(_role13.rglob("*")):
+            if not _f13.is_file():
+                continue
+            if _f13.relative_to(_role13).parts[0] == "skills":
+                continue
+            try:
+                _txt13 = _f13.read_text(encoding="utf-8")
+            except Exception as _e13:
+                fail(f"V13/#87: {_f13.relative_to(root)} unreadable ({_e13})")
+                continue
+            for _tok13 in ("@TOOLS@", "@SECRETS@", "@SEAT@"):
+                _txt13 = _txt13.replace(_tok13, "")
+            _m13 = _STUB13_RE.search(_txt13)
+            if _m13:
+                fail(f"V13/#87: {_f13.relative_to(root)} contains stub marker {_m13.group(0)!r}")
+
+# --- #97/#99: DIRTY provenance rejected; attestation grounded or "Not tested" ---
+for _rdoc13 in list((root / "registry/entries").glob("*.yaml")) + list((root / "registry/views").rglob("behaviour.json")):
+    if "DIRTY-" in _rdoc13.read_text():
+        fail(f"V13/#99: {_rdoc13.relative_to(root)} carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)")
+_status13 = json.loads((root / "registry/status.json").read_text())
+_rec13_path = root / "docs/evidence/run-records.json"
+_grounded13 = []
+if _rec13_path.is_file():
+    try:
+        _grounded13 = json.loads(_rec13_path.read_text()).get("recordIds", []) or []
+    except Exception:
+        _grounded13 = []
+for _rr13, _rd13 in _status13.get("listings", {}).items():
+    for _cc13, _cd13 in _rd13.get("configurations", {}).items():
+        for _pp13, _pd13 in _cd13.get("platforms", {}).items():
+            _lbl13, _ids13 = _pd13.get("label"), _pd13.get("recordIds", [])
+            if _lbl13 == "Not tested":
+                if _ids13:
+                    fail(f"V13/#97: {_rr13} claims Not tested but lists record ids")
+            elif _lbl13 == "tested":
+                if not _ids13 or any(_i13 not in _grounded13 for _i13 in _ids13):
+                    fail(f"V13/#97: {_rr13} tested claim is ungrounded (no docs/evidence/run-records.json covering {_ids13})")
+            else:
+                fail(f"V13/#97: {_rr13} has unknown attestation label {_lbl13!r}")
+_hrn13 = _status13.get("harnessChecks", {}).get("harnesses", {}).get("pi", {}).get("linux-x64", {})
+if _hrn13.get("result") == "Not tested":
+    if _hrn13.get("recordIds", []):
+        fail("V13/#97: harness claims Not tested but lists record ids")
+elif _hrn13.get("result") == "PASS":
+    if not _hrn13.get("recordIds", []) or any(_i13 not in _grounded13 for _i13 in _hrn13.get("recordIds", [])):
+        fail("V13/#97: harness PASS claim is ungrounded (no docs/evidence/run-records.json covering it)")
+else:
+    fail(f"V13/#97: harness has unknown result {_hrn13.get('result')!r}")
+
+if len(failures) == _v13_before:
+    ok("Supply-chain pins (#70/#71/#85/#86/#87/#97/#99/S2a) green: tag@digest sidecars resolve, Dockerfile matches catalog/fleet, MCP flags/pins exact, vendor/archive+roster/pod/stub/attestation gates hold")
+
+print("\n== V14. No Worktree-Stale Absolute Paths (#67) ==")
+# #67 hard-never applied to the baked VALUE: render-seat.py emits shellPath
+# as an absolute path resolved from the rendering checkout, so leaves baked
+# on a worktree carry that worktree's dir (e.g. .../.lane/trees/<name>/...).
+# The V12 endswith check passes such staleness while pi itself fails closed
+# ("Custom shell path not found") at seat startup. Canonical checkouts never
+# contain /.lane/ paths, so any baked shellPath or packages[] value holding
+# that segment is always wrong to merge. Covers committed specs/... and
+# rigs/... leaves alike (V13 label was already taken by the supply-chain
+# wave, hence V14; V1-V13 lines untouched). Exactly one ok() below.
+_v14_before = len(failures)
+_v14_files = sorted((root / "specs").glob("agents/*/*/runtime/pi-settings.json")) + sorted((root / "rigs").glob("*/agents/*/runtime/pi-settings.json"))
+if not _v14_files:
+    fail("V14/#67: no committed pi-settings.json leaves found under specs/ or rigs/")
+for _p14 in _v14_files:
+    try:
+        _d14 = json.loads(_p14.read_text())
+    except Exception as _e14:
+        fail(f"V14/#67: {_p14.relative_to(root)} unreadable ({_e14})")
+        continue
+    _seat14 = _p14.parent.parent.name
+    _vals14 = []
+    if "shellPath" in _d14:
+        _vals14.append(("shellPath", _d14.get("shellPath")))
+    for _i14, _pkg14 in enumerate(_d14.get("packages", []) or []):
+        _vals14.append((f"packages[{_i14}]", _pkg14))
+    for _k14, _v14 in _vals14:
+        if "/.lane/" in str(_v14):
+            fail(f"V14/#67: seat {_seat14}: {_p14.relative_to(root)} {_k14} holds worktree-stale absolute path {_v14!r} (#67 worktree-stale absolute path — re-bake on a canonical checkout)")
+    # #105 review: leaves are checkout-independent. shellPath is the fixed
+    # @RIGS@ placeholder and every package path starts with @TOOLS@/, so no
+    # host path (/home/<user>/...) can be baked into a committed leaf.
+    if _d14.get("shellPath") != "@RIGS@/scripts/seat-sandbox.sh":
+        fail(f"V14: seat {_seat14}: {_p14.relative_to(root)} shellPath must be '@RIGS@/scripts/seat-sandbox.sh' (got {_d14.get('shellPath')!r}); regenerate with scripts/generate-rigs.py")
+    for _i14, _pkg14 in enumerate(_d14.get("packages", []) or []):
+        if not str(_pkg14).startswith("@TOOLS@/"):
+            fail(f"V14: seat {_seat14}: {_p14.relative_to(root)} packages[{_i14}] must start with '@TOOLS@/' (got {_pkg14!r})")
+if len(failures) == _v14_before:
+    ok(f"Checkout-independent leaves (#67) green: {len(_v14_files)} committed pi-settings.json leaves use @RIGS@/@TOOLS@ placeholders, no /.lane/ or host paths")
 
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:

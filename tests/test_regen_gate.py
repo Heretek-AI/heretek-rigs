@@ -184,10 +184,22 @@ class TestRegenGate(unittest.TestCase):
         self.assertEqual(out, "")
         self.assertEqual(err, "")
 
-    # Escape hatch unchanged: ALLOW_DIRTY proceeds and records the real SHA.
+    # #99 (fail-closed): ALLOW_DIRTY over blocking dirt proceeds but stamps
+    # an obvious DIRTY-<sha> marker instead of the bare SHA, so generated
+    # provenance can never silently claim a clean checkout it was not built
+    # from (verify-rigs rejects DIRTY-). Genuinely stale vs the M9 mandate;
+    # changed in its own commit per brief rule 4 (one-line reason here).
     def test_allow_dirty_bypass_records_real_sha(self):
         (self.root / "fleet/fleet.yaml").write_text("roles: {changed: true}\n")
         self.write_strays(["scripts/evil-new-helper.py"])
+        sha, out, err, code = self.resolve(HERETEK_RIGS_ALLOW_DIRTY="1")
+        self.assertEqual(code, None)
+        self.assertEqual(sha, "DIRTY-" + self.head)
+
+    # #99: ALLOW_DIRTY on a clean (or sanctioned-strays-only) tree still
+    # records the bare SHA — the stamp marks uncommitted inputs only.
+    def test_allow_dirty_clean_tree_records_bare_sha(self):
+        self.write_strays(SANCTIONED_STRAYS)
         sha, out, err, code = self.resolve(HERETEK_RIGS_ALLOW_DIRTY="1")
         self.assertEqual(code, None)
         self.assertEqual(sha, self.head)

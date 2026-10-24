@@ -12,17 +12,15 @@
         "delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-executive-and-architecture"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "1f5d442c2f3fb38008a6142d8b0624d5becb2d94751d4523bbfd75dbf5a08b0f",
+                  "value": "414037b403c5859f28106b77b929eb8f569a7730c0039117765ffe05c7eb5717",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -38,17 +36,15 @@
         "build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-fullstack-and-web-studio"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "5be383a43634c1bc45fc3fbe728e6c6a526dbd6ae85c2aa2ab587068cb4afbf7",
+                  "value": "65f9d8c8a1fad8ddbadf38265390d4ba4d302311fd6709bc333333231fc741ad",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -64,17 +60,15 @@
         "mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-systems-and-mobile-foundry"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "661988b976511a9ba1fb7bbf82a4b9a73e6a2e5347afbeb13268e542c8c76423",
+                  "value": "2935aa5bcf5b4a9bbcd4f61ff91b74edcea5f2c6a39f2bc4420a9d1487c920b4",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -90,17 +84,15 @@
         "engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-game-dev-and-sim-rig"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "16d3177a947260c593806f6f8f583239ee568645df1b898a36f513eda7bdb737",
+                  "value": "81df400607e95c04ecb7391008b437a5dfc3a69b3104ac5da5eff232d45b139d",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -116,17 +108,15 @@
         "data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-cloud-sre-and-data-platform"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "083e6772b741d4838184b2a777371c813c16f166d44cbf58288770c3af4806cf",
+                  "value": "be999df5a89e2ca50545ab91211deb4530d8ed8ef0c8580858b702b07e3c2901",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -142,17 +132,15 @@
         "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-qa-and-verification-gauntlet"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "c15abfe8d845c413c97f3d13fda37581edfc3f76b83b96a1ba0370527fafe532",
+                  "value": "b385178fe4f2a924d13a133855aa5ab4e4b4a08852b5eafc1e51c360712f3f06",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -168,17 +156,15 @@
         "blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-defensive-sec-and-red-team"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "c26818b1effce0eaef4cc105b7f9eb0c56e7a430b5a8117ea16dfb8c9977ca58",
+                  "value": "25f472f4fe14b46211f2cda8f98b7ef42cbb246fa2b6ac335e641536a6ff0c43",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -194,17 +180,15 @@
         "command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "tested",
+              "label": "Not tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.6.13",
-              "recordIds": [
-                "rr-20261018-heretek-omni-fleet"
-              ],
+              "recordIds": [],
               "packageDigests": [
                 {
                   "algorithm": "sha256",
-                  "value": "2e527620601843cce85dc0ef61368c8f5780066d0c00f5035076995994f9b2cf",
+                  "value": "84d2a5ee97beca00e494e4af1b004422c0c7cbc3c3f73782f91f28bd3c5b17f5",
                   "coverage": "openrig.package-digest/v1"
                 }
               ]
@@ -220,16 +204,14 @@
     "harnesses": {
       "pi": {
         "linux-x64": {
-          "result": "PASS",
+          "result": "Not tested",
           "date": "2026-10-18",
           "openrigVersion": "0.6.13",
           "harnessVersion": "1.3.0",
-          "recordIds": [
-            "rr-20261018-pi-harness"
-          ]
+          "recordIds": []
         }
       }
     }
   },
-  "bodyDigest": "7f99fa20b37ca2622c3913a9a300950dafdff92299bb0ec9b2ca6bc1d01f3433"
+  "bodyDigest": "1057b732303778cfe44e2d420668e9e5a3a9a619839e5b05adcf3ced51bff6e0"
 }

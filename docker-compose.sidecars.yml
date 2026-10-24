@@ -15,7 +15,10 @@
 name: heretek-rigs-sidecars
 services:
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:0.5.0
+    # Pinned 2026-10-24 (M9 #70): the `:0.5.0` tag never existed upstream
+    # (only `v0.5.0`); digest resolved live via skopeo inspect. The digest
+    # wins; `v0.5.0` stays as the human-readable provenance.
+    image: tecnativa/docker-socket-proxy:v0.5.0@sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459
     profiles: ["qa-testing"]
     # HR-7.2 (fail-closed): every Tecnativa toggle pinned explicitly to "0".
     # Unset toggles fall back to upstream image defaults — EVENTS, PING and
@@ -49,7 +52,10 @@ services:
     restart: unless-stopped
 
   searxng:
-    image: searxng/searxng:2026.10.18-2c9b2d4
+    # Pinned 2026-10-24 (M9 #70): the `:2026.10.18-2c9b2d4` tag never existed
+    # upstream; tagless digest adopted from the sibling-tested Heretek-Crew
+    # pin and verified live via skopeo inspect.
+    image: searxng/searxng@sha256:79180616c984f39524f6f27f19625a46f82c8ad4aa6a2e553db52b14e1b4a768
     profiles: ["web-research"]
     ports:
       - 127.0.0.1:8888:8080
@@ -60,7 +66,12 @@ services:
     restart: unless-stopped
 
   browserless:
-    image: browserless/chrome:1.66.0
+    # Pinned 2026-10-24 (M9 #70): `browserless/chrome:1.66.0` never existed
+    # (no bare semver tags; wrong repo — the published repo is
+    # ghcr.io/browserless/chromium). Adopted the sibling-tested
+    # v2.26.0 pin, verified live via skopeo inspect. The digest wins;
+    # `v2.26.0` stays as the human-readable provenance.
+    image: ghcr.io/browserless/chromium:v2.26.0@sha256:899026f6995003a35989dc32e240711735ac17069a9d476376081bcc20b24da9
     profiles: ["web-research"]
     ports:
       - 127.0.0.1:3000:3000
@@ -71,11 +82,21 @@ services:
     restart: unless-stopped
 
   firecrawl:
-    image: ghcr.io/mendable/firecrawl:1.6.0
+    # Pinned 2026-10-24 (M9 #70): `ghcr.io/mendable/firecrawl:1.6.0` never
+    # existed (no `mendable` org; the project moved mendableai->firecrawl
+    # and publishes no 1.x tags). Adopted the sibling-tested 2.10.19 pin,
+    # verified live via skopeo inspect. PORT/INTERNAL_PORT preserve the
+    # 3002 mapping (the image defaults to 8080); REDIS_URL still points at
+    # the firecrawl-redis service below. Caveat: upstream runs a full
+    # backing stack (rabbitmq/nuq-postgres/playwright-service) — this
+    # minimal profile's standalone boot is unverified (see NOTES).
+    image: ghcr.io/firecrawl/firecrawl:2.10.19@sha256:50446cbc0bc700a78cc588c96bd38a97f01cc4299c99b349c7bfa1ba57b6d7ed
     profiles: ["web-research"]
     ports:
       - 127.0.0.1:3002:3002
     environment:
+      PORT: "3002"
+      INTERNAL_PORT: "3002"
       REDIS_URL: redis://firecrawl-redis:6379/0
     networks:
       - heretek
@@ -86,17 +107,25 @@ services:
   # HR-7.1-firecrawl-redis (fail-closed): backend for firecrawl's REDIS_URL.
   # No published ports (reachable only inside the compose net); pinned image.
   firecrawl-redis:
-    image: redis:8.0.3
+    image: redis:8.0.3@sha256:be0a135f1955140436b9114da96dd22fbedb874469400b6ef458cc0d42155de0
     profiles: ["web-research"]
     networks:
       - heretek
     restart: unless-stopped
 
   ghidra:
-    image: ghcr.io/ghidra/ghidra:11.4.2
+    # Pinned 2026-10-24 (M9 #70): `ghcr.io/ghidra/ghidra:11.4.2` never
+    # existed (no `ghidra` GitHub org). Adopted the sibling-tested
+    # blacktop/ghidra:12.1.4 pin, verified live via skopeo inspect, with
+    # upstream's entrypoint/command (`server` serves :1337; the image
+    # default cmd is `client`). The digest wins; `12.1.4` stays as the
+    # human-readable provenance.
+    image: blacktop/ghidra:12.1.4@sha256:b2479177bd6a10d974da1bff30cc911ea2856843d858ad0ba02a608152ca193c
     profiles: ["devsec"]
     ports:
       - 127.0.0.1:1337:1337
+    entrypoint: ["/entrypoint.sh"]
+    command: ["server"]
     volumes:
       - ./workspaces/binaries:/samples:ro
     networks:
@@ -104,7 +133,10 @@ services:
     restart: unless-stopped
 
   radare2:
-    image: radareorg/radare2:5.9.8
+    # Pinned 2026-10-24 (M9 #70): `radareorg/radare2:5.9.8` never existed
+    # (wrong org — the published repo is `radare/radare2`). Tagless digest
+    # adopted from the sibling-tested pin and verified live via skopeo.
+    image: radare/radare2@sha256:88b7ff67710e12f430b269abc7714490e3a0c37e391521523148cbd6f9d2ae37
     profiles: ["devsec"]
     ports:
       - 127.0.0.1:9090:9090
@@ -115,7 +147,10 @@ services:
     restart: unless-stopped
 
   sonarqube:
-    image: sonarqube:25.10.0-community
+    # Pinned 2026-10-24 (M9 #70): `:25.10.0-community` never existed; the
+    # resolved tag is `25.10.0.114319-community`, digest verified live via
+    # skopeo inspect. The digest wins; the tag stays as provenance.
+    image: sonarqube:25.10.0.114319-community@sha256:ef0290a2deabad86a2623552712033a7107a9f5b310af00519b4ddd5b348ef4e
     profiles: ["devsec"]
     ports:
       - 127.0.0.1:9000:9000
@@ -124,7 +159,7 @@ services:
     restart: unless-stopped
 
   qdrant:
-    image: qdrant/qdrant:v1.15.3
+    image: qdrant/qdrant:v1.15.3@sha256:31407c0e8e32eb771b71718f1a4772e2ad47a07557917b21ac96792f40eb8007
     profiles: ["ai-gateway"]
     ports:
       - 127.0.0.1:6333:6333
@@ -135,7 +170,7 @@ services:
     restart: unless-stopped
 
   docker-android:
-    image: budtmo/docker-android:emulator_14.0
+    image: budtmo/docker-android:emulator_14.0@sha256:8ee678cf831fdf7c03fb391ca036922f3b78b89fdc992be3b815e1c70b372d2a
     profiles: ["mobile"]
     privileged: false
     ports:

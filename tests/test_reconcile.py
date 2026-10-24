@@ -936,3 +936,210 @@ def _shq(s):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+# ---------------------------------------------------------------------------
+# M7 (#84) — negation-aware terminal/placed detection: queue terminal only on
+# state; notes/tracker cells count only as affirmative ^QA PASS with no
+# negator (not|no|never|n't) or fail token.
+# ---------------------------------------------------------------------------
+
+GENERATE_SCRIPT = REPO_ROOT / "scripts" / "generate_trackers.py"
+
+_Q84_QID = "qitem-20261022000099-ffffffffffffffff"
+
+
+def load_reconcile_model():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "reconcile_model", str(REPO_ROOT / "scripts" / "reconcile_model.py")
+    )
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def run_generate(*args):
+    return subprocess.run(
+        [sys.executable, str(GENERATE_SCRIPT), *args],
+        capture_output=True,
+        text=True,
+    )
+
+
+def q84_state(tmpdir, queue_state, latest_note, tracker_cell):
+    """One-row tracker + queue pair for the #84 fixture shape."""
+    tracker = write_tracker(
+        tmpdir,
+        "# Wave 8 Dispatch Tracker (synthetic #84 replica)\n\n"
+        "## Slices\n"
+        "| Slice | Owner seat | Output | Slice qitem | Status |\n"
+        "|---|---|---|---|---|\n"
+        "| W8-01 neg | seat | output | %s | %s |\n" % (_Q84_QID, tracker_cell),
+    )
+    qlist = [
+        {
+            "qitemId": _Q84_QID,
+            "state": queue_state,
+            "destinationSession": "seat@rig",
+            "tsUpdated": "2026-10-22T12:00:00.000Z",
+        }
+    ]
+    trans = {
+        _Q84_QID: [
+            {
+                "transitionId": 5,
+                "qitemId": _Q84_QID,
+                "ts": "2026-10-22T11:45:00.000Z",
+                "state": queue_state,
+                "transitionNote": latest_note,
+            }
+        ]
+    }
+    qlist_path = str(Path(tmpdir) / "queue_list.json")
+    trans_path = str(Path(tmpdir) / "transitions.json")
+    Path(qlist_path).write_text(json.dumps(qlist))
+    Path(trans_path).write_text(json.dumps(trans))
+    return tracker, qlist_path, trans_path
+
+
+class TestNegationAwareTerminal(unittest.TestCase):
+    def test_queue_note_alone_is_never_terminal(self):
+        """queue_terminal: an affirmative QA note with a non-terminal state
+        is NOT terminal (note-based terminality removed)."""
+        model = load_reconcile_model()
+        terminal, _, _ = model.queue_terminal(
+            {"state": "in-progress"},
+            [
+                {
+                    "transitionId": 3,
+                    "state": "in-progress",
+                    "transitionNote": "QA PASS per report, placed",
+                }
+            ],
+        )
+        self.assertFalse(terminal)
+
+    def test_queue_terminal_state_only_despite_junk_note(self):
+        """queue_terminal: a terminal state counts even with a junk note."""
+        model = load_reconcile_model()
+        terminal, latest_id, _ = model.queue_terminal(
+            {"state": "closed"},
+            [
+                {
+                    "transitionId": 7,
+                    "state": "closed",
+                    "transitionNote": "awaiting review",
+                }
+            ],
+        )
+        self.assertTrue(terminal)
+        self.assertEqual(latest_id, 7)
+
+    def test_negated_tracker_cell_counts_for_no_arm(self):
+        """normalize_tracker: 'QA pass NOT granted; NOT placed' affirms
+        nothing — no qa_pass, no placed, no other terminal arm."""
+        model = load_reconcile_model()
+        norm = model.normalize_tracker("QA pass NOT granted; NOT placed")
+        self.assertFalse(norm["qa_pass"])
+        self.assertFalse(norm["placed"])
+        self.assertFalse(norm["closed"])
+        self.assertFalse(norm["staged"])
+        self.assertFalse(norm["dispatched"])
+        self.assertFalse(norm["parked"])
+
+    def test_affirmative_qa_pass_variants(self):
+        """^QA PASS anchor + negator/fail-token guards, pinned both ways."""
+        model = load_reconcile_model()
+        self.assertTrue(
+            model.normalize_tracker("QA PASS verified (note 5)")["qa_pass"]
+        )
+        self.assertTrue(
+            model.normalize_tracker(
+                "QA PASS + PLACED canonical (queue note 5; operator note appended)"
+            )["qa_pass"]
+        )
+        # Anchor: mid-cell QA PASS does not count.
+        self.assertFalse(
+            model.normalize_tracker("staged, QA PASS verified")["qa_pass"]
+        )
+        # Fail token kills the affirmation.
+        self.assertFalse(
+            model.normalize_tracker("QA PASS failed, rerun needed")["qa_pass"]
+        )
+        # Negators kill the affirmation.
+        self.assertFalse(
+            model.normalize_tracker("QA PASS never arrived")["qa_pass"]
+        )
+        self.assertFalse(model.normalize_tracker("NOT placed")["placed"])
+        # #105 review: deferred passes are not passes (fail closed).
+        for cell in (
+            "QA PASS pending re-run",
+            "QA PASS (awaiting gate)",
+            "QA PASS provisional",
+            "QA PASS rerun scheduled",
+        ):
+            with self.subTest(cell=cell):
+                self.assertFalse(model.normalize_tracker(cell)["qa_pass"])
+        # `no-` compounds are closure tokens, not negations.
+        self.assertTrue(
+            model.normalize_tracker("QA PASS + PLACED (closure no-follow-on)")["qa_pass"]
+        )
+        # Regression pin: plain CLOSED still counts.
+        self.assertTrue(
+            model.normalize_tracker("CLOSED operator-owned")["closed"]
+        )
+
+    def test_84_fixture_reconcile_flags_stale_state(self):
+        """#84 through reconcile: terminal-claiming tracker vs in-progress
+        queue with a negated note -> exit 1 stale-state, never in sync and
+        never a paste-ready PASS cell."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, trans = q84_state(
+                tmp,
+                "in-progress",
+                "QA pass NOT granted; NOT placed",
+                "QA PASS + PLACED canonical (queue note 5; operator note appended)",
+            )
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("stale-state", proc.stdout)
+            self.assertIn("tracker claims terminal", proc.stdout)
+            self.assertNotIn("PROPOSED-CELL:::QA PASS", proc.stdout)
+
+    def test_84_fixture_generate_trackers_is_review_not_paste_ready(self):
+        """#84 through generate_trackers: exit 1 NEEDS-HUMAN-REVIEW with zero
+        PROPOSED-CELL markers."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, trans = q84_state(
+                tmp,
+                "in-progress",
+                "QA pass NOT granted; NOT placed",
+                "QA PASS + PLACED canonical (queue note 5; operator note appended)",
+            )
+            proc = run_generate(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("NEEDS-HUMAN-REVIEW", proc.stdout)
+            self.assertNotIn("PROPOSED-CELL:::", proc.stdout)
+
+    def test_84_negated_tracker_cell_is_other_prose_review(self):
+        """A negated tracker cell itself matches no enum arm -> OTHER +
+        NEEDS-HUMAN-REVIEW, never a guessed terminal cell."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker, qlist, trans = q84_state(
+                tmp,
+                "in-progress",
+                "QA pass NOT granted; NOT placed",
+                "QA pass NOT granted; NOT placed",
+            )
+            proc = run_generate(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("NEEDS-HUMAN-REVIEW", proc.stdout)
+            self.assertNotIn("PROPOSED-CELL:::", proc.stdout)

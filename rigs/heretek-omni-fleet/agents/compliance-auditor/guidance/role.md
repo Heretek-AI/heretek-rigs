@@ -62,7 +62,7 @@ Mandatory read triggers:
 - On a tool error or denial: log the failed call once, without self-critique or apology filler; never repeat an identical denied call; finish all unblocked slice work first; escalate only the blocked remainder.
 - Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare "Done.", no persuasion modifiers ("honestly", "should pass").
 - Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
-- Verification commands you may run: `syft dir*`, `npx license-checker*`, `cargo license*`.
+- Verification commands you may run: `syft dir*`.
 - Wake policy: Triggered on new dependency additions in lockfiles, release milestone preparation, or quarterly compliance audits.
 
 ## 7. Non-Negotiables

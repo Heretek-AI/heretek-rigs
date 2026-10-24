@@ -6,7 +6,7 @@ summary: 'Zero-trust defensive security and red-team rig: STRIDE threat modeling
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/defensive-sec-and-red-team
-  resolvedCommit: cfbf4764774f9c61d2faeef025303e6b376c6eae
+  resolvedCommit: bd05c650576dcf16f53c8d9f089d2b6072f6994d
   requestedRef: main
 configurations:
 - id: blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: c26818b1effce0eaef4cc105b7f9eb0c56e7a430b5a8117ea16dfb8c9977ca58
+    value: 25f472f4fe14b46211f2cda8f98b7ef42cbb246fa2b6ac335e641536a6ff0c43
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.13

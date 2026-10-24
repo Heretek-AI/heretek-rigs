@@ -41,6 +41,7 @@ except ImportError:
 import argparse
 import json
 import re
+import shlex
 from pathlib import Path
 
 USAGE = """usage: render-seat.py --role <role-id> --rig <rig-id> --pod <pod-id> [options]
@@ -73,6 +74,81 @@ MUTATING_AST_LSP_TOOLS = [
     "lsp_code_actions",
 ]
 
+# S2a/M9 (#69, #72): single source of truth for the terminal bash denies
+# emitted LAST into every seat's bash map (last-match-wins) and mirrored in
+# scripts/verify-rigs.sh `_TERMINAL_BASH_DENIES`. verify-rigs V13 asserts the
+# two tuples are ordered-identical, so weakening either side flips the gate.
+TERMINAL_BASH_DENIES = (
+    "*--output*",
+    "*;*",
+    "*|*",
+    "*>*",
+    "*<*",
+    "*&*",
+    "*`*",
+    "*$*",
+    "*(*",
+    "*)*",
+    "* -p*",
+    "*\t-p*",
+    "*--patch*",
+    "*--full-diff*",
+    "*--textconv*",
+    # M5 (#69) git-diff read-bypass family: -u/-U/--unified/--cc and
+    # the spaced -c/-m/-W flag forms plus git's word/binary/raw
+    # diff-output flags (same last-match-wins rationale as -p).
+    "* -u*",
+    "*\t-u*",
+    "* -U*",
+    "*\t-U*",
+    "*--unified*",
+    "*--cc*",
+    "* -c *",
+    "*\t-c *",
+    "* -c\t*",
+    "*\t-c\t*",
+    "* -m *",
+    "*\t-m *",
+    "* -m\t*",
+    "*\t-m\t*",
+    "* -W*",
+    "*\t-W*",
+    "*--function-context*",
+    "*--word-diff*",
+    "*--color-words*",
+    "*--binary*",
+    "*--raw*",
+    # M5 (#72/#93) identity-forgery forms: a leading VAR= assignment is
+    # stripped by pps before matching (F9), so this catches only the
+    # `env VAR=...` form at the policy layer; the leading-assignment
+    # form is closed in scripts/send-authenticated.sh instead.
+    "*OPENRIG_SESSION_NAME=*",
+    "*OPENRIG_URL=*",
+)
+
+
+def _sandbox_bind_roots(path_write):
+    """Map pps path_write globs to jail write roots (M4, #68; #105 review).
+
+    The bubblewrap wrapper (scripts/seat-sandbox.sh) reads two entry kinds:
+    a pure directory grant (`src/*`, `tests/chaos/*`) becomes `src/`, which
+    is bound read-write; anything else (`package.json`, `docs/*.md`,
+    `*package-lock.json`) stays a file pattern, and only EXISTING regular
+    files matching it are bound in place. Nothing ever maps to the whole
+    seat cwd. pi-permission-system remains the fine-grained gate; the jail
+    adds cwd-containment, no network, and masked secret stores.
+    """
+    roots = []
+    for entry in path_write or []:
+        e = entry
+        if e.endswith("/*") and not any(c in e[:-2] for c in "*?["):
+            e = e[:-2].rstrip("/") + "/"
+        if e in ("", "/", "./"):
+            continue
+        if e not in roots:
+            roots.append(e)
+    return roots
+
 
 def die(msg: str) -> None:
     print(f"error: {msg}", file=sys.stderr)
@@ -94,6 +170,7 @@ def build_seat_files(
     model_id: str = "muse-spark-1.3-contributor",
     allow_missing_secrets: bool = False,
     check_secret_fs: bool = True,
+    sandbox_wrapper: str | None = None,
 ) -> dict:
     if role_id not in fleet_data.get("roles", {}):
         die(f"unknown role {role_id}")
@@ -130,6 +207,18 @@ def build_seat_files(
     pps_pkg = str(
         Path(tools_dir) / "pi-packages/node_modules/@gotgenes/pi-permission-system"
     )
+    # #67 (fail-closed): the permission extension is mandatory — a missing or
+    # version-drifted pps must die at render time, never render a seat whose
+    # settings.json packages[0] points at nothing. There is NO
+    # --allow-missing-secrets escape for this (unlike secrets).
+    if check_secret_fs and not (Path(pps_pkg) / "package.json").is_file():
+        die(f"{pps_pkg} missing: @gotgenes/pi-permission-system is mandatory")
+    if check_secret_fs:
+        _pps_ver = json.loads((Path(pps_pkg) / "package.json").read_text()).get(
+            "version"
+        )
+        if _pps_ver != "41.0.0":
+            die(f"{pps_pkg} version {_pps_ver}, need 41.0.0")
 
     def secret_ok(filename: str) -> bool:
         if not check_secret_fs:
@@ -338,7 +427,24 @@ def build_seat_files(
         "defaultTools": tools,
         "packages": packages,
         "quietStartup": True,
+        # M4 (#68): route pi's bash tool through the bubblewrap jail. A
+        # missing shellPath fails closed (no /bin/bash fallback), and the
+        # wrapper must sit outside every seat's write scope (Gotcha 5).
+        # Generated reference leaves pass the `@RIGS@` placeholder so they
+        # never depend on where the repo is checked out (#105 review).
+        "shellPath": sandbox_wrapper
+        or str(Path(__file__).resolve().parent / "seat-sandbox.sh"),
     }
+
+    # M4 (#68): per-seat sandbox env for the wrapper. The pi-runner child env
+    # is deny-by-default (no HERETEK_* crosses into the pi agent process),
+    # but PI_CODING_AGENT_DIR always points at this agent dir, so the wrapper
+    # loads sandbox.env from there (see scripts/seat-sandbox.sh bootstrap).
+    _bind_roots = _sandbox_bind_roots(role["permissions"]["path_write"])
+    files["sandbox.env"] = (
+        f"HERETEK_SANDBOX_WRITE={shlex.quote(':'.join(_bind_roots))}\n"
+        f"HERETEK_SECRET_STORE={shlex.quote(secrets_dir)}\n"
+    )
 
     # 4. extensions/pi-permission-system/config.json
     # Last matching rule wins inside each map; guards MUST go LAST.
@@ -407,23 +513,10 @@ def build_seat_files(
     # tab-separated `git log --oneline<TAB>-p` matches the allow but no deny
     # under last-match-wins substring-glob semantics. The `"*\t-p*"` tab
     # variant closes the gap (JSON `\t` decodes to TAB at match time).
-    for _deny_pat in (
-        "*--output*",
-        "*;*",
-        "*|*",
-        "*>*",
-        "*<*",
-        "*&*",
-        "*`*",
-        "*$*",
-        "*(*",
-        "*)*",
-        "* -p*",
-        "*\t-p*",
-        "*--patch*",
-        "*--full-diff*",
-        "*--textconv*",
-    ):
+    # S2a/M9: the deny tuple lives in module-level TERMINAL_BASH_DENIES
+    # (single source of truth, asserted identical to the verify-rigs
+    # mirror in V13).
+    for _deny_pat in TERMINAL_BASH_DENIES:
         bash_map[_deny_pat] = "deny"
 
     permission = {

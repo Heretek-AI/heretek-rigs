@@ -1,0 +1,40 @@
+# QA red-proofs log — remediate-governance (M6-M8)
+# Worktree: .lane/trees/remediate-governance, branch remediate/audit-66-p0-p1-governance
+# Date: 2026-10-24 UTC
+
+=== BASELINE ===
+python3 scripts/audit_loop.py --self-test -> EXIT 0 (15 vectors, SELF-TEST PASSED)
+make test -> EXIT 0 (Ran 248 tests OK)
+./scripts/verify-rigs.sh --check-only -> 28 passed, 0 failed (recorded separately, EXIT 0)
+
+=== SABOTAGE 1 (M6): restore pre-fix header regex ===
+Target: scripts/audit_loop.py HR_HEADER_RE — new ^#{1,6} back to old ^### + colon form
+Injected: HR_HEADER_RE -> r"^###\s+HR-[A-Za-z0-9._-]+:" (pre-fix shape, exactly ### + colon)
+CMD: python3 scripts/audit_loop.py --self-test
+Result: EXIT 1 (RED) — AssertionError: M6 vector V1 missed (## HR-4.1 depth-two header -> NO_FINDINGS)
+Restore: git checkout -- scripts/audit_loop.py; re-run self-test -> EXIT 0; git status --short clean except docs/evidence/
+
+=== SABOTAGE 2 (M7 sweep #83): restore token-overlap matching on auth: path ===
+Target: scripts/sweep-typed-blocks.py evaluate_row — re-add overlap OR-branch for is_auth
+Injected: evaluate_row blocker-match -> pre-fix overlap OR-branch for ALL parks (removed 'not is_auth' guard)
+CMD: python3 -m unittest test_auth_token_overlap_blocker_stays_blocked test_auth_self_written_satisfy_stays_blocked
+Result: EXIT 1 (RED) — AssertionError: 'unpark' != 'stay-blocked' (case B overlap re-satisfies with operator author + evidence)
+Note: case A (self-written) still stay-blocked under sabotage — actor gate holds independently (defense in depth).
+Restore: git checkout -- scripts/sweep-typed-blocks.py; TestAuthBlockerHardening 11 tests -> OK; status clean except docs/evidence/
+
+=== SABOTAGE 3 (M7 reconcile #84): restore note-based terminality ===
+Target: scripts/reconcile_model.py queue_terminal — re-add TERMINAL_NOTE_RE clause
+Injected: queue_terminal -> state-OR-note terminal (qa\s*pass regex on latest note, simulating pre-fix TERMINAL_NOTE_RE)
+CMD: python3 -m unittest tests.test_reconcile.TestNegationAwareTerminal
+Result: EXIT 1 (RED) — 3 failures: both #84 fixtures exit 0 'in sync' (pre-fix misclassification reproduced exactly), note-alone terminal True
+Restore: git checkout -- scripts/reconcile_model.py; TestNegationAwareTerminal 7 tests -> OK; status clean except docs/evidence/
+
+=== SABOTAGE 4 (M8): allow PUSH to main ===
+Target: scripts/check-envelope.py — trunk refuse branch
+Injected: trunk refuse set ("HEAD","MAIN","MASTER") -> ("HEAD",) only (PUSH main/master allowed)
+CMD: python3 -m unittest ...test_push_bare_main_refused ...test_push_main_refused ...test_push_master_refused
+Result: EXIT 1 (RED) — 3 failures, each rc=0 ACCEPT (row ACCEPTS under weakened deny, exactly the vacuous-gate shape)
+Restore: git checkout -- scripts/check-envelope.py; full test_check_envelope 69 tests -> OK; status clean except docs/evidence/
+
+=== NON-VACUITY SUMMARY ===
+Sweep overlap test fails under pre-fix overlap restore (sab 2); reconcile #84 tests fail under note-terminality restore (sab 3); envelope PUSH tests fail under weakened deny (sab 4); M6 self-test fails under pre-fix header regex (sab 1). No vacuous checks found.

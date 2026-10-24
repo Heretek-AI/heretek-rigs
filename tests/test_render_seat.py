@@ -21,10 +21,17 @@ class TestRenderSeat(unittest.TestCase):
         key_file = self.secrets / "opencode-go.key"
         key_file.write_text("dummy")
         os.chmod(key_file, 0o600)
+        # M2 (#67): the permission extension is mandatory — the fixture tools
+        # dir carries the pinned pps package.json so renders pass the
+        # fail-closed guard (missing/drifted pps is covered by the M2 tests).
+        self.tools = Path(self.tmp_dir.name) / "tools"
+        pps = self.tools / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+        pps.mkdir(parents=True)
+        (pps / "package.json").write_text(json.dumps({"version": "41.0.0"}))
         self.env = {
             **os.environ,
             "HERETEK_SECRETS": str(self.secrets),
-            "HERETEK_TOOLS": "/opt/hr-tools",
+            "HERETEK_TOOLS": str(self.tools),
             "OPENRIG_HOME": "/tmp/hr-openrig",
         }
 
@@ -81,9 +88,66 @@ class TestRenderSeat(unittest.TestCase):
         self.assertEqual(s["defaultThinkingLevel"], "high")
         self.assertEqual(
             s["packages"],
-            ["/opt/hr-tools/pi-packages/node_modules/@gotgenes/pi-permission-system"],
+            [
+                str(
+                    self.tools
+                    / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+                )
+            ],
         )
         self.assertIn("tool_search", s["defaultTools"])
+
+    def test_settings_shellpath_routes_through_seat_sandbox(self):
+        s = self.render(
+            "--role",
+            "sabotage-qa-tester",
+            "--rig",
+            "qa-and-verification-gauntlet",
+            "--pod",
+            "qa",
+        )["settings.json"]
+        self.assertTrue(s["shellPath"].endswith("scripts/seat-sandbox.sh"))
+        self.assertTrue(Path(s["shellPath"]).is_file())
+        self.assertTrue(os.access(s["shellPath"], os.X_OK))
+
+    def test_sandbox_env_carries_normalized_write_roots_and_secret_store(self):
+        f = self.render(
+            "--role",
+            "sabotage-qa-tester",
+            "--rig",
+            "qa-and-verification-gauntlet",
+            "--pod",
+            "qa",
+        )
+        env_lines = dict(
+            line.split("=", 1) for line in f["sandbox.env"].strip().splitlines()
+        )
+        # Pure dir grants become `dir/` roots for the jail.
+        self.assertEqual(env_lines["HERETEK_SANDBOX_WRITE"], "tests/chaos/:docs/qa/")
+        self.assertEqual(env_lines["HERETEK_SECRET_STORE"], str(self.secrets))
+
+    def test_sandbox_bind_roots_never_whole_cwd(self):
+        """#105 review: top-level dir grants and root files must not map to
+        the whole seat cwd (that made .git/hooks writable in the jail)."""
+        import importlib.util
+        import yaml
+
+        spec = importlib.util.spec_from_file_location("render_seat", RENDER_SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(
+            mod._sandbox_bind_roots(
+                ["src/*", "tests/chaos/*", "package.json", "*package-lock.json", "docs/*.md"]
+            ),
+            ["src/", "tests/chaos/", "package.json", "*package-lock.json", "docs/*.md"],
+        )
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        for rid, role in fleet["roles"].items():
+            for root in mod._sandbox_bind_roots(role["permissions"]["path_write"]):
+                with self.subTest(role=rid, root=root):
+                    self.assertNotIn(root, ("", ".", "./", "/"))
+                    self.assertFalse(root.startswith("/"))
+                    self.assertNotIn("..", root.split("/"))
 
     def test_appsec_permission_config_fails_closed_and_ends_path_write_with_dot_dot_guard(
         self,
@@ -121,6 +185,23 @@ class TestRenderSeat(unittest.TestCase):
             "*--patch*",
             "*--full-diff*",
             "*--textconv*",
+            # M5 (#69) git-diff read-bypass family + (#72) env-forgery forms.
+            "* -u*",
+            "*\t-u*",
+            "* -U*",
+            "*\t-U*",
+            "*--unified*",
+            "*--cc*",
+            "* -c *",
+            "* -m *",
+            "* -W*",
+            "*--function-context*",
+            "*--word-diff*",
+            "*--color-words*",
+            "*--binary*",
+            "*--raw*",
+            "*OPENRIG_SESSION_NAME=*",
+            "*OPENRIG_URL=*",
         ):
             self.assertEqual(c["permission"]["bash"][_td], "deny")
         self.assertEqual(c["permission"]["external_directory"], "deny")
@@ -281,6 +362,56 @@ class TestRenderSeat(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 2)
         self.assertRegex(proc.stderr, r"must not contain")
+
+    def test_missing_pps_is_hard_error_despite_allow_missing_secrets(self):
+        env = {**self.env, "HERETEK_TOOLS": "/nonexistent-hr-tools"}
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "exec-director",
+                "--rig",
+                "executive-and-architecture",
+                "--pod",
+                "exec",
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"@gotgenes/pi-permission-system is mandatory")
+
+    def test_drifted_pps_version_is_hard_error(self):
+        pps_pkg = (
+            self.tools
+            / "pi-packages/node_modules/@gotgenes/pi-permission-system/package.json"
+        )
+        pps_pkg.write_text(json.dumps({"version": "40.0.0"}))
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "exec-director",
+                "--rig",
+                "executive-and-architecture",
+                "--pod",
+                "exec",
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"version 40\.0\.0, need 41\.0\.0")
 
 
 if __name__ == "__main__":

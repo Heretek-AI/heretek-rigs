@@ -15,5 +15,6 @@
   "packages": [
     "@TOOLS@/pi-packages/node_modules/@gotgenes/pi-permission-system"
   ],
-  "quietStartup": true
+  "quietStartup": true,
+  "shellPath": "@RIGS@/scripts/seat-sandbox.sh"
 }

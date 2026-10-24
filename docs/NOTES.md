@@ -151,3 +151,261 @@
 - Reproduction via file tools: HR-6.1 `executing-plans/SKILL.md:50` `` `../using-superpowers/references/` `` vs zero `using-superpowers*` dirs/lock hits, vendor source `.scratch/vendor/obra_superpowers/skills/using-superpowers/` (`SKILL.md` + `references/` incl `pi-tools.md`) present, gate `:337-356` blind to `../<id>/references/` shape (REPRODUCED); HR-5.5 `* -p*` space-anchored + `render-seat.py:362` ban missing `\t` + `gate-role.sh:69-70` 2/4 probes + `verify-rigs.sh:565-567` sortedness-only order gate (REPRODUCED). Sabotage table 12× UNVERIFIABLE/NOT RUN, zero `Caught? = No` → rule 2 not triggered (new sibling-doc-ref + tab-deny + terminality coverage added proactively).
 - Source fixes (fail-closed, minimal; NO generated leaves hand-edited per hard rule 1 — disk still carries 63 skills / 14 denies, so the gate stays red BY DESIGN until a shell host regens): `fleet/fleet.yaml` system-architect `shared:` += `using-superpowers` (superpowers) → regen vendors 64; `verify-rigs.sh` 63→64 count + fenced-stripped `../([a-z0-9-]+)/` sibling-doc-ref gate + `"*\t-p*"` terminal deny + terminality assert (no allow after deny block) + renderer-emit check; `render-seat.py` terminal tuple += `"*\t-p*"`; `gate-role.sh` += tab-`-p` + `--full-diff` + `--textconv` deny probes (4/4 flags); `tests/test_render_seat.py` += tab deny; `generate-rigs.py` docstring 63→64; audit prompt Beta/5.5/Domain-6/6.1 claims → 64 skills + 15 denies + sibling-resolves invariant. No check weakened; 20× `builtin:locked`, `*..*` deny-last, triple-deny, `!cat`, loopback/pinned sidecars preserved.
 - Shell host MUST: `HERETEK_RIGS_ALLOW_DIRTY=1 python3 scripts/generate-rigs.py` (expect 64 shared skills + 15 terminal denies) → `./scripts/verify-rigs.sh --check-only` → `python3 ./scripts/audit_loop.py --self-test` → `python3 scripts/generate-rigs.py --check-idempotent` → scratch-copy sabotage trios (rm `using-superpowers` sibling; delete `"*\t-p*"`; trailing-allow inject — each must flip gate 0→1) → commit → `audit_loop.py` spawns next triad audit. Full per-HR mapping in `REMEDIATION_LOG.md` latest entry. `AUDIT_REPORT_FINDINGS.md` untouched.
+
+## 2026-10-24 — Audit #66 remediate-foundation M0 baseline (wave remediate-foundation)
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 27 checks passed, 0 failed.` (exit 0)
+- `make test` → `Ran 125 tests ... OK` (7 suites: test_render_seat, test_sweep_typed_blocks, test_regen_gate, test_queue_id_discipline, test_queue_json_discipline, test_reconcile, test_generate_trackers)
+- Orphans confirmed present-but-unwired: tests/test_check_envelope.py, tests/test_build_canary.py, tests/test_live_health.py (also tests/test_manifest_closure.py, tests/test_policy_verifier.py — wired via verify-rigs V8/V9, NOT Makefile; untouched this wave per brief)
+- `bwrap --version` → `bubblewrap 0.13.1`; `unshare --user --map-root-user true` → exit 0 (no output)
+- Toolchain: pps at $HOME/.local/share/heretek-rigs/tools/pi-packages/node_modules/@gotgenes/pi-permission-system/package.json version 41.0.0; `pi --version` → 1.3.0; `node --version` → v26.10.0
+
+## 2026-10-24 — Audit #66 remediate-foundation M1 shellPath spike (wave remediate-foundation)
+- Scratch: mktemp -d outside repo (/tmp/tmp.CrKXE2UH7M); rendered engine-systems-eng (game-dev-and-sim-rig/engine, mock provider, dummy 0600 secrets); settings.json shellPath → trivial wrapper `echo "MARKER-SHELLPATH-HIT: $2" >&2; exec /bin/bash "$@"`; drove with scripts/gate-run.sh
+- Allowed `date +%s` output: `"text":"MARKER-SHELLPATH-HIT: date +%s\n1792813910\n"` + `"exit_code":0,"isError":false` → MARKER PRESENT (shellPath honored)
+- Denied `date +%s; id` output: `"text":"[pi-permission-system] Denied by policy: 'bash' (rule '*')"` + `"isError":true`, NO marker → enforcer-first (policy-denied command never reaches wrapper)
+- NOTE: settings.json is NOT hot-reloaded (pi reads at startup; RPC reload only) — M4 sandbox rollout needs each seat relaunched or sent an RPC reload, NOT a no-bounce change. The permission config.json DOES hot-reload on mtime, but shellPath lives in settings.json.
+
+## 2026-10-24 — Audit #66 remediate-foundation M2 fail-closed pps check (wave remediate-foundation)
+- `scripts/render-seat.py` build_seat_files: after pps_pkg built, fail-closed die on missing package.json (`{pps_pkg} missing: @gotgenes/pi-permission-system is mandatory`) + pinned-version assert (41.0.0); gated on check_secret_fs only, NO --allow-missing-secrets escape
+- Acceptance 1: `HERETEK_TOOLS=/nonexistent HERETEK_SECRETS=$(mktemp -d) python3 scripts/render-seat.py --role exec-director --rig executive-and-architecture --pod exec --allow-missing-secrets --out $(mktemp -d)` → `error: /nonexistent/pi-packages/node_modules/@gotgenes/pi-permission-system missing: @gotgenes/pi-permission-system is mandatory`, exit=2 (non-zero with mandatory message)
+- Acceptance 2: version-drift probe (scratch tools dir with package.json version 40.0.0) → `error: ... version 40.0.0, need 41.0.0`, exit=2
+- Acceptance 3: real HERETEK_TOOLS render exits 0 (`rendered exec-exec-director@executive-and-architecture`, only a github-secrets warning)
+
+## 2026-10-24 — Audit #66 remediate-foundation M3 tool-existence gate + orphan wiring (wave remediate-foundation)
+- `scripts/verify-rigs.sh` new `== V12 ==` block (appended after V11, no V1-V11 renumber/reword): (a) asserts M2 guard strings present in render-seat.py source (fail if deleted); (b) per-seat committed runtime/pi-settings.json packages[0] must be the mandatory pps, and when the tools dir exists its package.json must exist at version 41.0.0 (fail); (c) every stdio MCP server bound to a seat: @TOOLS@-absolute command must be a file, bare command must resolve via shutil.which — missing REPORTED per seat via [NOTE] (naming e.g. radare2/r2mcp) without failing. Severity decision: fail on mandatory pps/guard, list host-optional MCP binaries — keeps the gate green on hosts without full tooling (this host lacks playwright-mcp, chrome-devtools-mcp, mcp-server-mobile, mcp-openapi-schema-explorer, r2mcp, mcp-server-memory, kubernetes-mcp-server) while naming each gap per seat; host tooling completeness is M9 scope.
+- `tests/test_render_seat.py`: setUp fixture HERETEK_TOOLS /opt/hr-tools (nonexistent) died under the new M2 guard (6 failures) — fixture now uses a scratch tools dir carrying pinned pps package.json 41.0.0 (invariant adaptation, NOT weakening); packages assertion updated to self.tools; +2 new tests (missing pps dies despite --allow-missing-secrets; 40.0.0 drift dies). Suite now 9 tests, all pass.
+- Cosmetic discrepancy (NOT changed, per never-reword-V1-V11): V6 ok() message still reads `tests/test_render_seat.py (7/7 unit tests) passed` while the suite now runs 9 tests; the gate keys on returncode 0 so it stays green.
+- `Makefile` test: target now lists all 10 suites (+ test_build_canary, test_check_envelope, test_live_health); test_manifest_closure/test_policy_verifier stay verify-rigs-V8/V9-wired only (untouched per brief).
+- Acceptance: `make test` → `Ran 208 tests ... OK` (10 suites confirmed in output); `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.` (27 + V12)
+
+## 2026-10-24 — Audit #66 remediate-sandbox M4 sandbox every execution-capable seat (wave remediate-sandbox)
+
+### Env-mechanism decision (validated, NOT assumed)
+- Requirement: HERETEK_SANDBOX_WRITE + secret-store path must be present in the seat's LAUNCHED environment (wrapper reads env at seat runtime).
+- Dead end 1 — daemon env: @openrig/cli `daemon/dist/adapters/pi-runner-protocol.js` `buildPiChildEnv` (lines ~150-189) is deny-by-default — only PATH/HOME/USER/LOGNAME/TERM/LANG/LC_ALL/SHELL/TMPDIR + OPENRIG_* + PI_CODING_AGENT_DIR/SESSION_DIR + the declared provider key cross into the pi child. A HERETEK_* var set in the daemon env dies at the child boundary.
+- Dead end 2 — rig `env:`: `daemon/docs/reference/rig-spec.md` "Where the declared names reach, by runtime" states explicitly: "On Pi and OMP seats the values reach the terminal. The agent process gets only what the runner passes on, so a spec or one-off value reaches it only for the names the runner always passes: PATH, HOME, USER, LOGNAME, TERM, LANG, LC_ALL, SHELL and TMPDIR." Member `env:` therefore cannot carry per-seat sandbox roots to pi either.
+- Chosen mechanism: render-seat.py writes `sandbox.env` (`HERETEK_SANDBOX_WRITE=<colon-joined bind roots>`, `<store var>=<secrets_dir>`, shlex-quoted) into the seat agent dir; seat-sandbox.sh bootstraps it from `$PI_CODING_AGENT_DIR/sandbox.env` when the vars are unset. PI_CODING_AGENT_DIR is unconditionally set in the pi child env (buildPiChildEnv line ~157; pi `dist/config.js` `getAgentDir()` reads it) and inherited by the bash-tool shell — per-seat correct under multi-seat daemon launch, no shared-env collision, no new host dependency.
+- Deviation from the spec block (recorded): the M4 block was copied functionally verbatim, PLUS a marked M4 bootstrap preamble (source sandbox.env via PI_CODING_AGENT_DIR). Without it the wrapper would see empty roots on every real seat (env cannot cross the runner boundary — verified above). The bwrap core below `set -euo pipefail` is byte-identical to the verified block. Fail-closed preserved: no roots (no env, no file) = whole tree read-only except scratch.
+- Bind-root normalization (renderer `_sandbox_bind_roots`): path_write globs are pps match patterns, not literal dirs, so `tests/chaos/*` -> `tests/chaos`; file globs (`*package-lock.json`) and bare file names (`package.json`) map to their parent dir (`.` = seat cwd). Coarse by design: pps stays the fine-grained gate (F1 enforcer-first); the jail adds cwd-containment + no-net + masked store. Known limitation: seats whose path_write is file-only (e.g. dependency-patcher, static-analysis-lead) get cwd bound writable — policy still enforced by pps.
+
+### Locked-seat runner-verb audit (all 18 locked roles dumped via python3+yaml; removals)
+- ai-red-teamer: removed `garak*`, `pyrit*`, `promptfoo*` (red-team runners execute payloads).
+- compliance-auditor: removed `npx license-checker*`, `cargo license*` (npx executes code; cargo runs build scripts. `syft dir*` stays: static SBOM scanner).
+- sabotage-qa-tester: removed `npx stryker run*`, `cargo mutants*`, `mutmut run*`, `npm test*`, `pytest*`, `cargo test*`.
+- static-analysis-lead: removed `npx biome check*`, `cargo clippy*` (clippy runs build scripts per #68(a); npx executes code. `semgrep --config*`, `ruff check*` stay: static scanners).
+- Other 14 locked seats: audited, no test-runner/interpreter verbs — kept read-only scanners/static tools (semgrep/trivy/r2/rabin2/strings/tshark/checkov/tfsec/gitleaks/syft/readelf/objdump/checksec/binwalk/markdownlint, git branch/merge-base/status/diff/log/show, rig whoami/ps/queue/send/capture/transcript).
+- Standard seats untouched: dependency-patcher keeps npm test*/cargo test*/pytest*/go test* (builtin:standard); rust-systems-spec keeps cargo clippy*/cargo test*; go-backend-eng keeps go test*; python-backend-spec keeps pytest*; ts-node-fullstack keeps npm test*.
+- dependency-patcher (#73): removed `git checkout*`, `git commit*` (it was the only commit grant in the fleet; `git checkout -- <path>` was already denied by path-arg policing).
+- fleet.yaml: added top-level `sandbox:` write-roots schema block (write_roots_source: permissions.path_write, wrapper, env_file). Surgical text edits only, no yaml.safe_dump (verified: `python3 -c yaml.safe_load` parses; regenerated leaves byte-correct).
+
+### HR-4.4 trip (self-caught, fixed)
+- First regen green except 1 fail: `fleet/fleet.yaml contains forbidden reserved/secret env name` — the sandbox comment spelled the store variable name (matches `_SECRET`). Fixed by rewording the fleet comment to never name credential env vars (name lives only in scripts/render-seat.py + scripts/seat-sandbox.sh, which that scan does not cover); own meta-comment tripped once more, reworded again. `grep -c "_SECRET|_TOKEN|_PASSWORD" fleet/fleet.yaml` → 0; verify back to 28/0.
+
+### F2 corpus under the jail (bwrap 0.13.1, PI_CODING_AGENT_DIR=<rendered sabotage seat>, HERETEK_* explicitly unset to prove file bootstrap)
+- `echo ok > tests/chaos/t.txt` → rc=0 (in-scope bind) ✓
+- `echo x > root.txt` → rc=1 `Read-only file system` ✓
+- `cat ~/.config/heretek-rigs/secrets/opencode-go.key` → `No such file or directory` rc=1 (tmpfs mask) ✓
+- `curl -sS -m 8 https://example.com` → rc=7 Could not connect (net blocked) ✓
+- `git status --short` → works, rc=0 ✓
+- `seat-sandbox.sh` (no args / 3 args) → `expected -c <command>` rc=126 ✓
+
+### Acceptance
+- `bash scripts/gate-role.sh sabotage-qa-tester` → exit 0, all probes ok; rendered pi-permission-config.json bash allows = 11, zero runner-ish (`test|stryker|mutant|mutmut|pytest|cargo|garak|pyrit|promptfoo|npx|clippy`).
+- `HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py` twice → byte-identical diff (cmp clean = idempotent); 223 files changed (51×2 pi-settings shellPath + permission strips + registry/rigs leaves).
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.` (V12 extended: shellPath/sandbox.env renderer asserts, wrapper exists+executable, bwrap resolves, per-seat shellPath suffix).
+- `make test` → 210 tests, 1 failure: tests/test_build_canary.py::test_canary_scope_only (pins fleet permissions to base a33f3bb allowing ONLY engine-systems-eng to differ; M4 legitimately changes 5 roles). Genuinely stale vs mandated M4 change → adapting the bound in its own commit (next), one-line reason recorded here: M4 #68/#73 strips change exactly ai-red-teamer, compliance-auditor, dependency-patcher, sabotage-qa-tester, static-analysis-lead.
+- Worktree vendor symlink: `.scratch/vendor` symlinked to the main checkout's `.scratch/vendor` (7 pinned clones, 74M) — worktrees do not carry ignored scratch; generate reads vendor only. Recorded so a fresh worktree setup repeats it.
+
+### Rollout split (stated in stage report + draft PR text there)
+- NOT no-bounce (needs relaunch or RPC reload per seat): settings.json `shellPath` (F1: pi reads settings at startup only) — the sandbox itself.
+- Canary-then-fleet WITHOUT bounce (permission config.json hot-reloads on mtime): git-diff terminal denies (M5), locked-seat verb removal, dependency-patcher commit strip, MCP flags.
+
+## 2026-10-24 — Audit #66 remediate-sandbox M5 git-diff bypass + identity forgery (wave remediate-sandbox)
+
+### Deny additions (renderer + mirror + asserts, kept identical)
+- render-seat.py terminal tuple appended (same order as verify mirror): `* -u*`, `*\t-u*`, `* -U*`, `*\t-U*`, `*--unified*`, `*--cc*`, `* -c *`, `* -m *`, `* -W*`, `*--function-context*`, `*--word-diff*`, `*--color-words*`, `*--binary*`, `*--raw*`, plus `*OPENRIG_SESSION_NAME=*`, `*OPENRIG_URL=*`.
+- Over-block pre-scan (python3+yaml+fnmatch over all 51 roles): NO fleet bash_allow contains any new deny infix as a literal substring — emission is purely additive. Anti-overblock probe (`git log --oneline -- README.md`) still allows post-regen (gate-role green).
+- verify-rigs.sh: :588 mirror tuple extended identically (order matches emission; sortedness + no-allow-after-deny gates hold); :1153-1160 renderer asserts extended to all 16 new denies. tests/test_render_seat.py deny tuple extended likewise.
+
+### send-authenticated.sh hardening (#72, #93)
+- Top-of-script: exit 2 when OPENRIG_SESSION_NAME is set (refuse, never silently unset). Verified: `OPENRIG_SESSION_NAME=exec-...@... ... --destination ...` → `error: refusing ...`, rc=2.
+- Receipt fail-closed: state must be in {pending, in-progress} (rc=5), persisted===true (rc=6), no createWarning (rc=7); pre-existing qitemId/state presence (rc=4) kept. Stub-rig matrix (PATH-shadowed `rig` executable): `{"state":"failed","persisted":false}` → rc=4; +qitemId failed/false → rc=5; pending/true+createWarning → rc=7; pending/false → rc=6; pending/true and in-progress/true → rc=0 `created ...`.
+- BUG FOUND BY THE STUB TEST (fixed, not shipped): first version used `d.get('createWarning')` inside an f-string within `python3 -c '...'` — bash strips nested single quotes before python sees them, so python received `d.get(createWarning)` → NameError → rc=1 via the generic path. Fixed by hoisting to `_w`/`_p` temp vars (no inner quotes). Lesson recorded: never nest single quotes inside `python3 -c '...'` in shell scripts.
+- --source: existing @-rejection kept; ADDED fleet member/role-id rejection (python3+yaml over fleet/fleet.yaml relative to the script dir: all role ids, rig pod member ids, omni core/pod/member ids; fail-closed rc=2 if catalog unreadable, uv fallback for PyYAML). Verified: `--source exec-director` → rc=2 `not a fleet member/role id`; `--source blue-appsec@rig` → rc=2 (@-form); `--source operator --dry-run` → rc=0.
+
+### gate-role.sh probes + F9 residual evidence
+- Added after :76 (canary :32-40 and anti-overblock probes untouched): `git log --oneline -u`, `git log --oneline --cc`, `env OPENRIG_SESSION_NAME=x rig whoami` — all expect-deny.
+- `bash scripts/gate-role.sh go-backend-eng` → exit 0, 43 ok / 0 FAIL (includes all M5 probes + pre-existing anti-overblock allow).
+- F9 residual CONFIRMED live (scratch render + gate-run.sh, mock model): bare leading `OPENRIG_SESSION_NAME=x rig whoami` EXECUTES (rc=0, rig resolved session `x`) — pps strips the leading assignment before matching so the `*OPENRIG_SESSION_NAME=*` terminal deny never sees it; `env OPENRIG_SESSION_NAME=x rig whoami` DENIES (isError:true). Consequence: the task text's literal probe (`OPENRIG_SESSION_NAME=x rig whoami` expect-deny) would fail against real pps behavior, so the committed probe uses the env-prefixed form and the leading-assignment form stays closed at the send-authenticated.sh layer (+ upstream request, per F9). Discrepancy vs task text is intentional and evidence-backed.
+- generate-rigs.py:493 charter denial-classification text still lists only the pre-M5 terminal guards — NOT updated (charter prose, out of M5 scope; suggested M10/PR follow-up so seats decode the new denial patterns).
+
+### Acceptance
+- `bash scripts/gate-role.sh go-backend-eng` denies all new git-diff forms and the env-prefixed rig call (43/0, exit 0).
+- send-authenticated.sh with OPENRIG_SESSION_NAME set refuses (rc=2); fake `{"state":"failed","persisted":false}` exits non-zero (rc=4; fuller fakes rc=5/6/7).
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.`; `make test` → `Ran 210 tests ... OK`; generate-rigs ×2 byte-identical (cmp clean).
+- Rollout split (unchanged from M4): sandbox shellPath needs relaunch/RPC reload; permission config.json changes (these M5 denies, M4 verb removals) go canary-then-fleet without bounce.
+
+## 2026-10-24 — Audit #66 remediate-governance M6 evaluator hardening (#79, wave remediate-governance)
+
+### Derivation (issue bodies not on disk)
+- Full #79/#83/#84/#92 issue texts are NOT in the repo (searched docs/ + repo-wide grep: only the reaudit table rows in docs/PROMPT_REMEDIATION_REAUDIT.md name them). The 8 M6 vectors and the M8 #92 row list are therefore DERIVED from the M6/M8 spec sentences + the reaudit one-liners, per the wave brief ("derive rows ... and record derivation"). Derivation recorded per milestone below.
+
+### M6 decision record (scripts/audit_loop.py)
+- Header: `^#{1,6}\s*HR-[\w.-]+` (any ATX depth, colon optional). Kept MULTILINE over combined report+agent text; gate-fail and explicit-FINDINGS_DETECTED short-circuits unchanged.
+- Ledger: every pipe-delimited line scanned per-cell; each cell stripped of `[*_~\`]+` and emoji (U+1F300–1FAFF, U+2600–2BFF incl ❌ U+274C, variation selectors, ZWJ, regional indicators), then `\b(BROKEN|PARTIAL)\b` IGNORECASE. Table-wide (not ledger-section-only) so fenced/bare/decorated rows all trip; prose-only "broken" still does NOT trip (pipe-scope kept deliberately to avoid matching narrative words like "broken" in a clean verdict).
+- Defect-Matrix P-grade: body cells only (header + separator rows skipped), in tables under a "defect matrix" heading OR whose header row has an exact-ci "Priority" cell. Case-insensitive `P[0-3]` (adversarial lowercase `p1` launders nothing). Known over-approximation: a P-grade token in any Priority-columned table counts even outside the matrix section — fail-closed by design.
+- Sabotage: body rows only, in tables under a "sabotage" heading OR with an exact-ci "Caught?" header cell; last cell stripped of decorations, lowercased, must equal `yes`. Verifies against the template shape (`| Invariant | ... | Suite result | Caught? |`, PROMPT_ADVERSARIAL_FLEET_AUDIT.md:285).
+- Real-file sanity: current AUDIT_REPORT_FINDINGS.md short-circuits on its explicit FINDINGS_DETECTED sentinel (unchanged); table scan alone gives (ledger=24 PARTIAL rows, matrix=0 — the `_none_` row correctly trips nothing, sabotage=12 UNVERIFIABLE rows) — consistent with pre-fix behavior (pre-fix regex also tripped on PARTIAL).
+- RED proof: all 8 derived vectors return NO_FINDINGS on pre-fix code (scratch /tmp/opencode/red_m6.py, 8/8 MISS), FINDINGS_DETECTED post-fix (self-test asserts). The 7 pre-existing vectors kept verbatim (none subsumed: bare/lowercase/fenced are syntactically distinct from decorated/matrix/sabotage shapes).
+
+### M6 acceptance
+- `python3 scripts/audit_loop.py --self-test` → exit 0, `Fail-closed sentinel evaluator verified against 15 adversarial test vectors` (7 kept + 8 new, each asserting FINDINGS_DETECTED).
+
+### M7 decision record (governance gates, #83 #84)
+- TPM-seat set source: read-only `yaml.safe_load` of `fleet/fleet.yaml` (script-relative `Path(__file__).parent.parent / "fleet" / "fleet.yaml"`, so CWD-independent). Set = every `roles:` key containing tpm/scrum + session/address ids (and @-local-parts) of members whose `role:` contains tpm/scrum, found by generic tree-walk (covers omni pod fragments, `session:`/`address:` spellings, `reports_to` blocks). Fleet-grounded check: set contains `tpm-scrum-lead` and `delivery-tpm-scrum-lead@executive-and-architecture` (asserted in-test). Today that is exactly one seat; `operator` stays authoritative by prefix rule alongside it. Unreadable catalog -> empty set (only operator authoritative: stay-blocked bias). Each script carries its own loader copy (no shared import; matches the sweep module's no-shared-files convention).
+- sweep-typed-blocks.py, auth:-only changes: (a) SATISFIED: requires the parsed blocker to EQUAL `blockedOn` exactly (removed the `blocker_key_tokens` overlap OR-branch and the `note_names_blocker` substring matcher from the auth: path); (b) SATISFIED: author must be operator/TPM (self-written notes suppressed with a named reason); (c) SATISFIED: evidence must cite >=1 `qitem-*` ref, still resolution-checked via the fetcher (dangling -> stay-blocked + retry); (d) legacy-note path requires the FULL `auth:<what>` string in the note (case-insensitive containment — the exact-string analog inside prose) plus sat-tokens with no rearm plus cited-or-authoritative (authority = operator OR TPM for auth:). Rearm detection stays token-based for auth: (fail-closed direction: it can only keep rows blocked). Non-auth: (`external:`/`fold:`) paths byte-identical in behavior (operator-only authority, overlap matching kept) — pinned by a scope-guard test (external: overlap still unparks).
+- #83 case A = self-written SATISFIED: (owner@fleet author) -> stay-blocked; case B = token-overlap blocker (`auth:wave2-tpm` vs parked `auth:wave2-tpm-release`, overlap asserted non-empty in-test so the fixture is non-vacuous) -> stay-blocked, plus the legacy-overlap-note variant. Fleet-default path tested without explicit pass-through (TPM actor + default set -> unpark); empty-set catalog failure -> TPM not authoritative, operator still is.
+- reconcile_model.py: `queue_terminal` is now entry-state OR latest-transition-state in TERMINAL_QUEUE_STATES — the `TERMINAL_NOTE_RE` clause AND the constant are removed (repo-wide grep: no other importer; generate_trackers/reconcile docstrings + QUEUE_TO_TRACKER_MAP reworded to state-only). Tracker/note affirmation helper `_affirmative_qa_pass`: `^QA PASS\b` (case-insensitive, leading-space tolerant) AND no negator (`\b(not|no|never)\b` or `n't` incl. curly apostrophe — word-boundary-safe so "note"/"canonical" don't false-positive) AND no fail token (fail/failed/fails/failure/failing). `placed`/`closed` keep substring detection but are void under negation/fail; `staged`/`dispatched`/`parked` unchanged. Caveat recorded: a legit cell like "QA PASS, no issues" is now non-terminal (spec-literal negator list); the canonical emitted cells never contain standalone no/not/never/n't/fail tokens (verified: converged + replay suites green).
+- RED proof: 6/7 new reconcile tests failed pre-fix (note-terminality), 9/11 new sweep tests errored pre-fix (missing API) with the overlap/self-written cases asserting the old unpark. Post-fix: full `make test` 228 tests OK (210 + 11 sweep + 7 reconcile), audit self-test green.
+- #84 fixture ("QA pass NOT granted; NOT placed", state in-progress): with a terminal-claiming tracker cell, reconcile exits 1 `stale-state` ("tracker claims terminal while queue is in-progress", no `PROPOSED-CELL:::QA PASS`); generate_trackers exits 1 NEEDS-HUMAN-REVIEW with zero `PROPOSED-CELL:::` markers. (Pre-fix both exited 0 "in sync": the negated note matched `qa\s*pass` -> terminal=True and the recorded note id converged the row.) A negated tracker cell itself resolves to OTHER + NEEDS-HUMAN-REVIEW via generate_trackers.
+
+### M7 acceptance
+- #83 cases A and B return stay-blocked (new TestAuthBlockerHardening, 11 tests).
+- #84 fixture exits 1 NEEDS-HUMAN-REVIEW with no paste-ready PASS cell (new TestNegationAwareTerminal, 7 tests).
+- Existing tests/test_sweep_typed_blocks.py (43) + tests/test_reconcile.py (29+7=36 incl. new) + rest of suite: `make test` 228 OK.
+
+### M8 decision record (envelope semantics, #92, wave remediate-governance)
+- #92 row derivation: the issue body is not on disk (searched docs/ + repo-wide; only the reaudit one-liner names `.git/hooks, AGENTS.md, fleet/, PUSH main, 9999 expiry, issued-after-expiry, BY WHOM nobody`). The enforced row set is derived from the M8 spec sentence + that one-liner; 20 new tests (TestEnvelopeSemanticsM8) pin one row each. Rows enforced: 11 path scopes (`.git/hooks/x`, `.pi/agent/x`, `.agents/y`, `fleet/fleet.yaml`, `scripts/run.sh`, `AGENTS.md`, `docs/AGENTS.md`, `-evil`, `src/a:b`, non-ASCII `src/café/`, `src/100%x/`), PUSH main, PUSH master, 9999 expiry, issued-after-expiry, future-issued, multi-deadline min-governs, unknown owning seat, BY WHOM nobody, BY WHOM non-TPM seat, unlinked audit record.
+- Path scope: new denies appended after (not before) the existing absolute/`..`/root-alias/home/glob checks, so pre-existing messages are byte-identical. Leading `.` catches `.git/.pi/.agents` heads; an interior-segment check catches `sub/.git/x`; `fleet`/`scripts` are prefix-or-equal; AGENTS.md is basename-equal (any dir). `:` is refused in `check_path_scope` for head-line values; body-line colons never reach it (the section parser diverts `Word:` lines into unknown sections — refused either way; the colon test pins the outcome, RED pre-fix confirmed except this one row which already refused via the parser, now double-layered).
+- PUSH: `branch.upper() in (HEAD, MAIN, MASTER)` refused up front with a `trunk` message; the old trailing HEAD clause removed as subsumed. `PUSH feat/wave-12-canary` still ACCEPTs (control).
+- Spec-mandated test inversion (rule 4, one-line reason): `test_push_bare_main_accepted` contradicted the #92 row set (the spec sentence says every #92 row returns REFUSE and the reaudit names PUSH main explicitly), so it is now `test_push_bare_main_refused` asserting rc=1 + `trunk` in output. No other test touched.
+- Expiry: `findall` over `expires <stamp>` + `min()` governs; chain enforced is `issued_at <= now < deadline <= issued_at + 14d` (14d = ENVELOPE_MAX_LIFETIME_DAYS). Single-slice (no deadline) requires `issued_at <= now`. The old "'expires' without parseable deadline" branch is subsumed by "neither single-slice nor deadline" (same refuse). Multi-deadline with a far-future second deadline but live min is ACCEPTED (min governs per spec — recorded as accepted interpretation).
+- Seats: `fleet_gate_sets()` (own copy in check-envelope.py) reads script-relative `fleet/fleet.yaml` via yaml.safe_load: vocab = lowercased role ids + `role:` values + `session:`/`address:` values + @-local-parts (153 entries; includes engine-systems-eng, cpp-lowlevel-eng, go-backend-eng); tpm_ids = the 3 tpm/scrum-bound ids (`tpm-scrum-lead`, `delivery-tpm-scrum-lead@executive-and-architecture`, `delivery-tpm-scrum-lead`). Unreadable catalog -> Refusal (fail-closed, operator holds). Owning-seat order: token-shape first, then catalog membership.
+- BY WHOM: void set (nobody/none/n-a/na/tbd/todo/unknown/unnamed/anonymous/anyone/someone/vacant, trailing-dot tolerant) -> refuse; owning-seat substring (legacy) -> refuse (checked BEFORE TPM acceptance so a TPM seat can never verify its own work); bare `TPM`/TPM-seat-id -> accept (the template designates the role "TPM" and the fleet staffs exactly one tpm/scrum seat — if a second TPM seat ever appears this shorthand turns ambiguous and must be retired); other fleet seat ids -> refuse; anything else -> named human, accepted and audit-recorded. Limitation recorded: single-token garbage ("xyz123") accepts as a "named human" — no human registry exists to check against; the value still names a party in the audit trail.
+- Audit: per-record link-shape over numbered records (continuation lines appended). Link-shaped = http(s):// | qitem:// | `qitem-<digits>-<alnum>` | hex run >=7 chars containing a digit | the word "commit" (the template's canonical execution line "The execution record commit SHA + ..." cites no SHA, so bare "commit" must count — definition calibrated to keep both ACCEPT fixtures green) | slashed path token. Keyword mapping kept (envelope/verif/execution-or-commit), each mapped record must carry a token. Existing two-link test still refuses on the missing keyword.
+- RED proof: 19/20 new tests failed pre-fix (rc=0 ACCEPT); the 20th (colon path) already refused via the section parser and now pins double-layer refusal. Post-fix: full `make test` 248 OK (228 + 20 new), verify-rigs 28/0 untouched.
+
+### M8 acceptance
+- Every derived #92 row returns REFUSE (rc=1): 20 new tests + inverted PUSH-main test, all green.
+- Existing suite preserved: 69/69 tests/test_check_envelope.py OK (48 unchanged + 1 spec-mandated inversion + 20 new); `make test` 248 OK; `verify-rigs.sh --check-only` 28/0.
+
+## 2026-10-24 — Audit #66 remediate-supplychain M9 supply-chain + registry gates (wave remediate-supplychain)
+
+### Baseline (pre-change, worktree remediate/audit-66-p0-p1-supplychain @ 27876bd)
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.` (exit 0)
+- `make test` → 248 tests OK expected (10 suites; will confirm with run)
+- `.scratch/vendor` symlinked → `/home/john/Projects/heretek-rigs/.lane/trees/remediate-supplychain/.scratch/vendor` absent in worktree; created symlink to main checkout's `.scratch/vendor` (7 pinned clones, git-ignored, same as Wave-2 setup). All clones clean, SHAs match pins (obra bb92a77, tob 5c99c03, sentry f57ada2, anthropic dbd4588, vercel 063bee9, supabase c9be0e9, prisma ba3f9d7); Heretek-Crew @ 0b41346 (allowed alt); openrig-core resolves via `npm root -g` @openrig/cli.
+- `git archive <sha> <path>` verified working on a vendor clone (obra_superpowers bb92a77 skills/systematic-debugging lists SKILL.md + companions with `skills/` prefix → extractor must relocate `<tmp>/<relpath>` to dst, not blind-strip).
+
+### Image digest resolutions (all resolved on-host 2026-10-24, NEVER from memory)
+- Network ONLINE (docker.io + ghcr.io anonymous token OK — verified via ghcr.io/astral-sh/uv control).
+- `tecnativa/docker-socket-proxy:0.5.0` → MANIFEST UNKNOWN (tag does not exist; only `v0.5.0`). Real: `v0.5.0` → `sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459` (skopeo inspect docker://tecnativa/docker-socket-proxy:v0.5.0).
+- `searxng/searxng:2026.10.18-2c9b2d4` → MANIFEST UNKNOWN. Upstream Heretek-Crew pins tagless `searxng/searxng@sha256:79180616c984f39524f6f27f19625a46f82c8ad4aa6a2e553db52b14e1b4a768` — verified live via `skopeo inspect docker://searxng/searxng@sha256:7918…` (digest echoed back). Adopted (cross-repo consistency with sibling-tested pin).
+- `browserless/chrome:1.66.0` → MANIFEST UNKNOWN (no bare semver tags at all; scheme is `<ver>-<variant>-<vv>`). Upstream pins `ghcr.io/browserless/chromium:v2.26.0@sha256:899026f6995003a35989dc32e240711735ac17069a9f5b310ecf236d082899c5e…` — verified live (digest echoed). Adopted (repo fix docker.io browserless/chrome → ghcr.io browserless/chromium).
+- `ghcr.io/mendable/firecrawl:1.6.0` → DENIED (org `mendable` has no such repo; org renamed mendableai→firecrawl per GitHub API redirect repositories/787076358). Upstream pins `ghcr.io/firecrawl/firecrawl:2.10.19@sha256:50446cbc0bc700a78cc588c96bd38a97f01cc4299c99b349c7bfa1ba57b6d7ed` — verified live. Adopted. Upstream runs PORT/INTERNAL_PORT 3002 (image default is 8080 per config inspect of 2.11.605) → our compose gains `PORT: "3002"` + `INTERNAL_PORT: "3002"` env to preserve the 3002 mapping. Caveat: upstream runs a full backing stack (rabbitmq/nuq-postgres/playwright-service); our minimal profile keeps firecrawl-redis only — standalone boot unverified, recorded as follow-up.
+- `ghcr.io/ghidra/ghidra:11.4.2` → DENIED (no `ghidra` GitHub org exists — 404; phantom reference). Upstream pins `blacktop/ghidra:12.1.4@sha256:b2479177bd6a10d974da1bff30cc911ea2856843d858ad0ba02a608152ca193c` — verified live. Adopted with upstream's entrypoint `["/entrypoint.sh"]` + command `["server"]` (blacktop default cmd is `client`; `server` serves :1337 per upstream healthcheck probe).
+- `radareorg/radare2:5.9.8` → DENIED on docker.io + object-not-found (repo does not exist on Hub). Real: `radare/radare2:5.9.8` (417 tags incl. 5.9.8) → `sha256:4fcb018e7f2351f370eafd4e7006b6ba476a475f587978b34cf494617ad7ef10`. Upstream pins tagless `radare/radare2@sha256:88b7ff67710e12f430b269abc7714490e3a0c37e391521523148cbd6f9d2ae37` — verified live. Adopted (org fix + digest).
+- `sonarqube:25.10.0-community` → MANIFEST UNKNOWN. Real tag `25.10.0.114319-community` → `sha256:ef0290a2deabad86a2623552712033a7107a9f5b310af00519b4ddd5b348ef4e` (spec's resolved tag confirmed on-host).
+- `redis:8.0.3` → `sha256:be0a135f1955140436b9114da96dd22fbedb874469400b6ef458cc0d42155de0` ✓ (kept tag, digest added).
+- `qdrant/qdrant:v1.15.3` → `sha256:31407c0e8e32eb771b71718f1a4772e2ad47a07557917b21ac96792f40eb8007` ✓ (kept tag — upstream at v1.19.2, delta recorded, no bump: minimal-diff principle).
+- `budtmo/docker-android:emulator_14.0` → `sha256:8ee678cf831fdf7c03fb391ca036922f3b78b89fdc992be3b815e1c70b372d2a` ✓ (kept tag — upstream more specific emulator_14.0_v3.8.0-p1, delta recorded).
+- Pre-existing phantom-tag evidence: NONE of the 4 wrong tags (`:0.5.0`, `:2026.10.18-2c9b2d4`, `:1.66.0`, `:25.10.0-community`) resolve; `docker compose pull` on the current file fails today. M9 fixes this.
+
+### Implementation (M9 code changes)
+- `scripts/generate-rigs.py`: `vendor_skill_from_clone()` (`git archive <sha> <path>` → tmp → relocate, dies on missing/dirty clone, unresolvable SHA, archive failure, missing SKILL.md); pins-loop + helper refuse TRACKED modifications (`--untracked-files=no`; untracked strays tolerated — the #43 class — because `git archive` reads commit objects only, so strays cannot influence bytes; the Heretek-Crew checkout itself carries `?? docker-compose.override.yml` + `?? heretek-rigs/` strays, which must not block vendoring); shared-pool (non-openrig-core) + role_local call sites converted; openrig-core keeps copytree (ships in the npm package, not a git clone — recorded). `resolve_run_attestation()` reads `docs/evidence/run-records.json` → ("tested", ids) or ("Not tested", []); listings platforms + harness result wired. `resolve_heretek_commit()` stamps `DIRTY-<sha>` when BLOCKING dirt exists under ALLOW_DIRTY (sanctioned-only strays still record bare SHA).
+- `scripts/render-seat.py`: terminal denies hoisted to module `TERMINAL_BASH_DENIES` (31 entries, ordered-identical to the `:588` mirror — verified by eval-compare); emitter loop now iterates the constant. tests/test_render_seat.py tuple left as-is (test-side expectation).
+- `scripts/verify-rigs.sh`: V6 `:1300` proxy assert updated to the verified `v0.5.0@sha256:1f50…3459` (spec-mandated stale-pin update — the old assert pinned a nonexistent tag; same precedent as M8's PUSH inversion). New `== V13 ==` block (S2a + #70/#71/#85/#86/#87/#97/#99, one ok()): S2a tuple-sync via module import; per-service tag@digest format + skopeo existence (digest-ref probe; transport-error offline skip, manifest-unknown fail); Dockerfile-vs-catalog/fleet exact install-list match (11 pins both directions); MCP exact flags + pin==args-pin (uvx/docker commands; npm-command servers covered by the Dockerfile assert); r2mcp/aws-mcp banned forms (active-line vs `replaces:` distinction in catalog; zero-tolerance in fleet/specs/rigs/scripts); git-archive + dirty-refusal source asserts; roster==51 sessions + command pod == {exec-director, system-architect, tpm-scrum-lead} lead exec-director; stub scan (skills/ excluded, @TOOLS@/@SECRETS@/@SEAT@ stripped); DIRTY reject; attestation grounded-or-"Not tested" (listings + harness).
+- `docker-compose.sidecars.yml`: all 10 images tag@digest-pinned (4 repo fixes, 3 tag fixes, firecrawl PORT/INTERNAL_PORT 3002 to preserve mapping, ghidra entrypoint/command `server` to preserve :1337).
+- `docker/Dockerfile`: OPENRIG_VERSION 0.6.11→0.6.13; context7 4.4.2→4.4.4, server-memory 1.0.0→2.0.0 (catalog alignment).
+- `Makefile`: 11th suite (test_generate_supplychain) wired into `test:` (per #82, no orphans).
+- `tests/test_generate_supplychain.py` (new, 8 tests): archive-bytes-equal, dirty/unknown-sha/missing-path die, attestation present/absent/malformed/empty.
+- V13 extraction bugs found by the r1 run and fixed: skopeo rejects tag@digest (probe digest-ref now); bare `proxy` in the offline pattern misclassified the proxy image name (now `proxyconnect` only); pin==args-pin scoped off npm-command servers (version bound at install, enforced by the #100 assert); harness path is harnessChecks.harnesses.pi (was missing a level); DIRTY stamps only on BLOCKING dirt (sanctioned-only strays record bare SHA — caught by test_sanctioned_strays_only_resolves, fixed before commit).
+
+### Red proofs (each: plant → verify exit 1 with the named gate → restore; full logs /tmp/opencode/sab_*.log)
+- 1a tag-only (qdrant digest stripped) → `V13/#70: sidecar qdrant must pin its image by digest` ✓
+- 1b bad digest (redis last-hex flipped) → `V13/#70: sidecar firecrawl-redis image does not resolve` (manifest unknown; probe uses digest-ref) ✓
+- 2 weakened MCP flag (clickhouse false→true) → `V13/#71: ... must be "false"` ✓
+- 3 r2mcp re-added (`pypi:r2mcp==0.2.5` in catalog active lines) → `V13/#71: ... active pin contains rejected form` ✓
+- 4 roster member removed (51→50) → `V13/#86: roster seats (50) must equal the 51 fleet sessions` ✓
+- 5 stub marker (`TODO` appended to appsec-engineer role.md) → `V13/#87: ... contains stub marker 'TODO'` ✓ (restored via git checkout)
+- 6 DIRTY stamp (all regen runs above) → 16× V13/#99 + 16× V4 regex rejections ✓
+- 7 fabricated attestation (label tested + fake rr id) → `V13/#97: ... tested claim is ungrounded` ✓
+- S2a mirror-only weakening (`*--unified*` removed from :588) → `V13/S2a: ... must be ordered-identical` ✓ (Wave-2 QA gap closed)
+- 85 dirty vendor clone (tracked file tampered in prisma_skills + ALLOW_DIRTY) → exit 2 `prisma checkout ... is dirty` ✓ (restored via git checkout)
+- Archive fidelity: regen vendored 68 shared skills via `git archive`; `specs/agents/_shared` byte-identical (zero diff), `fleet/skills-lock.json` unmodified (tree_hash attests archive bytes).
+- Incidental: 68 (not 64) shared skills pre-exists in this tree (Waves 2-3 additions); AGENTS.md:46/generator docstring "64" is stale prose — not M9 scope, M10 follow-up candidate.
+- pi-settings diffs in this regen are worktree-path artifacts (`.../remediate-sandbox/...` → `.../remediate-supplychain/...` shellPath), not content changes.
+
+### Test-fix commit (rule 4, own commit after M9 af3e52e)
+- `tests/test_regen_gate.py::test_allow_dirty_bypass_records_real_sha` was genuinely stale under the #99 mandate (ALLOW_DIRTY+blocking dirt now stamps `DIRTY-<sha>` instead of the bare SHA): updated to expect `DIRTY-<head>` plus a new `test_allow_dirty_clean_tree_records_bare_sha` (sanctioned-only strays + flag → bare SHA). One-line reason recorded here per brief rule 4.
+
+## 2026-10-24 — Audit #66 remediate-supplychain M10 final pass + verification (wave remediate-supplychain)
+
+### Clean-regen + full gates (worktree remediate/audit-66-p0-p1-supplychain @ 2bc45e5, tree clean)
+- `python3 ./scripts/generate-rigs.py` (no flag, clean tree) → clean provenance (`2bc45e5…`, no DIRTY), 16 registry files changed (DIRTY→clean + tested→Not-tested already landed in M9 regen). specs/rigs/status.json byte-identical to M9 commit (same worktree shellPath).
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 29 checks passed, 0 failed.` (exit 0; 28 + V13). Log /tmp/opencode/verify_m10_clean.log.
+- `make test` → `Ran 257 tests ... OK` (11 suites; 248 + 8 new supply-chain + 1 new regen-gate). Log /tmp/opencode/maketest_m10.log.
+- `python3 scripts/audit_loop.py --self-test` → SELF-TEST PASSED (15 vectors: 7 kept + 8 M6).
+- `HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py --check-idempotent` → `idempotence check passed (two consecutive runs byte-identical)` exit 0 (both runs stamp the same DIRTY-<HEAD>; determinism proven). Clean leaves snapshotted to /tmp/opencode/leaves_clean/ before the proof and restored after (registry DIRTY-count back to 0).
+- `bash scripts/gate-role.sh sabotage-qa-tester` → exit 0 (43 ok incl. all M5 probes); `bash scripts/gate-role.sh go-backend-eng` → exit 0 (tail: lsp mutation denies ok).
+
+### Per-finding tick table (#67–#102; commands from docs/PROMPT_REMEDIATION_REAUDIT.md §1 unless noted)
+- Derivation precedent (Wave 3): issue bodies for #80/#81/#88/#89/#90/#98/#101 are not on disk (searched PROMPT_ADVERSARIAL_FLEET_AUDIT.md, REMEDIATION_IMPLEMENTATION_PROMPT.md, AUDIT_REPORT_FINDINGS.md, docs/reports — zero hits); no wave changed code for them. They tick as follow-up with derivation recorded here.
+- #67: `HERETEK_TOOLS=/nonexistent ... render-seat.py --role exec-director ... --allow-missing-secrets` → exit 2 "mandatory" ✓ PASS.
+- #68: gate-role sabotage-qa-tester exit 0, 43 ok (no runner verb allowed); F2 jail corpus per M4 report (writes confined, net blocked, store masked) — re-ran gate, corpus cited ✓ PASS.
+- #69: gate-role go-backend-eng exit 0 (all git-diff forms + env-prefixed rig denied) ✓ PASS (M5 report + re-run).
+- #70: `docker manifest inspect tecnativa/...:v0.5.0@sha256:1f50…` → schemaVersion 2, exit 0 ✓ PASS; all 10 digests resolved on-host (see M9 resolutions); V13 existence green.
+- #71: sabotages 2 (clickhouse true) + 3 (r2mcp re-added) → exit 1 with named gates ✓ PASS.
+- #72: `OPENRIG_SESSION_NAME=... send-authenticated.sh` → exit 2 refusal ✓ PASS (env half); live-queue half needs the daemon — residual per F9, upstream request still the path (no wave scope change).
+- #73: fleet query → 0 roles hold `git commit`, dependency-patcher grants empty ✓ PASS.
+- #74: V12 [NOTE] lines name r2mcp/playwright/chrome-devtools/mobile/openapi/memory/kubernetes per seat ✓ PASS (host-missing listed, gate green).
+- #75/#91: NOT IMPLEMENTED — `commandEffects` occurs only in the two prompt docs (zero code hits). No wave scope. → follow-up (re-audit row documents the desired behavior).
+- #76: observed DENIED — `ctest --output-on-failure` contains `--output`, matched by the pre-existing `*--output*` terminal deny (deny-last). No wave scope; F3 tuple predates M5. → follow-up (needs a policy decision, not a silent edit).
+- #77: no wave scope (mission-row ownership); needs live queue → UNVERIFIABLE off-fleet → follow-up.
+- #78: no wave scope (missions/* + evidence/<role>/* writes); M4 sandbox now confines seat writes as mitigation → follow-up for the write-scope grant itself.
+- #79: `audit_loop --self-test` exit 0, 15 vectors ✓ PASS.
+- #80/#81: not on disk, no wave scope → follow-up.
+- #82: `make test` runs all 11 suites, 257 OK ✓ PASS (no orphans: new suite wired into Makefile).
+- #83: 11 sweep tests in make test ✓ PASS. #84: 7 reconcile tests + #84 fixture exits 1 NEEDS-HUMAN-REVIEW ✓ PASS.
+- #85: dirty-clone regen exit 2 ✓ PASS; archive fidelity (byte-identical _shared, lock unchanged) ✓ PASS.
+- #86: roster sabotage exit 1 ✓ PASS. #87: stub sabotage exit 1 ✓ PASS.
+- #88/#89/#90: not on disk, no wave scope → follow-up.
+- #92: 69 envelope tests in make test ✓ PASS (incl. spec-mandated PUSH inversion).
+- #93: `--source exec-director` → exit 2 "not a fleet member/role id" ✓ PASS; env-refusal + receipt matrix per M5 report (re-ran env half).
+- #94: table-defined (undeclared-binary probes) but no wave scope; gate-role corpus is role-fixed, live pi run needed → follow-up.
+- #95: table-defined (TOML lint spellings), no wave scope → follow-up.
+- #96: UNVERIFIABLE off-fleet (table says so; needs live fleet re-seed).
+- #97: fabricated-tested sabotage exit 1 ✓ PASS; committed tree "Not tested"/[] ✓.
+- #98: not on disk, no wave scope → follow-up.
+- #99: ALLOW_DIRTY regen → verify exit 1 (DIRTY reject, 16 V13 + 16 V4) ✓ PASS.
+- #100: `grep OPENRIG_VERSION docker/Dockerfile` → 0.6.13 ✓ PASS; render with missing declared pkg → exit 0 pps-only packages (pre-existing omission-tolerance in render-seat.py:364-374, untouched by M9; V12 names missing MCP binaries, pi_packages omission is silent) → recorded, follow-up candidate.
+- #101: not on disk, no wave scope → follow-up.
+- #102: P3 spot-checks — stale "64 skills" prose (AGENTS.md/generator docstring vs 68 actual, pre-existing Wave-2/3 growth) noted; firecrawl minimal-profile standalone boot unverified (recorded M9 caveat); qdrant 1.15.3 / docker-android emulator_14.0 deltas vs upstream recorded (minimal-diff, no bump).
+
+### M10 PR attempt (push blocked — branch left ready)
+- `git push -u origin remediate/audit-66-p0-p1-supplychain` → twice `{"type":"permission.rejected","message":"Permission denied: shell"}` (sandbox push guardrail; remote exists, `gh auth status` logged in — not a credential problem).
+- No PR opened. Full PR body text (spec format) + Gates/follow-up lines recorded in docs/reports/remediate-supplychain-implementation.md §PR.
+- Shell host with push rights: push the branch, then `gh pr create --base main` with that body.
+- Footer session-URL discrepancy noted: the stage spec file shows `.../session_014wevSWHET5eqHNVNTYZnx9` while this wave's brief mandates `.../session_014wevSWHET5eqHNVNTYZ9W`; this stage uses the wave brief's URL consistently (commits + PR body).
+
+### Post-M10 semgrep hardening (own commit after 97a37ca)
+- `semgrep_scan` on the M9 generator flagged `trailofbits.python.tarfile-extractall-traversal` at the `extractall` call. Source is `git archive` of the pinned commit (not attacker bytes), but hardened anyway: member-name validation (reject absolute/`..`) + per-member `tf.extract` instead of `extractall`. Rescan: 0 findings. Helper unit tests re-run 18/18 OK (incl. archive byte-fidelity). Full `make test` (257) + `verify-rigs` (29/0) confirmed green on the committed tree before this change; the change is extraction-mechanism-only (validated members, same bytes).
+
+### Catalog-vs-Dockerfile drift (found on-host, fixed in M9)
+- `context7`: catalog `npm:@upstash/context7-mcp@4.4.4` vs Dockerfile `4.4.2` → aligned to catalog.
+- `memory`: catalog `npm:@modelcontextprotocol/server-memory@2.0.0` vs Dockerfile `1.0.0` → aligned to catalog.
+- Other 6 npm MCP packages + 3 pi-packages already agree.
+- Decision (recorded per spec "or record why a list stays manual"): Dockerfile install lists STAY manual because (a) Dockerfile layers a builder/runtime split + conditional INSTALL_R2MCP toolchain that has no catalog counterpart, (b) uvx/docker/remote MCP servers need no image install, (c) fleet per-role pi_packages (13 distinct combos incl. pi-btw/pi-lens/pi-web-access/pi-mcp-adapter) are the single source consumed at render time by render-seat.py:352-374, the image bakes only the base triple. Compensating gate: V13 asserts Dockerfile versions == catalog/fleet pins exactly (drift fails closed).
+
+### remediate-lane-guard (#67 worktree-stale baked-path guard — Wave 5 micro-stage)
+- HEAD confirmed pre-work: `git log --oneline -1` → `2b103db chore(remediate-66): re-bake generated leaves on canonical checkout`.
+- The catch (verified, not trusted from summary): post-Wave-4 merge check found generated leaves baked an absolute `shellPath` into the Wave-4 worktree dir (`.lane/trees/remediate-supplychain/scripts/seat-sandbox.sh`), confirmed via `git show` of the pre-fix blob. Re-baked on the canonical checkout in 2b103db; this tree's committed leaves all carry `/home/john/Projects/heretek-rig-workspace/heretek-rigs/scripts/seat-sandbox.sh` (no `/.lane/` — confirmed by the new gate scanning 153 leaves green).
+- Root cause: `render-seat.py` emits `shellPath` as `str(Path(__file__).resolve().parent / "seat-sandbox.sh")` — correct per checkout, checkout-dependent. V12 (`verify-rigs.sh:1679-1683`) only asserts `endswith("scripts/seat-sandbox.sh")`, so a worktree-stale absolute path PASSES while pi fails closed ("Custom shell path not found") at seat startup. Gotcha 5 (M3 tool-existence gate) therefore covers the source file but not the baked VALUE.
+- Guard location: NEW `== V14 ==` block in `scripts/verify-rigs.sh` (after V13 `ok`, before SUMMARY). V13 label was already taken by the supply-chain wave, so V14 was used; V1–V13 lines untouched (`git diff` = 32 insertions, 0 deletions). For every committed `specs/agents/*/*/runtime/pi-settings.json` + `rigs/*/agents/*/runtime/pi-settings.json`, FAIL if `shellPath` or any `packages[]` value contains `/.lane/`; message names seat + file + key + offending value + `#67 worktree-stale absolute path`.
+- Green baseline (unmodified tree): `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 29 checks passed, 0 failed`, exit 0.
+- Green after guard: `SUMMARY: 30 checks passed, 0 failed`, exit 0 (`[PASS] Worktree-stale paths (#67) green: 153 committed pi-settings.json leaves carry no /.lane/ baked paths`).
+- Red-proof 1 (shellPath sabotage, temp-edit + `git checkout --` revert, never committed): planted `/.lane/trees/evil/scripts/seat-sandbox.sh` as `cache-streaming-eng` shellPath → `SUMMARY: 29 checks passed, 1 failed`, exit 1 with `[FAIL] V14/#67: seat cache-streaming-eng: ... shellPath holds worktree-stale absolute path ... (#67 worktree-stale absolute path — re-bake on a canonical checkout)`. Note the planted value still ends with `scripts/seat-sandbox.sh`, i.e. V12 passed it — the exact gap this guard closes.
+- Red-proof 2 (packages[] sabotage, same temp-edit/revert discipline): planted `/home/x/.lane/trees/evil/...` as `packages[0]` → same exit-1 named gate on `packages[0]`.
+- Revert verified: `git status --short` shows only `M scripts/verify-rigs.sh`; re-ran verify → 30/0.
+- `make test` (untouched, proven): `Ran 257 tests ... OK`, exit 0; Makefile `test:` runs 11 suites.
+- `scripts/generate-rigs.py` NOT run (no catalog edits in this stage — nothing to re-bake).

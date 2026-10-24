@@ -11,6 +11,15 @@ execution). Accepts both the single-line and the template-verbatim wrapped
 header forms (`Permitted operator` / `actions:`, `TPM verification` /
 `gate:`, `Path scope` / `(exact repo paths):`).
 
+M8 (#92) semantics: path scopes deny leading-dot/.git/.pi/.agents/fleet//
+scripts//AGENTS.md/leading `-`/colon/non-ASCII/`%`; PUSH to HEAD/main/master
+refused; all deadlines parsed with the earliest governing, requiring
+issued_at <= now < deadline <= issued_at + 14d; owning seats validated
+against fleet.yaml; BY WHOM must be the TPM seat (or bare `TPM`, which
+resolves to the fleet's single tpm/scrum seat) or a named human; every
+audit record must be link-shaped (URL, qitem id, hex SHA with a digit, the
+word `commit`, or a slashed path).
+
 Usage:
   check-envelope.py --envelope FILE [--at "YYYY-MM-DD HH:MMZ"]
                     [--consumed] [--revoked]
@@ -38,6 +47,25 @@ QUEUE_RE = re.compile(r"^[A-Za-z0-9._-]+$")
 EXPIRY_DEADLINE_RE = re.compile(r"expires\s+(\d{4}-\d{2}-\d{2} \d{2}:\d{2}Z)")
 EXPIRY_OPEN_RE = re.compile(r"never|open-ended|indefinite", re.IGNORECASE)
 REVOCATION_VOID_VALUES = {"none", "n/a", "na", "not applicable", "-", "tbd", "todo"}
+ENVELOPE_MAX_LIFETIME_DAYS = 14
+
+# M8 (#92): verifiers that name nobody (or a non-verifier) verify nothing.
+VOID_VERIFIERS = frozenset(
+    {
+        "nobody",
+        "none",
+        "n/a",
+        "na",
+        "tbd",
+        "todo",
+        "unknown",
+        "unnamed",
+        "anonymous",
+        "anyone",
+        "someone",
+        "vacant",
+    }
+)
 
 
 class Refusal(Exception):
@@ -192,23 +220,23 @@ def check_identity(sections):
         if not value:
             raise Refusal(f"{label}: REQUIRED value empty — envelope void on its face")
     issued_at = section_text(require(sections, "issued_at", "Issued at (UTC)")).strip()
-    parse_stamp(issued_at, "Issued at (UTC)")
-    return envelope_id
+    return envelope_id, parse_stamp(issued_at, "Issued at (UTC)")
 
 
-def check_expiry(sections, now, consumed):
+def check_expiry(sections, now, consumed, issued_at):
+    # M8 (#92): parse ALL deadlines and govern by the earliest; a standing
+    # envelope lives at most ENVELOPE_MAX_LIFETIME_DAYS past issuance, and an
+    # envelope issued after --at (or after its own deadline) is void.
     text = section_text(require(sections, "expiry", "Expiry"))
     if EXPIRY_OPEN_RE.search(text):
         raise Refusal(
             "Expiry: open-ended expiry is a standing permission in disguise — refused"
         )
     single_slice = "single-slice" in text.lower()
-    deadline_match = EXPIRY_DEADLINE_RE.search(text)
-    deadline = None
-    if deadline_match:
-        deadline = parse_stamp(deadline_match.group(1), "Expiry")
-    elif re.search(r"expires\b", text, re.IGNORECASE):
-        raise Refusal("Expiry: 'expires' without a parseable UTC deadline — refused")
+    deadlines = [
+        parse_stamp(found, "Expiry") for found in EXPIRY_DEADLINE_RE.findall(text)
+    ]
+    deadline = min(deadlines) if deadlines else None
     if single_slice and deadline is not None:
         raise Refusal(
             "Expiry: single-slice AND an explicit UTC deadline combined — "
@@ -218,8 +246,20 @@ def check_expiry(sections, now, consumed):
         raise Refusal(
             "Expiry: neither single-slice nor an explicit UTC deadline — refused"
         )
-    if deadline is not None and deadline <= now:
-        raise Refusal("Expiry: deadline passed — envelope expired")
+    if issued_at > now:
+        raise Refusal(
+            "Issued at (UTC): envelope issued after the reference time — "
+            "not yet live — refused"
+        )
+    if deadline is not None:
+        if deadline <= now:
+            raise Refusal("Expiry: deadline passed — envelope expired")
+        if deadline > issued_at + datetime.timedelta(days=ENVELOPE_MAX_LIFETIME_DAYS):
+            raise Refusal(
+                "Expiry: deadline more than "
+                f"{ENVELOPE_MAX_LIFETIME_DAYS}d past issuance — over-broad "
+                "window — refused"
+            )
     if consumed and single_slice:
         raise Refusal("Expiry: single-slice envelope already attempted — VOID")
 
@@ -254,6 +294,137 @@ def check_path_scope(sections):
                 f"Path scope: glob metacharacter in {entry!r} "
                 "(patterns widen scope — refused)"
             )
+        # M8 (#92): the jailbreak tail. A leading dot escapes the repo
+        # (.git/.pi/.agents/dots), fleet//scripts//AGENTS.md escape the slice
+        # into governance, and leading -/:/non-ASCII/% smuggle
+        # option/refspec/encoding tricks. (A body-line entry containing `:`
+        # is additionally diverted by the section parser into an unknown
+        # section — refused either way.)
+        if entry.startswith("."):
+            raise Refusal(
+                f"Path scope: dot-prefixed entry {entry!r} "
+                "(.git/.pi/.agents/all-dotfiles — refused)"
+            )
+        if any(part in (".git", ".pi", ".agents") for part in entry.split("/")):
+            raise Refusal(
+                f"Path scope: tool-state directory in {entry!r} "
+                "(.git/.pi/.agents — refused)"
+            )
+        if entry == "fleet" or entry.startswith("fleet/"):
+            raise Refusal(
+                f"Path scope: fleet catalog scope {entry!r} "
+                "(governance, not slice work — refused)"
+            )
+        if entry == "scripts" or entry.startswith("scripts/"):
+            raise Refusal(
+                f"Path scope: tooling scope {entry!r} "
+                "(governance, not slice work — refused)"
+            )
+        if entry.rsplit("/", 1)[-1] == "AGENTS.md":
+            raise Refusal(
+                f"Path scope: seat-charter scope {entry!r} "
+                "(governance, not slice work — refused)"
+            )
+        if entry.startswith("-"):
+            raise Refusal(
+                f"Path scope: option-shaped entry {entry!r} (leading dash — refused)"
+            )
+        if ":" in entry:
+            raise Refusal(
+                f"Path scope: refspec-shaped entry {entry!r} (colon — refused)"
+            )
+        if re.search(r"[^\x00-\x7f]", entry):
+            raise Refusal(
+                f"Path scope: non-ASCII entry {entry!r} (homoglyph risk — refused)"
+            )
+        if "%" in entry:
+            raise Refusal(
+                f"Path scope: percent-encoded entry {entry!r} "
+                "(encoding trick — refused)"
+            )
+
+
+def _fleet_catalog_path():
+    return Path(__file__).resolve().parent.parent / "fleet" / "fleet.yaml"
+
+
+_FLEET_SETS_CACHE = {}
+
+
+def fleet_gate_sets(catalog_path=None):
+    """(fleet_vocab, tpm_ids): read-only seat vocabulary from fleet.yaml.
+
+    fleet_vocab: every role id, every member/ binding `role:` value, and
+    every `session:`/`address:` value plus its @-local-part (lowercased).
+    tpm_ids: the subset staffing a tpm/scrum role. Cached per process.
+    Fail-closed: an unreadable catalog refuses every envelope (the seats
+    cannot be validated, so the operator holds).
+    """
+    if "sets" in _FLEET_SETS_CACHE:
+        return _FLEET_SETS_CACHE["sets"]
+    path = Path(catalog_path) if catalog_path is not None else _fleet_catalog_path()
+    try:
+        import yaml
+    except ImportError as exc:
+        raise Refusal(
+            f"Owning seats: fleet catalog unreadable ({exc}) — "
+            "seats cannot be validated — refused"
+        )
+    try:
+        data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, yaml.YAMLError) as exc:
+        raise Refusal(
+            f"Owning seats: fleet catalog unreadable ({exc}) — "
+            "seats cannot be validated — refused"
+        )
+    if not isinstance(data, dict):
+        raise Refusal(
+            "Owning seats: fleet catalog unparseable — "
+            "seats cannot be validated — refused"
+        )
+    vocab = set()
+    tpm = set()
+    roles = data.get("roles", {}) or {}
+    if isinstance(roles, dict):
+        for role_id, role in roles.items():
+            if not isinstance(role_id, str):
+                continue
+            vocab.add(role_id.lower())
+            session = role.get("session") if isinstance(role, dict) else None
+            if isinstance(session, str) and session:
+                vocab.add(session.lower())
+                vocab.add(session.split("@")[0].lower())
+            if "tpm" in role_id.lower() or "scrum" in role_id.lower():
+                tpm.add(role_id.lower())
+                if isinstance(session, str) and session:
+                    tpm.add(session.lower())
+                    tpm.add(session.split("@")[0].lower())
+
+    def _walk(node):
+        if isinstance(node, dict):
+            role = node.get("role")
+            if isinstance(role, str) and role:
+                vocab.add(role.lower())
+                tpm_role = "tpm" in role.lower() or "scrum" in role.lower()
+                if tpm_role:
+                    tpm.add(role.lower())
+                for key in ("session", "address"):
+                    value = node.get(key)
+                    if isinstance(value, str) and value:
+                        vocab.add(value.lower())
+                        vocab.add(value.split("@")[0].lower())
+                        if tpm_role:
+                            tpm.add(value.lower())
+                            tpm.add(value.split("@")[0].lower())
+            for value in node.values():
+                _walk(value)
+        elif isinstance(node, list):
+            for value in node:
+                _walk(value)
+
+    _walk(data)
+    _FLEET_SETS_CACHE["sets"] = (frozenset(vocab), frozenset(tpm))
+    return _FLEET_SETS_CACHE["sets"]
 
 
 def check_owning_seats(sections):
@@ -261,9 +432,16 @@ def check_owning_seats(sections):
     seats = split_entries(text)
     if not seats:
         raise Refusal("Owning seats: no enumerated seats — envelope void on its face")
+    vocab, _ = fleet_gate_sets()
     for seat in seats:
         if not SEAT_RE.match(seat):
             raise Refusal(f"Owning seats: malformed seat token {seat!r} — refused")
+        # M8 (#92): the seat must exist in the fleet catalog — a standing
+        # envelope for a phantom seat is void on its face.
+        if seat.lower() not in vocab:
+            raise Refusal(
+                f"Owning seats: unknown seat {seat!r} — not in fleet.yaml — refused"
+            )
     return seats
 
 
@@ -281,17 +459,23 @@ def check_actions(sections):
         push_match = re.match(r"^PUSH\s+(\S+)$", line)
         if push_match:
             branch = push_match.group(1)
+            # M8 (#92): pushing to a protected trunk ref is never envelope
+            # work — HEAD was already refused; main/master join it.
+            if branch.upper() in ("HEAD", "MAIN", "MASTER"):
+                raise Refusal(
+                    f"Permitted operator actions: PUSH to trunk ref {branch!r} "
+                    "(HEAD/main/master — refused)"
+                )
             if (
                 branch[:1] in ("+", "-", "/", ".", ":")
                 or branch.endswith(("/", ".", ".lock"))
                 or ".." in branch
                 or ":" in branch
                 or re.search(r"[*?\[\]{}!~^\\]", branch)
-                or branch.upper() == "HEAD"
             ):
                 raise Refusal(
                     f"Permitted operator actions: bad branch ref {branch!r} "
-                    "(force/refspec/wildcard/HEAD/dotdot/leading-punctuation — refused)"
+                    "(force/refspec/wildcard/dotdot/leading-punctuation — refused)"
                 )
             continue
         raise Refusal(
@@ -343,13 +527,34 @@ def check_tpm_gate(sections, seats):
         )
     if not by_whom:
         raise Refusal("TPM verification gate: BY WHOM verifier unnamed — no execution")
-    lowered = by_whom.lower()
+    # M8 (#92): BY WHOM must be the TPM seat or a named human. A void/generic
+    # verifier ("nobody") and any fleet seat that is not the TPM seat verify
+    # nothing — least of all an owning seat verifying its own work.
+    lowered = by_whom.strip().lower()
+    if lowered.rstrip(".") in VOID_VERIFIERS:
+        raise Refusal(
+            f"TPM verification gate: verifier {by_whom!r} names nobody — refused"
+        )
     for seat in seats:
         if seat.lower() in lowered:
             raise Refusal(
                 f"TPM verification gate: verifier {by_whom!r} is an owning seat "
                 "for its own work — refused"
             )
+    _, tpm_ids = fleet_gate_sets()
+    # The envelope template designates the verifier role as "TPM"; the fleet
+    # staffs exactly one tpm/scrum-role seat, so bare "TPM" resolves to it.
+    # (If the fleet ever staffs two TPM seats this shorthand turns ambiguous
+    # and must be retired — see NOTES.)
+    if lowered in tpm_ids or lowered == "tpm":
+        return
+    vocab, _ = fleet_gate_sets()
+    if lowered in vocab:
+        raise Refusal(
+            f"TPM verification gate: verifier {by_whom!r} is a fleet seat, "
+            "not the TPM seat or a named human — refused"
+        )
+    # Otherwise: a named human — accepted, and recorded in the audit trail.
 
 
 def check_revocation(sections, revoked):
@@ -362,15 +567,70 @@ def check_revocation(sections, revoked):
         raise Refusal("Revocation: revocation issued on the channel — envelope VOID")
 
 
+def _has_link_token(record):
+    """A record is link-shaped when it carries a machine-resolvable reference.
+
+    Definition (recorded; see NOTES): an http(s):// URL, a qitem:// URL, a
+    `qitem-<digits>-<hex>` id, a hex run of length >= 7 containing a digit
+    (commit/tree SHA), the word "commit" (execution-record reference — the
+    template's canonical execution line cites no SHA), or a repo-relative
+    path token containing a slash. Bare prose ("filed in the usual place")
+    is not link-shaped.
+    """
+    if re.search(r"https?://\S+|qitem://\S+", record, re.IGNORECASE):
+        return True
+    if re.search(r"\bqitem-\d+-[0-9a-z]+\b", record, re.IGNORECASE):
+        return True
+    for match in re.finditer(r"\b[0-9a-f]{7,64}\b", record, re.IGNORECASE):
+        if any(ch.isdigit() for ch in match.group(0)):
+            return True
+    if re.search(r"\bcommit\b", record, re.IGNORECASE):
+        return True
+    if re.search(r"(?<![\w:])~?[\w][\w.~-]*\/[\w.~\/+-]+", record):
+        return True
+    return False
+
+
 def check_audit_trail(sections):
-    text = section_text(require(sections, "audit_trail", "Audit trail")).lower()
-    if "envelope" not in text:
+    # M8 (#92): each of the three records must be link-shaped, not merely
+    # keyword-shaped. Numbered records split on their markers; unnumbered
+    # continuations append to the current record.
+    text = section_text(require(sections, "audit_trail", "Audit trail"))
+    records = []
+    for line in text.splitlines():
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if re.match(r"^\d+\s*[.)]\s*|^[-*]\s+", stripped):
+            records.append(re.sub(r"^\d+\s*[.)]\s*|^[-*]\s+", "", stripped))
+        elif records:
+            records[-1] += " " + stripped
+        else:
+            records.append(stripped)
+    need = {"envelope": False, "verif": False, "exec": False}
+    for record in records:
+        low = record.lower()
+        hits = []
+        if "envelope" in low:
+            hits.append("envelope")
+        if "verif" in low:
+            hits.append("verif")
+        if "execution" in low or "commit" in low:
+            hits.append("exec")
+        for hit in hits:
+            need[hit] = True
+        if hits and not _has_link_token(record):
+            raise Refusal(
+                f"Audit trail: {hits[0]} record is not link-shaped "
+                f"({record!r}) — incomplete execution"
+            )
+    if not need["envelope"]:
         raise Refusal("Audit trail: envelope link missing — incomplete execution")
-    if "verif" not in text:
+    if not need["verif"]:
         raise Refusal(
             "Audit trail: TPM verification link missing — incomplete execution"
         )
-    if "execution" not in text and "commit" not in text:
+    if not need["exec"]:
         raise Refusal(
             "Audit trail: execution-record link missing — incomplete execution"
         )
@@ -424,8 +684,8 @@ def main(argv=None):
     try:
         sections = split_sections(text.splitlines())
         check_unknown(sections)
-        envelope_id = check_identity(sections)
-        check_expiry(sections, now, args.consumed)
+        envelope_id, issued_at = check_identity(sections)
+        check_expiry(sections, now, args.consumed, issued_at)
         check_path_scope(sections)
         seats = check_owning_seats(sections)
         check_actions(sections)

@@ -1,0 +1,40 @@
+# red-proofs.log — remediate-lane-guard (Wave 5, #67 worktree-stale baked-path guard)
+# QA session: 2026-10-24 UTC · worktree: .lane/trees/remediate-lane-guard · branch: remediate/audit-66-lane-guard
+# Protocol: red-proof-sabotage skill, 7 steps. Temporary edits only (never committed); revert via `git checkout --`.
+
+## 1. Baseline green (unmodified tree, pre-sabotage)
+- Command: `./scripts/verify-rigs.sh --check-only`
+- Output tail: `[PASS] Worktree-stale paths (#67) green: 153 committed pi-settings.json leaves carry no /.lane/ baked paths` / `SUMMARY: 30 checks passed, 0 failed.` / exit 0
+- V14 block confirmed at scripts/verify-rigs.sh:1954, AFTER the V13 ok() (:1951-1952) and BEFORE SUMMARY (:1986). Label `== V14. No Worktree-Stale Absolute Paths (#67) ==` (V13 taken by supply-chain wave — correct).
+- Diff check: `git diff main...HEAD -- scripts/verify-rigs.sh` → 32 insertions, 0 deletions (pure addition; V1–V13 lines untouched).
+
+## 2. Sabotage injection (shellPath — the exact reported gap)
+- Target assertion: V14 fails any committed pi-settings.json whose `shellPath`/`packages[]` contains `/.lane/`.
+- Target file (committed, tracked): `rigs/cloud-sre-and-data-platform/agents/cache-streaming-eng/runtime/pi-settings.json`
+- Original value: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/scripts/seat-sandbox.sh` (canonical, no /.lane/)
+- Injected defect (temp edit, uncommitted): `shellPath` → `/.lane/trees/evil/scripts/seat-sandbox.sh`
+- Gap proof (V12 alone would pass it): `planted.endswith("scripts/seat-sandbox.sh")` → True. V12's endswith assert at :1679-1683 cannot see the staleness; pi would fail closed at seat startup. Gap is real, and V14 is the closure.
+- `git status --short` during sabotage: `M rigs/.../cache-streaming-eng/runtime/pi-settings.json` (only that file).
+
+## 3. RED execution
+- Command: `./scripts/verify-rigs.sh --check-only`
+- Result: exit 1. Named gate fired:
+  `[FAIL] V14/#67: seat cache-streaming-eng: rigs/cloud-sre-and-data-platform/agents/cache-streaming-eng/runtime/pi-settings.json shellPath holds worktree-stale absolute path '/.lane/trees/evil/scripts/seat-sandbox.sh' (#67 worktree-stale absolute path — re-bake on a canonical checkout)`
+- SUMMARY during sabotage: `28 checks passed, 3 failed` — the 2 extra FAILs are EXPECTED collateral: editing a generated leaf breaks the V13-adjacent bundle.yaml integrity + packageDigest gates (integrity.files mismatch). They prove nothing about V14 either way; the V14 line above is the red-proof. No vacuous check: V14 is NOT green-by-default.
+- Verdict on check quality: NON-VACUOUS (turns RED on violation with a seat/file/key-specific message).
+
+## 4. Clean rollback + restore proof
+- Revert: `git checkout -- rigs/cloud-sre-and-data-platform/agents/cache-streaming-eng/runtime/pi-settings.json`
+- `git status --short` → empty (clean). Content re-verified: shellPath back to canonical `/home/john/Projects/heretek-rig-workspace/heretek-rigs/scripts/seat-sandbox.sh`.
+- Post-revert V14 re-run: `[PASS] Worktree-stale paths (#67) green: 153 committed ...` — V14 green again (full-suite SUMMARY at that hour affected by §5 environmental caveat; V14 line itself PASS in every post-revert run).
+
+## 5. Environmental caveat (out-of-stage, recorded honestly)
+- Post-revert full runs showed `29 checks passed, 7 failed`, ALL 7 being V13/#70 networked image-existence probes failing with skopeo `toomanyrequests: ... unauthenticated pull rate limit` (Docker Hub anonymous quota exhausted — burned in part by this session's own repeated verify runs: baseline + sabotage + revert-check + retry ≈ 28+ manifest inspects).
+- The V13 check's offline-skip regex does not cover `toomanyrequests`/`rate limit`, so quota exhaustion hard-fails instead of skipping. Tree verified unmodified at the time (`git diff HEAD --stat` empty, `git status --short` empty); sidecar digests verified 64-hex valid in-file. This is environmental + out of this micro-stage's scope (V13 belongs to the supply-chain wave; this stage touches only the V14 block). The stage's own 30/0 was observed in-run BEFORE quota exhaustion (§1).
+- `make test`: `Ran 257 tests ... OK` across all 11 suites, exit 0 (unaffected; no network dependency).
+
+## 6. No-regen / scope confirmation
+- `git log --oneline main..HEAD` → single commit `616b2df remediate(#67): ...` (implementation commit intact, untouched by QA).
+- `git diff main...HEAD --stat` → exactly 3 files, 69 insertions, 0 deletions: `scripts/verify-rigs.sh` (+32), `docs/NOTES.md` (+13), `docs/reports/remediate-lane-guard-implementation.md` (+24).
+- Scope grep over changed names for `^(specs/|rigs/|rosters/|registry/|fleet/)` → no matches. No regen needed or performed (no catalog edits).
+- `docs/NOTES.md` §`remediate-lane-guard` present: documents catch (worktree-baked shellPath, `git show` of pre-fix blob), fix (2b103db canonical re-bake), V12 endswith gap, V14 guard placement, and commands + outputs.

@@ -1,0 +1,60 @@
+# remediate-sandbox red-proofs log (Wave 2 QA, 2026-10-24)
+# Worktree: /home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/remediate-sandbox
+# Every sabotage is a temporary tracked-file edit reverted with `git checkout -- <file>`,
+# or a scratch-copy edit outside the repo. git status must be clean afterwards.
+# Baseline (unmodified tree): all green — see docs/reports/remediate-sandbox-qa.md
+#   gate-role sabotage-qa-tester: exit 0, 43 ok / 0 FAIL
+#   gate-role go-backend-eng: exit 0, 43 ok / 0 FAIL
+#   verify-rigs --check-only: SUMMARY: 28 checks passed, 0 failed (exit 0)
+#   make test: Ran 210 tests OK (exit 0)
+#   F2 corpus: in-scope rc=0 / root.txt rc=1 RO / store masked rc=1 / net unreachable / git rc=0 / usage rc=126
+
+## S1 — runner-verb strip is load-bearing (sabotage-qa-tester + pytest*)
+- Sabotage: `git diff` +1 line in fleet/fleet.yaml (`+      - pytest*` under sabotage-qa-tester bash_allow).
+- Re-rendered scratch seat (qa-sabotage-qa-tester@qa-and-verification-gauntlet, mock model) + gate-run.sh probe `pytest --version`.
+- SABOTAGED result: `"isError":false`, output `pytest 9.1.1` — runner EXECUTES (RED: security property broken). Log: /tmp/opencode/s1-red.log
+- Revert: `git checkout -- fleet/fleet.yaml`; re-render; same probe -> `"isError":true` (GREEN: denied). Log: /tmp/opencode/s1-green.log
+- `git status --short` clean except untracked docs/evidence/. Verdict: NON-VACUOUS.
+
+## S2 — M5 deny-tuple mirror sync (remove *--unified* from ONE tuple)
+- (a) Mirror-only sabotage: removed `"*--unified*", ` from scripts/verify-rigs.sh:588 `_TERMINAL_BASH_DENIES` only (renderer + :1158 asserts + leaves untouched).
+  Result: `./scripts/verify-rigs.sh --check-only` -> EXIT 0, `SUMMARY: 28 checks passed, 0 failed.` — STAYS GREEN.
+  Log: /tmp/opencode/s2-mirror.log
+  Meaning: NO in-repo assert compares the renderer emitter tuple with the :588 mirror tuple; weakening the verifier is silent.
+  Classification: GAP (one-directional guard). The dangerous direction IS guarded (see b). Real-world protection (committed leaves still carry the deny) was intact during this sabotage; only the verifier's coverage narrowed. Recommend (not applied — QA never fixes): a sync assert (e.g. compare extracted tuples, or derive one from the other) as M10 follow-up.
+  Revert: `git checkout -- scripts/verify-rigs.sh` (clean).
+- (b) Renderer-only sabotage: removed `        "*--unified*",` from scripts/render-seat.py emitter tuple only.
+  Result: verify-rigs -> EXIT 1, `SUMMARY: 27 checks passed, 2 failed.` with `[FAIL] scripts/render-seat.py must emit terminal "*--unified*" bash deny` + unit-test KeyError on '*--unified*'. — GOES RED.
+  Log: /tmp/opencode/s2-renderer.log
+  Revert: `git checkout -- scripts/render-seat.py` (clean). Verdict: NON-VACUOUS in the renderer->leaves direction.
+
+## S3 — shellPath fail-closed (scratch render, no repo edit)
+- Rendered scratch seat (build-go-backend-eng, mock model), rewrote agent/settings.json shellPath to `/path/that/does/not/exist`.
+- gate-run.sh bash probe `git status --short` -> `"isError":true`, `Custom shell path not found: /path/that/does/not/exist` (matches spec F1 verbatim). Log: /tmp/opencode/s3.log
+- Scratch-only; nothing to revert in repo. Verdict: NON-VACUOUS (missing wrapper fails closed, no /bin/bash fallback).
+
+## S4 — send-authenticated.sh receipt state gate is load-bearing
+- Sabotage: `sys.exit(5)` -> `pass  # SABOTAGE` in the `st not in ("pending","in-progress")` branch.
+- Stub-rig fake `{"qitemId":"q-3","state":"failed","persisted":true}` -> rc=0 `created q-3 state=failed persisted=True` (RED: failed receipt claimed as delivery). Log: /tmp/opencode/s4-red.log
+- Revert: `git checkout -- scripts/send-authenticated.sh`; same fake -> rc=5 `receipt state 'failed' not in {pending, in-progress}` (GREEN). Log: /tmp/opencode/s4-green.log
+- Unset-env sanity: OPENRIG_SESSION_NAME set -> rc=2 refusal (GREEN). Verdict: NON-VACUOUS.
+
+## S5 — jail tmpfs store mask is load-bearing (scratch copy, repo untouched)
+- Scratch copy /tmp/opencode/sandbox-nomask.sh with the `mask+=(--tmpfs ...)` line disabled.
+- Same F2 env: `cat /tmp/opencode/f2fakestore/dummy.key` -> prints `dummy-placeholder-value`, rc=0 (RED: store readable without mask).
+- Unmodified scripts/seat-sandbox.sh: same read -> `No such file or directory`, rc=1 (GREEN, baseline §F2).
+- Verdict: NON-VACUOUS. Scratch file only; `git status` unaffected.
+
+## S6 — gate-role M5 `-u` probe is non-vacuous (temp renderer edit + scratch seat)
+- Sabotage: removed `        "* -u*",` from scripts/render-seat.py emitter; rendered scratch seat (mock model).
+- Harness insight (recorded): pps bash file-arg policing denies EXISTING files outside write roots via path rule `*` (e.g. committed README.md denies even without patch flags), while nonexistent paths allow at policy layer (git then fails). So the decisive probe needs an existing file inside a write root: created cmd/app.go (write tool allows), committed, probed `git log --oneline -u -- cmd/app.go`.
+- SABOTAGED result: full diff output including `canary-marker-7f3` (exfiltrated past policy = RED). Log: /tmp/opencode/s6-red3.log (gate-run.sh truncates at 400 chars; executed diff output proves allow).
+- Revert: `git checkout -- scripts/render-seat.py`; re-rendered scratch seat; same probe -> `"isError":true`, `Denied by policy: 'bash' (rule '* -u*')`, zero exfil matches. Log: /tmp/opencode/s6-green.log
+- Verdict: NON-VACUOUS. The M5 `-u` denyrule is what stops the exfil (not the path rule) on write-root files.
+
+## Final state
+- `git status --short` shows nothing modified except untracked docs/evidence/remediate-sandbox/ (this log; coordinator-owned).
+- Post-revert `./scripts/verify-rigs.sh --check-only` -> EXIT 0, `SUMMARY: 28 checks passed, 0 failed.` Log: /tmp/opencode/qa-verify-final.log
+- Baseline make-test/gate logs: /tmp/opencode/qa-maketest.log, /tmp/opencode/qa-sabotage-tester.log, /tmp/opencode/qa-gobackend.log, /tmp/opencode/qa-verify.log
+- F9 live-probe logs: /tmp/opencode/f9probe/ agent, /tmp/opencode/f9bare.log
+- No production or test code was patched; all sabotage reverted via `git checkout -- <file>` (S5/S3 used scratch copies only).
