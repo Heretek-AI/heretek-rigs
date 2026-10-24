@@ -168,6 +168,24 @@ class TestSendAuthenticatedWrapper(unittest.TestCase):
         proc = run_wrapper([], '{"ok":true}')
         self.assertNotEqual(proc.returncode, 0)
 
+    def test_source_fleet_identity_forms_refused(self):
+        """#93 / #105 review: --source can't be a role id or session name."""
+        for source in (
+            "exec-director",
+            "command-exec-director",
+            "engine-engine-systems-eng",
+            "design-a11y-specialist",
+        ):
+            with self.subTest(source=source):
+                proc = run_wrapper(["--source", source], CANNED_RECEIPT)
+                self.assertEqual(proc.returncode, 2, proc.stderr)
+                self.assertIn("fleet member/role id", proc.stderr)
+
+    def test_source_operator_label_accepted(self):
+        """An operator-side label still sends."""
+        proc = run_wrapper(["--source", "operator"], CANNED_RECEIPT)
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -382,7 +382,10 @@ def vendor_skill_from_clone(
                             f"{src_label}: refusing tar member escaping the vendor dir: {_m.name!r}"
                         )
                 for _m in members:
-                    tf.extract(_m, path=tmp)
+                    # Explicit "data" filter (#105 review): also rejects
+                    # links out of the dir and special files, instead of
+                    # relying on the interpreter's default policy.
+                    tf.extract(_m, path=tmp, filter="data")
         except SystemExit:
             raise
         except Exception as _e:
@@ -998,6 +1001,7 @@ def generate_all(
             model_id="muse-spark-1.3-contributor",
             allow_missing_secrets=True,
             check_secret_fs=False,
+            sandbox_wrapper="@RIGS@/scripts/seat-sandbox.sh",
         )
         write_json(rt_dir / "pi-settings.json", rendered_ref["settings.json"])
         write_json(rt_dir / "mcp.json", rendered_ref["mcp.json"])

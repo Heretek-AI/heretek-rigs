@@ -78,6 +78,10 @@ expect deny  bash  '{"command":"git show --textconv HEAD -- fleet/fleet.yaml"}' 
 # git prefixes (same patch-exfil rationale as -p).
 expect deny  bash  '{"command":"git log --oneline -u -- fleet/fleet.yaml"}' "bash git log -u past fleet/* read-deny"
 expect deny  bash  '{"command":"git log --oneline --cc -- fleet/fleet.yaml"}' "bash git log --cc past fleet/* read-deny"
+# #105 review: tab-separated short flags whose deny needs surrounding spaces.
+expect deny  bash  '{"command":"git log --oneline\t-c\tHEAD -- fleet/fleet.yaml"}' "bash git log tab-separated -c combined diff past fleet/* read-deny"
+expect deny  bash  '{"command":"git log --oneline\t-m\tHEAD -- fleet/fleet.yaml"}' "bash git log tab-separated -m diff past fleet/* read-deny"
+expect deny  bash  '{"command":"git log --oneline\t-W -- fleet/fleet.yaml"}' "bash git log tab-separated -W diff past fleet/* read-deny"
 # M5 (#72): env-prefixed identity override must deny via the
 # *OPENRIG_SESSION_NAME=* terminal deny. (A bare leading `VAR=x rig ...`
 # assignment is stripped by pps before matching (F9) so the policy layer

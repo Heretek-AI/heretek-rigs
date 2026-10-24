@@ -17,7 +17,7 @@ The locked tracker enum is STAGED, DISPATCHED, PARKED, QA PASS, PLACED,
 DONE, CLOSED + OTHER(<raw>); the queue terminal signal is entry/last-transition
 state ONLY (note text never terminal). A QA PASS affirmation — in a queue note or
 a tracker cell — counts only when the text opens with `QA PASS` and carries no
-negator (not/no/never/n't) or fail token; `placed`/`closed` arms are likewise
+negator (not/no/never/n't), fail token, or pending token (pending/awaiting/re-run); `placed`/`closed` arms are likewise
 void under negation (`NOT placed` affirms nothing).
 """
 
@@ -43,6 +43,12 @@ TERMINAL_QUEUE_STATES = {
 QA_PASS_ANCHORED_RE = re.compile(r"^QA PASS\b", re.IGNORECASE)
 _NEGATOR_RE = re.compile(r"\b(not|no|never)\b|n['\u2019]t\b", re.IGNORECASE)
 _FAIL_TOKEN_RE = re.compile(r"\b(fail|failed|fails|failure|failing)\b", re.IGNORECASE)
+# #105 review: a deferred pass ("QA PASS pending re-run", "QA PASS (awaiting
+# gate)") is not a pass yet — fail closed on these too.
+_PENDING_TOKEN_RE = re.compile(
+    r"\b(pending|awaiting|await|re-?run|tbd|provisional|conditional)\b",
+    re.IGNORECASE,
+)
 
 
 def _affirmative_qa_pass(text):
@@ -53,6 +59,8 @@ def _affirmative_qa_pass(text):
     if _NEGATOR_RE.search(stripped):
         return False
     if _FAIL_TOKEN_RE.search(stripped):
+        return False
+    if _PENDING_TOKEN_RE.search(stripped):
         return False
     return True
 
@@ -233,7 +241,11 @@ def normalize_tracker(cell):
     # affirms nothing). staged/dispatched keep substring detection; parked
     # keeps the "blocker satisfied" carve-out.
     low = cell.lower()
-    negated = bool(_NEGATOR_RE.search(cell)) or bool(_FAIL_TOKEN_RE.search(cell))
+    negated = (
+        bool(_NEGATOR_RE.search(cell))
+        or bool(_FAIL_TOKEN_RE.search(cell))
+        or bool(_PENDING_TOKEN_RE.search(cell))
+    )
     return {
         "qa_pass": _affirmative_qa_pass(cell),
         "placed": "placed" in low and not negated,

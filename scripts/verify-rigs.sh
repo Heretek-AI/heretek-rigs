@@ -585,7 +585,7 @@ for rid, rdir in sorted(discovered_roles.items()):
     # direct-read denies hold).
     _bash_map = perm.get("bash", {})
     _bash_keys = list(_bash_map.keys())
-    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "* -m *", "* -W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
+    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "*\t-c *", "* -c\t*", "*\t-c\t*", "* -m *", "*\t-m *", "* -m\t*", "*\t-m\t*", "* -W*", "*\t-W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
     for _td in _TERMINAL_BASH_DENIES:
         if _bash_map.get(_td) != "deny":
             fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
@@ -1155,7 +1155,7 @@ if '"*--output*"' not in _seed_text:
 # HR-5.5-git-patch-read-bypass (fail-closed): the renderer must emit the
 # patch-output flag denies LAST so `git log -p` / `git show --patch` cannot
 # exfiltrate file contents past path read-denies on allowed git prefixes.
-for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"', '"* -u*"', '"*\\t-u*"', '"* -U*"', '"*\\t-U*"', '"*--unified*"', '"*--cc*"', '"* -c *"', '"* -m *"', '"* -W*"', '"*--function-context*"', '"*--word-diff*"', '"*--color-words*"', '"*--binary*"', '"*--raw*"', '"*OPENRIG_SESSION_NAME=*"', '"*OPENRIG_URL=*"'):
+for _ptd in ('"* -p*"', '"*\\t-p*"', '"*--patch*"', '"*--full-diff*"', '"*--textconv*"', '"* -u*"', '"*\\t-u*"', '"* -U*"', '"*\\t-U*"', '"*--unified*"', '"*--cc*"', '"* -c *"', '"*\\t-c *"', '"* -c\\t*"', '"*\\t-c\\t*"', '"* -m *"', '"*\\t-m *"', '"* -m\\t*"', '"*\\t-m\\t*"', '"* -W*"', '"*\\t-W*"', '"*--function-context*"', '"*--word-diff*"', '"*--color-words*"', '"*--binary*"', '"*--raw*"', '"*OPENRIG_SESSION_NAME=*"', '"*OPENRIG_URL=*"'):
     if _ptd not in _seed_text:
         fail(f"scripts/render-seat.py must emit terminal {_ptd} bash deny")
 # HR-4.2 (fail-closed opt-in): when HERETEK_REQUIRE_SEATS=1, assert sampled
@@ -1980,8 +1980,16 @@ for _p14 in _v14_files:
     for _k14, _v14 in _vals14:
         if "/.lane/" in str(_v14):
             fail(f"V14/#67: seat {_seat14}: {_p14.relative_to(root)} {_k14} holds worktree-stale absolute path {_v14!r} (#67 worktree-stale absolute path — re-bake on a canonical checkout)")
+    # #105 review: leaves are checkout-independent. shellPath is the fixed
+    # @RIGS@ placeholder and every package path starts with @TOOLS@/, so no
+    # host path (/home/<user>/...) can be baked into a committed leaf.
+    if _d14.get("shellPath") != "@RIGS@/scripts/seat-sandbox.sh":
+        fail(f"V14: seat {_seat14}: {_p14.relative_to(root)} shellPath must be '@RIGS@/scripts/seat-sandbox.sh' (got {_d14.get('shellPath')!r}); regenerate with scripts/generate-rigs.py")
+    for _i14, _pkg14 in enumerate(_d14.get("packages", []) or []):
+        if not str(_pkg14).startswith("@TOOLS@/"):
+            fail(f"V14: seat {_seat14}: {_p14.relative_to(root)} packages[{_i14}] must start with '@TOOLS@/' (got {_pkg14!r})")
 if len(failures) == _v14_before:
-    ok(f"Worktree-stale paths (#67) green: {len(_v14_files)} committed pi-settings.json leaves carry no /.lane/ baked paths")
+    ok(f"Checkout-independent leaves (#67) green: {len(_v14_files)} committed pi-settings.json leaves use @RIGS@/@TOOLS@ placeholders, no /.lane/ or host paths")
 
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:

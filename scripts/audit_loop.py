@@ -47,6 +47,9 @@ STATUS_FINDINGS_DETECTED = "STATUS: FINDINGS_DETECTED"
 # `## HR-…:` or `#### HR-…` header hiding behind a NO_FINDINGS sentinel is a
 # lie, not a shallower report.
 HR_HEADER_RE = re.compile(r"^#{1,6}\s*HR-[\w.-]+", flags=re.MULTILINE)
+# #105 review: a bold finding line (`**HR-4.1: ...**`) is a finding header
+# too, even when it isn't an ATX heading.
+HR_BOLD_RE = re.compile(r"^\s*(?:[-*]\s+)?\*\*\s*HR-[\w.-]+", flags=re.MULTILINE)
 
 # M6 (#79): cell-decoration stripping for the ledger scan. Bold/italic/
 # strikethrough/code ticks (`*_~``) and emoji (❌, ✅, …) must not launder a
@@ -57,6 +60,12 @@ _EMOJI_RE = re.compile(
     "[\U0001f300-\U0001faff\u2600-\u2bff\ufe00-\ufe0f\u200d\U0001f1e6-\U0001f1ff]"
 )
 _LEDGER_TOKEN_RE = re.compile(r"\b(BROKEN|PARTIAL)\b", flags=re.IGNORECASE)
+# #105 review: ledger verdicts spelled FAIL / PARTIALLY HOLDS / REFUTED. Only
+# checked on body rows of a ledger table (under a "ledger" heading or with a
+# Verdict/Status column) — sabotage rows routinely say "gate FAILED".
+_LEDGER_VERDICT_RE = re.compile(
+    r"\b(FAIL(?:ED|S)?|PARTIALLY|REFUTED|DOES NOT HOLD)\b", flags=re.IGNORECASE
+)
 
 # M6 (#79): any P0–P3 token in a Defect-Matrix table body cell counts as a
 # finding (case-insensitive: `p1` launders nothing).
@@ -154,6 +163,18 @@ def _scan_report_tables(combined):
         is_sabotage = ("sabotage" in current_heading.lower()) or (
             "caught?" in header_ci
         )
+        is_ledger = (not is_sabotage) and (
+            "ledger" in current_heading.lower()
+            or "verdict" in header_ci
+            or "status" in header_ci
+        )
+        if is_ledger and not any(
+            _LEDGER_TOKEN_RE.search(_strip_cell_decorations(c)) for c in cells
+        ):
+            for cell in cells:
+                if _LEDGER_VERDICT_RE.search(_strip_cell_decorations(cell)):
+                    ledger += 1
+                    break
         if is_matrix:
             for cell in cells:
                 if _PGRADE_RE.search(_strip_cell_decorations(cell)):
@@ -185,7 +206,9 @@ def evaluate_audit_status(
     # BROKEN/PARTIAL rows with or without numeric claim IDs on the
     # UNSTRIPPED text so fenced-only rows still trip. M6 widens the header
     # to any ATX depth with or without a trailing colon.
-    open_finding_headers = HR_HEADER_RE.findall(combined)
+    open_finding_headers = HR_HEADER_RE.findall(combined) + HR_BOLD_RE.findall(
+        combined
+    )
     if open_finding_headers:
         return (
             STATUS_FINDINGS_DETECTED,
@@ -357,6 +380,13 @@ def run_self_test(repo_root: Path) -> int:
         "|-----------|----------|--------------|---------|\n"
         "| 5.1 yolo | builtin:locked -> builtin:yolo | NOT RUN | no |\n"
         "STATUS: NO_FINDINGS\n",
+        # V9-V11 (#105 review): FAIL / PARTIALLY HOLDS ledger verdicts and a
+        # bold (non-heading) finding line.
+        "## Claim Ledger\n| Claim | Verdict | Evidence |\n|---|---|---|\n"
+        "| 3.1 | FAIL | x |\nSTATUS: NO_FINDINGS\n",
+        "## Claim Ledger\n| Claim | Verdict | Evidence |\n|---|---|---|\n"
+        "| 3.2 | PARTIALLY HOLDS | x |\nSTATUS: NO_FINDINGS\n",
+        "**HR-7.1: bold finding line**\nSTATUS: NO_FINDINGS\n",
     )
     for i, vector in enumerate(m6_vectors, start=1):
         s, reason = evaluate_audit_status(vector, "", True)
@@ -364,13 +394,22 @@ def run_self_test(repo_root: Path) -> int:
             f"M6 vector V{i} missed (returned {s}: {reason}): {vector!r}"
         )
 
+    # Control: a caught sabotage row saying the gate FAILED is not a finding.
+    caught = (
+        "## Sabotage Results\n| Invariant | Sabotage | Suite result | Caught? |\n"
+        "|---|---|---|---|\n| 5.1 | x -> y | verify FAILED | yes |\n"
+        "STATUS: NO_FINDINGS\n"
+    )
+    s, reason = evaluate_audit_status(caught, "", True)
+    assert s == STATUS_NO_FINDINGS, f"caught-sabotage control misread: {reason}"
+
     status_gate_fail, _ = evaluate_audit_status(clean_report, "", False)
     assert status_gate_fail == STATUS_FINDINGS_DETECTED, (
         "Parser failed to reject NO_FINDINGS when verify gate failed!"
     )
 
     print(
-        "  [PASS] Fail-closed sentinel evaluator verified against 15 adversarial test vectors"
+        "  [PASS] Fail-closed sentinel evaluator verified against 18 adversarial test vectors"
     )
     print("SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.")
     return 0

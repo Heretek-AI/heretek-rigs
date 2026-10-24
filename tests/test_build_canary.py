@@ -19,6 +19,7 @@ Run: python3 -m unittest tests/test_build_canary.py -v
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -189,6 +190,30 @@ class CanaryMockProbes(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # #105 review: these probes need REAL enforcement — `pi` on PATH and
+        # the pinned pi-permission-system under $HERETEK_TOOLS (render-seat
+        # fails closed without it, #67). A fake package would make every
+        # probe meaningless, so skip loudly when the stack isn't installed
+        # instead of erroring in setUpClass.
+        tools = Path(
+            os.environ.get(
+                "HERETEK_TOOLS",
+                str(Path.home() / ".local/share/heretek-rigs/tools"),
+            )
+        )
+        pps_json = (
+            tools / "pi-packages/node_modules/@gotgenes/pi-permission-system/package.json"
+        )
+        try:
+            pps_ver = json.loads(pps_json.read_text()).get("version")
+        except (OSError, ValueError):
+            pps_ver = None
+        if pps_ver != "41.0.0" or shutil.which("pi") is None:
+            raise unittest.SkipTest(
+                f"mock-harness probes need `pi` on PATH and "
+                f"@gotgenes/pi-permission-system@41.0.0 at {pps_json.parent} "
+                f"(found pi={shutil.which('pi')!r}, pps={pps_ver!r})"
+            )
         cls.tmp = tempfile.TemporaryDirectory()
         root = Path(cls.tmp.name)
         agent = root / "agent"
@@ -199,7 +224,7 @@ class CanaryMockProbes(unittest.TestCase):
         secrets.mkdir(mode=0o700)
         (secrets / "opencode-go.key").write_text("dummy")
         os.chmod(secrets / "opencode-go.key", 0o600)
-        env = dict(os.environ, HERETEK_SECRETS=str(secrets))
+        env = dict(os.environ, HERETEK_SECRETS=str(secrets), HERETEK_TOOLS=str(tools))
         subprocess.run(
             [
                 sys.executable,
