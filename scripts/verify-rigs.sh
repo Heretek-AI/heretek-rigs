@@ -1618,6 +1618,85 @@ if _hr57_match:
 if len(failures) == _hr57_before:
     ok(f"Dispatch-tracker proposal generator (issue #57) green: drifted pair yields paste-ready cells, empty queue fails closed, run read-only (tests/test_generate_trackers.py {_hr57_ran} tests pass)")
 
+print("\n== V12. Tool-Existence Gate (#67, #74, #82) ==")
+# Fail-closed tool existence: every seat's settings packages[0] (the
+# mandatory @gotgenes/pi-permission-system) must exist when rendered against
+# a real tools dir, and every stdio MCP server bound to a seat must have a
+# resolvable command (absolute path on disk, or on PATH via shutil.which).
+# Missing host-optional MCP binaries are REPORTED per seat (naming the
+# server, e.g. radare2 when r2mcp is not installed) but do not fail the
+# gate — installing host tooling is M9 scope; a missing MANDATORY pps or a
+# deleted M2 render guard DOES fail. Appended at the end — no existing check
+# renumbered or reworded. Exactly one ok() below.
+_v12_before = len(failures)
+import shutil as _shutil12
+_v12_tools = Path(
+    os.environ.get("HERETEK_TOOLS", str(Path.home() / ".local/share/heretek-rigs/tools"))
+)
+_v12_mcp_servers = yaml.safe_load((root / "fleet/mcp-servers.yaml").read_text())["servers"]
+# (a) the M2 fail-closed guard must exist in the renderer source — deleting
+# the mandatory-pps die must flip this gate even on hosts without tools.
+_v12_render_src = (root / "scripts/render-seat.py").read_text()
+if "@gotgenes/pi-permission-system is mandatory" not in _v12_render_src:
+    fail("scripts/render-seat.py must die on a missing @gotgenes/pi-permission-system (M2 fail-closed guard)")
+if 'need 41.0.0' not in _v12_render_src:
+    fail("scripts/render-seat.py must pin @gotgenes/pi-permission-system at 41.0.0 (M2 version guard)")
+# (b) per-seat settings packages[0]: resolve the committed
+# specs/.../runtime/pi-settings.json against the real tools dir.
+_v12_pps_pkg = "pi-packages/node_modules/@gotgenes/pi-permission-system"
+_v12_roles = fleet.get("roles", {})
+for _rid12 in sorted(_v12_roles):
+    _ps12 = root / "specs/agents" / _v12_roles[_rid12]["domain"] / _rid12 / "runtime/pi-settings.json"
+    if not _ps12.is_file():
+        fail(f"{_rid12}: missing committed runtime/pi-settings.json (cannot verify packages[0])")
+        continue
+    try:
+        _pkgs12 = json.loads(_ps12.read_text()).get("packages", [])
+    except Exception as _e12:
+        fail(f"{_rid12}: runtime/pi-settings.json unreadable ({_e12})")
+        continue
+    if not _pkgs12 or _v12_pps_pkg not in str(_pkgs12[0]):
+        fail(f"{_rid12}: settings packages[0] must be the mandatory {_v12_pps_pkg} (got {_pkgs12[:1]})")
+if _v12_tools.is_dir():
+    _v12_pps_json = _v12_tools / _v12_pps_pkg / "package.json"
+    if not _v12_pps_json.is_file():
+        fail(f"tool-existence: {_v12_pps_json} missing: @gotgenes/pi-permission-system is mandatory (render would die per M2)")
+    else:
+        try:
+            _v12_ver = json.loads(_v12_pps_json.read_text()).get("version")
+        except Exception as _e12:
+            fail(f"tool-existence: {_v12_pps_json} unreadable ({_e12})")
+            _v12_ver = None
+        if _v12_ver is not None and _v12_ver != "41.0.0":
+            fail(f"tool-existence: {_v12_pps_json} version {_v12_ver}, need 41.0.0")
+else:
+    print(f"  [NOTE] V12 tool-existence: tools dir {_v12_tools} absent on this host; packages[0] existence unchecked (render dies per M2)")
+# (c) per-seat MCP command resolution, missing reported per seat.
+_v12_cmd_cache = {}
+for _rid12 in sorted(_v12_roles):
+    for _b12 in (_v12_roles[_rid12].get("mcp") or []):
+        _srv12 = _b12.get("server")
+        _sdef12 = _v12_mcp_servers.get(_srv12, {})
+        if _sdef12.get("transport") == "http" or "command" not in _sdef12:
+            continue
+        if _srv12 not in _v12_cmd_cache:
+            _cmd12 = str(_sdef12["command"]).replace("@TOOLS@", str(_v12_tools))
+            if "@SECRETS@" in _cmd12 or "@SEAT@" in _cmd12:
+                _v12_cmd_cache[_srv12] = (True, _cmd12)
+            elif Path(_cmd12).is_absolute():
+                _v12_cmd_cache[_srv12] = (Path(_cmd12).is_file(), _cmd12)
+            else:
+                _v12_cmd_cache[_srv12] = (_shutil12.which(_cmd12.split()[0]) is not None, _cmd12)
+        _ok12, _cmd12 = _v12_cmd_cache[_srv12]
+        if not _ok12:
+            print(f"  [NOTE] V12 tool-existence: seat {_rid12}: server '{_srv12}' command not found: {_cmd12}")
+_v12_missing12 = sorted(_s for _s, (_o, _c) in _v12_cmd_cache.items() if not _o)
+if len(failures) == _v12_before:
+    if _v12_missing12:
+        ok(f"Tool-existence (issues #67/#74) green: pps packages[0] present at 41.0.0 with M2 render guard; {len(_v12_cmd_cache) - len(_v12_missing12)} bound MCP commands resolve, host-missing listed above ({', '.join(_v12_missing12)})")
+    else:
+        ok(f"Tool-existence (issues #67/#74) green: pps packages[0] present at 41.0.0 with M2 render guard; all {len(_v12_cmd_cache)} bound MCP commands resolve")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

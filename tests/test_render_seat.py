@@ -21,10 +21,17 @@ class TestRenderSeat(unittest.TestCase):
         key_file = self.secrets / "opencode-go.key"
         key_file.write_text("dummy")
         os.chmod(key_file, 0o600)
+        # M2 (#67): the permission extension is mandatory — the fixture tools
+        # dir carries the pinned pps package.json so renders pass the
+        # fail-closed guard (missing/drifted pps is covered by the M2 tests).
+        self.tools = Path(self.tmp_dir.name) / "tools"
+        pps = self.tools / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+        pps.mkdir(parents=True)
+        (pps / "package.json").write_text(json.dumps({"version": "41.0.0"}))
         self.env = {
             **os.environ,
             "HERETEK_SECRETS": str(self.secrets),
-            "HERETEK_TOOLS": "/opt/hr-tools",
+            "HERETEK_TOOLS": str(self.tools),
             "OPENRIG_HOME": "/tmp/hr-openrig",
         }
 
@@ -81,7 +88,12 @@ class TestRenderSeat(unittest.TestCase):
         self.assertEqual(s["defaultThinkingLevel"], "high")
         self.assertEqual(
             s["packages"],
-            ["/opt/hr-tools/pi-packages/node_modules/@gotgenes/pi-permission-system"],
+            [
+                str(
+                    self.tools
+                    / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+                )
+            ],
         )
         self.assertIn("tool_search", s["defaultTools"])
 
@@ -281,6 +293,56 @@ class TestRenderSeat(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 2)
         self.assertRegex(proc.stderr, r"must not contain")
+
+    def test_missing_pps_is_hard_error_despite_allow_missing_secrets(self):
+        env = {**self.env, "HERETEK_TOOLS": "/nonexistent-hr-tools"}
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "exec-director",
+                "--rig",
+                "executive-and-architecture",
+                "--pod",
+                "exec",
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"@gotgenes/pi-permission-system is mandatory")
+
+    def test_drifted_pps_version_is_hard_error(self):
+        pps_pkg = (
+            self.tools
+            / "pi-packages/node_modules/@gotgenes/pi-permission-system/package.json"
+        )
+        pps_pkg.write_text(json.dumps({"version": "40.0.0"}))
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "exec-director",
+                "--rig",
+                "executive-and-architecture",
+                "--pod",
+                "exec",
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(proc.returncode, 2)
+        self.assertRegex(proc.stderr, r"version 40\.0\.0, need 41\.0\.0")
 
 
 if __name__ == "__main__":
