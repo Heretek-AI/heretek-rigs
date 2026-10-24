@@ -339,6 +339,55 @@
 ### Test-fix commit (rule 4, own commit after M9 af3e52e)
 - `tests/test_regen_gate.py::test_allow_dirty_bypass_records_real_sha` was genuinely stale under the #99 mandate (ALLOW_DIRTY+blocking dirt now stamps `DIRTY-<sha>` instead of the bare SHA): updated to expect `DIRTY-<head>` plus a new `test_allow_dirty_clean_tree_records_bare_sha` (sanctioned-only strays + flag → bare SHA). One-line reason recorded here per brief rule 4.
 
+## 2026-10-24 — Audit #66 remediate-supplychain M10 final pass + verification (wave remediate-supplychain)
+
+### Clean-regen + full gates (worktree remediate/audit-66-p0-p1-supplychain @ 2bc45e5, tree clean)
+- `python3 ./scripts/generate-rigs.py` (no flag, clean tree) → clean provenance (`2bc45e5…`, no DIRTY), 16 registry files changed (DIRTY→clean + tested→Not-tested already landed in M9 regen). specs/rigs/status.json byte-identical to M9 commit (same worktree shellPath).
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 29 checks passed, 0 failed.` (exit 0; 28 + V13). Log /tmp/opencode/verify_m10_clean.log.
+- `make test` → `Ran 257 tests ... OK` (11 suites; 248 + 8 new supply-chain + 1 new regen-gate). Log /tmp/opencode/maketest_m10.log.
+- `python3 scripts/audit_loop.py --self-test` → SELF-TEST PASSED (15 vectors: 7 kept + 8 M6).
+- `HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py --check-idempotent` → `idempotence check passed (two consecutive runs byte-identical)` exit 0 (both runs stamp the same DIRTY-<HEAD>; determinism proven). Clean leaves snapshotted to /tmp/opencode/leaves_clean/ before the proof and restored after (registry DIRTY-count back to 0).
+- `bash scripts/gate-role.sh sabotage-qa-tester` → exit 0 (43 ok incl. all M5 probes); `bash scripts/gate-role.sh go-backend-eng` → exit 0 (tail: lsp mutation denies ok).
+
+### Per-finding tick table (#67–#102; commands from docs/PROMPT_REMEDIATION_REAUDIT.md §1 unless noted)
+- Derivation precedent (Wave 3): issue bodies for #80/#81/#88/#89/#90/#98/#101 are not on disk (searched PROMPT_ADVERSARIAL_FLEET_AUDIT.md, REMEDIATION_IMPLEMENTATION_PROMPT.md, AUDIT_REPORT_FINDINGS.md, docs/reports — zero hits); no wave changed code for them. They tick as follow-up with derivation recorded here.
+- #67: `HERETEK_TOOLS=/nonexistent ... render-seat.py --role exec-director ... --allow-missing-secrets` → exit 2 "mandatory" ✓ PASS.
+- #68: gate-role sabotage-qa-tester exit 0, 43 ok (no runner verb allowed); F2 jail corpus per M4 report (writes confined, net blocked, store masked) — re-ran gate, corpus cited ✓ PASS.
+- #69: gate-role go-backend-eng exit 0 (all git-diff forms + env-prefixed rig denied) ✓ PASS (M5 report + re-run).
+- #70: `docker manifest inspect tecnativa/...:v0.5.0@sha256:1f50…` → schemaVersion 2, exit 0 ✓ PASS; all 10 digests resolved on-host (see M9 resolutions); V13 existence green.
+- #71: sabotages 2 (clickhouse true) + 3 (r2mcp re-added) → exit 1 with named gates ✓ PASS.
+- #72: `OPENRIG_SESSION_NAME=... send-authenticated.sh` → exit 2 refusal ✓ PASS (env half); live-queue half needs the daemon — residual per F9, upstream request still the path (no wave scope change).
+- #73: fleet query → 0 roles hold `git commit`, dependency-patcher grants empty ✓ PASS.
+- #74: V12 [NOTE] lines name r2mcp/playwright/chrome-devtools/mobile/openapi/memory/kubernetes per seat ✓ PASS (host-missing listed, gate green).
+- #75/#91: NOT IMPLEMENTED — `commandEffects` occurs only in the two prompt docs (zero code hits). No wave scope. → follow-up (re-audit row documents the desired behavior).
+- #76: observed DENIED — `ctest --output-on-failure` contains `--output`, matched by the pre-existing `*--output*` terminal deny (deny-last). No wave scope; F3 tuple predates M5. → follow-up (needs a policy decision, not a silent edit).
+- #77: no wave scope (mission-row ownership); needs live queue → UNVERIFIABLE off-fleet → follow-up.
+- #78: no wave scope (missions/* + evidence/<role>/* writes); M4 sandbox now confines seat writes as mitigation → follow-up for the write-scope grant itself.
+- #79: `audit_loop --self-test` exit 0, 15 vectors ✓ PASS.
+- #80/#81: not on disk, no wave scope → follow-up.
+- #82: `make test` runs all 11 suites, 257 OK ✓ PASS (no orphans: new suite wired into Makefile).
+- #83: 11 sweep tests in make test ✓ PASS. #84: 7 reconcile tests + #84 fixture exits 1 NEEDS-HUMAN-REVIEW ✓ PASS.
+- #85: dirty-clone regen exit 2 ✓ PASS; archive fidelity (byte-identical _shared, lock unchanged) ✓ PASS.
+- #86: roster sabotage exit 1 ✓ PASS. #87: stub sabotage exit 1 ✓ PASS.
+- #88/#89/#90: not on disk, no wave scope → follow-up.
+- #92: 69 envelope tests in make test ✓ PASS (incl. spec-mandated PUSH inversion).
+- #93: `--source exec-director` → exit 2 "not a fleet member/role id" ✓ PASS; env-refusal + receipt matrix per M5 report (re-ran env half).
+- #94: table-defined (undeclared-binary probes) but no wave scope; gate-role corpus is role-fixed, live pi run needed → follow-up.
+- #95: table-defined (TOML lint spellings), no wave scope → follow-up.
+- #96: UNVERIFIABLE off-fleet (table says so; needs live fleet re-seed).
+- #97: fabricated-tested sabotage exit 1 ✓ PASS; committed tree "Not tested"/[] ✓.
+- #98: not on disk, no wave scope → follow-up.
+- #99: ALLOW_DIRTY regen → verify exit 1 (DIRTY reject, 16 V13 + 16 V4) ✓ PASS.
+- #100: `grep OPENRIG_VERSION docker/Dockerfile` → 0.6.13 ✓ PASS; render with missing declared pkg → exit 0 pps-only packages (pre-existing omission-tolerance in render-seat.py:364-374, untouched by M9; V12 names missing MCP binaries, pi_packages omission is silent) → recorded, follow-up candidate.
+- #101: not on disk, no wave scope → follow-up.
+- #102: P3 spot-checks — stale "64 skills" prose (AGENTS.md/generator docstring vs 68 actual, pre-existing Wave-2/3 growth) noted; firecrawl minimal-profile standalone boot unverified (recorded M9 caveat); qdrant 1.15.3 / docker-android emulator_14.0 deltas vs upstream recorded (minimal-diff, no bump).
+
+### M10 PR attempt (push blocked — branch left ready)
+- `git push -u origin remediate/audit-66-p0-p1-supplychain` → twice `{"type":"permission.rejected","message":"Permission denied: shell"}` (sandbox push guardrail; remote exists, `gh auth status` logged in — not a credential problem).
+- No PR opened. Full PR body text (spec format) + Gates/follow-up lines recorded in docs/reports/remediate-supplychain-implementation.md §PR.
+- Shell host with push rights: push the branch, then `gh pr create --base main` with that body.
+- Footer session-URL discrepancy noted: the stage spec file shows `.../session_014wevSWHET5eqHNVNTYZnx9` while this wave's brief mandates `.../session_014wevSWHET5eqHNVNTYZ9W`; this stage uses the wave brief's URL consistently (commits + PR body).
+
 ### Catalog-vs-Dockerfile drift (found on-host, fixed in M9)
 - `context7`: catalog `npm:@upstash/context7-mcp@4.4.4` vs Dockerfile `4.4.2` → aligned to catalog.
 - `memory`: catalog `npm:@modelcontextprotocol/server-memory@2.0.0` vs Dockerfile `1.0.0` → aligned to catalog.
