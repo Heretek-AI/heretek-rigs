@@ -322,12 +322,13 @@ class EnvelopeActionTests(unittest.TestCase):
         self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
         self.assertIn("action", proc.stdout + proc.stderr)
 
-    def test_push_bare_main_accepted(self):
-        """Exact branch form PUSH main is accepted."""
+    def test_push_bare_main_refused(self):
+        """M8 (#92): PUSH to trunk refs (main/master/HEAD) is refused — exact
+        branch form or not, trunk pushes are never envelope work."""
         text = VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH main")
         proc = run_checker(text)
-        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
-        self.assertIn("ACCEPT", proc.stdout)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        self.assertIn("trunk", proc.stdout + proc.stderr)
 
     def test_explicit_push_with_branch_accepted(self):
         """PUSH is permitted ONLY with the exact branch named."""
@@ -443,3 +444,128 @@ class EnvelopeRobustnessTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestEnvelopeSemanticsM8(unittest.TestCase):
+    """M8 (#92): path-scope, PUSH-branch, time-ordering, seat/marker/link
+    semantics. Every row here must REFUSE (rc=1)."""
+
+    def test_dotgit_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", ".git/hooks/x"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_dotpi_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", ".pi/agent/x"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_dotagents_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", ".agents/y"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_fleet_dir_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "fleet/fleet.yaml"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_scripts_dir_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "scripts/run.sh"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_agents_md_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "AGENTS.md"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "docs/AGENTS.md"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_leading_dash_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "-evil"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_colon_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "src/a:b"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_non_ascii_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "src/caf\u00e9/"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_percent_path_refused(self):
+        proc = run_checker(mutate(VALID_ENVELOPE, "src/engine/", "src/100%x/"))
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_push_main_refused(self):
+        proc = run_checker(
+            VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH main")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_push_master_refused(self):
+        proc = run_checker(
+            VALID_ENVELOPE.replace("FILE-QUEUE-ITEM ops-log", "PUSH master")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_far_future_expiry_refused(self):
+        """A 9999 deadline exceeds the issued+14d window."""
+        proc = run_checker(
+            mutate(
+                VALID_ENVELOPE, "expires 2026-10-24 19:00Z", "expires 9999-01-01 00:00Z"
+            )
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_issued_after_expiry_refused(self):
+        """Issued (10-24) after the deadline (10-23 20:00Z), now pinned 10-23."""
+        text = mutate(VALID_ENVELOPE, "2026-10-23 19:00Z", "2026-10-24 19:00Z")
+        text = mutate(text, "expires 2026-10-24 19:00Z", "expires 2026-10-23 20:00Z")
+        proc = run_checker(text)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_future_issued_refused(self):
+        """An envelope issued after --at is not yet live."""
+        text = mutate(VALID_ENVELOPE, "2026-10-23 19:00Z", "2026-10-25 19:00Z")
+        text = mutate(text, "expires 2026-10-24 19:00Z", "expires 2026-10-26 19:00Z")
+        proc = run_checker(text)
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_multiple_deadlines_governed_by_min(self):
+        """A live first deadline plus an expired second one is expired."""
+        proc = run_checker(
+            mutate(
+                VALID_ENVELOPE,
+                "Expiry: expires 2026-10-24 19:00Z",
+                "Expiry: expires 2026-10-24 19:00Z; extended, expires 2026-10-22 19:00Z",
+            )
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_unknown_owning_seat_refused(self):
+        proc = run_checker(
+            mutate(
+                VALID_ENVELOPE,
+                "engine-systems-eng, cpp-lowlevel-eng",
+                "engine-systems-eng, not-a-real-seat",
+            )
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_by_whom_nobody_refused(self):
+        proc = run_checker(
+            mutate(VALID_ENVELOPE, "2. BY WHOM: TPM", "2. BY WHOM: nobody")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_by_whom_non_tpm_seat_refused(self):
+        proc = run_checker(
+            mutate(VALID_ENVELOPE, "2. BY WHOM: TPM", "2. BY WHOM: go-backend-eng")
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+
+    def test_unlinked_audit_record_refused(self):
+        proc = run_checker(
+            mutate(
+                VALID_ENVELOPE,
+                "1. This envelope filed as queue item qitem-20261023000000-bbbbbbbbbbbbbbbb",
+                "1. This envelope filed in the usual place",
+            )
+        )
+        self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
