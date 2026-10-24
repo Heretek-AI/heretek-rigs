@@ -6,7 +6,7 @@ Issue: #111. Closes #111 on completion. Notes to #66/#68.
 ## Root cause (verified read-only 2026-10-24, Wave B recon)
 
 - `/var/tmp/seatjail.*` today = 21 entries (HANDOFF/#110 claimed 408 — delta unexplained in-tree; bounds today's sweep to 21).
-- All 21 = legacy `seatjail.XXXXXX` (zero pid-namespaced `seatjail.<pid>.XXXXXX`); all `john:john` (1000:1000); 17 node-compile-cache (126,936 B each) + 2 larger cache variants + 2 small variants + 4 tiny 2-byte `x`-only; total 560 files / ~2.1 MiB.
+- All 21 = legacy `seatjail.XXXXXX` (zero pid-namespaced `seatjail.<pid>.XXXXXX`); all `john:john` (1000:1000, invoking `id -u` = 1000); 14 node-compile-cache at 126,936 B + 3 other-sized cache dirs (146,612 / 148,464 / 168,140 B) + 4 tiny 2-byte `x`-only; total 560 files / ~2.1 MiB.
 - Secrets scan (names + content patterns): 0 hits. `lsof`/`fuser`: no holders. No mount refs.
 - Creator/sweeper `scripts/seat-sandbox.sh:51-66` self-sweeps own pid-namespaced dirs only; `:54` deliberately leaves legacy alone. Provenance: old `mktemp …/seatjail.XXXXXX` form (`docs/REMEDIATION_IMPLEMENTATION_PROMPT.md:213`).
 

@@ -16,9 +16,10 @@ Unity binding: N/A. No code fixed by auditor; report only, uncommitted.
 - REQ-R3 (firecrawl pin): PASS. `docs/TECHNICAL_DOCUMENTATION.md:408` =
   `ghcr.io/firecrawl/firecrawl:2.10.19`; `grep -n mendable/firecrawl` → 0 hits;
   matches `docker-compose.sidecars.yml:93` + `docs/NOTES.md:305` per evidence §1.
-- REQ-G1 (no renumber / no policy loosening): PASS. `git diff --name-only` touches only
+- REQ-G1 (no renumber / no policy loosening): PASS. `git diff --name-only main...feat/residuals-107` touches only
   `AGENTS.md README.md docs/TECHNICAL_DOCUMENTATION.md docs/USER_GUIDE.md
-  docs/evidence/wave-b2-residuals.md scripts/verify-rigs.sh`; governance probes
+  docs/evidence/wave-b2-residuals.md docs/reports/wave-b2-residuals-verification.md
+  scripts/verify-rigs.sh` (6 source/evidence files + this report); governance probes
   (`check-envelope.py`, `reconcile_model.py`, `send-authenticated.sh`), seat-sandbox,
   denies, `docs/reports/*` untouched (grep over diff file list → clean).
 - REQ-G2 (no history rewrites): PASS. No `docs/reports/*` in diff; evidence §5 records
@@ -32,7 +33,7 @@ Unity binding: N/A. No code fixed by auditor; report only, uncommitted.
 
 ## 3. Stub hunt
 
-- `git diff -U0` scanned for TODO/FIXME/stub/`|| true`/bare-pass/skip markers → no hits.
+- `git diff -U0 main...feat/residuals-107` scanned for TODO/FIXME/stub/`|| true`/bare-pass/skip markers → single hit is this report's own prose naming the pattern (self-reference, not a stub).
 - numstat shows minimal touch (1-line V13, count/pin lines, 89-line evidence file). No vacuous
   test additions, no skipped tests in scope. PASS.
 
