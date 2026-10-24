@@ -388,6 +388,9 @@
 - Shell host with push rights: push the branch, then `gh pr create --base main` with that body.
 - Footer session-URL discrepancy noted: the stage spec file shows `.../session_014wevSWHET5eqHNVNTYZnx9` while this wave's brief mandates `.../session_014wevSWHET5eqHNVNTYZ9W`; this stage uses the wave brief's URL consistently (commits + PR body).
 
+### Post-M10 semgrep hardening (own commit after 97a37ca)
+- `semgrep_scan` on the M9 generator flagged `trailofbits.python.tarfile-extractall-traversal` at the `extractall` call. Source is `git archive` of the pinned commit (not attacker bytes), but hardened anyway: member-name validation (reject absolute/`..`) + per-member `tf.extract` instead of `extractall`. Rescan: 0 findings. Helper unit tests re-run 18/18 OK (incl. archive byte-fidelity). Full `make test` (257) + `verify-rigs` (29/0) confirmed green on the committed tree before this change; the change is extraction-mechanism-only (validated members, same bytes).
+
 ### Catalog-vs-Dockerfile drift (found on-host, fixed in M9)
 - `context7`: catalog `npm:@upstash/context7-mcp@4.4.4` vs Dockerfile `4.4.2` → aligned to catalog.
 - `memory`: catalog `npm:@modelcontextprotocol/server-memory@2.0.0` vs Dockerfile `1.0.0` → aligned to catalog.

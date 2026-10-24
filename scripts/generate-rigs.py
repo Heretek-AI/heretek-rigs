@@ -371,7 +371,20 @@ def vendor_skill_from_clone(
     with tempfile.TemporaryDirectory(prefix="heretek-vendor-") as tmp:
         try:
             with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tf:
-                tf.extractall(tmp)
+                # Fail closed on tar members that could escape the scratch
+                # dir (absolute paths, `..` segments). The archive source
+                # is `git archive` of the pinned commit — not attacker
+                # bytes — but extraction must not trust member names.
+                members = tf.getmembers()
+                for _m in members:
+                    if _m.name.startswith(("/", "\\")) or ".." in Path(_m.name).parts:
+                        die(
+                            f"{src_label}: refusing tar member escaping the vendor dir: {_m.name!r}"
+                        )
+                for _m in members:
+                    tf.extract(_m, path=tmp)
+        except SystemExit:
+            raise
         except Exception as _e:
             die(f"{src_label}: cannot unpack git archive for {relpath}: {_e}")
         src = Path(tmp) / relpath

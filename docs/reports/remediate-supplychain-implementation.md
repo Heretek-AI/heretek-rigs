@@ -101,6 +101,7 @@ PR body prepared, branch push-ready.
 6. Upstream Heretek-Crew still pins phantom `:0.5.0` socket-proxy and older qdrant/docker-android tags — reported here, not edited there (different repo).
 7. S2a closure changes the failure mode only: mirror weakening now fails V13/S2a instead of staying green; renderer weakening still fails via `:1158` asserts + unit tests (S2b, Wave-2 QA).
 8. Committed provenance re-lags one commit per merge (known, accepted per AGENTS.md).
+9. Post-commit semgrep scan flagged `tarfile.extractall` (traversal rule) in `vendor_skill_from_clone`; hardened to validated per-member extraction (reject absolute/`..` members, then `tf.extract` each) — rescan 0 findings; helper unit tests (18/18 incl. byte-fidelity) re-run green. Committed as `fix(remediate-supplychain)` after M10.
 
 ## PR
 
