@@ -60,12 +60,12 @@ _EMOJI_RE = re.compile(
     "[\U0001f300-\U0001faff\u2600-\u2bff\ufe00-\ufe0f\u200d\U0001f1e6-\U0001f1ff]"
 )
 _LEDGER_TOKEN_RE = re.compile(r"\b(BROKEN|PARTIAL)\b", flags=re.IGNORECASE)
-# #105 review: ledger verdicts spelled FAIL / PARTIALLY HOLDS / REFUTED. Only
-# checked on body rows of a ledger table (under a "ledger" heading or with a
-# Verdict/Status column) — sabotage rows routinely say "gate FAILED".
-_LEDGER_VERDICT_RE = re.compile(
-    r"\b(FAIL(?:ED|S)?|PARTIALLY|REFUTED|DOES NOT HOLD)\b", flags=re.IGNORECASE
-)
+# #105 review: ledger verdicts. Only the Status/Verdict cell is read (the
+# Evidence column routinely says "fail-closed", "verify FAILED as expected").
+# Claim Ledger: anything other than VERIFIED / UNVERIFIABLE is a finding.
+# Regression Ledger: STILL OPEN / REGRESSED are findings.
+_CLAIM_OK_VERDICTS = ("VERIFIED", "UNVERIFIABLE")
+_REGRESSION_OPEN_RE = re.compile(r"^(STILL\s+OPEN|REGRESSED)\b", re.IGNORECASE)
 
 # M6 (#79): any P0–P3 token in a Defect-Matrix table body cell counts as a
 # finding (case-insensitive: `p1` launders nothing).
@@ -163,18 +163,20 @@ def _scan_report_tables(combined):
         is_sabotage = ("sabotage" in current_heading.lower()) or (
             "caught?" in header_ci
         )
-        is_ledger = (not is_sabotage) and (
-            "ledger" in current_heading.lower()
-            or "verdict" in header_ci
-            or "status" in header_ci
+        heading_ci = current_heading.lower()
+        verdict_col = next(
+            (i for i, h in enumerate(header_ci) if h in ("status", "verdict")), None
         )
-        if is_ledger and not any(
-            _LEDGER_TOKEN_RE.search(_strip_cell_decorations(c)) for c in cells
-        ):
-            for cell in cells:
-                if _LEDGER_VERDICT_RE.search(_strip_cell_decorations(cell)):
+        if not is_sabotage and verdict_col is not None and verdict_col < len(cells):
+            verdict = _strip_cell_decorations(cells[verdict_col]).strip().upper()
+            if "regression ledger" in heading_ci:
+                if _REGRESSION_OPEN_RE.search(verdict):
                     ledger += 1
-                    break
+            elif "claim ledger" in heading_ci or (header_ci and header_ci[0] == "claim"):
+                if not _LEDGER_TOKEN_RE.search(verdict) and not verdict.startswith(
+                    _CLAIM_OK_VERDICTS
+                ):
+                    ledger += 1
         if is_matrix:
             for cell in cells:
                 if _PGRADE_RE.search(_strip_cell_decorations(cell)):
@@ -386,6 +388,10 @@ def run_self_test(repo_root: Path) -> int:
         "| 3.1 | FAIL | x |\nSTATUS: NO_FINDINGS\n",
         "## Claim Ledger\n| Claim | Verdict | Evidence |\n|---|---|---|\n"
         "| 3.2 | PARTIALLY HOLDS | x |\nSTATUS: NO_FINDINGS\n",
+        "## Claim Ledger\n| Claim | Status | Evidence |\n|---|---|---|\n"
+        "| 3.3 | FAIL | x |\nSTATUS: NO_FINDINGS\n",
+        "## Regression Ledger\n| Finding | Status | Evidence |\n|---|---|---|\n"
+        "| #68 | STILL OPEN | x |\nSTATUS: NO_FINDINGS\n",
         "**HR-7.1: bold finding line**\nSTATUS: NO_FINDINGS\n",
     )
     for i, vector in enumerate(m6_vectors, start=1):
@@ -402,6 +408,23 @@ def run_self_test(repo_root: Path) -> int:
     )
     s, reason = evaluate_audit_status(caught, "", True)
     assert s == STATUS_NO_FINDINGS, f"caught-sabotage control misread: {reason}"
+    # Controls: "fail" in a VERIFIED row's Evidence or Claim cell is not a
+    # finding, and FIXED regression rows are clean.
+    for clean_row in (
+        "| 2.1 | VERIFIED | fail-closed render holds |",
+        "| 4.2 Render fails closed | VERIFIED | ok |",
+        "| 5.1 | UNVERIFIABLE | needs live fleet |",
+    ):
+        s, reason = evaluate_audit_status(
+            "## Claim Ledger\n| Claim | Status | Evidence |\n|---|---|---|\n"
+            + clean_row + "\nSTATUS: NO_FINDINGS\n", "", True,
+        )
+        assert s == STATUS_NO_FINDINGS, f"clean ledger row misread: {clean_row} ({reason})"
+    s, reason = evaluate_audit_status(
+        "## Regression Ledger\n| Finding | Status | Evidence |\n|---|---|---|\n"
+        "| #67 | FIXED | render fails closed |\nSTATUS: NO_FINDINGS\n", "", True,
+    )
+    assert s == STATUS_NO_FINDINGS, f"FIXED regression row misread: {reason}"
 
     status_gate_fail, _ = evaluate_audit_status(clean_report, "", False)
     assert status_gate_fail == STATUS_FINDINGS_DETECTED, (
@@ -409,7 +432,7 @@ def run_self_test(repo_root: Path) -> int:
     )
 
     print(
-        "  [PASS] Fail-closed sentinel evaluator verified against 18 adversarial test vectors"
+        "  [PASS] Fail-closed sentinel evaluator verified against 20 adversarial test vectors"
     )
     print("SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.")
     return 0
