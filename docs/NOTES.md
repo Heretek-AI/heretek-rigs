@@ -244,3 +244,19 @@
 - send-authenticated.sh with OPENRIG_SESSION_NAME set refuses (rc=2); fake `{"state":"failed","persisted":false}` exits non-zero (rc=4; fuller fakes rc=5/6/7).
 - `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.`; `make test` → `Ran 210 tests ... OK`; generate-rigs ×2 byte-identical (cmp clean).
 - Rollout split (unchanged from M4): sandbox shellPath needs relaunch/RPC reload; permission config.json changes (these M5 denies, M4 verb removals) go canary-then-fleet without bounce.
+
+## 2026-10-24 — Audit #66 remediate-governance M6 evaluator hardening (#79, wave remediate-governance)
+
+### Derivation (issue bodies not on disk)
+- Full #79/#83/#84/#92 issue texts are NOT in the repo (searched docs/ + repo-wide grep: only the reaudit table rows in docs/PROMPT_REMEDIATION_REAUDIT.md name them). The 8 M6 vectors and the M8 #92 row list are therefore DERIVED from the M6/M8 spec sentences + the reaudit one-liners, per the wave brief ("derive rows ... and record derivation"). Derivation recorded per milestone below.
+
+### M6 decision record (scripts/audit_loop.py)
+- Header: `^#{1,6}\s*HR-[\w.-]+` (any ATX depth, colon optional). Kept MULTILINE over combined report+agent text; gate-fail and explicit-FINDINGS_DETECTED short-circuits unchanged.
+- Ledger: every pipe-delimited line scanned per-cell; each cell stripped of `[*_~\`]+` and emoji (U+1F300–1FAFF, U+2600–2BFF incl ❌ U+274C, variation selectors, ZWJ, regional indicators), then `\b(BROKEN|PARTIAL)\b` IGNORECASE. Table-wide (not ledger-section-only) so fenced/bare/decorated rows all trip; prose-only "broken" still does NOT trip (pipe-scope kept deliberately to avoid matching narrative words like "broken" in a clean verdict).
+- Defect-Matrix P-grade: body cells only (header + separator rows skipped), in tables under a "defect matrix" heading OR whose header row has an exact-ci "Priority" cell. Case-insensitive `P[0-3]` (adversarial lowercase `p1` launders nothing). Known over-approximation: a P-grade token in any Priority-columned table counts even outside the matrix section — fail-closed by design.
+- Sabotage: body rows only, in tables under a "sabotage" heading OR with an exact-ci "Caught?" header cell; last cell stripped of decorations, lowercased, must equal `yes`. Verifies against the template shape (`| Invariant | ... | Suite result | Caught? |`, PROMPT_ADVERSARIAL_FLEET_AUDIT.md:285).
+- Real-file sanity: current AUDIT_REPORT_FINDINGS.md short-circuits on its explicit FINDINGS_DETECTED sentinel (unchanged); table scan alone gives (ledger=24 PARTIAL rows, matrix=0 — the `_none_` row correctly trips nothing, sabotage=12 UNVERIFIABLE rows) — consistent with pre-fix behavior (pre-fix regex also tripped on PARTIAL).
+- RED proof: all 8 derived vectors return NO_FINDINGS on pre-fix code (scratch /tmp/opencode/red_m6.py, 8/8 MISS), FINDINGS_DETECTED post-fix (self-test asserts). The 7 pre-existing vectors kept verbatim (none subsumed: bare/lowercase/fenced are syntactically distinct from decorated/matrix/sabotage shapes).
+
+### M6 acceptance
+- `python3 scripts/audit_loop.py --self-test` → exit 0, `Fail-closed sentinel evaluator verified against 15 adversarial test vectors` (7 kept + 8 new, each asserting FINDINGS_DETECTED).

@@ -11,8 +11,11 @@ Features:
   - Parses both `AUDIT_REPORT_FINDINGS.md` and agent stdout for the canonical
     `STATUS: NO_FINDINGS` vs `STATUS: FINDINGS_DETECTED` sentinel.
   - Rejects false-positive `STATUS: NO_FINDINGS` claims if `verify-rigs.sh` fails, if
-    `AUDIT_REPORT_FINDINGS.md` contains any open `### HR-` finding headers, or if any
-    Claim Ledger row is marked `BROKEN` or `PARTIAL`.
+    the report contains any open `HR-` finding header (any ATX depth, with or
+    without trailing colon), if any table cell carries a BROKEN/PARTIAL token
+    (after stripping `*_~` and emoji), if any Defect-Matrix body cell carries
+    a P0–P3 grade, or if any Sabotage-table body row has a last cell other
+    than `yes`.
   - Resets consecutive pass counter to 0 whenever any finding or gate failure occurs.
   - Supports `--self-test` / `--dry-run` for CI verification without invoking live LLM calls.
 
@@ -39,6 +42,28 @@ REPORT_FILE = "AUDIT_REPORT_FINDINGS.md"
 STATUS_NO_FINDINGS = "STATUS: NO_FINDINGS"
 STATUS_FINDINGS_DETECTED = "STATUS: FINDINGS_DETECTED"
 
+# M6 (#79): finding-header shapes. Any ATX heading (levels 1-6) opening an
+# HR-<id> finding section counts, with or without a trailing colon — a
+# `## HR-…:` or `#### HR-…` header hiding behind a NO_FINDINGS sentinel is a
+# lie, not a shallower report.
+HR_HEADER_RE = re.compile(r"^#{1,6}\s*HR-[\w.-]+", flags=re.MULTILINE)
+
+# M6 (#79): cell-decoration stripping for the ledger scan. Bold/italic/
+# strikethrough/code ticks (`*_~``) and emoji (❌, ✅, …) must not launder a
+# BROKEN/PARTIAL token: `**BROKEN**`, `BROKEN ❌`, `BROKEN (see notes)` all
+# count as findings.
+_CELL_DECORATION_RE = re.compile(r"[*_~`]+")
+_EMOJI_RE = re.compile(
+    "[\U0001f300-\U0001faff\u2600-\u2bff\ufe00-\ufe0f\u200d\U0001f1e6-\U0001f1ff]"
+)
+_LEDGER_TOKEN_RE = re.compile(r"\b(BROKEN|PARTIAL)\b", flags=re.IGNORECASE)
+
+# M6 (#79): any P0–P3 token in a Defect-Matrix table body cell counts as a
+# finding (case-insensitive: `p1` launders nothing).
+_PGRADE_RE = re.compile(r"\bP[0-3]\b", flags=re.IGNORECASE)
+
+_TABLE_SEPARATOR_RE = re.compile(r"^:?-+:?$")
+
 
 def utc_now() -> str:
     return datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
@@ -59,6 +84,88 @@ def run_verify_gate(repo_root: Path) -> Tuple[bool, str]:
     return proc.returncode == 0, combined.strip()
 
 
+def _table_cells(line):
+    """Split a markdown table line into stripped cells."""
+    cells = line.strip().split("|")
+    if cells and cells[0].strip() == "":
+        cells = cells[1:]
+    if cells and cells[-1].strip() == "":
+        cells = cells[:-1]
+    return [c.strip() for c in cells]
+
+
+def _is_separator_cells(cells):
+    return bool(cells) and all(_TABLE_SEPARATOR_RE.match(c or "") for c in cells)
+
+
+def _strip_cell_decorations(cell):
+    """Remove `*_~`` runs and emoji so decorated tokens stay detectable."""
+    return _EMOJI_RE.sub("", _CELL_DECORATION_RE.sub("", cell))
+
+
+def _scan_report_tables(combined):
+    """Fail-closed table scan. Returns (ledger, matrix, sabotage) hit counts.
+
+    - ledger: any pipe-delimited line with a BROKEN/PARTIAL token in any
+      cell after decoration-stripping (Claim Ledger, fenced or bare,
+      decorated or plain).
+    - matrix: a P0–P3 token in a body cell of a Defect-Matrix table — a
+      table under a "defect matrix" heading or whose header row names a
+      "Priority" column. Header and separator rows are never evidence.
+    - sabotage: a body row of a Sabotage table (under a "sabotage"
+      heading or with a "Caught?" column) whose last cell is not `yes`
+      (`no`, `NOT RUN`, `UNVERIFIABLE`, … all count as open).
+    """
+    ledger = matrix = sabotage = 0
+    current_heading = ""
+    run_header = None
+    in_run = False
+    for line in combined.splitlines():
+        stripped = line.strip()
+        heading = re.match(r"^#{1,6}\s+(.*)$", stripped)
+        if heading:
+            current_heading = heading.group(1)
+            in_run = False
+            run_header = None
+            continue
+        if "|" not in stripped:
+            in_run = False
+            run_header = None
+            continue
+        cells = _table_cells(stripped)
+        if not cells:
+            in_run = False
+            run_header = None
+            continue
+        for cell in cells:
+            if _LEDGER_TOKEN_RE.search(_strip_cell_decorations(cell)):
+                ledger += 1
+                break
+        if _is_separator_cells(cells):
+            continue
+        if not in_run:
+            run_header = cells
+            in_run = True
+            continue
+        header_ci = [c.lower() for c in run_header]
+        is_matrix = ("defect matrix" in current_heading.lower()) or (
+            "priority" in header_ci
+        )
+        is_sabotage = ("sabotage" in current_heading.lower()) or (
+            "caught?" in header_ci
+        )
+        if is_matrix:
+            for cell in cells:
+                if _PGRADE_RE.search(_strip_cell_decorations(cell)):
+                    matrix += 1
+                    break
+        if is_sabotage and cells:
+            last = _strip_cell_decorations(cells[-1]).strip().lower()
+            if last != "yes":
+                sabotage += 1
+    return ledger, matrix, sabotage
+
+
 def evaluate_audit_status(
     report_text: str, agent_output: str, gate_passed: bool
 ) -> Tuple[str, str]:
@@ -73,28 +180,35 @@ def evaluate_audit_status(
             "Explicit STATUS: FINDINGS_DETECTED sentinel present",
         )
 
-    # HR-8.3: scan the combined report+agent output (not report_text alone) for
-    # open finding headers, and match ledger BROKEN/PARTIAL rows with or without
-    # numeric claim IDs on the UNSTRIPPED text so fenced-only rows still trip.
-    open_finding_headers = re.findall(
-        r"^###\s+HR-[A-Za-z0-9._-]+:", combined, flags=re.MULTILINE
-    )
+    # HR-8.3 + M6 (#79): scan the combined report+agent output (not
+    # report_text alone) for open finding headers, and match ledger
+    # BROKEN/PARTIAL rows with or without numeric claim IDs on the
+    # UNSTRIPPED text so fenced-only rows still trip. M6 widens the header
+    # to any ATX depth with or without a trailing colon.
+    open_finding_headers = HR_HEADER_RE.findall(combined)
     if open_finding_headers:
         return (
             STATUS_FINDINGS_DETECTED,
             f"Report contains {len(open_finding_headers)} finding section(s)",
         )
 
-    # HR-8.3: match any "| <claim> | BROKEN|PARTIAL |" ledger row
-    # case-insensitively without requiring the literal word "Claim" or a
-    # numeric ID, on the raw combined text (fenced rows count as findings).
-    broken_claims = re.findall(
-        r"\|[^\n]*\|\s*(BROKEN|PARTIAL)\s*\|", combined, flags=re.IGNORECASE
-    )
-    if broken_claims:
+    # M6 (#79): decorated ledger tokens, Defect-Matrix P-grades, and open
+    # Sabotage rows are findings even under a NO_FINDINGS sentinel.
+    ledger_hits, matrix_hits, sabotage_open = _scan_report_tables(combined)
+    if ledger_hits:
         return (
             STATUS_FINDINGS_DETECTED,
-            f"Claim Ledger contains {len(broken_claims)} BROKEN/PARTIAL claim(s)",
+            f"Claim Ledger contains {ledger_hits} BROKEN/PARTIAL claim(s)",
+        )
+    if matrix_hits:
+        return (
+            STATUS_FINDINGS_DETECTED,
+            f"Defect Matrix contains {matrix_hits} P0-P3 graded row(s)",
+        )
+    if sabotage_open:
+        return (
+            STATUS_FINDINGS_DETECTED,
+            f"Sabotage table contains {sabotage_open} uncaught row(s)",
         )
 
     if STATUS_NO_FINDINGS in combined:
@@ -213,13 +327,50 @@ def run_self_test(repo_root: Path) -> int:
         s, _ = evaluate_audit_status(extra, "", True)
         assert s == STATUS_FINDINGS_DETECTED, f"Parser missed ledger row: {extra!r}"
 
+    # M6 (#79): the 8 report-format variants. Each hides a finding behind a
+    # NO_FINDINGS sentinel using a shape the old evaluator missed (header
+    # depth/colon, decorated ledger cell, Defect-Matrix P-grade, open
+    # Sabotage row). Each must return FINDINGS_DETECTED.
+    m6_vectors = (
+        # V1: depth-2 finding header with colon (old: exactly ### only).
+        "## HR-4.1: Depth-two header with colon\nSTATUS: NO_FINDINGS\n",
+        # V2: depth-3 finding header WITHOUT trailing colon.
+        "### HR-4.2 header without trailing colon\nSTATUS: NO_FINDINGS\n",
+        # V3: depth-4 finding header.
+        "#### HR-4.3 deep header\nSTATUS: NO_FINDINGS\n",
+        # V4: bold-decorated BROKEN cell.
+        "| Claim 9.1 | **BROKEN** | x |\nSTATUS: NO_FINDINGS\n",
+        # V5: emoji-decorated BROKEN cell.
+        "| Claim 9.2 | BROKEN \u274c | x |\nSTATUS: NO_FINDINGS\n",
+        # V6: parenthetical BROKEN cell.
+        "| Claim 9.3 | BROKEN (see notes) | x |\nSTATUS: NO_FINDINGS\n",
+        # V7: Defect-Matrix row carrying a P-grade.
+        "## Prioritized Defect Matrix\n"
+        "| ID | Priority | Claim | Location | Summary |\n"
+        "|----|----------|-------|----------|---------|\n"
+        "| DM-1 | P1 | widget frobnicator | foo.py:12 | broke |\n"
+        "STATUS: NO_FINDINGS\n",
+        # V8: Sabotage row whose last cell is not yes.
+        "## Sabotage Results\n"
+        "| Invariant | One-line sabotage (file:line, before -> after) "
+        "| Suite result | Caught? |\n"
+        "|-----------|----------|--------------|---------|\n"
+        "| 5.1 yolo | builtin:locked -> builtin:yolo | NOT RUN | no |\n"
+        "STATUS: NO_FINDINGS\n",
+    )
+    for i, vector in enumerate(m6_vectors, start=1):
+        s, reason = evaluate_audit_status(vector, "", True)
+        assert s == STATUS_FINDINGS_DETECTED, (
+            f"M6 vector V{i} missed (returned {s}: {reason}): {vector!r}"
+        )
+
     status_gate_fail, _ = evaluate_audit_status(clean_report, "", False)
     assert status_gate_fail == STATUS_FINDINGS_DETECTED, (
         "Parser failed to reject NO_FINDINGS when verify gate failed!"
     )
 
     print(
-        "  [PASS] Fail-closed sentinel evaluator verified against 7 adversarial test vectors"
+        "  [PASS] Fail-closed sentinel evaluator verified against 15 adversarial test vectors"
     )
     print("SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.")
     return 0
