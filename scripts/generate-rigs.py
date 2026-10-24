@@ -647,6 +647,7 @@ def generate_all(
     vendor_dir: Path,
     core_dir: Path,
     allow_synthetic: bool = False,
+    commit: str | None = None,
 ) -> None:
     fleet_path = root / "fleet/fleet.yaml"
     mcp_path = root / "fleet/mcp-servers.yaml"
@@ -655,7 +656,7 @@ def generate_all(
 
     fleet = yaml.safe_load(fleet_path.read_text())
     mcp_catalog = yaml.safe_load(mcp_path.read_text())["servers"]
-    HERETEK_RIGS_COMMIT = resolve_heretek_commit(root, allow_synthetic)
+    HERETEK_RIGS_COMMIT = commit or resolve_heretek_commit(root, allow_synthetic)
     # #97 (fail-closed): listing/harness attestation grounds in real run
     # records (docs/evidence/run-records.json) or emits "Not tested" —
     # never a fabricated record id.
@@ -1726,12 +1727,20 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.check_idempotent:
+        # #105 review: resolve provenance ONCE, on the tree as given (the #99
+        # dirty guard applies here). Pass 1 may legitimately rewrite the
+        # resolvedCommit stamps to HEAD; pass 2 must reuse that commit
+        # instead of re-checking a tree dirtied only by pass 1's own output.
+        _commit = resolve_heretek_commit(
+            Path(args.root).resolve(), args.allow_synthetic_provenance
+        )
         generate_all(
             Path(args.root).resolve(),
             Path(args.crew_source).resolve(),
             Path(args.vendor_dir).resolve(),
             Path(args.openrig_core).resolve(),
             args.allow_synthetic_provenance,
+            commit=_commit,
         )
 
         # Second pass into the same root must be a no-op byte-for-byte:
@@ -1760,6 +1769,7 @@ def main() -> None:
             Path(args.vendor_dir).resolve(),
             Path(args.openrig_core).resolve(),
             args.allow_synthetic_provenance,
+            commit=_commit,
         )
         _after = _hash_tree(Path(args.root).resolve())
         if _before != _after:
