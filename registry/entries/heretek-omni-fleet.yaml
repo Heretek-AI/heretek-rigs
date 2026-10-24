@@ -6,7 +6,7 @@ summary: Master composable 51-agent omni-fleet topology booting a 3-seat command
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/heretek-omni-fleet
-  resolvedCommit: 2bc45e593e9b8fe53ae926df259c568e174e3a7a
+  resolvedCommit: f5f0aa8cb44af7479cf375bb68872472868afcea
   requestedRef: main
 configurations:
 - id: command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: 77320c1e856ff1c4112abe35ca82f6bb67a8e878e4d74133aaea9df9424e32bb
+    value: 52dbfd9389b907f93f02cf52b22a75fe51317bb1c5cdfe258a6055e120772fa5
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.13

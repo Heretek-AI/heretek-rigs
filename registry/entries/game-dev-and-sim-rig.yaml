@@ -6,7 +6,7 @@ summary: Real-time game engine architecture, ECS systems, deterministic physics 
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/game-dev-and-sim-rig
-  resolvedCommit: 2bc45e593e9b8fe53ae926df259c568e174e3a7a
+  resolvedCommit: f5f0aa8cb44af7479cf375bb68872472868afcea
   requestedRef: main
 configurations:
 - id: engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: f49b79a0c1cd0288558c3f8307042f2bb87933c7fea9adbe395c02d5c80e487c
+    value: 310eff5cb6addb9f107ca2086198ee0e7ce92c2991bd583de53f675516d6bacf
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.13
