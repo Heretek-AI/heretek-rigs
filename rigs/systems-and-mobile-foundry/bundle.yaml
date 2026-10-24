@@ -598,34 +598,34 @@ integrity:
     agents/android-mobile-spec/agent.yaml: 82ae4293abfa0a668c33f3ab42b12b2cbc9500f2b9f920af98ea3860c504170b
     agents/android-mobile-spec/guidance/role.md: 583ae3517c2a94d9c72d0daed55c315bf82776f6dfc9db47a25f5ee23fd5a7f7
     agents/android-mobile-spec/runtime/mcp.json: 437335eea535a4cb115902d9678ab04ba2dec00a4ee894b48d2674089eaf3a96
-    agents/android-mobile-spec/runtime/pi-permission-config.json: ac09fbe98a0669361bea57eec36ae7b7c8d3857d12e37fcfc076aa71f95ff98f
+    agents/android-mobile-spec/runtime/pi-permission-config.json: b2c472e2b2fa6ddf911c6647767ebf3258d013d2eb539a7c6e05e63342a41616
     agents/android-mobile-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/android-mobile-spec/runtime/policy-enforcement.json: 596f1ccd9ed3bd8fb0d5d5a5eabc04191c96bc29f93b3b66e5cc5430fe62ac46
+    agents/android-mobile-spec/runtime/policy-enforcement.json: 17a7292fbfd5aea15fa12f4da24df9abfbcab887bd1f11a070b9888791069517
     agents/android-mobile-spec/skills/artemis-android-ui-exploration/SKILL.md: cc950f025542a3ab33d1b477c645fd9a1e4247f3cb5e570b7069c26f2ec16fc7
     agents/android-mobile-spec/skills/jetpack-compose-state-hoisting/SKILL.md: e58f6a4bed687afc3fa4b7a37dfaa571a430000099dbdb5c52af385e9edc8379
     agents/android-mobile-spec/startup/context.md: 7a9f9bed639454215d5c76ea3a8aea005f3140319f85097f024930a02fd9f7f3
     agents/cpp-lowlevel-eng/agent.yaml: 39e66b5d2f688af893784467f139c964358345074fa03c50255702548726f742
     agents/cpp-lowlevel-eng/guidance/role.md: f45ada08bea884d62255c1cf17f8fd34cba6528860b43bb6d2557e82412b30a1
     agents/cpp-lowlevel-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: dd90b00cc8b18e9321f4aab1427254a66eccf18904a9feacd315010f7691d0e7
+    agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: c65a3c672e5437816be0469b8998f1ef8388f43fc99bcc22c991208688099f07
     agents/cpp-lowlevel-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: 2bd41d433a96906f353c0151920090dd3f45a3e2c58796e1fa4525c0f7cabb10
+    agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: bac1216e1702e7df9bf968cfbcf8da5746949380cfacb6b7c9288bd6ff1dab0b
     agents/cpp-lowlevel-eng/skills/modern-cpp-sanitizer-verification/SKILL.md: 6d6c0fca870a4ae666f968e147b95c95305b63d6385b9ca8944fb720a35f1b91
     agents/cpp-lowlevel-eng/startup/context.md: 3fcc03a9c90dcc2e36cfa7bef937c018d96cab9c9a2b0ae14716a69fe803cc92
     agents/ios-mobile-spec/agent.yaml: 75e4f2e963b5aa609cb5083b9ae1223fab4703d3ecd7cf76bbe4474ab4ca371f
     agents/ios-mobile-spec/guidance/role.md: 211c959b7ace81386bb184cab581c9309f3f2d55c66d9d0cbb2cead78c25a473
     agents/ios-mobile-spec/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
-    agents/ios-mobile-spec/runtime/pi-permission-config.json: 85c5be49e28613dae182011e4d104d0b937bd268e7c60dd358353590d9f9ce6e
+    agents/ios-mobile-spec/runtime/pi-permission-config.json: 1e415233175e8fd1c1c392cb40bd7075af535adb64f9a60b1673ae8820520e87
     agents/ios-mobile-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/ios-mobile-spec/runtime/policy-enforcement.json: 43bf318ead6c223cb22790845caa8e4348399f119758647d5b6fae3578712bb0
+    agents/ios-mobile-spec/runtime/policy-enforcement.json: 772fd394deac5843a78240f0eb3471492c9aa35fc667fa58edefb4e1f3004355
     agents/ios-mobile-spec/skills/swiftui-concurrency-implementation/SKILL.md: 338e848eba55d81424bf475a0087ab64d86b2a1f1de868150f4ad95b26c115e1
     agents/ios-mobile-spec/startup/context.md: 15b186c1778c70cc9cbe64419630a78809d0a0f4b7a9abd3c830344886901bb0
     agents/rust-systems-spec/agent.yaml: 7af8242a5aeaa61109e387668ab6d8136eeed0c90f797b2efb916a261d215c25
     agents/rust-systems-spec/guidance/role.md: 89b636fb058fcf215b1711f75934bfbf24b3ce8f10c689fb9a8050eb37bde8f1
     agents/rust-systems-spec/runtime/mcp.json: f4b1c84549b5099a5ec7db9c69ea685e45a333d7d1b9437c4f504f2274f6a34a
-    agents/rust-systems-spec/runtime/pi-permission-config.json: 508727fbce9b04a3bc30864725a042dc9c5976a86350381a18910d39cac4c88b
+    agents/rust-systems-spec/runtime/pi-permission-config.json: 7710eb985f8e0aa777162955a071c9b9a769564ef32af0fe7d9177ff5ee67e4c
     agents/rust-systems-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/rust-systems-spec/runtime/policy-enforcement.json: 2e9a808cb3f539528dc8fb18cbac9bb633e0fb9d0cd2fadcca70fe52d9f076fd
+    agents/rust-systems-spec/runtime/policy-enforcement.json: 84f77bb9045a2a9c56b2b73d03cdf46ac2f4eb4ccf1c172fa14f0fcf0ce00838
     agents/rust-systems-spec/skills/rust-async-service-hardening/SKILL.md: 045f21f91d4dd6c1f11052713c2954deb4e1970019449209eb7cc47b74e71060
     agents/rust-systems-spec/startup/context.md: 7d5fdd6d6d7721c4ffd41d3d7b533a378e8cb118964799ff498515114807f663
     configurations.yaml: e5addacd5ec2c56e9f4c39b35545661fd3011f70ddf18c271d988e7f68057e61

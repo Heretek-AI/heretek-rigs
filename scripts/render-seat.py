@@ -127,6 +127,176 @@ TERMINAL_BASH_DENIES = (
 )
 
 
+# #106 commandEffects overlay (REQ-C1/C2): declarative allow-effects for two
+# `rig queue` argv positions. The terminal bash denies above stay frozen
+# (REQ-G1) — the overlay scopes the exception to these argv positions and
+# never loosens a deny. Scope roots stay cwd-relative descriptors (never
+# baked absolute host paths: the #67 worktree-stale lesson). Enforcement
+# points re-check at use time; every error denies (fail-closed, REQ-C3).
+NOTE_VALUE_PATTERN = r"^[A-Za-z0-9 _\-/.:|]+$"
+NOTE_VALUE_RE = re.compile(NOTE_VALUE_PATTERN)
+BODY_FILE_MAX_BYTES = 262144
+BODY_FILE_SCRATCH_RE = re.compile(r"^/var/tmp/seatjail\.\d+(?:/.*)?$")
+NOTE_VALUE_DENY_TOKENS = (
+    ";",
+    "$",
+    "`",
+    "$(",
+    "OPENRIG_SESSION_NAME=",
+    "OPENRIG_URL=",
+)
+
+
+def is_note_value_allowed(value) -> bool:
+    """REQ-C1: `--note` single-argv value allows literal `| / . - _ :` plus
+    alphanumerics and space, never as shell control (argv, not `sh -c`)."""
+    if not isinstance(value, str) or not value:
+        return False
+    if "\n" in value or "\r" in value:
+        return False
+    for tok in NOTE_VALUE_DENY_TOKENS:
+        if tok in value:
+            return False
+    return NOTE_VALUE_RE.fullmatch(value) is not None
+
+
+def _expanded_scope_roots(cwd_resolved: str, path_write) -> list:
+    """REQ-C2 scope roots: realpath(cwd) plus each path_write entry's
+    literal base resolved under cwd. Glob-only entries collapse onto the
+    cwd root; `..`/absolute entries are skipped (fail-closed)."""
+    roots = []
+    if cwd_resolved:
+        roots.append(cwd_resolved.rstrip("/") or "/")
+    for entry in path_write or []:
+        e = str(entry)
+        if e.startswith("/") or ".." in e.split("/"):
+            continue
+        base = e
+        cut = len(base)
+        for i, ch in enumerate(base):
+            if ch in "*?[":
+                cut = i
+                break
+        base = base[:cut].rstrip("/")
+        if "/" in base:
+            base = base.rsplit("/", 1)[0]
+        else:
+            base = ""
+        if not base:
+            continue
+        cand = os.path.normpath(os.path.join(cwd_resolved, base))
+        if cand not in roots:
+            roots.append(cand)
+    return roots
+
+
+def classify_body_file(
+    raw_path: str,
+    *,
+    cwd_resolved: str,
+    expanded_roots: list,
+    is_regular_file: bool,
+    size_bytes,
+    resolved_path,
+) -> tuple:
+    """REQ-C2/C3 pure verdict: (verdict, reason) with verdict in
+    {"allow-effect", "deny"}. Scope-resolution error, missing file,
+    oversize, symlink escape, `..` escape, and absolute /tmp all deny."""
+    if not raw_path or not resolved_path:
+        return ("deny", "scope-resolution error or missing file")
+    if not is_regular_file:
+        return ("deny", "not a regular file")
+    if size_bytes is None or size_bytes > BODY_FILE_MAX_BYTES:
+        return ("deny", "oversize or unknown size (limit 256KiB)")
+    resolved = os.path.normpath(resolved_path)
+    if BODY_FILE_SCRATCH_RE.match(resolved):
+        return ("allow-effect", "pid-namespaced scratch scope")
+    for root in expanded_roots or []:
+        r = os.path.normpath(root)
+        if resolved == r or resolved.startswith(r.rstrip("/") + "/"):
+            return ("allow-effect", "in-scope root")
+    if resolved == "/tmp" or resolved.startswith("/tmp/"):
+        return ("deny", "absolute /tmp path outside scope")
+    return ("deny", "outside own scope")
+
+
+def check_body_file_path(raw_path: str, *, cwd: str, path_write) -> tuple:
+    """REQ-C2 filesystem check (fail-closed): realpath + regular-file +
+    size + scope. Best-effort at check time; enforcement rechecks at use."""
+    import stat as _stat
+
+    if not isinstance(raw_path, str) or not raw_path or "\x00" in raw_path:
+        return ("deny", "empty or invalid path")
+    try:
+        cwd_resolved = os.path.realpath(cwd)
+    except OSError:
+        return ("deny", "scope-resolution error (cwd)")
+    try:
+        resolved = os.path.realpath(raw_path)
+    except OSError:
+        return ("deny", "scope-resolution error or missing file")
+    try:
+        st = os.stat(resolved)
+    except OSError:
+        return ("deny", "scope-resolution error or missing file")
+    roots = _expanded_scope_roots(cwd_resolved, path_write)
+    return classify_body_file(
+        raw_path,
+        cwd_resolved=cwd_resolved,
+        expanded_roots=roots,
+        is_regular_file=_stat.S_ISREG(st.st_mode),
+        size_bytes=st.st_size,
+        resolved_path=resolved,
+    )
+
+
+def build_command_effects(path_write) -> list:
+    """REQ-C1/C2 declarative overlay rendered into every seat's permission
+    output. Role-specific write roots ride along as descriptors only."""
+    return [
+        {
+            "id": "note-effect",
+            "argv": ["rig", "queue", "--note"],
+            "match": {
+                "position": "single-argv-value",
+                "pattern": NOTE_VALUE_PATTERN,
+                "execModel": "argv-not-shell",
+            },
+            "covers": [
+                "rig queue create --note",
+                "rig queue block --note",
+                "rig queue update --reopen --note",
+                "park-typed-block.py relay",
+                "sweep-typed-blocks.py relay",
+            ],
+            "denyWhen": list(NOTE_VALUE_DENY_TOKENS) + ["newline", "carriage-return"],
+            "effect": "allow-effect",
+        },
+        {
+            "id": "body-file-effect",
+            "argv": ["rig", "queue", "--body-file"],
+            "scope": {
+                "cwd": "realpath(CWD)",
+                "writeRootsSource": "permissions.path_write",
+                "writeRoots": list(path_write or []),
+                "scratch": "/var/tmp/seatjail.<pid>.*",
+            },
+            "constraints": {
+                "regularFileOnly": True,
+                "maxBytes": BODY_FILE_MAX_BYTES,
+                "noSymlinkEscape": True,
+                "noDotDotEscape": True,
+                "noAbsoluteTmp": True,
+            },
+            "covers": [
+                "rig queue create --body-file",
+                "send-authenticated.sh --source staged relay",
+            ],
+            "effect": "allow-effect-if-in-scope-else-deny",
+        },
+    ]
+
+
 def _sandbox_bind_roots(path_write):
     """Map pps path_write globs to jail write roots (M4, #68; #105 review).
 
@@ -586,6 +756,7 @@ def build_seat_files(
     files["extensions/pi-permission-system/config.json"] = {
         "promptTimeoutMs": 60000,
         "permission": permission,
+        "commandEffects": build_command_effects(role["permissions"]["path_write"]),
     }
 
     # 5. AGENTS.md: role charter + seat block (never use guidance_merge on shared cwd)
