@@ -113,6 +113,30 @@ class SeatSandboxEscapes(unittest.TestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertFalse((self.ws / ".git/hooks/pre-commit").exists())
 
+    def test_agent_control_paths_never_writable(self):
+        (self.ws / "AGENTS.md").write_text("charter\n")
+        (self.ws / ".pi").mkdir()
+        proc = self.run_jailed(
+            "echo x > AGENTS.md; echo x > .pi/settings.json; echo RAN",
+            HERETEK_SANDBOX_WRITE=".pi/:AGENTS.md:src/.git/",
+        )
+        self.assertIn("RAN", proc.stdout, proc.stderr)
+        self.assertEqual((self.ws / "AGENTS.md").read_text(), "charter\n")
+        self.assertFalse((self.ws / ".pi/settings.json").exists())
+        self.assertFalse((self.ws / "src/.git").exists(), "control-path root was created")
+
+    def test_control_paths_inside_dir_root_read_only(self):
+        (self.ws / "src/AGENTS.md").write_text("orig\n")
+        (self.ws / "src/sub/.git/hooks").mkdir(parents=True)
+        proc = self.run_jailed(
+            "echo x > src/AGENTS.md; touch src/sub/.git/hooks/pre-commit; "
+            "touch src/ok.txt; echo RAN"
+        )
+        self.assertIn("RAN", proc.stdout, proc.stderr)
+        self.assertEqual((self.ws / "src/AGENTS.md").read_text(), "orig\n")
+        self.assertFalse((self.ws / "src/sub/.git/hooks/pre-commit").exists())
+        self.assertTrue((self.ws / "src/ok.txt").exists())
+
     def test_whole_cwd_and_dotdot_roots_refused(self):
         for roots in ("./", "../", "src/../../"):
             with self.subTest(roots=roots):

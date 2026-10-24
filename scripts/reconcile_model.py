@@ -41,12 +41,14 @@ TERMINAL_QUEUE_STATES = {
 # negator or fail token ("QA pass NOT granted", "QA PASS failed" affirm
 # nothing). Same rule for queue notes and tracker cells.
 QA_PASS_ANCHORED_RE = re.compile(r"^QA PASS\b", re.IGNORECASE)
-_NEGATOR_RE = re.compile(r"\b(not|no|never)\b|n['\u2019]t\b", re.IGNORECASE)
+# `no` followed by a hyphen is a compound closure token (`no-follow-on`,
+# `no-op`), not a negation of the pass (#105 review).
+_NEGATOR_RE = re.compile(r"\b(not|never)\b|\bno\b(?!-)|n['\u2019]t\b", re.IGNORECASE)
 _FAIL_TOKEN_RE = re.compile(r"\b(fail|failed|fails|failure|failing)\b", re.IGNORECASE)
 # #105 review: a deferred pass ("QA PASS pending re-run", "QA PASS (awaiting
 # gate)") is not a pass yet — fail closed on these too.
 _PENDING_TOKEN_RE = re.compile(
-    r"\b(pending|awaiting|await|re-?run|tbd|provisional|conditional)\b",
+    r"\b(pending|awaiting|await|re-?run|tbd|wip|in[- ]progress|provisional|conditional)\b",
     re.IGNORECASE,
 )
 

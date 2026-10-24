@@ -52,10 +52,18 @@ fi
 scratch=$(mktemp -d "${HERETEK_JAIL_SCRATCH:-/var/tmp}/seatjail.XXXXXX")
 trap 'rm -rf "$scratch"' EXIT
 
-# A write root may never resolve outside cwd (symlinked dir/file escape).
-inside_cwd() { [[ "$1" == "$cwd" || "$1" == "$cwd/"* ]]; }
+# A write root may never resolve outside cwd (symlinked dir/file escape), and
+# never touch agent/VCS control paths (.git, .pi, .agents, AGENTS.md).
+inside_cwd() {
+  [[ "$1" == "$cwd/"* ]] || return 1
+  local seg
+  IFS='/' read -ra _segs <<< "${1#"$cwd"/}"
+  for seg in "${_segs[@]}"; do
+    case "$seg" in .git|.pi|.agents|AGENTS.md) return 1 ;; esac
+  done
+}
 
-binds=()
+binds=(); dir_roots=()
 IFS=':' read -ra roots <<< "${HERETEK_SANDBOX_WRITE:-}"
 for r in "${roots[@]}"; do
   [[ -n "$r" ]] || continue
@@ -75,6 +83,7 @@ for r in "${roots[@]}"; do
     fi
     mkdir -p "$abs"
     binds+=(--bind "$abs" "$abs")
+    dir_roots+=("$abs")
   else
     shopt -s nullglob
     matches=("$cwd"/$r)
@@ -97,10 +106,11 @@ mask=()
 home=${HOME:-$(getent passwd "$uid" | cut -d: -f6)}
 cred=()
 if [[ -n "$home" ]]; then
-  for p in .ssh .gnupg .aws .azure .kube .docker .config/gh .config/gcloud \
-           .config/git/credentials .config/heretek-rigs .openrig .netrc \
-           .git-credentials .npmrc .pypirc .cargo/credentials \
-           .cargo/credentials.toml .local/share/keyrings; do
+  for p in .ssh .gnupg .aws .azure .kube .docker .password-store .config/gh \
+           .config/gcloud .config/op .config/hub .config/git/credentials \
+           .config/heretek-rigs .openrig .netrc .git-credentials .npmrc .pypirc \
+           .vault-token .cargo/credentials .cargo/credentials.toml \
+           .local/share/keyrings; do
     cred+=("$home/$p")
   done
 fi
@@ -117,7 +127,17 @@ for s in /run/docker.sock /run/podman/podman.sock /run/containerd/containerd.soc
   [[ -e "$s" ]] || continue
   if [[ -d "$s" ]]; then mask+=(--tmpfs "$s"); else mask+=(--ro-bind /dev/null "$s"); fi
 done
-[[ -d "$cwd/.git" ]] && mask+=(--ro-bind "$cwd/.git" "$cwd/.git")
+# Control paths that already exist INSIDE a writable dir root (src/AGENTS.md,
+# a nested src/x/.git) are re-bound read-only; later mounts win in bwrap.
+for d in "${dir_roots[@]}"; do
+  while IFS= read -r -d '' p; do
+    mask+=(--ro-bind "$p" "$p")
+  done < <(find "$d" -xdev \( -name node_modules -o -name target \) -prune -o \
+             \( -name AGENTS.md -o -name .git -o -name .pi -o -name .agents \) -print0 -prune)
+done
+for p in .git .pi .agents AGENTS.md; do
+  [[ -e "$cwd/$p" && ! -L "$cwd/$p" ]] && mask+=(--ro-bind "$cwd/$p" "$cwd/$p")
+done
 
 exec bwrap \
   --die-with-parent --new-session \
