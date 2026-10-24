@@ -158,3 +158,9 @@
 - Orphans confirmed present-but-unwired: tests/test_check_envelope.py, tests/test_build_canary.py, tests/test_live_health.py (also tests/test_manifest_closure.py, tests/test_policy_verifier.py — wired via verify-rigs V8/V9, NOT Makefile; untouched this wave per brief)
 - `bwrap --version` → `bubblewrap 0.13.1`; `unshare --user --map-root-user true` → exit 0 (no output)
 - Toolchain: pps at $HOME/.local/share/heretek-rigs/tools/pi-packages/node_modules/@gotgenes/pi-permission-system/package.json version 41.0.0; `pi --version` → 1.3.0; `node --version` → v26.10.0
+
+## 2026-10-24 — Audit #66 remediate-foundation M1 shellPath spike (wave remediate-foundation)
+- Scratch: mktemp -d outside repo (/tmp/tmp.CrKXE2UH7M); rendered engine-systems-eng (game-dev-and-sim-rig/engine, mock provider, dummy 0600 secrets); settings.json shellPath → trivial wrapper `echo "MARKER-SHELLPATH-HIT: $2" >&2; exec /bin/bash "$@"`; drove with scripts/gate-run.sh
+- Allowed `date +%s` output: `"text":"MARKER-SHELLPATH-HIT: date +%s\n1792813910\n"` + `"exit_code":0,"isError":false` → MARKER PRESENT (shellPath honored)
+- Denied `date +%s; id` output: `"text":"[pi-permission-system] Denied by policy: 'bash' (rule '*')"` + `"isError":true`, NO marker → enforcer-first (policy-denied command never reaches wrapper)
+- NOTE: settings.json is NOT hot-reloaded (pi reads at startup; RPC reload only) — M4 sandbox rollout needs each seat relaunched or sent an RPC reload, NOT a no-bounce change. The permission config.json DOES hot-reload on mtime, but shellPath lives in settings.json.
