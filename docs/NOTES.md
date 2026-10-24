@@ -164,3 +164,9 @@
 - Allowed `date +%s` output: `"text":"MARKER-SHELLPATH-HIT: date +%s\n1792813910\n"` + `"exit_code":0,"isError":false` → MARKER PRESENT (shellPath honored)
 - Denied `date +%s; id` output: `"text":"[pi-permission-system] Denied by policy: 'bash' (rule '*')"` + `"isError":true`, NO marker → enforcer-first (policy-denied command never reaches wrapper)
 - NOTE: settings.json is NOT hot-reloaded (pi reads at startup; RPC reload only) — M4 sandbox rollout needs each seat relaunched or sent an RPC reload, NOT a no-bounce change. The permission config.json DOES hot-reload on mtime, but shellPath lives in settings.json.
+
+## 2026-10-24 — Audit #66 remediate-foundation M2 fail-closed pps check (wave remediate-foundation)
+- `scripts/render-seat.py` build_seat_files: after pps_pkg built, fail-closed die on missing package.json (`{pps_pkg} missing: @gotgenes/pi-permission-system is mandatory`) + pinned-version assert (41.0.0); gated on check_secret_fs only, NO --allow-missing-secrets escape
+- Acceptance 1: `HERETEK_TOOLS=/nonexistent HERETEK_SECRETS=$(mktemp -d) python3 scripts/render-seat.py --role exec-director --rig executive-and-architecture --pod exec --allow-missing-secrets --out $(mktemp -d)` → `error: /nonexistent/pi-packages/node_modules/@gotgenes/pi-permission-system missing: @gotgenes/pi-permission-system is mandatory`, exit=2 (non-zero with mandatory message)
+- Acceptance 2: version-drift probe (scratch tools dir with package.json version 40.0.0) → `error: ... version 40.0.0, need 41.0.0`, exit=2
+- Acceptance 3: real HERETEK_TOOLS render exits 0 (`rendered exec-exec-director@executive-and-architecture`, only a github-secrets warning)

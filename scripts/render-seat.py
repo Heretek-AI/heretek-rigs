@@ -130,6 +130,18 @@ def build_seat_files(
     pps_pkg = str(
         Path(tools_dir) / "pi-packages/node_modules/@gotgenes/pi-permission-system"
     )
+    # #67 (fail-closed): the permission extension is mandatory — a missing or
+    # version-drifted pps must die at render time, never render a seat whose
+    # settings.json packages[0] points at nothing. There is NO
+    # --allow-missing-secrets escape for this (unlike secrets).
+    if check_secret_fs and not (Path(pps_pkg) / "package.json").is_file():
+        die(f"{pps_pkg} missing: @gotgenes/pi-permission-system is mandatory")
+    if check_secret_fs:
+        _pps_ver = json.loads((Path(pps_pkg) / "package.json").read_text()).get(
+            "version"
+        )
+        if _pps_ver != "41.0.0":
+            die(f"{pps_pkg} version {_pps_ver}, need 41.0.0")
 
     def secret_ok(filename: str) -> bool:
         if not check_secret_fs:
