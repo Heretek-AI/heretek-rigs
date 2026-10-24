@@ -1019,6 +1019,9 @@ def generate_all(
                 ),
                 "promptTimeoutMs": perm_cfg["promptTimeoutMs"],
                 "permission": perm_cfg["permission"],
+                # #106 commandEffects overlay rides alongside the permission
+                # payload so both runtime leaves carry the same declaration.
+                "commandEffects": perm_cfg["commandEffects"],
             },
         )
         # HR-1.4: also emit standalone pi-permission-config.json (same permission

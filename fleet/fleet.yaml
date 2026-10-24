@@ -42,6 +42,19 @@ sandbox:
   write_roots_source: permissions.path_write
   wrapper: scripts/seat-sandbox.sh
   env_file: sandbox.env
+# #106 commandEffects overlay (REQ-C1/C2): declarative allow-effects for two
+# `rig queue` argv positions, rendered into every seat's permission output by
+# scripts/render-seat.py (build_command_effects). Terminal bash denies stay
+# frozen (REQ-G1); this block scopes the exception, never loosens a deny.
+command_effects:
+  note_effect:
+    argv: [rig, queue, --note]
+    pattern: '^[A-Za-z0-9 _\-/.:|]+$'
+    exec_model: argv-not-shell
+  body_file_effect:
+    argv: [rig, queue, --body-file]
+    scope: [realpath-CWD, path_write-expanded-roots, pid-scratched-var-tmp]
+    max_bytes: 262144
 rigs:
 - id: executive-and-architecture
   title: Executive & Architecture

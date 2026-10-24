@@ -1991,6 +1991,56 @@ for _p14 in _v14_files:
 if len(failures) == _v14_before:
     ok(f"Checkout-independent leaves (#67) green: {len(_v14_files)} committed pi-settings.json leaves use @RIGS@/@TOOLS@ placeholders, no /.lane/ or host paths")
 
+print("\n== V15. Command Effects Overlay (#106) ==")
+# #106 appended alongside — no V1-V14 line renumbered or reworded. Exactly
+# one ok() below. Every seat's committed permission leaves must carry the
+# same commandEffects declaration (note-effect REQ-C1 + body-file-effect
+# REQ-C2); deny directions stay covered by the frozen terminal denies (REQ-G1).
+_v15_before = len(failures)
+_v15_rs_spec = importlib.util.spec_from_file_location("render_seat_v15", str(root / "scripts/render-seat.py"))
+_v15_rs_mod = importlib.util.module_from_spec(_v15_rs_spec)
+try:
+    _v15_rs_spec.loader.exec_module(_v15_rs_mod)
+except Exception as _e15:
+    fail(f"V15/#106: cannot load scripts/render-seat.py ({_e15})")
+    _v15_rs_mod = None
+if _v15_rs_mod is not None:
+    if tuple(getattr(_v15_rs_mod, "TERMINAL_BASH_DENIES", ())) != tuple(_TERMINAL_BASH_DENIES):
+        fail("V15/#106: TERMINAL_BASH_DENIES must stay frozen (REQ-G1)")
+    _v15_want_effects = getattr(_v15_rs_mod, "build_command_effects", lambda _p: [])([])
+    _v15_ids = [str(_e15.get("id")) for _e15 in _v15_want_effects]
+    if _v15_ids != ["note-effect", "body-file-effect"]:
+        fail(f"V15/#106: renderer must declare note-effect + body-file-effect (got {_v15_ids})")
+_v15_checked = 0
+for _rid15, _rdir15 in sorted(discovered_roles.items()):
+    for _leaf15 in ("runtime/pi-permission-config.json", "runtime/policy-enforcement.json"):
+        try:
+            _d15 = json.loads((_rdir15 / _leaf15).read_text())
+        except Exception as _e15:
+            fail(f"V15/#106: seat {_rid15}: {_leaf15} unreadable ({_e15})")
+            continue
+        _fx15 = _d15.get("commandEffects")
+        if not isinstance(_fx15, list):
+            fail(f"V15/#106: seat {_rid15}: {_leaf15} missing commandEffects list")
+            continue
+        _by15 = {_e15.get("id"): _e15 for _e15 in _fx15 if isinstance(_e15, dict)}
+        _note15 = _by15.get("note-effect", {})
+        _body15 = _by15.get("body-file-effect", {})
+        if str((_note15.get("match") or {}).get("pattern")) != "^[A-Za-z0-9 _\\-/.:|]+$":
+            fail(f"V15/#106: seat {_rid15}: {_leaf15} note-effect pattern drifted")
+        if str((_note15.get("match") or {}).get("execModel")) != "argv-not-shell":
+            fail(f"V15/#106: seat {_rid15}: {_leaf15} note-effect must be argv-not-shell")
+        if ((_body15.get("constraints") or {}).get("maxBytes")) != 262144:
+            fail(f"V15/#106: seat {_rid15}: {_leaf15} body-file-effect maxBytes must be 262144")
+        for _ck15 in ("regularFileOnly", "noSymlinkEscape", "noDotDotEscape", "noAbsoluteTmp"):
+            if ((_body15.get("constraints") or {}).get(_ck15)) is not True:
+                fail(f"V15/#106: seat {_rid15}: {_leaf15} body-file-effect constraint {_ck15} must be true")
+        if '"ask"' in json.dumps(_fx15):
+            fail(f"V15/#106: seat {_rid15}: {_leaf15} commandEffects contains forbidden 'ask' rule")
+        _v15_checked += 1
+if len(failures) == _v15_before:
+    ok(f"Command effects (#106) green: {_v15_checked} permission leaves carry note-effect + body-file-effect, denies frozen")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
