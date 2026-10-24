@@ -66,16 +66,16 @@ servers:
     exposure: direct
     description: Per-seat knowledge-graph memory (entities, relations, observations).
   playwright:
-    pin: npm:@playwright/mcp@0.0.83
-    source: https://github.com/microsoft/playwright-mcp
-    license: Apache-2.0
-    status: run-verified  # connected via `pi mcp list --json` in the planning spike
-    replaces: npm:@executeautomation/playwright-mcp-server@1.0.12
+    pin: pypi:browserbridge-mcp==1.0.0
+    source: https://github.com/johannschiffer/browserbridge-mcp
+    license: MIT
+    status: registry-verified
+    replaces: npm:@playwright/mcp@0.0.83
     transport: stdio
-    command: "@TOOLS@/mcp/node_modules/.bin/playwright-mcp"
-    args: ["--headless", "--isolated"]
+    command: uvx
+    args: ["browserbridge-mcp==1.0.0"]
     exposure: deferred
-    description: Browser automation through Playwright accessibility snapshots.
+    description: Headless browser automation, accessibility snapshots, render and console logs via PyPI uvx.
   chrome-devtools:
     pin: npm:chrome-devtools-mcp@1.11.0
     source: https://github.com/ChromeDevTools/chrome-devtools-mcp
