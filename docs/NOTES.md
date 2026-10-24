@@ -336,6 +336,9 @@
 - Incidental: 68 (not 64) shared skills pre-exists in this tree (Waves 2-3 additions); AGENTS.md:46/generator docstring "64" is stale prose — not M9 scope, M10 follow-up candidate.
 - pi-settings diffs in this regen are worktree-path artifacts (`.../remediate-sandbox/...` → `.../remediate-supplychain/...` shellPath), not content changes.
 
+### Test-fix commit (rule 4, own commit after M9 af3e52e)
+- `tests/test_regen_gate.py::test_allow_dirty_bypass_records_real_sha` was genuinely stale under the #99 mandate (ALLOW_DIRTY+blocking dirt now stamps `DIRTY-<sha>` instead of the bare SHA): updated to expect `DIRTY-<head>` plus a new `test_allow_dirty_clean_tree_records_bare_sha` (sanctioned-only strays + flag → bare SHA). One-line reason recorded here per brief rule 4.
+
 ### Catalog-vs-Dockerfile drift (found on-host, fixed in M9)
 - `context7`: catalog `npm:@upstash/context7-mcp@4.4.4` vs Dockerfile `4.4.2` → aligned to catalog.
 - `memory`: catalog `npm:@modelcontextprotocol/server-memory@2.0.0` vs Dockerfile `1.0.0` → aligned to catalog.
