@@ -119,6 +119,55 @@ class SeatSandboxEscapes(unittest.TestCase):
         self.assertEqual(proc.wait(timeout=40), 143)
         self.assertEqual(list(d.iterdir()), [], "seatjail scratch dir leaked")
 
+    def test_term_to_wrapper_alone_stops_command(self):
+        # A supervisor may signal only the wrapper PID, not its group.
+        d = self._jail_scratch()
+        marker = d.parent / "still-running"
+        proc = subprocess.Popen(
+            ["bash", str(WRAPPER), "-c",
+             f'echo t > "$TMPDIR/x"; sleep 3; echo late > {marker}'],
+            cwd=str(self.ws),
+            env={**self.env, "HERETEK_JAIL_SCRATCH": str(d),
+                 "HERETEK_SANDBOX_WRITE": "src/"},
+        )
+        for _ in range(50):
+            if any((p / "x").exists() for p in d.iterdir()):
+                break
+            threading.Event().wait(0.1)
+        proc.terminate()
+        self.assertEqual(proc.wait(timeout=2), 143)
+        self.assertEqual(list(d.iterdir()), [], "seatjail scratch dir leaked")
+        threading.Event().wait(4)
+        self.assertFalse(marker.exists(), "jailed command outlived the wrapper")
+
+    def test_stdin_passed_through_and_closed_stdin_ok(self):
+        proc = subprocess.run(
+            ["bash", str(WRAPPER), "-c", "cat"], input="piped-in\n",
+            cwd=str(self.ws), env=self.env, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(proc.stdout, "piped-in\n", proc.stderr)
+        proc = subprocess.run(
+            ["bash", "-c", f'exec 0<&-; bash "{WRAPPER}" -c "echo RAN"'],
+            cwd=str(self.ws), env=self.env, capture_output=True, text=True, timeout=30,
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("RAN", proc.stdout)
+
+    def test_unreadable_scratch_subdir_still_removed(self):
+        # A jailed command can chmod 000 a non-empty dir in its scratch; that
+        # must neither leak the scratch dir nor break the next run.
+        if os.geteuid() == 0:
+            self.skipTest("root ignores directory modes, so this can't fail as root")
+        d = self._jail_scratch()
+        proc = self.run_jailed(
+            'mkdir -p "$TMPDIR/a/b" && touch "$TMPDIR/a/b/f" && chmod 000 "$TMPDIR/a"',
+            HERETEK_JAIL_SCRATCH=str(d),
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(list(d.iterdir()), [], "seatjail scratch dir leaked")
+        proc = self.run_jailed("echo RAN", HERETEK_JAIL_SCRATCH=str(d))
+        self.assertIn("RAN", proc.stdout, proc.stderr)
+
     def test_sigkilled_run_swept_by_next_run(self):
         # pi aborts with SIGKILL to the process group: no trap can run, so
         # the next wrapper invocation must sweep the orphan.
