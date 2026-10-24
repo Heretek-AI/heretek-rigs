@@ -48,9 +48,12 @@ except ImportError:
 import argparse
 import hashlib
 import importlib.util
+import io
 import json
 import re
 import subprocess
+import tarfile
+import tempfile
 from pathlib import Path
 
 OPENRIG_VERSION = "0.6.13"
@@ -157,11 +160,16 @@ def _split_porcelain(status_output: str):
 def resolve_heretek_commit(root: Path, allow_synthetic: bool = False) -> str:
     """Resolve the real generating checkout SHA (fail-closed provenance).
 
-    Returns `git rev-parse HEAD` (40-hex) when the checkout holds no
-    *blocking* dirt; dies if git is missing, HEAD is unresolvable, or
-    `git status --porcelain` contains blocking entries — unless
+    Returns the real generating checkout SHA (40-hex) when the checkout
+    holds no *blocking* dirt; dies if git is missing, HEAD is unresolvable,
+    or `git status --porcelain` contains blocking entries — unless
     HERETEK_RIGS_ALLOW_DIRTY=1 is set for explicitly labeled dev
-    regenerations (still records the real SHA, never the fallback).
+    regenerations (records a DIRTY- stamp, never the bare SHA).
+    #99 (fail-closed): a dev regen over blocking dirt stamps an obvious
+    `DIRTY-<sha>` marker instead of the bare SHA, so generated registry
+    provenance can never silently claim a clean checkout it was not built
+    from. verify-rigs rejects DIRTY- provenance. Sanctioned-only strays
+    (or a clean tree) record the bare SHA even when ALLOW_DIRTY=1 is set.
     Sanctioned untracked strays (issue #43 allowlist above) are ignored for
     the dirt decision and never alter the baked provenance. When git is
     unresolvable, dies unless allow_synthetic is True, in which case the
@@ -192,25 +200,34 @@ def resolve_heretek_commit(root: Path, allow_synthetic: bool = False) -> str:
         ).rstrip("\n")
     except Exception:
         dirty = ""
-    if dirty and not allow_dirty:
+    # #99: classify first — sanctioned strays (issue #43) are never dirt.
+    blocking: list = []
+    ignored: list = []
+    if dirty:
         blocking, ignored = _split_porcelain(dirty)
-        if blocking:
-            # REQ-RG3: refusal names the blocking porcelain lines verbatim
-            # in one section and the ignored sanctioned paths in a separate
-            # section (proving the filter ran). The remediation hint is
-            # unchanged: commit/stash or the ALLOW_DIRTY escape hatch.
-            sections = [
-                "refusing to bake provenance on a dirty checkout "
-                "(commit or stash first, or set HERETEK_RIGS_ALLOW_DIRTY=1 for dev regen)",
-                "blocking changes:",
-                *[f"  {b}" for b in blocking],
+    if blocking and not allow_dirty:
+        # REQ-RG3: refusal names the blocking porcelain lines verbatim
+        # in one section and the ignored sanctioned paths in a separate
+        # section (proving the filter ran). The remediation hint is
+        # unchanged: commit/stash or the ALLOW_DIRTY escape hatch.
+        sections = [
+            "refusing to bake provenance on a dirty checkout "
+            "(commit or stash first, or set HERETEK_RIGS_ALLOW_DIRTY=1 for dev regen)",
+            "blocking changes:",
+            *[f"  {b}" for b in blocking],
+        ]
+        if ignored:
+            sections += [
+                "ignored sanctioned strays (not dirt):",
+                *[f"  {i}" for i in ignored],
             ]
-            if ignored:
-                sections += [
-                    "ignored sanctioned strays (not dirt):",
-                    *[f"  {i}" for i in ignored],
-                ]
-            die("\n".join(sections))
+        die("\n".join(sections))
+    # #99 (fail-closed): a dev regen over *blocking* dirt stamps
+    # DIRTY-<sha> so verify-rigs rejects provenance baked from an
+    # uncommitted tree. Sanctioned-only strays (or a clean tree) record
+    # the bare SHA even when ALLOW_DIRTY=1 is set.
+    if blocking:
+        return "DIRTY-" + head
     return head
 
 
@@ -292,6 +309,95 @@ def tree_hash(d: Path) -> str:
 
     walk(d)
     return "sha256:" + h.digest().hex()
+
+
+def vendor_skill_from_clone(
+    src_label: str, clone_dir: Path, sha: str, relpath: str, dst_dir: Path
+) -> None:
+    """Vendor one skill dir from a pinned clone via `git archive <sha> <path>`.
+
+    #85 (fail-closed): bytes come from the pinned commit object, never from
+    a possibly-tampered working tree. Dies (exit 2) when the clone dir is
+    missing, has uncommitted changes, does not resolve the pinned SHA, or
+    the archived path lacks SKILL.md.
+    """
+    if not clone_dir.exists():
+        die(f"missing pinned repository directory for {src_label}: {clone_dir}")
+    try:
+        # Tracked modifications refuse; untracked strays (the #43 class)
+        # are tolerated — `git archive` reads commit objects only, so
+        # strays cannot influence vendored bytes.
+        dirty = subprocess.check_output(
+            [
+                "git",
+                "-C",
+                str(clone_dir),
+                "status",
+                "--porcelain",
+                "--untracked-files=no",
+            ],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception as _e:
+        die(f"{src_label} checkout {clone_dir} status unreadable: {_e}")
+    if dirty:
+        first = dirty.splitlines()[0]
+        die(
+            f"{src_label} checkout {clone_dir} is dirty (commit or stash first): {first}"
+        )
+    try:
+        resolved = subprocess.check_output(
+            ["git", "-C", str(clone_dir), "rev-parse", "--verify", sha + "^{commit}"],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+    except Exception:
+        die(f"{src_label} checkout {clone_dir} does not resolve SHA {sha}")
+    if not re.fullmatch(r"[0-9a-f]{40}", resolved):
+        die(f"{src_label} checkout {clone_dir} resolved {sha} to {resolved!r}")
+    try:
+        archive = subprocess.run(
+            ["git", "-C", str(clone_dir), "archive", sha, relpath],
+            capture_output=True,
+            timeout=120,
+        )
+    except Exception as _e:
+        die(f"{src_label}: git archive failed for {relpath}: {_e}")
+    if archive.returncode != 0 or not archive.stdout:
+        die(
+            f"{src_label}: git archive {sha} {relpath} failed (rc={archive.returncode})"
+        )
+    with tempfile.TemporaryDirectory(prefix="heretek-vendor-") as tmp:
+        try:
+            with tarfile.open(fileobj=io.BytesIO(archive.stdout)) as tf:
+                tf.extractall(tmp)
+        except Exception as _e:
+            die(f"{src_label}: cannot unpack git archive for {relpath}: {_e}")
+        src = Path(tmp) / relpath
+        if not (src / "SKILL.md").is_file():
+            die(f"{src_label}: archived {relpath}@{sha} has no SKILL.md")
+        if dst_dir.exists():
+            shutil.rmtree(dst_dir)
+        shutil.copytree(src, dst_dir, symlinks=False)
+
+
+def resolve_run_attestation(root: Path):
+    """Ground test/listing attestation in real run records (#97, fail-closed).
+
+    Reads docs/evidence/run-records.json (the operator's recorded run
+    evidence). Returns ("tested", [ids]) only when the file exists, parses,
+    and carries a non-empty list of record id strings; otherwise returns
+    ("Not tested", []) so generated listings never claim an unrecorded run.
+    """
+    try:
+        doc = json.loads((root / "docs/evidence/run-records.json").read_text())
+        ids = doc.get("recordIds")
+        if isinstance(ids, list) and ids and all(isinstance(i, str) and i for i in ids):
+            return "tested", list(ids)
+    except Exception:
+        pass
+    return "Not tested", []
 
 
 def write_yaml(path: Path, data: dict) -> None:
@@ -534,6 +640,10 @@ def generate_all(
     fleet = yaml.safe_load(fleet_path.read_text())
     mcp_catalog = yaml.safe_load(mcp_path.read_text())["servers"]
     HERETEK_RIGS_COMMIT = resolve_heretek_commit(root, allow_synthetic)
+    # #97 (fail-closed): listing/harness attestation grounds in real run
+    # records (docs/evidence/run-records.json) or emits "Not tested" —
+    # never a fabricated record id.
+    _run_label, _run_ids = resolve_run_attestation(root)
     # HR-2.1-pinned-self-referential (fail-closed): refresh the vendored
     # rigspec-schema.ts SHA-256 anchor at generation time so the verifier has
     # a 4th independent value beyond the three local-local copies. Shell hosts
@@ -693,6 +803,30 @@ def generate_all(
         allowed = (p["sha"], "0b41346") if k == "heretek-crew" else (p["sha"],)
         if head not in allowed:
             die(f"{k} checkout {p['dir']} is at {head}, expected {p['sha']}")
+        # #85 (fail-closed): vendoring reads the pinned commit via
+        # `git archive`, but a dirty working tree next to the archive
+        # source is still a tamper signal — refuse before vendoring.
+        # Untracked strays are tolerated (the #43 class: session scratch
+        # accumulates in every checkout of this ecosystem and is invisible
+        # to `git archive`, which reads commit objects only); any staged
+        # or unstaged modification of a TRACKED file refuses.
+        _vdirty = subprocess.check_output(
+            [
+                "git",
+                "-C",
+                str(p["dir"]),
+                "status",
+                "--porcelain",
+                "--untracked-files=no",
+            ],
+            text=True,
+            stderr=subprocess.DEVNULL,
+        ).strip()
+        if _vdirty:
+            die(
+                f"{k} checkout {p['dir']} is dirty "
+                f"(commit or stash first): {_vdirty.splitlines()[0]}"
+            )
 
     core_license = resolve_core_license(core_dir)
 
@@ -744,10 +878,25 @@ def generate_all(
 
     for sid in sorted(shared_pool.keys()):
         src, sdir = shared_pool[sid]
-        if not (sdir / "SKILL.md").exists():
-            die(f"missing {sdir}/SKILL.md")
-        dst_sdir = shared_dir / "skills" / sid
-        shutil.copytree(sdir, dst_sdir, symlinks=False)
+        if src == "openrig-core":
+            # openrig-core ships inside the installed @openrig/cli package
+            # (not a pinned git clone), so it keeps working-tree copytree;
+            # every pinned git clone below vendors via `git archive`.
+            if not (sdir / "SKILL.md").exists():
+                die(f"missing {sdir}/SKILL.md")
+            dst_sdir = shared_dir / "skills" / sid
+            shutil.copytree(sdir, dst_sdir, symlinks=False)
+        else:
+            # #85: vendor from the pinned commit object, never the clone's
+            # working tree (dies when the clone is dirty).
+            dst_sdir = shared_dir / "skills" / sid
+            vendor_skill_from_clone(
+                src,
+                pins[src]["dir"],
+                pins[src]["sha"],
+                sdir.relative_to(pins[src]["dir"]).as_posix(),
+                dst_sdir,
+            )
         has_lic = any(re.match(r"^LICEN[CS]E", f.name, re.I) for f in sdir.iterdir())
         lic_file = None
         if not has_lic:
@@ -798,8 +947,16 @@ def generate_all(
         adir.mkdir(parents=True, exist_ok=True)
 
         for s in r["skills"]["role_local"]:
+            # #85: role-local skills vendor from the pinned Heretek-Crew
+            # commit via `git archive` (dies when the clone is dirty).
             src_sdir = find_skill("heretek-crew", s["id"])
-            shutil.copytree(src_sdir, adir / "skills" / s["id"], symlinks=False)
+            vendor_skill_from_clone(
+                "heretek-crew",
+                pins["heretek-crew"]["dir"],
+                pins["heretek-crew"]["sha"],
+                src_sdir.relative_to(pins["heretek-crew"]["dir"]).as_posix(),
+                adir / "skills" / s["id"],
+            )
 
         charter_md = build_charter(rid, r, crew_dir)
         (adir / "guidance").mkdir(parents=True, exist_ok=True)
@@ -1401,11 +1558,13 @@ See `SETUP.md`. Seed seats with `python3 scripts/seed-rig.py rigs/{rig_slug}/rig
                 cfg_id: {
                     "platforms": {
                         "linux-x64": {
-                            "label": "tested",
+                            # #97: "tested" only when real run records
+                            # ground it; otherwise an explicit "Not tested".
+                            "label": _run_label,
                             "assistanceCount": 0,
                             "date": REVIEW_DATE,
                             "openrigVersion": OPENRIG_VERSION,
-                            "recordIds": [f"rr-20261018-{rig_slug}"],
+                            "recordIds": list(_run_ids),
                             "packageDigests": [pkg_digest],
                         }
                     },
@@ -1428,11 +1587,13 @@ See `SETUP.md`. Seed seats with `python3 scripts/seed-rig.py rigs/{rig_slug}/rig
             "harnesses": {
                 "pi": {
                     "linux-x64": {
-                        "result": "PASS",
+                        # #97: PASS only when real run records ground it;
+                        # otherwise an explicit "Not tested".
+                        "result": "PASS" if _run_label == "tested" else "Not tested",
                         "date": REVIEW_DATE,
                         "openrigVersion": OPENRIG_VERSION,
                         "harnessVersion": "1.3.0",
-                        "recordIds": ["rr-20261018-pi-harness"],
+                        "recordIds": list(_run_ids),
                     }
                 }
             },

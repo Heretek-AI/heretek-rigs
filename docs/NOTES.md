@@ -288,3 +288,56 @@
 ### M8 acceptance
 - Every derived #92 row returns REFUSE (rc=1): 20 new tests + inverted PUSH-main test, all green.
 - Existing suite preserved: 69/69 tests/test_check_envelope.py OK (48 unchanged + 1 spec-mandated inversion + 20 new); `make test` 248 OK; `verify-rigs.sh --check-only` 28/0.
+
+## 2026-10-24 — Audit #66 remediate-supplychain M9 supply-chain + registry gates (wave remediate-supplychain)
+
+### Baseline (pre-change, worktree remediate/audit-66-p0-p1-supplychain @ 27876bd)
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.` (exit 0)
+- `make test` → 248 tests OK expected (10 suites; will confirm with run)
+- `.scratch/vendor` symlinked → `/home/john/Projects/heretek-rigs/.lane/trees/remediate-supplychain/.scratch/vendor` absent in worktree; created symlink to main checkout's `.scratch/vendor` (7 pinned clones, git-ignored, same as Wave-2 setup). All clones clean, SHAs match pins (obra bb92a77, tob 5c99c03, sentry f57ada2, anthropic dbd4588, vercel 063bee9, supabase c9be0e9, prisma ba3f9d7); Heretek-Crew @ 0b41346 (allowed alt); openrig-core resolves via `npm root -g` @openrig/cli.
+- `git archive <sha> <path>` verified working on a vendor clone (obra_superpowers bb92a77 skills/systematic-debugging lists SKILL.md + companions with `skills/` prefix → extractor must relocate `<tmp>/<relpath>` to dst, not blind-strip).
+
+### Image digest resolutions (all resolved on-host 2026-10-24, NEVER from memory)
+- Network ONLINE (docker.io + ghcr.io anonymous token OK — verified via ghcr.io/astral-sh/uv control).
+- `tecnativa/docker-socket-proxy:0.5.0` → MANIFEST UNKNOWN (tag does not exist; only `v0.5.0`). Real: `v0.5.0` → `sha256:1f5038b54f06c3e18422902cf00ba21803d1c97805aae032e5e6673d532d3459` (skopeo inspect docker://tecnativa/docker-socket-proxy:v0.5.0).
+- `searxng/searxng:2026.10.18-2c9b2d4` → MANIFEST UNKNOWN. Upstream Heretek-Crew pins tagless `searxng/searxng@sha256:79180616c984f39524f6f27f19625a46f82c8ad4aa6a2e553db52b14e1b4a768` — verified live via `skopeo inspect docker://searxng/searxng@sha256:7918…` (digest echoed back). Adopted (cross-repo consistency with sibling-tested pin).
+- `browserless/chrome:1.66.0` → MANIFEST UNKNOWN (no bare semver tags at all; scheme is `<ver>-<variant>-<vv>`). Upstream pins `ghcr.io/browserless/chromium:v2.26.0@sha256:899026f6995003a35989dc32e240711735ac17069a9f5b310ecf236d082899c5e…` — verified live (digest echoed). Adopted (repo fix docker.io browserless/chrome → ghcr.io browserless/chromium).
+- `ghcr.io/mendable/firecrawl:1.6.0` → DENIED (org `mendable` has no such repo; org renamed mendableai→firecrawl per GitHub API redirect repositories/787076358). Upstream pins `ghcr.io/firecrawl/firecrawl:2.10.19@sha256:50446cbc0bc700a78cc588c96bd38a97f01cc4299c99b349c7bfa1ba57b6d7ed` — verified live. Adopted. Upstream runs PORT/INTERNAL_PORT 3002 (image default is 8080 per config inspect of 2.11.605) → our compose gains `PORT: "3002"` + `INTERNAL_PORT: "3002"` env to preserve the 3002 mapping. Caveat: upstream runs a full backing stack (rabbitmq/nuq-postgres/playwright-service); our minimal profile keeps firecrawl-redis only — standalone boot unverified, recorded as follow-up.
+- `ghcr.io/ghidra/ghidra:11.4.2` → DENIED (no `ghidra` GitHub org exists — 404; phantom reference). Upstream pins `blacktop/ghidra:12.1.4@sha256:b2479177bd6a10d974da1bff30cc911ea2856843d858ad0ba02a608152ca193c` — verified live. Adopted with upstream's entrypoint `["/entrypoint.sh"]` + command `["server"]` (blacktop default cmd is `client`; `server` serves :1337 per upstream healthcheck probe).
+- `radareorg/radare2:5.9.8` → DENIED on docker.io + object-not-found (repo does not exist on Hub). Real: `radare/radare2:5.9.8` (417 tags incl. 5.9.8) → `sha256:4fcb018e7f2351f370eafd4e7006b6ba476a475f587978b34cf494617ad7ef10`. Upstream pins tagless `radare/radare2@sha256:88b7ff67710e12f430b269abc7714490e3a0c37e391521523148cbd6f9d2ae37` — verified live. Adopted (org fix + digest).
+- `sonarqube:25.10.0-community` → MANIFEST UNKNOWN. Real tag `25.10.0.114319-community` → `sha256:ef0290a2deabad86a2623552712033a7107a9f5b310af00519b4ddd5b348ef4e` (spec's resolved tag confirmed on-host).
+- `redis:8.0.3` → `sha256:be0a135f1955140436b9114da96dd22fbedb874469400b6ef458cc0d42155de0` ✓ (kept tag, digest added).
+- `qdrant/qdrant:v1.15.3` → `sha256:31407c0e8e32eb771b71718f1a4772e2ad47a07557917b21ac96792f40eb8007` ✓ (kept tag — upstream at v1.19.2, delta recorded, no bump: minimal-diff principle).
+- `budtmo/docker-android:emulator_14.0` → `sha256:8ee678cf831fdf7c03fb391ca036922f3b78b89fdc992be3b815e1c70b372d2a` ✓ (kept tag — upstream more specific emulator_14.0_v3.8.0-p1, delta recorded).
+- Pre-existing phantom-tag evidence: NONE of the 4 wrong tags (`:0.5.0`, `:2026.10.18-2c9b2d4`, `:1.66.0`, `:25.10.0-community`) resolve; `docker compose pull` on the current file fails today. M9 fixes this.
+
+### Implementation (M9 code changes)
+- `scripts/generate-rigs.py`: `vendor_skill_from_clone()` (`git archive <sha> <path>` → tmp → relocate, dies on missing/dirty clone, unresolvable SHA, archive failure, missing SKILL.md); pins-loop + helper refuse TRACKED modifications (`--untracked-files=no`; untracked strays tolerated — the #43 class — because `git archive` reads commit objects only, so strays cannot influence bytes; the Heretek-Crew checkout itself carries `?? docker-compose.override.yml` + `?? heretek-rigs/` strays, which must not block vendoring); shared-pool (non-openrig-core) + role_local call sites converted; openrig-core keeps copytree (ships in the npm package, not a git clone — recorded). `resolve_run_attestation()` reads `docs/evidence/run-records.json` → ("tested", ids) or ("Not tested", []); listings platforms + harness result wired. `resolve_heretek_commit()` stamps `DIRTY-<sha>` when BLOCKING dirt exists under ALLOW_DIRTY (sanctioned-only strays still record bare SHA).
+- `scripts/render-seat.py`: terminal denies hoisted to module `TERMINAL_BASH_DENIES` (31 entries, ordered-identical to the `:588` mirror — verified by eval-compare); emitter loop now iterates the constant. tests/test_render_seat.py tuple left as-is (test-side expectation).
+- `scripts/verify-rigs.sh`: V6 `:1300` proxy assert updated to the verified `v0.5.0@sha256:1f50…3459` (spec-mandated stale-pin update — the old assert pinned a nonexistent tag; same precedent as M8's PUSH inversion). New `== V13 ==` block (S2a + #70/#71/#85/#86/#87/#97/#99, one ok()): S2a tuple-sync via module import; per-service tag@digest format + skopeo existence (digest-ref probe; transport-error offline skip, manifest-unknown fail); Dockerfile-vs-catalog/fleet exact install-list match (11 pins both directions); MCP exact flags + pin==args-pin (uvx/docker commands; npm-command servers covered by the Dockerfile assert); r2mcp/aws-mcp banned forms (active-line vs `replaces:` distinction in catalog; zero-tolerance in fleet/specs/rigs/scripts); git-archive + dirty-refusal source asserts; roster==51 sessions + command pod == {exec-director, system-architect, tpm-scrum-lead} lead exec-director; stub scan (skills/ excluded, @TOOLS@/@SECRETS@/@SEAT@ stripped); DIRTY reject; attestation grounded-or-"Not tested" (listings + harness).
+- `docker-compose.sidecars.yml`: all 10 images tag@digest-pinned (4 repo fixes, 3 tag fixes, firecrawl PORT/INTERNAL_PORT 3002 to preserve mapping, ghidra entrypoint/command `server` to preserve :1337).
+- `docker/Dockerfile`: OPENRIG_VERSION 0.6.11→0.6.13; context7 4.4.2→4.4.4, server-memory 1.0.0→2.0.0 (catalog alignment).
+- `Makefile`: 11th suite (test_generate_supplychain) wired into `test:` (per #82, no orphans).
+- `tests/test_generate_supplychain.py` (new, 8 tests): archive-bytes-equal, dirty/unknown-sha/missing-path die, attestation present/absent/malformed/empty.
+- V13 extraction bugs found by the r1 run and fixed: skopeo rejects tag@digest (probe digest-ref now); bare `proxy` in the offline pattern misclassified the proxy image name (now `proxyconnect` only); pin==args-pin scoped off npm-command servers (version bound at install, enforced by the #100 assert); harness path is harnessChecks.harnesses.pi (was missing a level); DIRTY stamps only on BLOCKING dirt (sanctioned-only strays record bare SHA — caught by test_sanctioned_strays_only_resolves, fixed before commit).
+
+### Red proofs (each: plant → verify exit 1 with the named gate → restore; full logs /tmp/opencode/sab_*.log)
+- 1a tag-only (qdrant digest stripped) → `V13/#70: sidecar qdrant must pin its image by digest` ✓
+- 1b bad digest (redis last-hex flipped) → `V13/#70: sidecar firecrawl-redis image does not resolve` (manifest unknown; probe uses digest-ref) ✓
+- 2 weakened MCP flag (clickhouse false→true) → `V13/#71: ... must be "false"` ✓
+- 3 r2mcp re-added (`pypi:r2mcp==0.2.5` in catalog active lines) → `V13/#71: ... active pin contains rejected form` ✓
+- 4 roster member removed (51→50) → `V13/#86: roster seats (50) must equal the 51 fleet sessions` ✓
+- 5 stub marker (`TODO` appended to appsec-engineer role.md) → `V13/#87: ... contains stub marker 'TODO'` ✓ (restored via git checkout)
+- 6 DIRTY stamp (all regen runs above) → 16× V13/#99 + 16× V4 regex rejections ✓
+- 7 fabricated attestation (label tested + fake rr id) → `V13/#97: ... tested claim is ungrounded` ✓
+- S2a mirror-only weakening (`*--unified*` removed from :588) → `V13/S2a: ... must be ordered-identical` ✓ (Wave-2 QA gap closed)
+- 85 dirty vendor clone (tracked file tampered in prisma_skills + ALLOW_DIRTY) → exit 2 `prisma checkout ... is dirty` ✓ (restored via git checkout)
+- Archive fidelity: regen vendored 68 shared skills via `git archive`; `specs/agents/_shared` byte-identical (zero diff), `fleet/skills-lock.json` unmodified (tree_hash attests archive bytes).
+- Incidental: 68 (not 64) shared skills pre-exists in this tree (Waves 2-3 additions); AGENTS.md:46/generator docstring "64" is stale prose — not M9 scope, M10 follow-up candidate.
+- pi-settings diffs in this regen are worktree-path artifacts (`.../remediate-sandbox/...` → `.../remediate-supplychain/...` shellPath), not content changes.
+
+### Catalog-vs-Dockerfile drift (found on-host, fixed in M9)
+- `context7`: catalog `npm:@upstash/context7-mcp@4.4.4` vs Dockerfile `4.4.2` → aligned to catalog.
+- `memory`: catalog `npm:@modelcontextprotocol/server-memory@2.0.0` vs Dockerfile `1.0.0` → aligned to catalog.
+- Other 6 npm MCP packages + 3 pi-packages already agree.
+- Decision (recorded per spec "or record why a list stays manual"): Dockerfile install lists STAY manual because (a) Dockerfile layers a builder/runtime split + conditional INSTALL_R2MCP toolchain that has no catalog counterpart, (b) uvx/docker/remote MCP servers need no image install, (c) fleet per-role pi_packages (13 distinct combos incl. pi-btw/pi-lens/pi-web-access/pi-mcp-adapter) are the single source consumed at render time by render-seat.py:352-374, the image bakes only the base triple. Compensating gate: V13 asserts Dockerfile versions == catalog/fleet pins exactly (drift fails closed).

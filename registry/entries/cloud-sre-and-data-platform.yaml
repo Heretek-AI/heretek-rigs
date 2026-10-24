@@ -6,7 +6,7 @@ summary: Cloud IaC (OpenTofu), Kubernetes orchestration, SRE incident response, 
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/cloud-sre-and-data-platform
-  resolvedCommit: 04b13993550989ea0ebce6e11885f6b109c68885
+  resolvedCommit: DIRTY-27876bd5105b34428f35e91026ad8d7876da3383
   requestedRef: main
 configurations:
 - id: data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: 4d813c06f257ec39ddb6abff92ad70bf1c5b2bd9a22efcf14e3f7dee46b367ec
+    value: dcb7e8131b34d983b8a0dddfedabb44fa377c048f5d4fa1b9091ae273475e2ff
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.13

@@ -621,7 +621,7 @@ integrity:
     agents/api-contract-tester/guidance/role.md: 402107f9cdf13abd66d93da10ee133665073bb5b06d34b70db604ec7bd6f3d56
     agents/api-contract-tester/runtime/mcp.json: ed607a2e16e22c3ee05c5bfb03efd774c5996ddd6bcc02dc4068b04f0ce97a53
     agents/api-contract-tester/runtime/pi-permission-config.json: 787266ad47914656392a368a36af4437424a59a3fec7f7f2a16fc46f16867d20
-    agents/api-contract-tester/runtime/pi-settings.json: f011e0f5bdb1730eee1549514eda8bfc0056e462ac47282ebc9bf76ee95b40a7
+    agents/api-contract-tester/runtime/pi-settings.json: cc0ebb67e2135c26b49897a557ae70df4f36679e691d438dd6170228421f3b58
     agents/api-contract-tester/runtime/policy-enforcement.json: f159e04937e3a38fb974424fa231c4370731a824f8bbd665553baa95b5ace043
     agents/api-contract-tester/skills/dotnet-expert/SKILL.md: b93c7eca84fa4047cbaeeaf11f98ee475072b288e1f1abfadf4275a4d9e5fc5d
     agents/api-contract-tester/skills/openapi-contract-verification/SKILL.md: 2d431d4acd244004d833c8078f79116dc425f372587edb5432028ad35cc6667b
@@ -630,7 +630,7 @@ integrity:
     agents/e2e-browser-qa/guidance/role.md: a503d9d8110ef700d8441c6c6d348fb2f2e57c57d9c613b94591671f99a52219
     agents/e2e-browser-qa/runtime/mcp.json: b8901696164e5f3687c52d2c535c6eb1976a3b7da8d126667982311c9fdd26c1
     agents/e2e-browser-qa/runtime/pi-permission-config.json: 759643bc8b2b6d6f955b18f622454c3aa4c8a2414c9acb3f32d4a24320bdd3bb
-    agents/e2e-browser-qa/runtime/pi-settings.json: 2a55404f23f4138e1c95daab5cca4e833b912be011ab06acfde5747c8ccd2430
+    agents/e2e-browser-qa/runtime/pi-settings.json: f9c0f964d7d66b2cb269fe033662c399e3ad9c75e05487afdaa84c0ba26d3daa
     agents/e2e-browser-qa/runtime/policy-enforcement.json: 5810293557ac87ed622148f1264395ae03de518280b745d7cb953b695fc2ffa9
     agents/e2e-browser-qa/skills/playwright-page-object-automation/SKILL.md: 7f99a2942401aea95d619dac3506f0798bf6d6ce5a9ddc808d4e1fe44a229512
     agents/e2e-browser-qa/startup/context.md: fc5ca1b98bdfee97d2c0097b04259872246ebd183f1804e5a6feefb0836bbd8f
@@ -638,7 +638,7 @@ integrity:
     agents/load-stress-tester/guidance/role.md: 773d08a6207e50a5a97476d18323e1b14d5c4bba5776936eecebc277d5a248e4
     agents/load-stress-tester/runtime/mcp.json: 3c9c483c3e01b4d94b18fbb89ee54fc9aafe5907507414aa409427cf594234e3
     agents/load-stress-tester/runtime/pi-permission-config.json: 075e7fe7abd476e403c794ecf3261500d9bf77a96fd82e97368ff24c13202c7b
-    agents/load-stress-tester/runtime/pi-settings.json: 2a55404f23f4138e1c95daab5cca4e833b912be011ab06acfde5747c8ccd2430
+    agents/load-stress-tester/runtime/pi-settings.json: f9c0f964d7d66b2cb269fe033662c399e3ad9c75e05487afdaa84c0ba26d3daa
     agents/load-stress-tester/runtime/policy-enforcement.json: 655da7ad19eae06739b151ca58de8ddfc19f86457584558a3f92dcebd43e5ca3
     agents/load-stress-tester/skills/k6-stress-scenario-execution/SKILL.md: 71404e4329cfcb33ba242f1f2a8c4739f5a3a7fb4ea797d783b0bcaf09e098d3
     agents/load-stress-tester/startup/context.md: babdd6f259c08b4ae1a86cc7dc7d984738c5c7af8683ed12fdb6c8635891503b
@@ -646,7 +646,7 @@ integrity:
     agents/release-qa-officer/guidance/role.md: f21f3d28fb270081079aa4ef535fd6290176bcc13405121a3c3bf3050f01a328
     agents/release-qa-officer/runtime/mcp.json: db13352b96cce4daedcc7a709d0132b21fc1d410864a3c0a944406c09136111c
     agents/release-qa-officer/runtime/pi-permission-config.json: e9a207d50b2146a9cdb2abfccfba754cf0a5f9014a7b6ac2ff56a99c5f9c5059
-    agents/release-qa-officer/runtime/pi-settings.json: 2a55404f23f4138e1c95daab5cca4e833b912be011ab06acfde5747c8ccd2430
+    agents/release-qa-officer/runtime/pi-settings.json: f9c0f964d7d66b2cb269fe033662c399e3ad9c75e05487afdaa84c0ba26d3daa
     agents/release-qa-officer/runtime/policy-enforcement.json: d462afdc231f064307118eaab9122fba1ab23c39eee6bf857d6a991a214e5e15
     agents/release-qa-officer/skills/release-readiness-audit/SKILL.md: fc6b50b111e8c2e7d866b59a9487abd1ab6e34ca9c624062ed83a3caab559e3b
     agents/release-qa-officer/startup/context.md: d0e69348d3d4f83765a47e2ff7894a882de6a739b7968ddb1863420c7d4e6de8
@@ -654,7 +654,7 @@ integrity:
     agents/sabotage-qa-tester/guidance/role.md: 5cdc92b0fc8b3c281bd944a9bebdb958c707c13ab62db925f0aa5b28450bf7b5
     agents/sabotage-qa-tester/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
     agents/sabotage-qa-tester/runtime/pi-permission-config.json: c04bbf653ff22b9f213c361b80fdcf0b6a6fb7f073b4e414edbbbe548c1f24ca
-    agents/sabotage-qa-tester/runtime/pi-settings.json: 2a55404f23f4138e1c95daab5cca4e833b912be011ab06acfde5747c8ccd2430
+    agents/sabotage-qa-tester/runtime/pi-settings.json: f9c0f964d7d66b2cb269fe033662c399e3ad9c75e05487afdaa84c0ba26d3daa
     agents/sabotage-qa-tester/runtime/policy-enforcement.json: dad9cbc588ae9fbe1cd79e573db28e306a525f2f061ae46665ed9847fd328639
     agents/sabotage-qa-tester/skills/adversarial-mutation-sabotage/SKILL.md: 568c2b9e72557f924a199bdff4f7adb5f0601df270db8348211d53c4cd3f2322
     agents/sabotage-qa-tester/startup/context.md: 39c5a67fb0cf6e755be7a3e19f29cca04d9495c6d6d83aa947dbba30ccd29092
@@ -662,7 +662,7 @@ integrity:
     agents/static-analysis-lead/guidance/role.md: 5c7b898f645d5ab24ccf3da9e69edb52382febaebf0fa367c81a349d39f25482
     agents/static-analysis-lead/runtime/mcp.json: dff664dd98151d63624d7036dcbc6ace995af2c99eab34d3071d4f1eec990858
     agents/static-analysis-lead/runtime/pi-permission-config.json: d433e96d1ecd2d6b2ec3b21ce7c55bd6ec316d37f195c853b6e852db082a9182
-    agents/static-analysis-lead/runtime/pi-settings.json: 2a55404f23f4138e1c95daab5cca4e833b912be011ab06acfde5747c8ccd2430
+    agents/static-analysis-lead/runtime/pi-settings.json: f9c0f964d7d66b2cb269fe033662c399e3ad9c75e05487afdaa84c0ba26d3daa
     agents/static-analysis-lead/runtime/policy-enforcement.json: ed5915ee0ddcb78ca489b21b008c2bf367ec0213cae1a3399eeff0444701e791
     agents/static-analysis-lead/skills/custom-semgrep-rule-authoring/SKILL.md: 4b81e04d2f97890f180e168535920d5f41b3ace81018a75dce92b6b1b5354f19
     agents/static-analysis-lead/startup/context.md: 35255d17a1b508678ea7424dee46595de7997b80f1f5d9cc2ae71723c9451bd5

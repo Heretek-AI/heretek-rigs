@@ -74,6 +74,51 @@ MUTATING_AST_LSP_TOOLS = [
     "lsp_code_actions",
 ]
 
+# S2a/M9 (#69, #72): single source of truth for the terminal bash denies
+# emitted LAST into every seat's bash map (last-match-wins) and mirrored in
+# scripts/verify-rigs.sh `_TERMINAL_BASH_DENIES`. verify-rigs V13 asserts the
+# two tuples are ordered-identical, so weakening either side flips the gate.
+TERMINAL_BASH_DENIES = (
+    "*--output*",
+    "*;*",
+    "*|*",
+    "*>*",
+    "*<*",
+    "*&*",
+    "*`*",
+    "*$*",
+    "*(*",
+    "*)*",
+    "* -p*",
+    "*\t-p*",
+    "*--patch*",
+    "*--full-diff*",
+    "*--textconv*",
+    # M5 (#69) git-diff read-bypass family: -u/-U/--unified/--cc and
+    # the spaced -c/-m/-W flag forms plus git's word/binary/raw
+    # diff-output flags (same last-match-wins rationale as -p).
+    "* -u*",
+    "*\t-u*",
+    "* -U*",
+    "*\t-U*",
+    "*--unified*",
+    "*--cc*",
+    "* -c *",
+    "* -m *",
+    "* -W*",
+    "*--function-context*",
+    "*--word-diff*",
+    "*--color-words*",
+    "*--binary*",
+    "*--raw*",
+    # M5 (#72/#93) identity-forgery forms: a leading VAR= assignment is
+    # stripped by pps before matching (F9), so this catches only the
+    # `env VAR=...` form at the policy layer; the leading-assignment
+    # form is closed in scripts/send-authenticated.sh instead.
+    "*OPENRIG_SESSION_NAME=*",
+    "*OPENRIG_URL=*",
+)
+
 
 def _sandbox_bind_roots(path_write):
     """Normalize pps path_write globs to bindable jail roots (M4, #68).
@@ -463,46 +508,10 @@ def build_seat_files(
     # tab-separated `git log --oneline<TAB>-p` matches the allow but no deny
     # under last-match-wins substring-glob semantics. The `"*\t-p*"` tab
     # variant closes the gap (JSON `\t` decodes to TAB at match time).
-    for _deny_pat in (
-        "*--output*",
-        "*;*",
-        "*|*",
-        "*>*",
-        "*<*",
-        "*&*",
-        "*`*",
-        "*$*",
-        "*(*",
-        "*)*",
-        "* -p*",
-        "*\t-p*",
-        "*--patch*",
-        "*--full-diff*",
-        "*--textconv*",
-        # M5 (#69) git-diff read-bypass family: -u/-U/--unified/--cc and
-        # the spaced -c/-m/-W flag forms plus git's word/binary/raw
-        # diff-output flags (same last-match-wins rationale as -p).
-        "* -u*",
-        "*\t-u*",
-        "* -U*",
-        "*\t-U*",
-        "*--unified*",
-        "*--cc*",
-        "* -c *",
-        "* -m *",
-        "* -W*",
-        "*--function-context*",
-        "*--word-diff*",
-        "*--color-words*",
-        "*--binary*",
-        "*--raw*",
-        # M5 (#72/#93) identity-forgery forms: a leading VAR= assignment is
-        # stripped by pps before matching (F9), so this catches only the
-        # `env VAR=...` form at the policy layer; the leading-assignment
-        # form is closed in scripts/send-authenticated.sh instead.
-        "*OPENRIG_SESSION_NAME=*",
-        "*OPENRIG_URL=*",
-    ):
+    # S2a/M9: the deny tuple lives in module-level TERMINAL_BASH_DENIES
+    # (single source of truth, asserted identical to the verify-rigs
+    # mirror in V13).
+    for _deny_pat in TERMINAL_BASH_DENIES:
         bash_map[_deny_pat] = "deny"
 
     permission = {

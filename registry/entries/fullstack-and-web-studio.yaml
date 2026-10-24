@@ -6,7 +6,7 @@ summary: End-to-end web, backend microservice, UI/UX design system, frontend per
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/fullstack-and-web-studio
-  resolvedCommit: 04b13993550989ea0ebce6e11885f6b109c68885
+  resolvedCommit: DIRTY-27876bd5105b34428f35e91026ad8d7876da3383
   requestedRef: main
 configurations:
 - id: build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: 32f8223f6bd017bb640162df9a25e7281c48a7c7e97eb48e205492d50fec3623
+    value: 72658ff79bdef7090aeb57f5aac09b15da915b230d8bbd488bb683dd6159e5cf
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.13
