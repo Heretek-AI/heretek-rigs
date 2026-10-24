@@ -49,8 +49,19 @@ os.execvp("rig", argv)
 fi
 
 # Scratch MUST NOT overlap cwd or any write root (see Gotcha 1).
-scratch=$(mktemp -d "${HERETEK_JAIL_SCRATCH:-/var/tmp}/seatjail.XXXXXX")
+# The dir name carries the wrapper's PID. pi aborts a command with SIGKILL to
+# its process group, which skips the EXIT trap, so each run first sweeps our
+# own dirs whose wrapper is gone. Legacy seatjail.XXXXXX dirs are left alone.
+jail_tmp=${HERETEK_JAIL_SCRATCH:-/var/tmp}
+for old in "$jail_tmp"/seatjail.[0-9]*.*; do
+  [[ -d "$old" && ! -L "$old" && -O "$old" ]] || continue
+  pid=${old##*/seatjail.}; pid=${pid%%.*}
+  [[ "$pid" =~ ^[0-9]+$ ]] && ! kill -0 "$pid" 2>/dev/null && rm -rf -- "$old"
+done
+scratch=$(mktemp -d "$jail_tmp/seatjail.$$.XXXXXX")
+# Cleaned on exit, so bwrap below must not be exec'd (exec drops the trap).
 trap 'rm -rf "$scratch"' EXIT
+trap 'exit 129' HUP; trap 'exit 130' INT; trap 'exit 143' TERM
 
 # A write root may never resolve outside cwd (symlinked dir/file escape), and
 # never touch agent/VCS control paths (.git, .pi, .agents, AGENTS.md).
@@ -139,7 +150,7 @@ for p in .git .pi .agents AGENTS.md; do
   [[ -e "$cwd/$p" && ! -L "$cwd/$p" ]] && mask+=(--ro-bind "$cwd/$p" "$cwd/$p")
 done
 
-exec bwrap \
+bwrap \
   --die-with-parent --new-session \
   --unshare-pid --unshare-ipc --unshare-uts --unshare-net \
   --ro-bind / / --dev /dev --proc /proc \

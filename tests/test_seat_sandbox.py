@@ -89,6 +89,58 @@ class SeatSandboxEscapes(unittest.TestCase):
         proc = self.run_jailed('echo t > "$TMPDIR/x" && echo t > /tmp/y')
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
+    # --- the per-command scratch dir is cleaned up ----------------------
+    def _jail_scratch(self):
+        d = Path(self.tmp.name) / "jailscratch"
+        d.mkdir(exist_ok=True)
+        return d
+
+    def test_scratch_removed_and_exit_code_kept(self):
+        d = self._jail_scratch()
+        proc = self.run_jailed(
+            'echo t > "$TMPDIR/x"; exit 7', HERETEK_JAIL_SCRATCH=str(d)
+        )
+        self.assertEqual(proc.returncode, 7, proc.stderr)
+        self.assertEqual(list(d.iterdir()), [], "seatjail scratch dir leaked")
+
+    def test_scratch_removed_when_terminated(self):
+        d = self._jail_scratch()
+        proc = subprocess.Popen(
+            ["bash", str(WRAPPER), "-c", 'echo t > "$TMPDIR/x"; sleep 30'],
+            cwd=str(self.ws),
+            env={**self.env, "HERETEK_JAIL_SCRATCH": str(d)},
+            start_new_session=True,  # pi kills the whole process group
+        )
+        for _ in range(50):
+            if any((p / "x").exists() for p in d.iterdir()):
+                break
+            threading.Event().wait(0.1)
+        os.killpg(proc.pid, 15)
+        self.assertEqual(proc.wait(timeout=40), 143)
+        self.assertEqual(list(d.iterdir()), [], "seatjail scratch dir leaked")
+
+    def test_sigkilled_run_swept_by_next_run(self):
+        # pi aborts with SIGKILL to the process group: no trap can run, so
+        # the next wrapper invocation must sweep the orphan.
+        d = self._jail_scratch()
+        legacy = d / "seatjail.AbC123"
+        legacy.mkdir()
+        proc = subprocess.Popen(
+            ["bash", str(WRAPPER), "-c", 'echo t > "$TMPDIR/x"; sleep 30'],
+            cwd=str(self.ws),
+            env={**self.env, "HERETEK_JAIL_SCRATCH": str(d)},
+            start_new_session=True,
+        )
+        for _ in range(50):
+            if any((p / "x").exists() for p in d.iterdir()):
+                break
+            threading.Event().wait(0.1)
+        os.killpg(proc.pid, 9)
+        proc.wait(timeout=10)
+        self.assertEqual(len(list(d.iterdir())), 2, "expected the orphan to remain")
+        self.run_jailed("true", HERETEK_JAIL_SCRATCH=str(d))
+        self.assertEqual(list(d.iterdir()), [legacy], "orphan not swept")
+
     # --- writes outside the roots fail ---------------------------------
     def test_cwd_root_write_denied(self):
         proc = self.run_jailed("echo x > root.txt")
