@@ -126,6 +126,16 @@ class CanaryCatalogPins(unittest.TestCase):
         """Binding bound: every role except engine-systems-eng keeps
         byte-identical permissions vs the FIXED wave-base commit a33f3bb
         (pinned: HEAD drifts as the wave lands commits)."""
+        # M4 (#68/#73) remediation scope: runner-verb strips on four locked
+        # seats plus the dependency-patcher commit-grant strip. The bound is
+        # the canary plus exactly these roles — any other role still fails.
+        m4_changed = [
+            "ai-red-teamer",
+            "compliance-auditor",
+            "dependency-patcher",
+            "sabotage-qa-tester",
+            "static-analysis-lead",
+        ]
         proc = subprocess.run(
             ["git", "show", "a33f3bb:fleet/fleet.yaml"],
             cwd=str(REPO_ROOT),
@@ -146,9 +156,9 @@ class CanaryCatalogPins(unittest.TestCase):
             if self.fleet["roles"][name].get("permissions")
             != base["roles"][name].get("permissions")
         ]
-        # Post-delta the changed-role list is exactly the canary.
-        # Any other role in the list fails.
-        self.assertEqual(changed, [CANARY_ROLE])
+        # Post-delta the changed-role list is exactly the canary plus the
+        # M4 remediation roles. Any other role in the list fails.
+        self.assertEqual(sorted(changed), sorted([CANARY_ROLE, *m4_changed]))
 
 
 class CanaryMockProbes(unittest.TestCase):
