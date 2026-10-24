@@ -1,0 +1,34 @@
+### BASELINE (unmodified tree)
+CMD: python3 scripts/audit_loop.py --self-test
+  [PASS] ./scripts/verify-rigs.sh passed all static, schema, digest, and security checks
+  [PASS] Fail-closed sentinel evaluator verified against 15 adversarial test vectors
+SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.
+EXIT:0
+
+### BASELINE make test
+Ran 248 tests in 53.169s
+
+OK
+MAKE_EXIT:0 (recorded)
+
+### BASELINE verify-rigs
+
+SUMMARY: 28 checks passed, 0 failed.
+
+### M6 spot-checks (all FINDINGS_DETECTED, rc path exit 0)
+## HR-x (no colon) => FINDINGS_DETECTED | 1 finding section(s)
+**BROKEN** => FINDINGS_DETECTED | 1 BROKEN/PARTIAL claim(s)
+P1 matrix => FINDINGS_DETECTED | 1 P0-P3 graded row(s)
+sabotage non-yes => FINDINGS_DETECTED | 1 uncaught row(s)
+
+### M7 live
+#83 case A (self-written SATISFIED) + case B (token-overlap): stay-blocked OK
+#84 reconcile: rc=1 stale-state 'tracker claims terminal while queue is in-progress'
+#84 generate_trackers: rc=1 NEEDS-HUMAN-REVIEW, zero PROPOSED-CELL::: markers
+
+### M8 live rows (representative, all REFUSE rc=1)
+leading-dot .git, .git bare, expired-min multi-deadline, issued-after-now, unknown seat, non-TPM verifier, non-link audit, PUSH main
+(live-min multi-deadline control correctly ACCEPTs: min governs)
+
+### Scope/untouched
+git diff main...HEAD -- verify-rigs.sh Makefile render-seat.py seat-sandbox.sh send-authenticated.sh fleet/fleet.yaml -> EMPTY (no output)
