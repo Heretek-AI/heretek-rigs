@@ -104,8 +104,15 @@ TERMINAL_BASH_DENIES = (
     "*--unified*",
     "*--cc*",
     "* -c *",
+    "*\t-c *",
+    "* -c\t*",
+    "*\t-c\t*",
     "* -m *",
+    "*\t-m *",
+    "* -m\t*",
+    "*\t-m\t*",
     "* -W*",
+    "*\t-W*",
     "*--function-context*",
     "*--word-diff*",
     "*--color-words*",
@@ -121,29 +128,23 @@ TERMINAL_BASH_DENIES = (
 
 
 def _sandbox_bind_roots(path_write):
-    """Normalize pps path_write globs to bindable jail roots (M4, #68).
+    """Map pps path_write globs to jail write roots (M4, #68; #105 review).
 
-    The bubblewrap wrapper (scripts/seat-sandbox.sh) binds literal
-    directories, so `tests/chaos/*` becomes `tests/chaos`. File globs
-    (`*package-lock.json`) and bare file names (`package.json`) map to
-    their parent dir (the seat cwd when there is none). Coarse by design:
-    pi-permission-system remains the fine-grained gate; the jail adds
-    cwd-containment, no network, and a masked secret store.
+    The bubblewrap wrapper (scripts/seat-sandbox.sh) reads two entry kinds:
+    a pure directory grant (`src/*`, `tests/chaos/*`) becomes `src/`, which
+    is bound read-write; anything else (`package.json`, `docs/*.md`,
+    `*package-lock.json`) stays a file pattern, and only EXISTING regular
+    files matching it are bound in place. Nothing ever maps to the whole
+    seat cwd. pi-permission-system remains the fine-grained gate; the jail
+    adds cwd-containment, no network, and masked secret stores.
     """
     roots = []
     for entry in path_write or []:
         e = entry
-        while e.endswith("/*"):
-            e = e[:-2]
-        e = e.rstrip("/")
-        if not e:
-            e = "."
-        elif "*" in e:
-            e = e.rpartition("/")[0] or "."
-        elif "/" not in e:
-            # Bare file name (package.json, Cargo.toml, ...): the jail can
-            # only bind dirs, so bind its parent (the seat cwd here).
-            e = "."
+        if e.endswith("/*") and not any(c in e[:-2] for c in "*?["):
+            e = e[:-2].rstrip("/") + "/"
+        if e in ("", "/", "./"):
+            continue
         if e not in roots:
             roots.append(e)
     return roots
@@ -169,6 +170,7 @@ def build_seat_files(
     model_id: str = "muse-spark-1.3-contributor",
     allow_missing_secrets: bool = False,
     check_secret_fs: bool = True,
+    sandbox_wrapper: str | None = None,
 ) -> dict:
     if role_id not in fleet_data.get("roles", {}):
         die(f"unknown role {role_id}")
@@ -428,7 +430,10 @@ def build_seat_files(
         # M4 (#68): route pi's bash tool through the bubblewrap jail. A
         # missing shellPath fails closed (no /bin/bash fallback), and the
         # wrapper must sit outside every seat's write scope (Gotcha 5).
-        "shellPath": str(Path(__file__).resolve().parent / "seat-sandbox.sh"),
+        # Generated reference leaves pass the `@RIGS@` placeholder so they
+        # never depend on where the repo is checked out (#105 review).
+        "shellPath": sandbox_wrapper
+        or str(Path(__file__).resolve().parent / "seat-sandbox.sh"),
     }
 
     # M4 (#68): per-seat sandbox env for the wrapper. The pi-runner child env

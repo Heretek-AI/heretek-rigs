@@ -122,9 +122,32 @@ class TestRenderSeat(unittest.TestCase):
         env_lines = dict(
             line.split("=", 1) for line in f["sandbox.env"].strip().splitlines()
         )
-        # Bind-normalized: trailing /* stripped to literal jail dirs.
-        self.assertEqual(env_lines["HERETEK_SANDBOX_WRITE"], "tests/chaos:docs/qa")
+        # Pure dir grants become `dir/` roots for the jail.
+        self.assertEqual(env_lines["HERETEK_SANDBOX_WRITE"], "tests/chaos/:docs/qa/")
         self.assertEqual(env_lines["HERETEK_SECRET_STORE"], str(self.secrets))
+
+    def test_sandbox_bind_roots_never_whole_cwd(self):
+        """#105 review: top-level dir grants and root files must not map to
+        the whole seat cwd (that made .git/hooks writable in the jail)."""
+        import importlib.util
+        import yaml
+
+        spec = importlib.util.spec_from_file_location("render_seat", RENDER_SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(
+            mod._sandbox_bind_roots(
+                ["src/*", "tests/chaos/*", "package.json", "*package-lock.json", "docs/*.md"]
+            ),
+            ["src/", "tests/chaos/", "package.json", "*package-lock.json", "docs/*.md"],
+        )
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        for rid, role in fleet["roles"].items():
+            for root in mod._sandbox_bind_roots(role["permissions"]["path_write"]):
+                with self.subTest(role=rid, root=root):
+                    self.assertNotIn(root, ("", ".", "./", "/"))
+                    self.assertFalse(root.startswith("/"))
+                    self.assertNotIn("..", root.split("/"))
 
     def test_appsec_permission_config_fails_closed_and_ends_path_write_with_dot_dot_guard(
         self,

@@ -136,63 +136,55 @@ fi
 # the relay as if that seat sent it. Fail closed if the fleet catalog is
 # unreadable.
 _SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-_FLEET_IDS="$(python3 - "$_SCRIPT_DIR/../fleet/fleet.yaml" <<'PYEOF'
-import sys
-try:
-    import yaml
-except ImportError:
-    print("PYYAML_MISSING")
-    sys.exit(0)
+# One id-set builder for both interpreters (#105 review: the uv fallback used
+# to build a smaller set). Covers role/member ids, pod ids, and the session
+# name forms `<pod>-<member>` (the `@<rig>` suffix is rejected above).
+_FLEET_IDS_PY='
+import sys, yaml
 try:
     fleet = yaml.safe_load(open(sys.argv[1]).read())
 except Exception as e:
     print(f"error: cannot read fleet catalog: {e}", file=sys.stderr)
     sys.exit(2)
+def mid(m):
+    return m if isinstance(m, str) else (m.get("id") if isinstance(m, dict) else None)
 ids = set((fleet.get("roles") or {}).keys())
-for r in fleet.get("rigs", []) or []:
-    for p in r.get("pods", []) or []:
-        for m in p.get("members", []) or []:
-            if isinstance(m, str):
-                ids.add(m)
-            elif isinstance(m, dict) and m.get("id"):
-                ids.add(m["id"])
-o = fleet.get("omni", {}) or {}
-cp = o.get("core_pod", {}) or {}
-if cp.get("id"):
-    ids.add(cp["id"])
-for m in cp.get("members", []) or []:
-    if isinstance(m, str):
-        ids.add(m)
-for f in o.get("pod_fragments", []) or []:
+pods = [p for r in fleet.get("rigs") or [] for p in r.get("pods") or []]
+omni = fleet.get("omni") or {}
+if omni.get("core_pod"):
+    pods.append(omni["core_pod"])
+for p in pods:
+    pid = p.get("id")
+    if pid:
+        ids.add(pid)
+    for m in p.get("members") or []:
+        member = mid(m)
+        if member:
+            ids.add(member)
+            if pid:
+                ids.add(f"{pid}-{member}")
+for f in omni.get("pod_fragments") or []:
     if isinstance(f, dict) and f.get("pod"):
         ids.add(f["pod"])
-for m in o.get("member_fragments", []) or []:
-    if isinstance(m, dict):
-        if m.get("role"):
-            ids.add(m["role"])
+for m in omni.get("member_fragments") or []:
+    if isinstance(m, dict) and m.get("role"):
+        role, pod = m["role"], m.get("pod")
+        ids.add(role)
+        if pod:
+            ids.add(f"{pod}-{role}")
 print("\n".join(sorted(ids)))
-PYEOF
-)" || { echo "error: fleet member-id check failed (fail-closed)" >&2; exit 2; }
-if [[ "$_FLEET_IDS" == "PYYAML_MISSING" ]]; then
-  if command -v uv >/dev/null 2>&1; then
-    _FLEET_IDS="$(uv run --quiet --with pyyaml python3 - "$_SCRIPT_DIR/../fleet/fleet.yaml" <<'PYEOF'
-import sys, yaml
-fleet = yaml.safe_load(open(sys.argv[1]).read())
-ids = set((fleet.get("roles") or {}).keys())
-for r in fleet.get("rigs", []) or []:
-    for p in r.get("pods", []) or []:
-        for m in p.get("members", []) or []:
-            if isinstance(m, str):
-                ids.add(m)
-            elif isinstance(m, dict) and m.get("id"):
-                ids.add(m["id"])
-print("\n".join(sorted(ids)))
-PYEOF
-)" || { echo "error: fleet member-id check failed (fail-closed)" >&2; exit 2; }
-  else
-    echo "error: fleet member-id check needs PyYAML (or uv); fail-closed" >&2; exit 2
-  fi
+'
+_FLEET_YAML="$_SCRIPT_DIR/../fleet/fleet.yaml"
+if python3 -c 'import yaml' >/dev/null 2>&1; then
+  _FLEET_IDS="$(python3 -c "$_FLEET_IDS_PY" "$_FLEET_YAML")" \
+    || { echo "error: fleet member-id check failed (fail-closed)" >&2; exit 2; }
+elif command -v uv >/dev/null 2>&1; then
+  _FLEET_IDS="$(uv run --quiet --with pyyaml python3 -c "$_FLEET_IDS_PY" "$_FLEET_YAML")" \
+    || { echo "error: fleet member-id check failed (fail-closed)" >&2; exit 2; }
+else
+  echo "error: fleet member-id check needs PyYAML (or uv); fail-closed" >&2; exit 2
 fi
+[[ -n "$_FLEET_IDS" ]] || { echo "error: fleet member-id set is empty (fail-closed)" >&2; exit 2; }
 if printf '%s\n' "$_FLEET_IDS" | grep -Fxq -- "$SOURCE"; then
   echo "error: --source must be an operator-side label, not a fleet member/role id: $SOURCE" >&2; exit 2
 fi
@@ -264,7 +256,7 @@ st = d.get("state")
 if not isinstance(q, str) or not q or not isinstance(st, str) or not st:
     print(f"receipt lacks qitemId/state: {raw[:500]}", file=sys.stderr)
     sys.exit(4)
-# M5 (#93): fail closed on unp persisted/failed receipts and daemon
+# M5 (#93): fail closed on unpersisted/failed receipts and daemon
 # warnings — a bare advisory or {"state":"failed","persisted":false} must
 # never read as a delivery.
 if st not in ("pending", "in-progress"):

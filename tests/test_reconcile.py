@@ -1073,6 +1073,19 @@ class TestNegationAwareTerminal(unittest.TestCase):
             model.normalize_tracker("QA PASS never arrived")["qa_pass"]
         )
         self.assertFalse(model.normalize_tracker("NOT placed")["placed"])
+        # #105 review: deferred passes are not passes (fail closed).
+        for cell in (
+            "QA PASS pending re-run",
+            "QA PASS (awaiting gate)",
+            "QA PASS provisional",
+            "QA PASS rerun scheduled",
+        ):
+            with self.subTest(cell=cell):
+                self.assertFalse(model.normalize_tracker(cell)["qa_pass"])
+        # `no-` compounds are closure tokens, not negations.
+        self.assertTrue(
+            model.normalize_tracker("QA PASS + PLACED (closure no-follow-on)")["qa_pass"]
+        )
         # Regression pin: plain CLOSED still counts.
         self.assertTrue(
             model.normalize_tracker("CLOSED operator-owned")["closed"]

@@ -16,5 +16,5 @@
     "@TOOLS@/pi-packages/node_modules/@gotgenes/pi-permission-system"
   ],
   "quietStartup": true,
-  "shellPath": "/home/john/Projects/heretek-rig-workspace/heretek-rigs/scripts/seat-sandbox.sh"
+  "shellPath": "@RIGS@/scripts/seat-sandbox.sh"
 }
