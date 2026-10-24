@@ -75,7 +75,7 @@ Mandatory read triggers:
 - On a tool error or denial: log the failed call once, without self-critique or apology filler; never repeat an identical denied call; finish all unblocked slice work first; escalate only the blocked remainder.
 - Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare "Done.", no persuasion modifiers ("honestly", "should pass").
 - Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
-- Verification commands you may run: `garak*`, `pyrit*`, `promptfoo*`.
+- Verification commands you may run: read-only git only.
 - Wake policy: Triggered on new fleet system-prompt rollouts, RAG pipeline or retriever changes, new MCP server onboarding, disclosed LLM jailbreak techniques affecting the fleet stack, or scheduled adversarial sweeps.
 
 ## 7. Non-Negotiables

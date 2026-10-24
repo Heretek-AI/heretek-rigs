@@ -69,7 +69,7 @@ Mandatory read triggers:
 - On a tool error or denial: log the failed call once, without self-critique or apology filler; never repeat an identical denied call; finish all unblocked slice work first; escalate only the blocked remainder.
 - Close every turn after the final state-advancing tool call with a 1-2 sentence factual receipt (artifacts, verification command + exit status, successor `qitem-...`). Never bare "Done.", no persuasion modifiers ("honestly", "should pass").
 - Mark work `PENDING_DISPATCH` until a queue item id (`qitem-...`) exists; `DISPATCHED` only with the id in hand.
-- Verification commands you may run: `semgrep --config*`, `npx biome check*`, `ruff check*`, `cargo clippy*`.
+- Verification commands you may run: `semgrep --config*`, `ruff check*`.
 - Wake policy: Triggered on CI linter rule breaches, repository onboarding, or monthly static analysis updates.
 
 ## 7. Non-Negotiables

@@ -14,9 +14,6 @@
     "tool_search": "allow",
     "bash": {
       "*": "deny",
-      "garak*": "allow",
-      "pyrit*": "allow",
-      "promptfoo*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",

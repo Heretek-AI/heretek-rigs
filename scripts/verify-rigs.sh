@@ -1641,6 +1641,21 @@ if "@gotgenes/pi-permission-system is mandatory" not in _v12_render_src:
     fail("scripts/render-seat.py must die on a missing @gotgenes/pi-permission-system (M2 fail-closed guard)")
 if 'need 41.0.0' not in _v12_render_src:
     fail("scripts/render-seat.py must pin @gotgenes/pi-permission-system at 41.0.0 (M2 version guard)")
+# (a2) M4 (#68) sandbox hook: the renderer must emit settings.json
+# shellPath to the wrapper and the per-seat sandbox.env; the wrapper must
+# exist, be executable, and bwrap must resolve (Gotcha 5) — a missing
+# shellPath fails closed at pi startup, so all three are hard fails.
+if '"shellPath"' not in _v12_render_src or 'seat-sandbox.sh' not in _v12_render_src:
+    fail("scripts/render-seat.py must emit settings.json shellPath to scripts/seat-sandbox.sh (M4 sandbox)")
+if 'sandbox.env' not in _v12_render_src:
+    fail("scripts/render-seat.py must emit sandbox.env (HERETEK_SANDBOX_WRITE/HERETEK_SECRET_STORE) (M4 sandbox)")
+_v12_wrapper = root / "scripts/seat-sandbox.sh"
+if not _v12_wrapper.is_file():
+    fail("scripts/seat-sandbox.sh missing (settings.json shellPath target)")
+elif not os.access(_v12_wrapper, os.X_OK):
+    fail("scripts/seat-sandbox.sh must be executable")
+if _shutil12.which("bwrap") is None:
+    fail("tool-existence: bwrap not found on PATH (seat sandbox needs bubblewrap)")
 # (b) per-seat settings packages[0]: resolve the committed
 # specs/.../runtime/pi-settings.json against the real tools dir.
 _v12_pps_pkg = "pi-packages/node_modules/@gotgenes/pi-permission-system"
@@ -1657,6 +1672,13 @@ for _rid12 in sorted(_v12_roles):
         continue
     if not _pkgs12 or _v12_pps_pkg not in str(_pkgs12[0]):
         fail(f"{_rid12}: settings packages[0] must be the mandatory {_v12_pps_pkg} (got {_pkgs12[:1]})")
+    # M4 (#68): committed reference settings must route bash through the jail.
+    try:
+        _shell12 = json.loads(_ps12.read_text()).get("shellPath", "")
+    except Exception:
+        _shell12 = ""
+    if not str(_shell12).endswith("scripts/seat-sandbox.sh"):
+        fail(f"{_rid12}: settings shellPath must route through scripts/seat-sandbox.sh (got {_shell12!r})")
 if _v12_tools.is_dir():
     _v12_pps_json = _v12_tools / _v12_pps_pkg / "package.json"
     if not _v12_pps_json.is_file():

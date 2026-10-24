@@ -33,9 +33,7 @@
     "bash": {
       "*": "deny",
       "semgrep --config*": "allow",
-      "npx biome check*": "allow",
       "ruff check*": "allow",
-      "cargo clippy*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",

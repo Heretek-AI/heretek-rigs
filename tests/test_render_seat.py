@@ -97,6 +97,35 @@ class TestRenderSeat(unittest.TestCase):
         )
         self.assertIn("tool_search", s["defaultTools"])
 
+    def test_settings_shellpath_routes_through_seat_sandbox(self):
+        s = self.render(
+            "--role",
+            "sabotage-qa-tester",
+            "--rig",
+            "qa-and-verification-gauntlet",
+            "--pod",
+            "qa",
+        )["settings.json"]
+        self.assertTrue(s["shellPath"].endswith("scripts/seat-sandbox.sh"))
+        self.assertTrue(Path(s["shellPath"]).is_file())
+        self.assertTrue(os.access(s["shellPath"], os.X_OK))
+
+    def test_sandbox_env_carries_normalized_write_roots_and_secret_store(self):
+        f = self.render(
+            "--role",
+            "sabotage-qa-tester",
+            "--rig",
+            "qa-and-verification-gauntlet",
+            "--pod",
+            "qa",
+        )
+        env_lines = dict(
+            line.split("=", 1) for line in f["sandbox.env"].strip().splitlines()
+        )
+        # Bind-normalized: trailing /* stripped to literal jail dirs.
+        self.assertEqual(env_lines["HERETEK_SANDBOX_WRITE"], "tests/chaos:docs/qa")
+        self.assertEqual(env_lines["HERETEK_SECRET_STORE"], str(self.secrets))
+
     def test_appsec_permission_config_fails_closed_and_ends_path_write_with_dot_dot_guard(
         self,
     ):

@@ -41,6 +41,7 @@ except ImportError:
 import argparse
 import json
 import re
+import shlex
 from pathlib import Path
 
 USAGE = """usage: render-seat.py --role <role-id> --rig <rig-id> --pod <pod-id> [options]
@@ -72,6 +73,35 @@ MUTATING_AST_LSP_TOOLS = [
     "lsp_rename",
     "lsp_code_actions",
 ]
+
+
+def _sandbox_bind_roots(path_write):
+    """Normalize pps path_write globs to bindable jail roots (M4, #68).
+
+    The bubblewrap wrapper (scripts/seat-sandbox.sh) binds literal
+    directories, so `tests/chaos/*` becomes `tests/chaos`. File globs
+    (`*package-lock.json`) and bare file names (`package.json`) map to
+    their parent dir (the seat cwd when there is none). Coarse by design:
+    pi-permission-system remains the fine-grained gate; the jail adds
+    cwd-containment, no network, and a masked secret store.
+    """
+    roots = []
+    for entry in path_write or []:
+        e = entry
+        while e.endswith("/*"):
+            e = e[:-2]
+        e = e.rstrip("/")
+        if not e:
+            e = "."
+        elif "*" in e:
+            e = e.rpartition("/")[0] or "."
+        elif "/" not in e:
+            # Bare file name (package.json, Cargo.toml, ...): the jail can
+            # only bind dirs, so bind its parent (the seat cwd here).
+            e = "."
+        if e not in roots:
+            roots.append(e)
+    return roots
 
 
 def die(msg: str) -> None:
@@ -350,7 +380,21 @@ def build_seat_files(
         "defaultTools": tools,
         "packages": packages,
         "quietStartup": True,
+        # M4 (#68): route pi's bash tool through the bubblewrap jail. A
+        # missing shellPath fails closed (no /bin/bash fallback), and the
+        # wrapper must sit outside every seat's write scope (Gotcha 5).
+        "shellPath": str(Path(__file__).resolve().parent / "seat-sandbox.sh"),
     }
+
+    # M4 (#68): per-seat sandbox env for the wrapper. The pi-runner child env
+    # is deny-by-default (no HERETEK_* crosses into the pi agent process),
+    # but PI_CODING_AGENT_DIR always points at this agent dir, so the wrapper
+    # loads sandbox.env from there (see scripts/seat-sandbox.sh bootstrap).
+    _bind_roots = _sandbox_bind_roots(role["permissions"]["path_write"])
+    files["sandbox.env"] = (
+        f"HERETEK_SANDBOX_WRITE={shlex.quote(':'.join(_bind_roots))}\n"
+        f"HERETEK_SECRET_STORE={shlex.quote(secrets_dir)}\n"
+    )
 
     # 4. extensions/pi-permission-system/config.json
     # Last matching rule wins inside each map; guards MUST go LAST.

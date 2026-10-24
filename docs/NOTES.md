@@ -177,3 +177,45 @@
 - Cosmetic discrepancy (NOT changed, per never-reword-V1-V11): V6 ok() message still reads `tests/test_render_seat.py (7/7 unit tests) passed` while the suite now runs 9 tests; the gate keys on returncode 0 so it stays green.
 - `Makefile` test: target now lists all 10 suites (+ test_build_canary, test_check_envelope, test_live_health); test_manifest_closure/test_policy_verifier stay verify-rigs-V8/V9-wired only (untouched per brief).
 - Acceptance: `make test` → `Ran 208 tests ... OK` (10 suites confirmed in output); `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.` (27 + V12)
+
+## 2026-10-24 — Audit #66 remediate-sandbox M4 sandbox every execution-capable seat (wave remediate-sandbox)
+
+### Env-mechanism decision (validated, NOT assumed)
+- Requirement: HERETEK_SANDBOX_WRITE + secret-store path must be present in the seat's LAUNCHED environment (wrapper reads env at seat runtime).
+- Dead end 1 — daemon env: @openrig/cli `daemon/dist/adapters/pi-runner-protocol.js` `buildPiChildEnv` (lines ~150-189) is deny-by-default — only PATH/HOME/USER/LOGNAME/TERM/LANG/LC_ALL/SHELL/TMPDIR + OPENRIG_* + PI_CODING_AGENT_DIR/SESSION_DIR + the declared provider key cross into the pi child. A HERETEK_* var set in the daemon env dies at the child boundary.
+- Dead end 2 — rig `env:`: `daemon/docs/reference/rig-spec.md` "Where the declared names reach, by runtime" states explicitly: "On Pi and OMP seats the values reach the terminal. The agent process gets only what the runner passes on, so a spec or one-off value reaches it only for the names the runner always passes: PATH, HOME, USER, LOGNAME, TERM, LANG, LC_ALL, SHELL and TMPDIR." Member `env:` therefore cannot carry per-seat sandbox roots to pi either.
+- Chosen mechanism: render-seat.py writes `sandbox.env` (`HERETEK_SANDBOX_WRITE=<colon-joined bind roots>`, `<store var>=<secrets_dir>`, shlex-quoted) into the seat agent dir; seat-sandbox.sh bootstraps it from `$PI_CODING_AGENT_DIR/sandbox.env` when the vars are unset. PI_CODING_AGENT_DIR is unconditionally set in the pi child env (buildPiChildEnv line ~157; pi `dist/config.js` `getAgentDir()` reads it) and inherited by the bash-tool shell — per-seat correct under multi-seat daemon launch, no shared-env collision, no new host dependency.
+- Deviation from the spec block (recorded): the M4 block was copied functionally verbatim, PLUS a marked M4 bootstrap preamble (source sandbox.env via PI_CODING_AGENT_DIR). Without it the wrapper would see empty roots on every real seat (env cannot cross the runner boundary — verified above). The bwrap core below `set -euo pipefail` is byte-identical to the verified block. Fail-closed preserved: no roots (no env, no file) = whole tree read-only except scratch.
+- Bind-root normalization (renderer `_sandbox_bind_roots`): path_write globs are pps match patterns, not literal dirs, so `tests/chaos/*` -> `tests/chaos`; file globs (`*package-lock.json`) and bare file names (`package.json`) map to their parent dir (`.` = seat cwd). Coarse by design: pps stays the fine-grained gate (F1 enforcer-first); the jail adds cwd-containment + no-net + masked store. Known limitation: seats whose path_write is file-only (e.g. dependency-patcher, static-analysis-lead) get cwd bound writable — policy still enforced by pps.
+
+### Locked-seat runner-verb audit (all 18 locked roles dumped via python3+yaml; removals)
+- ai-red-teamer: removed `garak*`, `pyrit*`, `promptfoo*` (red-team runners execute payloads).
+- compliance-auditor: removed `npx license-checker*`, `cargo license*` (npx executes code; cargo runs build scripts. `syft dir*` stays: static SBOM scanner).
+- sabotage-qa-tester: removed `npx stryker run*`, `cargo mutants*`, `mutmut run*`, `npm test*`, `pytest*`, `cargo test*`.
+- static-analysis-lead: removed `npx biome check*`, `cargo clippy*` (clippy runs build scripts per #68(a); npx executes code. `semgrep --config*`, `ruff check*` stay: static scanners).
+- Other 14 locked seats: audited, no test-runner/interpreter verbs — kept read-only scanners/static tools (semgrep/trivy/r2/rabin2/strings/tshark/checkov/tfsec/gitleaks/syft/readelf/objdump/checksec/binwalk/markdownlint, git branch/merge-base/status/diff/log/show, rig whoami/ps/queue/send/capture/transcript).
+- Standard seats untouched: dependency-patcher keeps npm test*/cargo test*/pytest*/go test* (builtin:standard); rust-systems-spec keeps cargo clippy*/cargo test*; go-backend-eng keeps go test*; python-backend-spec keeps pytest*; ts-node-fullstack keeps npm test*.
+- dependency-patcher (#73): removed `git checkout*`, `git commit*` (it was the only commit grant in the fleet; `git checkout -- <path>` was already denied by path-arg policing).
+- fleet.yaml: added top-level `sandbox:` write-roots schema block (write_roots_source: permissions.path_write, wrapper, env_file). Surgical text edits only, no yaml.safe_dump (verified: `python3 -c yaml.safe_load` parses; regenerated leaves byte-correct).
+
+### HR-4.4 trip (self-caught, fixed)
+- First regen green except 1 fail: `fleet/fleet.yaml contains forbidden reserved/secret env name` — the sandbox comment spelled the store variable name (matches `_SECRET`). Fixed by rewording the fleet comment to never name credential env vars (name lives only in scripts/render-seat.py + scripts/seat-sandbox.sh, which that scan does not cover); own meta-comment tripped once more, reworded again. `grep -c "_SECRET|_TOKEN|_PASSWORD" fleet/fleet.yaml` → 0; verify back to 28/0.
+
+### F2 corpus under the jail (bwrap 0.13.1, PI_CODING_AGENT_DIR=<rendered sabotage seat>, HERETEK_* explicitly unset to prove file bootstrap)
+- `echo ok > tests/chaos/t.txt` → rc=0 (in-scope bind) ✓
+- `echo x > root.txt` → rc=1 `Read-only file system` ✓
+- `cat ~/.config/heretek-rigs/secrets/opencode-go.key` → `No such file or directory` rc=1 (tmpfs mask) ✓
+- `curl -sS -m 8 https://example.com` → rc=7 Could not connect (net blocked) ✓
+- `git status --short` → works, rc=0 ✓
+- `seat-sandbox.sh` (no args / 3 args) → `expected -c <command>` rc=126 ✓
+
+### Acceptance
+- `bash scripts/gate-role.sh sabotage-qa-tester` → exit 0, all probes ok; rendered pi-permission-config.json bash allows = 11, zero runner-ish (`test|stryker|mutant|mutmut|pytest|cargo|garak|pyrit|promptfoo|npx|clippy`).
+- `HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py` twice → byte-identical diff (cmp clean = idempotent); 223 files changed (51×2 pi-settings shellPath + permission strips + registry/rigs leaves).
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 28 checks passed, 0 failed.` (V12 extended: shellPath/sandbox.env renderer asserts, wrapper exists+executable, bwrap resolves, per-seat shellPath suffix).
+- `make test` → 210 tests, 1 failure: tests/test_build_canary.py::test_canary_scope_only (pins fleet permissions to base a33f3bb allowing ONLY engine-systems-eng to differ; M4 legitimately changes 5 roles). Genuinely stale vs mandated M4 change → adapting the bound in its own commit (next), one-line reason recorded here: M4 #68/#73 strips change exactly ai-red-teamer, compliance-auditor, dependency-patcher, sabotage-qa-tester, static-analysis-lead.
+- Worktree vendor symlink: `.scratch/vendor` symlinked to the main checkout's `.scratch/vendor` (7 pinned clones, 74M) — worktrees do not carry ignored scratch; generate reads vendor only. Recorded so a fresh worktree setup repeats it.
+
+### Rollout split (stated in stage report + draft PR text there)
+- NOT no-bounce (needs relaunch or RPC reload per seat): settings.json `shellPath` (F1: pi reads settings at startup only) — the sandbox itself.
+- Canary-then-fleet WITHOUT bounce (permission config.json hot-reloads on mtime): git-diff terminal denies (M5), locked-seat verb removal, dependency-patcher commit strip, MCP flags.

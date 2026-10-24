@@ -43,8 +43,6 @@
       "go get*": "allow",
       "go mod tidy*": "allow",
       "go test*": "allow",
-      "git checkout*": "allow",
-      "git commit*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",

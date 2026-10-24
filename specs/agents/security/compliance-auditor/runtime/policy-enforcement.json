@@ -23,8 +23,6 @@
     "bash": {
       "*": "deny",
       "syft dir*": "allow",
-      "npx license-checker*": "allow",
-      "cargo license*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",

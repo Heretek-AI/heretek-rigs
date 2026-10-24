@@ -26,6 +26,22 @@ counts:
   roles: 51
   rigs: 8
   pods: 15
+# M4 (#68) sandbox write-roots schema: render-seat.py sets each seat's
+# HERETEK_SANDBOX_WRITE to the colon-joined, bind-normalized
+# permissions.path_write of its role (see _sandbox_bind_roots), and records
+# the secrets dir path beside it. scripts/seat-sandbox.sh bind-mounts
+# exactly those roots (relative to the seat cwd) inside the bubblewrap
+# jail; everything else is read-only and the secrets dir is tmpfs-masked.
+# (The store variable name is spelled out only in scripts/render-seat.py and
+# scripts/seat-sandbox.sh: this file must not name credential env vars
+# per the HR-4.4 fleet scan.) The wrapper loads both values from the seat
+# agent dir's sandbox.env via PI_CODING_AGENT_DIR, because neither rig
+# `env:` nor the daemon environment crosses the deny-by-default pi-runner
+# child env.
+sandbox:
+  write_roots_source: permissions.path_write
+  wrapper: scripts/seat-sandbox.sh
+  env_file: sandbox.env
 rigs:
 - id: executive-and-architecture
   title: Executive & Architecture
@@ -656,9 +672,8 @@ roles:
       path_write:
       - docs/security/ai-redteam/*
       bash_allow:
-      - garak*
-      - pyrit*
-      - promptfoo*
+      # M4 (#68): red-team runner verbs (garak/pyrit/promptfoo execute
+      # adversarial payloads) stripped from this builtin:locked seat.
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -1315,8 +1330,8 @@ roles:
       - docs/compliance/*
       bash_allow:
       - syft dir*
-      - npx license-checker*
-      - cargo license*
+      # M4 (#68): npx/cargo execute code or build scripts — stripped from
+      # this builtin:locked seat (syft stays: static SBOM scanner).
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -1594,8 +1609,9 @@ roles:
       - go get*
       - go mod tidy*
       - go test*
-      - git checkout*
-      - git commit*
+      # M4 (#73): git checkout*/commit* stripped — this seat must never
+      # commit (it was the only commit grant in the fleet). Test-runner
+      # verbs stay: builtin:standard execution seat by design.
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -3201,12 +3217,9 @@ roles:
       - tests/chaos/*
       - docs/qa/*
       bash_allow:
-      - npx stryker run*
-      - cargo mutants*
-      - mutmut run*
-      - npm test*
-      - pytest*
-      - cargo test*
+      # M4 (#68): test-runner/mutant verbs stripped from this
+      # builtin:locked seat (was: npx stryker run*, cargo mutants*,
+      # mutmut run*, npm test*, pytest*, cargo test*).
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -3342,9 +3355,10 @@ roles:
       - ruff.toml
       bash_allow:
       - semgrep --config*
-      - npx biome check*
       - ruff check*
-      - cargo clippy*
+      # M4 (#68): npx executes code and cargo clippy runs build scripts —
+      # stripped from this builtin:locked seat (was: npx biome check*,
+      # cargo clippy*). Static scanners (semgrep, ruff) stay.
       - rig whoami*
       - rig ps*
       - rig queue *

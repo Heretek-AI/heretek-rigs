@@ -23,12 +23,6 @@
     "tool_search": "allow",
     "bash": {
       "*": "deny",
-      "npx stryker run*": "allow",
-      "cargo mutants*": "allow",
-      "mutmut run*": "allow",
-      "npm test*": "allow",
-      "pytest*": "allow",
-      "cargo test*": "allow",
       "rig whoami*": "allow",
       "rig ps*": "allow",
       "rig queue *": "allow",
