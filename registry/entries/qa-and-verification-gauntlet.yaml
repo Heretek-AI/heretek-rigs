@@ -6,7 +6,7 @@ summary: 'Adversarial quality assurance gauntlet: Playwright E2E browser automat
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/qa-and-verification-gauntlet
-  resolvedCommit: f5f0aa8cb44af7479cf375bb68872472868afcea
+  resolvedCommit: bd05c650576dcf16f53c8d9f089d2b6072f6994d
   requestedRef: main
 configurations:
 - id: qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: d58fa5ec5e7e59bd5e24ed096e4b9ccfd1ff1976643527ff4f2698d1c9787be5
+    value: b385178fe4f2a924d13a133855aa5ab4e4b4a08852b5eafc1e51c360712f3f06
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.6.13
