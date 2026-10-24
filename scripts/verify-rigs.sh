@@ -1951,6 +1951,38 @@ else:
 if len(failures) == _v13_before:
     ok("Supply-chain pins (#70/#71/#85/#86/#87/#97/#99/S2a) green: tag@digest sidecars resolve, Dockerfile matches catalog/fleet, MCP flags/pins exact, vendor/archive+roster/pod/stub/attestation gates hold")
 
+print("\n== V14. No Worktree-Stale Absolute Paths (#67) ==")
+# #67 hard-never applied to the baked VALUE: render-seat.py emits shellPath
+# as an absolute path resolved from the rendering checkout, so leaves baked
+# on a worktree carry that worktree's dir (e.g. .../.lane/trees/<name>/...).
+# The V12 endswith check passes such staleness while pi itself fails closed
+# ("Custom shell path not found") at seat startup. Canonical checkouts never
+# contain /.lane/ paths, so any baked shellPath or packages[] value holding
+# that segment is always wrong to merge. Covers committed specs/... and
+# rigs/... leaves alike (V13 label was already taken by the supply-chain
+# wave, hence V14; V1-V13 lines untouched). Exactly one ok() below.
+_v14_before = len(failures)
+_v14_files = sorted((root / "specs").glob("agents/*/*/runtime/pi-settings.json")) + sorted((root / "rigs").glob("*/agents/*/runtime/pi-settings.json"))
+if not _v14_files:
+    fail("V14/#67: no committed pi-settings.json leaves found under specs/ or rigs/")
+for _p14 in _v14_files:
+    try:
+        _d14 = json.loads(_p14.read_text())
+    except Exception as _e14:
+        fail(f"V14/#67: {_p14.relative_to(root)} unreadable ({_e14})")
+        continue
+    _seat14 = _p14.parent.parent.name
+    _vals14 = []
+    if "shellPath" in _d14:
+        _vals14.append(("shellPath", _d14.get("shellPath")))
+    for _i14, _pkg14 in enumerate(_d14.get("packages", []) or []):
+        _vals14.append((f"packages[{_i14}]", _pkg14))
+    for _k14, _v14 in _vals14:
+        if "/.lane/" in str(_v14):
+            fail(f"V14/#67: seat {_seat14}: {_p14.relative_to(root)} {_k14} holds worktree-stale absolute path {_v14!r} (#67 worktree-stale absolute path — re-bake on a canonical checkout)")
+if len(failures) == _v14_before:
+    ok(f"Worktree-stale paths (#67) green: {len(_v14_files)} committed pi-settings.json leaves carry no /.lane/ baked paths")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
