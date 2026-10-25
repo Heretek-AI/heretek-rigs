@@ -97,3 +97,19 @@ proven inert: variant (c) allows identically).
 Native-map declarations + descriptor sidecar ("both forms"), per-tool
 entries and grants exactly as probed above. No HALT: at least one shape
 enforces.
+
+## Follow-up fix during T1: ctest read declaration (#76 completion)
+
+The pre-existing #76 gate probe (`ctest --test-dir build
+--output-on-failure` expects allow) was found red on engine-systems-eng
+during T1 gating — and red on baseline too (baseline: ask-fallback from
+the list poison; post-map: policy deny on operand `build` vs path_write
+`*`). Same mechanism class as pytest (test runner): declared
+`{ctest:{effects:read}}` for ctest-verb roles, with `unlessOption:
+[-S, --script, --script-new-process]` withdrawing script mode (`ctest -S`
+runs arbitrary CMake). `-S` as a short-letter stem also covers `-SP`;
+both `--script` forms listed explicitly. `--test-dir`/`--output-on-failure`
+do not match any guard stem (verified against `stemGuard` semantics).
+Sandbox exit codes measured: engine exits 0 (build/ writable via the new
+`build/*` grant + seeded `CTestTestfile.cmake`); cpp exits 8 (build/
+read-only in jail) → gate asserts policy-level there, exit-0 on engine.

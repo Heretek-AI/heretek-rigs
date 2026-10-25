@@ -9,7 +9,7 @@ cd "$ROOT"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 PORT=$((18100 + RANDOM % 800))
-IFS='|' read -r RIG POD FIRST HAS_CTEST HAS_PYTEST PYTEST_PROBE HAS_GO GO_PROBE HAS_CMAKE_CONFIGURE HAS_GCC < <(python3 -c '
+IFS='|' read -r RIG POD FIRST HAS_CTEST HAS_CTEST_BROAD HAS_PYTEST PYTEST_PROBE HAS_GO GO_PROBE HAS_CMAKE_CONFIGURE HAS_GCC < <(python3 -c '
 import os, re, shutil, sys
 try:
     import yaml
@@ -27,6 +27,7 @@ if not r:
 g = re.sub(r"\*.*$", "", (r["permissions"]["path_write"] or [""])[0])
 ba = r["permissions"].get("bash_allow") or []
 has_ctest = "1" if any(str(b).startswith("ctest") for b in ba) else "0"
+has_ctest_broad = "1" if "ctest*" in [str(b) for b in ba] else "0"
 pytest_verbs = [str(b) for b in ba if str(b).startswith("pytest")]
 has_pytest = "1" if pytest_verbs else "0"
 pytest_probe = ""
@@ -41,7 +42,7 @@ elif has_go == "1":
     go_probe = "go test ./..."
 has_cmake_configure = "1" if any(str(b).startswith("cmake -S") for b in ba) else "0"
 has_gcc = "1" if any(str(b).startswith("gcc ") or str(b).startswith("g++ ") for b in ba) else "0"
-print("|".join([r["rig"], r["pod"], "-" if g == "" else g, has_ctest, has_pytest, pytest_probe or "-", has_go, go_probe or "-", has_cmake_configure, has_gcc]))
+print("|".join([r["rig"], r["pod"], "-" if g == "" else g, has_ctest, has_ctest_broad, has_pytest, pytest_probe or "-", has_go, go_probe or "-", has_cmake_configure, has_gcc]))
 ' 'pass' "$ROLE")
 A="$TMP/agent"; W="$TMP/work"
 mkdir -p "$W" && git -C "$W" init -q
@@ -74,6 +75,10 @@ fi
 if [[ "$HAS_GCC" == "1" && "$FIRST" != "-" ]]; then
   mkdir -p "$W/${FIRST}"
   printf 'int main(void){return 0;}\n' > "$W/${FIRST}foo.c"
+fi
+if [[ "$HAS_CTEST_BROAD" == "1" ]]; then
+  mkdir -p "$W/build"
+  printf '# gate fixture: empty test dir exits 0\n' > "$W/build/CTestTestfile.cmake"
 fi
 HERETEK_SECRETS="$TMP/secrets" python3 "$ROOT/scripts/render-seat.py" --role "$ROLE" --rig "$RIG" --pod "$POD" \
   --model-provider mock --model-id mock-model --out "$A" --allow-missing-secrets >/dev/null 2>"$TMP/render.err"
@@ -149,11 +154,18 @@ expect allow bash  '{"command":"git log --oneline -- README.md"}' "bash git log 
 expect deny  bash  '{"command":"git log --oneline -- fleet/fleet.yaml"}' "bash git log path-scoped to fleet/* (path-arg policing)"
 expect allow bash  '{"command":"git status --short"}' "bash git status"
 # #76 narrowing (fail-closed): the harmless `ctest --output-on-failure`
-# diagnostic flag must stay allowed — but only on roles holding a `ctest*`
-# allow (cpp-lowlevel-eng, engine-systems-eng); other roles still deny it for
-# lack of an allow prefix, so the probe is conditional on the fleet grant.
-if [[ "$HAS_CTEST" == "1" ]]; then
-  expect allow bash  '{"command":"ctest --test-dir build --output-on-failure"}' "bash ctest --output-on-failure diagnostic flag (#76)"
+# diagnostic flag must stay allowed — but only on roles holding a broad
+# `ctest*` allow (cpp-lowlevel-eng, engine-systems-eng); narrow-ctest roles
+# (physics-sim-eng) still deny it for lack of a matching prefix, so the
+# probe is conditional on the fleet grant. #91: ctest is a read-declared
+# test runner (script mode withdrawn via -S guard); exit-0 is asserted
+# where the sandbox permits it (engine build/* is writable), policy-level
+# elsewhere (cpp build/ is read-only in the jail).
+if [[ "$HAS_CTEST_BROAD" == "1" ]]; then
+  expect_run allow bash  '{"command":"ctest --test-dir build --output-on-failure"}' "bash ctest --output-on-failure diagnostic flag (#76, policy)"
+  if [[ "$ROLE" == "engine-systems-eng" ]]; then
+    expect allow bash  '{"command":"ctest --test-dir build --output-on-failure"}' "bash ctest --output-on-failure exits 0 (#76 + #91)"
+  fi
 fi
 # #91 scoped build/test path args (charter-verbatim gate probes, REQ-A4):
 # each advertised verification command expects allow on its seat (policy

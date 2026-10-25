@@ -401,6 +401,37 @@ def build_command_effects(path_write, role_verbs=None) -> list:
                     "effect": "allow-effect-if-in-scope-else-deny",
                 }
             )
+        if "ctest" in _binaries:
+            effects.append(
+                {
+                    "id": "ctest-effect",
+                    "argv": ["ctest", "<--test-dir>", "<build-dir>"],
+                    "scope": {
+                        "cwd": "realpath(CWD)",
+                        "writeRootsSource": "permissions.path_write",
+                        "writeRoots": list(path_write or []),
+                    },
+                    "constraints": {
+                        "testDirOnly": True,
+                        "noScriptMode": True,
+                        "noSymlinkEscape": True,
+                        "noDotDotEscape": True,
+                        "noAbsoluteTmp": True,
+                    },
+                    "covers": ["ctest --test-dir build --output-on-failure"],
+                    "native": {
+                        "ctest": {
+                            "effects": "read",
+                            "unlessOption": [
+                                "-S",
+                                "--script",
+                                "--script-new-process",
+                            ],
+                        }
+                    },
+                    "effect": "allow-effect-if-in-scope-else-deny",
+                }
+            )
     return effects
 
 
@@ -432,6 +463,11 @@ def build_command_effects_map(bash_allow) -> dict:
         declared["gcc"] = {"effects": "read", "unlessOption": ["-o"]}
     if "g++" in binaries:
         declared["g++"] = {"effects": "read", "unlessOption": ["-o"]}
+    if "ctest" in binaries:
+        declared["ctest"] = {
+            "effects": "read",
+            "unlessOption": ["-S", "--script", "--script-new-process"],
+        }
     return declared
 
 

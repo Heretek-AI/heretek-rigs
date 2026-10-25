@@ -2076,7 +2076,7 @@ for _rid15, _rdir15 in sorted(discovered_roles.items()):
             fail(f"V15/#106+#91: seat {_rid15}: {_leaf15} commandEffects must be the native map (got {type(_fx15).__name__})")
             continue
         for _ck15 in _fx15:
-            if _ck15 not in ("pytest", "go", "cmake", "gcc", "g++"):
+            if _ck15 not in ("pytest", "go", "cmake", "gcc", "g++", "ctest"):
                 fail(f"V15/#106+#91: seat {_rid15}: {_leaf15} unknown commandEffects key {_ck15!r}")
         if '"ask"' in json.dumps(_fx15):
             fail(f"V15/#106+#91: seat {_rid15}: {_leaf15} commandEffects contains forbidden 'ask' rule")
@@ -2496,6 +2496,7 @@ if _v20_rs_mod is not None:
         ("go_effect", ("argv", "scope", "package_pattern_branch", "path_read_exception", "native")),
         ("cmake_effect", ("argv", "scope", "flag_value_pairing", "native")),
         ("gcc_effect", ("argv", "scope", "compile_slot_only", "bash_overlay_patterns", "overlay_position", "roles_only", "native")),
+        ("ctest_effect", ("argv", "scope", "test_dir_only", "no_script_mode", "native")),
     ):
         _stanza20 = _v20_cat.get(_st20)
         if not isinstance(_stanza20, dict):

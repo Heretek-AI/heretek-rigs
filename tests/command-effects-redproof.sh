@@ -103,9 +103,9 @@ with tempfile.TemporaryDirectory() as tmp:
         sidecar = files["extensions/pi-permission-system/command-effects.descriptors.json"]
         ids = [e.get("id") for e in sidecar]
         # #91 deliberate id-list update: engine seat carries cmake + gcc
-        # descriptors after the frozen #106 pair, in this exact order.
-        record("engine sidecar ids note/body/cmake/gcc", ids == ["note-effect", "body-file-effect", "cmake-effect", "gcc-effect"], f"got {ids}")
-        record("engine map keys cmake/gcc/g++", set(cfg.get("commandEffects", {}).keys()) == {"cmake", "gcc", "g++"}, f"got {sorted(cfg.get('commandEffects', {}).keys())}")
+        # + ctest descriptors after the frozen #106 pair, in this exact order.
+        record("engine sidecar ids note/body/cmake/gcc/ctest", ids == ["note-effect", "body-file-effect", "cmake-effect", "gcc-effect", "ctest-effect"], f"got {ids}")
+        record("engine map keys cmake/gcc/g++/ctest", set(cfg.get("commandEffects", {}).keys()) == {"cmake", "gcc", "g++", "ctest"}, f"got {sorted(cfg.get('commandEffects', {}).keys())}")
         bkeys = list(cfg["permission"]["bash"].keys())
         record("gcc overlay after terminal denies", bkeys.index("gcc *") > bkeys.index("*OPENRIG_URL=*") and bkeys.index("g++ *") > bkeys.index("*OPENRIG_URL=*"), f"tail={bkeys[-4:]}")
 

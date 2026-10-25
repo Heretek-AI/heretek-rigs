@@ -82,6 +82,12 @@ command_effects:
     overlay_position: after-terminal-denies
     roles_only: [cpp-lowlevel-eng, engine-systems-eng]
     native: {gcc: {effects: read, unlessOption: [-o]}, g++: {effects: read, unlessOption: [-o]}}
+  ctest_effect:
+    argv: [ctest, <--test-dir>, <build-dir>]
+    scope: [realpath-CWD, path_write-expanded-roots]
+    test_dir_only: true
+    no_script_mode: true
+    native: {ctest: {effects: read, unlessOption: [-S, --script, --script-new-process]}}
 rigs:
 - id: executive-and-architecture
   title: Executive & Architecture

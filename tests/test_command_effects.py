@@ -440,9 +440,24 @@ class TestNativeMapBuilder(unittest.TestCase):
             },
         )
 
+    def test_ctest_role_declares_read_with_script_guard(self):
+        mod = load_render_seat()
+        m = mod.build_command_effects_map(["ctest*", "ctest -R physics*"])
+        self.assertEqual(
+            m,
+            {
+                "ctest": {
+                    "effects": "read",
+                    "unlessOption": ["-S", "--script", "--script-new-process"],
+                }
+            },
+        )
+
     def test_unrelated_verbs_declare_nothing(self):
         mod = load_render_seat()
-        self.assertEqual(mod.build_command_effects_map(["git status*", "ctest*"]), {})
+        self.assertEqual(
+            mod.build_command_effects_map(["git status*", "ninja*", "date +%s"]), {}
+        )
         self.assertEqual(mod.build_command_effects_map([]), {})
 
 
@@ -458,12 +473,18 @@ class TestDescriptorsWithVerbs(unittest.TestCase):
     def test_engine_verbs_append_cmake_gcc_descriptors(self):
         mod = load_render_seat()
         descs = mod.build_command_effects(
-            ["src/engine/*"], ["cmake -S *", "gcc *", "g++ *"]
+            ["src/engine/*"], ["cmake -S *", "gcc *", "g++ *", "ctest*"]
         )
         ids = [e.get("id") for e in descs]
         self.assertEqual(
             ids,
-            ["note-effect", "body-file-effect", "cmake-effect", "gcc-effect"],
+            [
+                "note-effect",
+                "body-file-effect",
+                "cmake-effect",
+                "gcc-effect",
+                "ctest-effect",
+            ],
         )
         by_id = {e.get("id"): e for e in descs}
         self.assertNotIn('"ask"', json.dumps(descs))
@@ -582,8 +603,8 @@ class TestCommandEffectsRendered(unittest.TestCase):
         for rid, tools in (
             ("vector-rag-spec", {"pytest"}),
             ("go-backend-eng", {"go"}),
-            ("cpp-lowlevel-eng", {"cmake", "gcc", "g++"}),
-            ("engine-systems-eng", {"cmake", "gcc", "g++"}),
+            ("cpp-lowlevel-eng", {"cmake", "gcc", "g++", "ctest"}),
+            ("engine-systems-eng", {"cmake", "gcc", "g++", "ctest"}),
             ("appsec-engineer", set()),
         ):
             with self.subTest(role=rid):

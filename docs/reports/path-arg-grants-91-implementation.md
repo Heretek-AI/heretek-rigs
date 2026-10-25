@@ -25,7 +25,8 @@ read/`-o` decl) — all allow/deny directions per the evidence file.
 - `scripts/render-seat.py`: `build_command_effects(path_write,
   role_verbs=None)` (descriptors; verb-conditional; `([])` still
   note+body for V15); `build_command_effects_map()` (native map —
-  M0 winner); classifiers `classify_scoped_path_value`,
+  M0 winner, incl. ctest read decl with `-S` script-mode guard);
+  classifiers `classify_scoped_path_value`,
   `classify_go_package_arg` (`...` branch), `pair_cmake_flag_values`,
   `classify_gcc_command`; config.json `commandEffects` = map; new
   sidecar `command-effects.descriptors.json`; gcc overlay patterns render
@@ -59,6 +60,9 @@ read/`-o` decl) — all allow/deny directions per the evidence file.
 - `bash tests/command-effects-redproof.sh` → 0 failures, exit 0.
 - `bash scripts/gate-role.sh vector-rag-spec` → exit 0, incl. 2× #91 probes.
 - `bash scripts/gate-role.sh go-backend-eng` → exit 0, incl. 3× #91 probes.
+- engine/cpp gates re-run pending (first engine run: all #91 probes green,
+  pre-existing #76 ctest probe red → fixed in-wave via ctest read decl;
+  first cpp run invalidated by a concurrent script edit, re-run).
 - `python3 scripts/audit_loop.py --self-test` → PASS.
 - `make verify` (WITH dev-regen DIRTY stamps): 32 passed / 35 failed —
   ALL 35 are DIRTY-provenance cascade (16 resolvedCommit + 16 V13 DIRTY +
