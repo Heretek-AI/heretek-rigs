@@ -124,7 +124,7 @@ Verify that all 51 AgentSpecs, 8 RigBundles, JSON schemas, cryptographic digests
 make verify
 ```
 
-You should see `SUMMARY: 31 checks passed, 0 failed.`
+You should see `SUMMARY: 35 checks passed, 0 failed.`
 
 ### Step 2: Seed the Pi Seats for Your Target Rig
 
@@ -470,7 +470,7 @@ Public multi-arch images (`linux/amd64`, `linux/arm64`) are published by
 
 | Tag | Contents | Approx. size |
 | :--- | :--- | :--- |
-| `:latest` (slim) | `rig` 0.6.11, `pi` 1.3.0, permission system + AST/LSP packages, 8 npm MCP servers, uvx PyPI MCP servers | ~3.5 GB (dominated by the upstream `codebase-memory-mcp` 330 MB Go binary, tree-sitter WASM grammars, and the Node 22 toolchain) |
+| `:latest` (slim) | `rig` 0.6.13, `pi` 1.3.0, permission system + AST/LSP packages, 8 npm MCP servers, uvx PyPI MCP servers | ~3.5 GB (dominated by the upstream `codebase-memory-mcp` 330 MB Go binary, tree-sitter WASM grammars, and the Node 22 toolchain) |
 | `:full` | slim + Playwright Chromium (+`CHROME_PATH` for chrome-devtools-mcp), source-built radare2 6.2.4, compiled `r2mcp -R` | ~4.7 GB |
 | `:sha-<commit>` / `:sha-<commit>-full` | Pinned releases (provenance + SBOM attestations) | — |
 

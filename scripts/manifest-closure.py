@@ -58,7 +58,9 @@ BIN_ALIASES = {
 
 # Package-manager prefixes whose remainder is a workspace script reference
 # (REQ-C1). `run` is accepted after npm/yarn for `npm run <script>` shape.
-PM_PREFIXES = {"pnpm", "npm", "yarn", "npx"}
+# REQ-D94: `npx` is NOT here — it executes binaries (never workspace
+# scripts), so check_script_body routes it to resolve_node_tokens.
+PM_PREFIXES = {"pnpm", "npm", "yarn"}
 PM_SKIP_FLAGS = {
     "--filter": True,
     "-F": True,
@@ -126,6 +128,35 @@ SKIP_DIRS = {
     "__pycache__",
     ".venv",
 }
+
+# REQ-D94: `git -c alias.<name>=!...` values execute a shell on use.
+GIT_ALIAS_SHELLOUT_RE = re.compile(r"^alias\.[^=]+=!")
+
+# REQ-D94: `node -e` / `--eval` (and `-p` / `--print`) evaluate code.
+NODE_EVAL_FLAGS = {"-e", "--eval", "-p", "--print"}
+
+# REQ-D94: `python -c` evaluates code.
+PYTHON_EVAL_FLAGS = {"-c"}
+
+# REQ-D94: CI discovery beyond `.github/workflows`: GitLab pipeline files
+# (any depth), CircleCI configs, and the shared `pipelines/` directory.
+CI_CONFIG_DIRS = {"workflows", "pipelines", ".circleci"}
+CI_DOT_DIRS = {".github", ".circleci"}
+
+# REQ-D94: top-level GitLab keys that never describe a runnable job.
+GITLAB_RESERVED_TOP_KEYS = {
+    "stages",
+    "variables",
+    "include",
+    "workflow",
+    "default",
+    "before_script",
+    "after_script",
+}
+
+# REQ-D94: job-level GitLab keys whose bodies execute (script plus the
+# before/after hooks that run around every job).
+GITLAB_SCRIPT_KEYS = ("script", "before_script", "after_script")
 
 MAX_INDIRECTION_DEPTH = 32
 
@@ -264,6 +295,11 @@ def first_token(segment):
     Skips env assignments (`FOO=bar`), redirections (`2>&1`, `> file`)
     with their targets, fd numbers, and GitHub `${{ }}` expressions.
     Returns None when the segment invokes nothing checkable.
+
+    REQ-D94: `$`-leading words (`$(...)`, `${...}`, `$VAR`) are NEVER
+    skipped — the caller reports them NEEDS-DECLARATION fail-closed.
+    Only `${{ }}` (GitHub workflow expressions, never a shell binary) and
+    empty tokens return None here.
     """
     try:
         tokens = shlex.split(segment, posix=True)
@@ -274,7 +310,7 @@ def first_token(segment):
         if skip_next:
             skip_next = False
             continue
-        if not token or token.startswith("$") or "${{" in token:
+        if not token or "${{" in token:
             return None
         if _is_env_assignment(token):
             continue
@@ -359,9 +395,62 @@ def workflow_run_steps(yaml_text, origin):
             if not isinstance(step, dict):
                 continue
             body = step.get("run")
+            if isinstance(body, dict):
+                # REQ-D94: CircleCI dict-form `run: {command: ...}` steps.
+                command = body.get("command")
+                if isinstance(command, str) and command.strip():
+                    label = step.get("name") or step.get("id") or "run"
+                    yield f"{job_name}/{label}", command
+                continue
             if isinstance(body, str) and body.strip():
                 label = step.get("name") or step.get("id") or "run"
                 yield f"{job_name}/{label}", body
+
+
+def gitlab_script_steps(yaml_text, origin):
+    """Yield (job/step label, script body) pairs from GitLab CI YAML.
+
+    REQ-D94: `.gitlab-ci.yml` jobs carry `script:` (string or list) plus
+    `before_script` / `after_script` hooks — none of which the GitHub
+    `jobs.<job>.steps[].run` shape sees. Top-level reserved keys, hidden
+    jobs (`.`-prefixed, never run directly), and non-table jobs yield
+    nothing. `default:` script hooks apply to every job, so they are
+    collected under a `default/` label instead of being dropped.
+    """
+    try:
+        import yaml
+    except ImportError:
+        raise ClosureError(f"UNREADABLE WORKFLOW '{origin}' (PyYAML unavailable)")
+    try:
+        doc = yaml.safe_load(yaml_text)
+    except Exception as exc:
+        raise ClosureError(f"UNREADABLE WORKFLOW '{origin}' ({exc})")
+    if not isinstance(doc, dict):
+        return
+
+    def _bodies(job_name, job):
+        if not isinstance(job, dict):
+            return
+        for key in GITLAB_SCRIPT_KEYS:
+            body = job.get(key)
+            if isinstance(body, str) and body.strip():
+                yield f"{job_name}/{key}", body
+            elif isinstance(body, list):
+                lines = [
+                    str(item)
+                    for item in body
+                    if isinstance(item, (str, int, float)) and str(item).strip()
+                ]
+                if lines:
+                    yield f"{job_name}/{key}", "\n".join(lines)
+
+    default_job = doc.get("default")
+    if isinstance(default_job, dict):
+        yield from _bodies("default", default_job)
+    for job_name, job in doc.items():
+        if job_name in GITLAB_RESERVED_TOP_KEYS or job_name.startswith("."):
+            continue
+        yield from _bodies(job_name, job)
 
 
 class ClosureChecker:
@@ -404,6 +493,91 @@ class ClosureChecker:
                 f"UNDECLARED BINARY '{binary}' (invoked by {invoker} "
                 f"in package '{pkg_name}' {pkg_path})"
             )
+
+    def resolve_node_tokens(self, manager, args, invoker, pkg_name, pkg_path):
+        """Resolve `node` / `npx` argv instead of allowlist-skipping (REQ-D94).
+
+        `node` itself still resolves through the allowlist, but its first
+        non-flag argument is inspected: `node_modules/.bin/<tool>` (or any
+        `<dir>/<tool>[.js]` path) resolves `<tool>` as the real binary, and
+        `-e` / `--eval` / `-p` / `--print` fail as inline evaluation. `npx`
+        resolves its first non-flag positional as the fetched binary (alias
+        table applies, so `npx tsc` rides `typescript`).
+        """
+        positional = [t for t in args if not t.startswith("-")]
+        if manager == "node" and any(t in NODE_EVAL_FLAGS for t in args):
+            self.note(
+                f"UNDECLARED EXEC 'node -e' (inline evaluation "
+                f"invoked by {invoker} in package '{pkg_name}' "
+                f"{pkg_path}; -e/--eval/-p/--print evaluate undeclared code)"
+            )
+            return
+        if manager == "npx":
+            if not positional:
+                self.check_binary(manager, invoker, pkg_name, pkg_path)
+                return
+            self.check_binary(
+                positional[0],
+                f"npx {positional[0]} ({invoker})",
+                pkg_name,
+                pkg_path,
+            )
+            return
+        self.check_binary(manager, invoker, pkg_name, pkg_path)
+        if not positional:
+            return
+        target = positional[0]
+        if "/" in target or target.endswith((".js", ".mjs", ".cjs")):
+            base = target.rsplit("/", 1)[-1]
+            if base.endswith((".js", ".mjs", ".cjs")):
+                base = base.rsplit(".", 1)[0]
+            if base and base != manager:
+                self.check_binary(
+                    base,
+                    f"node {target} ({invoker})",
+                    pkg_name,
+                    pkg_path,
+                )
+
+    def check_git_tokens(self, args, invoker, pkg_name, pkg_path):
+        """Flag `git -c alias.<name>=!...` shell-out aliases (REQ-D94).
+
+        `git` itself still resolves through the allowlist; only `-c` /
+        `--config` values shaped `alias.<name>=!<shell>` fail, naming the
+        alias value. Plain `git --version`-style probes stay green.
+        """
+        self.check_binary("git", invoker, pkg_name, pkg_path)
+        for index, token in enumerate(args):
+            value = None
+            if token in ("-c", "--config"):
+                if index + 1 < len(args):
+                    value = args[index + 1]
+            elif token.startswith("-c") and len(token) > 2:
+                value = token[2:].lstrip("=")
+            elif token.startswith("--config="):
+                value = token.partition("=")[2]
+            if value is not None and GIT_ALIAS_SHELLOUT_RE.match(value):
+                self.note(
+                    f"UNDECLARED GIT ALIAS EXEC '{value}' (shell-out alias "
+                    f"invoked by {invoker} in package '{pkg_name}' "
+                    f"{pkg_path}; git -c alias.<name>='!...' executes a shell)"
+                )
+
+    def check_python_tokens(self, binary, args, invoker, pkg_name, pkg_path):
+        """Flag `python -c` inline evaluation (REQ-D94).
+
+        Other `python <file>` invocations keep the previous verdict: the
+        `python` binary itself must resolve (undeclared by default).
+        """
+        if any(t in PYTHON_EVAL_FLAGS for t in args):
+            self.note(
+                f"UNDECLARED EXEC '{binary} -c' (inline evaluation "
+                f"invoked by {invoker} in package '{pkg_name}' "
+                f"{pkg_path}; -c executes undeclared code)"
+            )
+            return
+        self.check_binary(binary, invoker, pkg_name, pkg_path)
+        return
 
     def resolve_pm_tokens(self, args, manager, invoker, pkg_name, pkg_path, chain):
         """Resolve tokens following a pnpm/npm/yarn/npx prefix (REQ-C1).
@@ -492,7 +666,38 @@ class ClosureChecker:
             binary = first_token(segment)
             if not binary:
                 continue
-            if binary in PM_PREFIXES:
+            if binary.startswith("$"):
+                # REQ-D94: dynamic command words fail closed, never skip.
+                self.note(
+                    f"NEEDS-DECLARATION '{binary}' (dynamic command word "
+                    f"invoked by {invoker} in package '{pkg_name}' "
+                    f"{pkg_path}; shell expansions are never resolved "
+                    f"from manifests)"
+                )
+                continue
+            if binary in ("node", "npx"):
+                try:
+                    tokens = shlex.split(segment, posix=True)
+                except ValueError:
+                    tokens = segment.split()
+                self.resolve_node_tokens(
+                    tokens[0], tokens[1:], invoker, pkg_name, pkg_path
+                )
+            elif binary == "git":
+                try:
+                    tokens = shlex.split(segment, posix=True)
+                except ValueError:
+                    tokens = segment.split()
+                self.check_git_tokens(tokens[1:], invoker, pkg_name, pkg_path)
+            elif binary in ("python", "python3"):
+                try:
+                    tokens = shlex.split(segment, posix=True)
+                except ValueError:
+                    tokens = segment.split()
+                self.check_python_tokens(
+                    tokens[0], tokens[1:], invoker, pkg_name, pkg_path
+                )
+            elif binary in PM_PREFIXES:
                 try:
                     tokens = shlex.split(segment, posix=True)
                 except ValueError:
@@ -523,7 +728,13 @@ class ClosureChecker:
                 )
 
     def check_workflow(self, path, text):
-        for label, body in workflow_run_steps(text, str(path)):
+        # REQ-D94: `.gitlab-ci.yml` jobs carry `script:`, not `run:` —
+        # dispatch on the filename so GitLab pipelines are collected.
+        if Path(path).name == ".gitlab-ci.yml":
+            steps = gitlab_script_steps(text, str(path))
+        else:
+            steps = workflow_run_steps(text, str(path))
+        for label, body in steps:
             self.entry_points += 1
             pkg_name = (
                 self.root_doc.get("name", "workflow")
@@ -571,16 +782,32 @@ class ClosureChecker:
         return (len(Path(path).parts), str(path))
 
 
+def is_ci_workflow_path(path):
+    """REQ-D94: CI files beyond `.github/workflows`.
+
+    GitHub workflows (`workflows/`), shared pipelines (`pipelines/`),
+    CircleCI configs (`.circleci/`), and GitLab pipelines
+    (`.gitlab-ci.yml` at any depth) are all workflow entry points.
+    """
+    full = Path(path)
+    return full.suffix in (".yml", ".yaml") and (
+        "workflows" in full.parts
+        or "pipelines" in full.parts
+        or ".circleci" in full.parts
+        or full.name == ".gitlab-ci.yml"
+    )
+
+
 def discover_tree(root):
     """Walk a directory for manifests; never descends into SKIP_DIRS."""
     manifests, tsconfigs, workflows = [], [], []
     for dirpath, dirnames, filenames in os.walk(root):
         # Prune before descending: never enter dependency, VCS, or
-        # build-output trees; keep .github so workflow YAML is discovered.
+        # build-output trees; keep CI dot-dirs so their YAML is discovered.
         dirnames[:] = [
             d
             for d in sorted(dirnames)
-            if d not in SKIP_DIRS and (not d.startswith(".") or d == ".github")
+            if d not in SKIP_DIRS and (not d.startswith(".") or d in CI_DOT_DIRS)
         ]
         for filename in sorted(filenames):
             full = Path(dirpath) / filename
@@ -588,7 +815,7 @@ def discover_tree(root):
                 manifests.append(full)
             elif filename.startswith("tsconfig") and filename.endswith(".json"):
                 tsconfigs.append(full)
-            elif filename.endswith((".yml", ".yaml")) and "workflows" in full.parts:
+            elif is_ci_workflow_path(full):
                 workflows.append(full)
     return manifests, tsconfigs, workflows
 
@@ -613,9 +840,7 @@ def staged_files():
         base = Path(name).name
         is_manifest = base == "package.json"
         is_tsconfig = base.startswith("tsconfig") and base.endswith(".json")
-        is_workflow = (
-            name.endswith((".yml", ".yaml")) and "workflows" in Path(name).parts
-        )
+        is_workflow = is_ci_workflow_path(name)
         if is_manifest or is_tsconfig or is_workflow:
             selected.append(name)
     blobs = []

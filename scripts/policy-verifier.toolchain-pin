@@ -1,12 +1,10 @@
-# policy-verifier.toolchain-pin — audit-revision pin (issue #41).
+# policy-verifier.toolchain-pin — legacy pin mirror (issue #41, REQ-D95).
 #
-# CURATED SUBSET companion to scripts/policy-verifier.known-lints.txt: this
-# pin is a hand-maintained audit revision, NOT a toolchain-captured value.
-# No toolchain capture exists in this repo.
-#
-# MANUAL REFRESH PROCESS (no automation): on a toolchain bump, re-audit
-# the live lint tables read-only, update the curated names, and bump this
-# pin AND the `pin:` line in the known-lints snapshot together. A mismatch
-# between the two fails EVERY verifier invocation as a stale snapshot
-# (pin-mismatch-fails, design.md).
-fixture-toolchain-1
+# COMPATIBILITY MIRROR ONLY: the verifier derives its expected pin from
+# the repo-root rust-toolchain.toml `channel` (fail-closed when absent).
+# This file exists because scripts/verify-rigs.sh V9 passes it explicitly
+# via --pin-file; its content MUST equal the rust-toolchain.toml channel
+# (enforced by tests/test_policy_verifier.py). Source of truth is
+# rust-toolchain.toml — on a toolchain bump, change the channel there
+# AND the snapshot `pin:` line AND this mirror together.
+1.89.0

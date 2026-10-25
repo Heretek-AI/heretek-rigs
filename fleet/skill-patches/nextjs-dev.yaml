@@ -1,0 +1,15 @@
+# fleet/skill-patches/nextjs-dev.yaml — fleet-side vendor patch (issue #101).
+#
+# The upstream Heretek-Crew nextjs-dev SKILL.md ships an unquoted `: `
+# inside its frontmatter `description:` line, which breaks
+# `yaml.safe_load` (column-61 mapping error) and drops the seat loader to
+# 67/68 skills. `specs/` MUST change only via the generator (AGENTS.md one
+# rule), so the one-line repair rides this fleet-side patch: the generator
+# (scripts/generate-rigs.py load_skill_patches/apply_skill_patch) rewrites
+# the description line with a quoted scalar after vendoring, re-parses the
+# frontmatter, and requires `name == nextjs-dev`. Content is unchanged —
+# only YAML quoting is repaired.
+skill: nextjs-dev
+reason: "quote the description so yaml.safe_load parses (#101)"
+frontmatter:
+  description: "Use when building with Next.js App/Pages Router: server/client boundaries, data caching, mutations, security, a11y, verification."

@@ -861,5 +861,265 @@ class TestManifestClosure(unittest.TestCase):
             self.assertIn(tool, entries)
 
 
+class TestManifestClosureEvasionsD94(unittest.TestCase):
+    """REQ-D94 corpus: every Wave-D evasion form fails loudly (exit 1,
+    named finding), and the resolved forms pass when declared.
+
+    Synthetic fixture trees in /tmp only — never live files.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.root = Path(self.tmp.name) / "slice"
+        self.root.mkdir()
+        self.allowlist = str(self.root / "allowlist.txt")
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def lint_root(self, *extra):
+        return run_lint("--allowlist", self.allowlist, str(self.root), *extra)
+
+    def mini_pkg(self, scripts, dev_deps=None):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": scripts,
+                    "devDependencies": dev_deps or {},
+                },
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+
+    # `$`-leading command words are never skipped: command substitution.
+    def test_dollar_substitution_needs_declaration(self):
+        self.mini_pkg({"probe": "$(command -v eslint) --version"})
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("NEEDS-DECLARATION", out)
+        self.assertIn("$(command", out)
+
+    # `$`-leading command words are never skipped: parameter expansion.
+    def test_dollar_brace_expansion_needs_declaration(self):
+        self.mini_pkg({"probe": "${MYSTERY_BIN:-fallback} --help"})
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("NEEDS-DECLARATION", out)
+
+    # `$`-leading command words are never skipped: bare variable head.
+    def test_dollar_variable_head_needs_declaration(self):
+        self.mini_pkg({"probe": "$MYSTERY_TOOL --fast"})
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("NEEDS-DECLARATION", out)
+        self.assertIn("MYSTERY_TOOL", out)
+
+    # `$`-leading `run:` step in a workflow fails naming the file.
+    def test_dollar_run_step_needs_declaration(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"unit": "vitest run"},
+                    "devDependencies": {"vitest": "3.0.0"},
+                },
+                ".github/workflows/ci.yml": (
+                    "name: ci\non: [push]\njobs:\n"
+                    "  unit:\n    runs-on: ubuntu-latest\n    steps:\n"
+                    "      - name: dynamic runner\n        run: $(which vitest)\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("NEEDS-DECLARATION", out)
+        self.assertIn("ci.yml", out)
+
+    # `node <path>` argv is inspected: undeclared .bin target fires even
+    # though `node` itself is allowlisted.
+    def test_node_bin_path_undeclared_fires(self):
+        self.mini_pkg({"lint": "node node_modules/.bin/eslint ."})
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("eslint", proc.stdout + proc.stderr)
+
+    # `node <path>` resolves: declared .bin target passes.
+    def test_node_bin_path_declared_passes(self):
+        self.mini_pkg(
+            {"lint": "node node_modules/.bin/eslint ."},
+            {"eslint": "9.39.5"},
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # `node -e` inline evaluation is an exec form: always fails named.
+    def test_node_eval_flag_fires(self):
+        self.mini_pkg(
+            {"pwn": "node -e \"require('fs').writeFileSync('/tmp/x','y')\""},
+            {"typescript": "5.7.2"},
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("node -e", out)
+
+    # `python -c` inline evaluation is an exec form: always fails named.
+    def test_python_c_flag_fires(self):
+        self.mini_pkg({"pwn": "python3 -c \"import os; os.system('id')\""})
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("python3 -c", out)
+
+    # `git -c alias.*=!` shell-out aliases execute: always fail named even
+    # though `git` itself is allowlisted.
+    def test_git_alias_shellout_fires(self):
+        self.mini_pkg(
+            {"pwn": "git -c alias.lol='!touch /tmp/pwned' lol"},
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("alias", out)
+
+    # Plain allowlisted `git` probe still passes (no false positive).
+    def test_plain_git_probe_still_passes(self):
+        self.mini_pkg({"probe": "git --version"})
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # `npx <undeclared>` resolves as a binary fetch: fails named.
+    def test_npx_undeclared_binary_fires(self):
+        self.mini_pkg({"serve": "npx mysteryserve ."})
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("mysteryserve", proc.stdout + proc.stderr)
+
+    # `npx <declared-alias>` resolves through the alias table: passes.
+    def test_npx_declared_alias_passes(self):
+        self.mini_pkg(
+            {"typecheck": "npx tsc --noEmit"},
+            {"typescript": "5.7.2"},
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # `.gitlab-ci.yml` is discovered: undeclared `script:` tool fires.
+    def test_gitlab_ci_script_collected(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"lint": "eslint ."},
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+                ".gitlab-ci.yml": (
+                    "stages: [lint]\n"
+                    "eslint-job:\n"
+                    "  stage: lint\n"
+                    "  script:\n"
+                    "    - mysterytool --fast\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("mysterytool", out)
+        self.assertIn(".gitlab-ci.yml", out)
+
+    # `.gitlab-ci.yml` string-form `script:` is collected too.
+    def test_gitlab_ci_string_script_collected(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"lint": "eslint ."},
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+                ".gitlab-ci.yml": (
+                    "stages: [lint]\n"
+                    "eslint-job:\n"
+                    "  stage: lint\n"
+                    "  script: mysterytool --fast\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("mysterytool", proc.stdout + proc.stderr)
+
+    # `.gitlab-ci.yml` resolving against declared deps passes.
+    def test_gitlab_ci_declared_passes(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"lint": "eslint ."},
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+                ".gitlab-ci.yml": (
+                    "stages: [lint]\n"
+                    "eslint-job:\n"
+                    "  stage: lint\n"
+                    "  script:\n"
+                    "    - pnpm lint\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertEqual(
+            proc.returncode, 0, f"stdout:\n{proc.stdout}\nstderr:\n{proc.stderr}"
+        )
+
+    # CircleCI dict-form `run: {command: ...}` steps are collected.
+    def test_circleci_dict_run_collected(self):
+        write_tree(
+            self.root,
+            {
+                "package.json": {
+                    "name": "mini",
+                    "scripts": {"lint": "eslint ."},
+                    "devDependencies": {"eslint": "9.39.5"},
+                },
+                ".circleci/config.yml": (
+                    "version: 2.1\njobs:\n"
+                    "  check:\n"
+                    "    docker: [{image: cimg/base:stable}]\n"
+                    "    steps:\n"
+                    "      - run:\n"
+                    "          name: mystery step\n"
+                    "          command: mysterytool --fast\n"
+                ),
+                "allowlist.txt": TOOLCHAIN_ALLOWLIST,
+            },
+        )
+        proc = self.lint_root()
+        self.assertNotEqual(proc.returncode, 0)
+        out = proc.stdout + proc.stderr
+        self.assertIn("mysterytool", out)
+        self.assertIn("config.yml", out)
+
+
 if __name__ == "__main__":
     unittest.main()
