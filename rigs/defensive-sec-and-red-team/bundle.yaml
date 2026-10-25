@@ -629,11 +629,11 @@ integrity:
     agents/_shared/skills/yara-rule-authoring/scripts/yara_rules.py: 59eca803ddecc9f12ce4f7bdeef40af8568e566604c93319df8630279f84f38c
     agents/_shared/skills/yara-rule-authoring/workflows/rule-development.md: 2b562b3389cd4b33c0990322eb051dd7efda16202a6d7228fd6ec5afcc8a36b1
     agents/ai-red-teamer/agent.yaml: f31a98385d78aed71e9b44d9b67b4024f70f4c58c429a5f5f202941bc493f47b
-    agents/ai-red-teamer/guidance/role.md: 5e8fe67208ca17311ad8b2887f6f0c67e69a058b969374095bbdfcaf8e493999
+    agents/ai-red-teamer/guidance/role.md: 583c841af5921c8e5fc0b25b8d75491f695a55613a8285b1cd59b2cf35efa200
     agents/ai-red-teamer/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
-    agents/ai-red-teamer/runtime/pi-permission-config.json: 092653d7da310f0b71333ecc8ada52fe5da8f275991d4b3f33a36f892fa32b7c
+    agents/ai-red-teamer/runtime/pi-permission-config.json: 43df798bef02bf5ffc3bbc99c0d9d883ec491d124b14230b647c67d0d81049c0
     agents/ai-red-teamer/runtime/pi-settings.json: 3551cf083a0327168bd4b53b7f1526249af54417021caec878502992d7e34a3c
-    agents/ai-red-teamer/runtime/policy-enforcement.json: e149a9c43fc0f5811fcff92923c74ca082ae7255b5af3fb9a0a0162073a499f3
+    agents/ai-red-teamer/runtime/policy-enforcement.json: 9bf9e69e472a675df4f0577a120c541c6263584f41b9b1cb0834ca9203cf836a
     agents/ai-red-teamer/skills/auditing-mcp-servers-for-tool-poisoning/SKILL.md: 742ba124a9dd9d5109654fcf566cbec63e0d87f941cbd480ecbaeab596d38e22
     agents/ai-red-teamer/skills/detecting-ai-model-prompt-injection-attacks/SKILL.md: c6be759524e385194b85e79b7d38545a9914c79d95c65ad946a2e0444527cdcd
     agents/ai-red-teamer/skills/detecting-indirect-prompt-injection/SKILL.md: 9a79a873c014dc192c7cc627591a7273e7a5efcaae3263e0d9357ee41455226e
@@ -641,52 +641,52 @@ integrity:
     agents/ai-red-teamer/skills/testing-prompt-injection-in-rag-pipelines/SKILL.md: a67bd9fa2545a18c89b19e4c0805ad8c265b6042f20a0e5ccc0e73b5a4bc5ae0
     agents/ai-red-teamer/startup/context.md: d75236031ce50bcc4df721c3af0f8dcd4f7d4cc13e2086732364a32085238d75
     agents/appsec-engineer/agent.yaml: 10bd12005d94f41f15e5beb9c84e7cb9bcc14a7580d4d9447c3387fe7d3490f7
-    agents/appsec-engineer/guidance/role.md: 03f9c31525445e7d5792a7f7782e36c7ce9ed492bb8ec824dfe72b2087f9ac29
+    agents/appsec-engineer/guidance/role.md: 0446d09d5820d5729b43f64e48f14e6951da2c3fcb79752a471c40f8b7295b44
     agents/appsec-engineer/runtime/mcp.json: c61a20fb6f3e0051e87fe1a6e160dfa03d265ac733c50a0aaa7431fb3a90047b
-    agents/appsec-engineer/runtime/pi-permission-config.json: 3b4b71f0e97b097b61ffe2e52ff535b60a41c0d550625dd8ea4f51f21e95523a
+    agents/appsec-engineer/runtime/pi-permission-config.json: 8bf6cf2ad8cd1694a48d940029bae89afb7365ade9620bb9b773576bde69c2f2
     agents/appsec-engineer/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/appsec-engineer/runtime/policy-enforcement.json: f4edb417ede43f156839cef8de56b67667075c5fcc43159b4b40214c3b78ceb6
+    agents/appsec-engineer/runtime/policy-enforcement.json: cbb2731d905786c936583cda28647c7de35cb97099b8c0cccf5bde93232b50f4
     agents/appsec-engineer/skills/owasp-reachability-triage/SKILL.md: 2e8f032a90fbbf9fa47ad4f10c29f74cb463a16958a8e43bf1cd02af16fd4ff2
     agents/appsec-engineer/startup/context.md: 700899713c6db0191cd7ab0530f7a0a55e2fba046e43acbbee72082bb6d2c3fa
     agents/binary-reverse-eng/agent.yaml: 261aa908185649b3db9e988aa643316441eb71c73bb036afcb0989043e34ed05
-    agents/binary-reverse-eng/guidance/role.md: 4d346609836645bdf31dbee50a752c76fd68c48d39d8efcd3af4753143ffb0f3
+    agents/binary-reverse-eng/guidance/role.md: fdc9d5b4a648a3f9622106fb835eee059f8806fefa94d9d61bf86e2d4bdeae42
     agents/binary-reverse-eng/runtime/mcp.json: aa5206aca2388e485dc2659f1e922c53983ba588e0e1f432a63b5a0ddfd5b5f1
-    agents/binary-reverse-eng/runtime/pi-permission-config.json: 9e4ecc45ccad35d0c1a86cf12a9f77474a4de1446938c0afb854ef8c5c29c5db
+    agents/binary-reverse-eng/runtime/pi-permission-config.json: 5e669af3b1c8066717133307ca08835e9a6e80428c9bd50ec4a27730e87d52c4
     agents/binary-reverse-eng/runtime/pi-settings.json: 3551cf083a0327168bd4b53b7f1526249af54417021caec878502992d7e34a3c
-    agents/binary-reverse-eng/runtime/policy-enforcement.json: 4ebe0ef66cfa3567d80836e23951565cad79a62dde99aea26125d55c8744b2d3
+    agents/binary-reverse-eng/runtime/policy-enforcement.json: ae8e9b46c61aaee0a0df786b771f851cebdcbb96f248d9df6a3ad7c70666a11d
     agents/binary-reverse-eng/skills/radare2-defensive-disassembly/SKILL.md: 44607fb08d95a55234c11200e06ab5c51fe0507913d4aca196d7202c90e2f596
     agents/binary-reverse-eng/skills/rea-evidence-based-decompilation/SKILL.md: 72d037437cf9bc393850d1eff5117230bcbd598258ff03b7a8b88ab916950d30
     agents/binary-reverse-eng/startup/context.md: 3286b1f70e45cad19b0d1695fd41b9fdf290f11d95ef05166c4356c8a4847f00
     agents/cloud-sec-auditor/agent.yaml: f1c488b5edb3549eb9f167db63df521f0cb2bf13e67c78f81b0da3fb9ce49ffd
-    agents/cloud-sec-auditor/guidance/role.md: c00fe66a6133edbce87c026c7cd8ebf3e1f28464e7e1639e60ab8f0dd1f114f5
+    agents/cloud-sec-auditor/guidance/role.md: eba270e5169c0667360ef53b8617e4526bd83fe3ffe2b74e72134fdd31e3d99b
     agents/cloud-sec-auditor/runtime/mcp.json: 6aec0a3eed8fb6d3581820a9a140723402469be86115ba5838776fe561eebda4
-    agents/cloud-sec-auditor/runtime/pi-permission-config.json: 51b4f065931dec5a6047253fdb44e60ed5d0e4443eb6482329534e0a7df7886c
+    agents/cloud-sec-auditor/runtime/pi-permission-config.json: 66c4723875e48dfadd20b2c10db3c06e86201ad6ae5575d0af34e05096b5ab16
     agents/cloud-sec-auditor/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/cloud-sec-auditor/runtime/policy-enforcement.json: 5fecc21112975e1454d6bc3ec75ba3098c2018b8bca31ee74ed1770915b5c9ad
+    agents/cloud-sec-auditor/runtime/policy-enforcement.json: 19a46d1efaa12c49463c54c5344de9f166c1f34b3e545410ed79e75b7ed83537
     agents/cloud-sec-auditor/skills/iam-least-privilege-audit/SKILL.md: 7f04f1c4c1db007c2cf3396d65254fcf22c109189c9d03d7a4a7f00c32f9170a
     agents/cloud-sec-auditor/startup/context.md: abfe9b76071f065d7824a24d519b8f005282b5dff89baab58c3903095d71f132
     agents/compliance-auditor/agent.yaml: 4d484c8e88530c2e05faae18098799403e9828753cacd442376841fedf550013
-    agents/compliance-auditor/guidance/role.md: b7ef132562d40855b84453cb6d6246e79cd90f943e15e19a83d97f0852ed6d1b
+    agents/compliance-auditor/guidance/role.md: 33a664647cb0c6a4e7d161afa41781fc8197d0e265fff756733e314d2435fa9b
     agents/compliance-auditor/runtime/mcp.json: dd4f89175140cea1bffff81659645fd845386f0b48a8b3ba8e99d58df12609fd
-    agents/compliance-auditor/runtime/pi-permission-config.json: ed3ae02a4359f036244a33a447e8abab6997d1e16940d63b92c7d00dd427e0da
+    agents/compliance-auditor/runtime/pi-permission-config.json: a1aacb28ceee834fc214393722203e89c5aea8c7474ff2c87f3d21c29595fdb0
     agents/compliance-auditor/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/compliance-auditor/runtime/policy-enforcement.json: 542a160df5cb3ea6604bd602462e914caf80e55f1060b355fca95568c7f8f5f6
+    agents/compliance-auditor/runtime/policy-enforcement.json: c44ebe054884df4512a5087d5f16c2b4d2cec65c68dc5f0eceef3cf49b6848b9
     agents/compliance-auditor/skills/sbom-generation-and-license-audit/SKILL.md: 077033137006135c53214a4fd98affb402548c7e3bff7769ef347fa671fc8cdb
     agents/compliance-auditor/startup/context.md: 86b25ea97d672222980913b4a32f2b1ecf0905bcc6371c931f057e984b440e8c
     agents/firmware-sec-analyst/agent.yaml: adf9c39628cf54c2da47c15de7e3a3d3caf36f880dad8f0347392539be6e40e3
-    agents/firmware-sec-analyst/guidance/role.md: ef753c12585096c616f787eadd4a163e6023184b47d8d4be2d5354444ece41a6
+    agents/firmware-sec-analyst/guidance/role.md: ac45618bdfd36246dde3f283ce8f315dc54450f567558160afb020816a8094f7
     agents/firmware-sec-analyst/runtime/mcp.json: aa5206aca2388e485dc2659f1e922c53983ba588e0e1f432a63b5a0ddfd5b5f1
-    agents/firmware-sec-analyst/runtime/pi-permission-config.json: 091ec677443ecbb847b1ec00c6eb24b948b2e3ca09fe15a32f6a7464bbe66d85
+    agents/firmware-sec-analyst/runtime/pi-permission-config.json: 9a0a30762d41852da99b16e93423f4dcca985c93ced4ec3ed636c7d474b1c779
     agents/firmware-sec-analyst/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/firmware-sec-analyst/runtime/policy-enforcement.json: 8d7084470cf0cf7fdbfcfd19bdb08911452af28ca4e9c3dd3419336ca7a4c853
+    agents/firmware-sec-analyst/runtime/policy-enforcement.json: 0260ffb4507a3d5c7a4e8c2895c28090ade56fba608901412af48e36114f0ae1
     agents/firmware-sec-analyst/skills/firmware-extraction-and-hardening-audit/SKILL.md: 685b9523c26f8dd1f065b22f159be7b61f1b0d09609543401018e7571a028fb2
     agents/firmware-sec-analyst/startup/context.md: ff9f32a0f5563b8596f5bc6a3a99fb0780c6240c0c641460d9feb54f8a7e633a
     agents/threat-modeler/agent.yaml: 270a40ba9ac2739488f754e82c7607f8296ec65ac475111ff75a91a8222f074d
-    agents/threat-modeler/guidance/role.md: 914bae45d5a86dbe52ecceef1b615556a0e8d2a08867730e18d39f25a48c0071
+    agents/threat-modeler/guidance/role.md: 6ecc902dc42a815d02dba6fb14e7cea355aeb7334f51d5482ec6e511f4f9ed22
     agents/threat-modeler/runtime/mcp.json: e4bfc84bb8e503182dc367e2609abad9e66f996e619a788c1e528fa9433ec74e
-    agents/threat-modeler/runtime/pi-permission-config.json: ea43fbd5ada93361a16611588306c17c32e70c4a4d86c1e28261e3db18b0aa61
+    agents/threat-modeler/runtime/pi-permission-config.json: 4cb01f6ffc05e4a330894bf7446e0377f958895a9b04fee70842230eb06758f0
     agents/threat-modeler/runtime/pi-settings.json: 3551cf083a0327168bd4b53b7f1526249af54417021caec878502992d7e34a3c
-    agents/threat-modeler/runtime/policy-enforcement.json: 8d36f7d7436014c565485747ff3f389be8cb9fcde09b95d8217ac1beb230dbf1
+    agents/threat-modeler/runtime/policy-enforcement.json: 4916dc5bfe7f6b3771b45a478e673e4765c56e7088a88b6b4ab4e318abd89717
     agents/threat-modeler/skills/stride-threat-modeling/SKILL.md: 7f7bdbb8aa2cab064c18573e9a946bffa9f7dd21f0fb254dd4a175ff9a4a3053
     agents/threat-modeler/startup/context.md: c53c58e7f4dbbb2da74863c4044b94c02313050efacfebbc6b4dfa6fc2278fca
     configurations.yaml: 20c35e92d8d48958eec90e8d5004784b5c976e93106fc0765c3dfde74b0f076e
