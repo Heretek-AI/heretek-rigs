@@ -55,27 +55,26 @@ read/`-o` decl) — all allow/deny directions per the evidence file.
 
 ## Verification (exact commands, exit codes)
 
-- `python3 -m pytest tests/test_command_effects.py -q` → 36 passed,
+- `python3 -m pytest tests/test_command_effects.py -q` → 37 passed,
   121 subtests passed, exit 0.
 - `bash tests/command-effects-redproof.sh` → 0 failures, exit 0.
 - `bash scripts/gate-role.sh vector-rag-spec` → exit 0, incl. 2× #91 probes.
 - `bash scripts/gate-role.sh go-backend-eng` → exit 0, incl. 3× #91 probes.
-- engine/cpp gates re-run pending (first engine run: all #91 probes green,
-  pre-existing #76 ctest probe red → fixed in-wave via ctest read decl;
-  first cpp run invalidated by a concurrent script edit, re-run).
+- `bash scripts/gate-role.sh engine-systems-eng` → exit 0, incl. 8× #91
+  probes + #76 ctest policy probe + #76 ctest exit-0 probe.
+- `bash scripts/gate-role.sh cpp-lowlevel-eng` → exit 0, incl. 4× #91
+  probes + #76 ctest policy probe.
 - `python3 scripts/audit_loop.py --self-test` → PASS.
-- `make verify` (WITH dev-regen DIRTY stamps): 32 passed / 35 failed —
-  ALL 35 are DIRTY-provenance cascade (16 resolvedCommit + 16 V13 DIRTY +
-  3 V19 count-cascade); V1/V15-ok/V20 all green inside the 32.
-  Final clean-regen `make verify` pending commit (see below).
+- `python3 scripts/audit_loop.py --self-test` → PASS.
+- `make verify` (final, clean regen, real provenance): `SUMMARY: 35 checks
+  passed, 0 failed`, exit 0 — acceptance GREEN (V1 carve-out, V15-ok and
+  V20 green inside the 35; 42-tuple byte-identical).
 
-##Flow note (deviation risk, stated plainly)
+## Close-out (final)
 
-`HERETEK_RIGS_ALLOW_DIRTY=1` regen stamps DIRTY provenance, so T1 closes
-with: commit sources → clean regen (no flag) → `make verify` must read
-`SUMMARY: 35 checks passed, 0 failed` → commit generated leaves.
-Engine/cpp gates were still running at report time; results to be
-appended by QA if they land after this commit.
+Commit → clean regen → verify-green flow completed: T1 sources
+(`710b2ae`), ctest fix (`05324a8`), provenance refreshes. T1 stops here;
+QA (T2) + drift-guard (T3) follow on this branch.
 
 ## Self-audit (unfinished, stated plainly)
 
