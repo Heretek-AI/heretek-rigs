@@ -607,8 +607,13 @@ def build_seat_files(
             _ok74, _art74 = resolve_tool_artifact(entry.get("command", ""))
             if not _ok74:
                 entry["enabled"] = False
+                # CodeQL py/clear-text-logging-sensitive-data: log the raw
+                # catalog template token (e.g. @TOOLS@/bin/r2mcp), never the
+                # substituted absolute path derived from secrets/tools dirs.
+                _raw74 = str(s.get("command", "")).strip().split()
+                _raw74 = _raw74[0] if _raw74 else ""
                 print(
-                    f"warn: {session}: {srv_name} disabled, missing tool artifact: {_art74}",
+                    f"warn: {session}: {srv_name} disabled, missing tool artifact: {_raw74}",
                     file=sys.stderr,
                 )
 
