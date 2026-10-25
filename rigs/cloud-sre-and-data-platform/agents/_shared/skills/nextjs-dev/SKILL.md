@@ -1,6 +1,6 @@
 ---
 name: nextjs-dev
-description: Use when building with Next.js App/Pages Router: server/client boundaries, data caching, mutations, security, a11y, verification.
+description: "Use when building with Next.js App/Pages Router: server/client boundaries, data caching, mutations, security, a11y, verification."
 license: MIT
 compatibility: opencode
 ---

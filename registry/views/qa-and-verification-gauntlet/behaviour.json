@@ -5,14 +5,14 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/qa-and-verification-gauntlet",
-      "resolvedCommit": "3155af958191e4df5b8708a93a9c2a5372a9ae59",
+      "resolvedCommit": "bd6ed994ed5b44e5cd5a2ae15a3717286c8dece0",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/3155af958191e4df5b8708a93a9c2a5372a9ae59/rigs/qa-and-verification-gauntlet"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/bd6ed994ed5b44e5cd5a2ae15a3717286c8dece0/rigs/qa-and-verification-gauntlet"
     },
     "configurationId": "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "0ab8e36ae4e884c7bf0e8ce88abafeb5e502f5574a5b177a82068376513a1eac",
+      "value": "40bb2cf0e130ad9a0068bd68a7e32a741e39c54b0421b0b057c7092f135f4a3e",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {

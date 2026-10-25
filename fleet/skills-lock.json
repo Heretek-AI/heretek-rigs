@@ -172,7 +172,7 @@
     "nextjs-dev": {
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/mobile-web-eng/.opencode/skills/nextjs-dev",
-      "tree": "sha256:04c7637bebe9fd56f993c31ba1b9481b1843993713474e467eeaf65307e11b77",
+      "tree": "sha256:1fdf8cf9a87496c45a9617ed6f0f58a5692bc0c5920433d824598a267789bf96",
       "license_file": "none (see SKILL.md frontmatter)"
     },
     "openrig-operating-model": {
@@ -220,7 +220,7 @@
     "react-best-practices": {
       "source": "vercel-labs/agent-skills@063bee9",
       "path": "skills/react-best-practices",
-      "tree": "sha256:06c92a29e848b85ceb9b0367d4384f67c51c20b0013dd29679a3d5163e8a34b7",
+      "tree": "sha256:721b7012ce9ded956bd4eef9920f068e62ed49795b787b9944528ba2e8439fc2",
       "license_file": "none (see SKILL.md frontmatter)"
     },
     "receiving-code-review": {

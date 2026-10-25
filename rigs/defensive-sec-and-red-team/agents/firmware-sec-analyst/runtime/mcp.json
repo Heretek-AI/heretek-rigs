@@ -6,7 +6,8 @@
       "command": "@TOOLS@/bin/r2mcp",
       "args": [
         "-R"
-      ]
+      ],
+      "enabled": false
     }
   }
 }

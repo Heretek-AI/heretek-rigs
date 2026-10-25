@@ -241,7 +241,7 @@ integrity:
     agents/_shared/skills/mutation-testing/workflows/analyzing-results.md: e3e17d2e66cf0dbaa359c051a00540dcdca86a4c5a18147b8268aed03fccd3f7
     agents/_shared/skills/mutation-testing/workflows/bug-hunter.md: db4274ed9634cbe7aadef295d594ad15d163f57e6c66a896a20d80827f791a47
     agents/_shared/skills/mutation-testing/workflows/configuration.md: f5651cd506c9eb843d25a5e468549c3f417370d9b635b779461549e4083224b0
-    agents/_shared/skills/nextjs-dev/SKILL.md: a87b3b95f71f10e82a0a3e0ffdce396654205664b3439efa72cd87e61e17eee7
+    agents/_shared/skills/nextjs-dev/SKILL.md: d20fe063ec95be5e8a6d24619020933322ea56c78f88624cb9d64e9cdbbfb1fd
     agents/_shared/skills/openrig-operating-model/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
     agents/_shared/skills/openrig-operating-model/SKILL.md: 8364530a6199f6e2df42b773c35434cb4ecade0ede48e439cd9fc03df4469896
     agents/_shared/skills/openrig-operating-model/scripts/compose.py: f71065de92b1ef4ce3ca78a8bc0cfe07bcf54ed84bb8ec5359d3889674fe385d
@@ -288,7 +288,7 @@ integrity:
     agents/_shared/skills/queue-handoff/SKILL.md: 5ff22b30a632b9832dcefa6a107866ef06fc3991f8d7d9f367394eb88261be1c
     agents/_shared/skills/react-best-practices/AGENTS.md: fc93e7421177bbf869cce892bc60a6c83a4517d974bc3bf65c4e2c1e58a6ccf6
     agents/_shared/skills/react-best-practices/README.md: 9eafb2123d3b8b2aef41fba0db2648a3f4f49996f8c7c8bb2c86263befd8b48a
-    agents/_shared/skills/react-best-practices/SKILL.md: 71ed7794962fa6e803ee83030517b5b93a9f70fbfeb431ec4535c5480a8d8355
+    agents/_shared/skills/react-best-practices/SKILL.md: 7abbd5496192757b9fb235858bc140a6ae867a3aa2c67393a6b354ea3ac7db0b
     agents/_shared/skills/react-best-practices/metadata.json: c4e18bac3290fbe1b471a605867d4df68b03144ea26b8befdbe8f9d8fd124354
     agents/_shared/skills/react-best-practices/rules/_sections.md: 01c59969e4e867f0708c8f8ef9c6d87fab9a07d0586244f429ff84013db8a115
     agents/_shared/skills/react-best-practices/rules/_template.md: 99df2a3ea088c6c22de2484ddc7e964d0e9923846f44c63380343ecc64455442
@@ -597,7 +597,7 @@ integrity:
     agents/_shared/skills/yara-rule-authoring/workflows/rule-development.md: 2b562b3389cd4b33c0990322eb051dd7efda16202a6d7228fd6ec5afcc8a36b1
     agents/android-mobile-spec/agent.yaml: 82ae4293abfa0a668c33f3ab42b12b2cbc9500f2b9f920af98ea3860c504170b
     agents/android-mobile-spec/guidance/role.md: 583ae3517c2a94d9c72d0daed55c315bf82776f6dfc9db47a25f5ee23fd5a7f7
-    agents/android-mobile-spec/runtime/mcp.json: 437335eea535a4cb115902d9678ab04ba2dec00a4ee894b48d2674089eaf3a96
+    agents/android-mobile-spec/runtime/mcp.json: 8cd4b60617f4def24797ca33a64454ad68f1e39e77d7b50f6462db63db3a0b43
     agents/android-mobile-spec/runtime/pi-permission-config.json: b2c472e2b2fa6ddf911c6647767ebf3258d013d2eb539a7c6e05e63342a41616
     agents/android-mobile-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
     agents/android-mobile-spec/runtime/policy-enforcement.json: 17a7292fbfd5aea15fa12f4da24df9abfbcab887bd1f11a070b9888791069517
@@ -606,7 +606,7 @@ integrity:
     agents/android-mobile-spec/startup/context.md: 7a9f9bed639454215d5c76ea3a8aea005f3140319f85097f024930a02fd9f7f3
     agents/cpp-lowlevel-eng/agent.yaml: 39e66b5d2f688af893784467f139c964358345074fa03c50255702548726f742
     agents/cpp-lowlevel-eng/guidance/role.md: f45ada08bea884d62255c1cf17f8fd34cba6528860b43bb6d2557e82412b30a1
-    agents/cpp-lowlevel-eng/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
+    agents/cpp-lowlevel-eng/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
     agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: c65a3c672e5437816be0469b8998f1ef8388f43fc99bcc22c991208688099f07
     agents/cpp-lowlevel-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
     agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: bac1216e1702e7df9bf968cfbcf8da5746949380cfacb6b7c9288bd6ff1dab0b
@@ -614,7 +614,7 @@ integrity:
     agents/cpp-lowlevel-eng/startup/context.md: 3fcc03a9c90dcc2e36cfa7bef937c018d96cab9c9a2b0ae14716a69fe803cc92
     agents/ios-mobile-spec/agent.yaml: 75e4f2e963b5aa609cb5083b9ae1223fab4703d3ecd7cf76bbe4474ab4ca371f
     agents/ios-mobile-spec/guidance/role.md: 211c959b7ace81386bb184cab581c9309f3f2d55c66d9d0cbb2cead78c25a473
-    agents/ios-mobile-spec/runtime/mcp.json: 29a117630a6b587fb3a7f02b8a3a4d0b0cbc9d7f1f7bdbfdc653aba3ed482c04
+    agents/ios-mobile-spec/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
     agents/ios-mobile-spec/runtime/pi-permission-config.json: 1e415233175e8fd1c1c392cb40bd7075af535adb64f9a60b1673ae8820520e87
     agents/ios-mobile-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
     agents/ios-mobile-spec/runtime/policy-enforcement.json: 772fd394deac5843a78240f0eb3471492c9aa35fc667fa58edefb4e1f3004355
@@ -622,7 +622,7 @@ integrity:
     agents/ios-mobile-spec/startup/context.md: 15b186c1778c70cc9cbe64419630a78809d0a0f4b7a9abd3c830344886901bb0
     agents/rust-systems-spec/agent.yaml: 7af8242a5aeaa61109e387668ab6d8136eeed0c90f797b2efb916a261d215c25
     agents/rust-systems-spec/guidance/role.md: 89b636fb058fcf215b1711f75934bfbf24b3ce8f10c689fb9a8050eb37bde8f1
-    agents/rust-systems-spec/runtime/mcp.json: f4b1c84549b5099a5ec7db9c69ea685e45a333d7d1b9437c4f504f2274f6a34a
+    agents/rust-systems-spec/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
     agents/rust-systems-spec/runtime/pi-permission-config.json: 7710eb985f8e0aa777162955a071c9b9a769564ef32af0fe7d9177ff5ee67e4c
     agents/rust-systems-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
     agents/rust-systems-spec/runtime/policy-enforcement.json: 84f77bb9045a2a9c56b2b73d03cdf46ac2f4eb4ccf1c172fa14f0fcf0ce00838

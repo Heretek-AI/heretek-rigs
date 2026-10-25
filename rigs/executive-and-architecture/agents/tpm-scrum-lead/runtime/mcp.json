@@ -16,7 +16,8 @@
       "args": [],
       "env": {
         "MEMORY_FILE_PATH": "@SEAT@/memory.jsonl"
-      }
+      },
+      "enabled": false
     }
   }
 }
