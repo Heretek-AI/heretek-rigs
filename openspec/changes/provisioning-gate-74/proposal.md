@@ -22,7 +22,7 @@ Explicitly NOT in scope: installing any tool on any host; `uvx --from`/`docker i
 
 ## Acceptance
 
-1. Matrix doc `docs/7164-PROVISIONING-MATRIX.md` (or evidence-annexed table) lists all 20 servers + B1–B3 bash binaries with required artifact, bound roles, current state.
+1. Matrix doc `docs/74-PROVISIONING-MATRIX.md` (or evidence-annexed table) lists all 20 servers + B1–B3 bash binaries with required artifact, bound roles, current state.
 2. Render + seed gates resolve and degrade loudly (red-proofed: missing binary → `enabled:false` + warn; present → enabled).
 3. `make verify` green (new block appended, no renumber); red-proofs both directions on disk.
 4. Drift-guard `VERDICT: PASS` → PR with `Refs #74` (never `Closes #74`).

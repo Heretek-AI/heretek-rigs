@@ -333,17 +333,20 @@ def die(msg: str) -> None:
 def resolve_tool_artifact(command: str) -> tuple:
     """Resolve one MCP `command` value read-only.
 
-    Absolute paths must exist on disk; bare names must resolve via
-    shutil.which (same PATH the seat will see). Returns (ok, artifact)
-    where artifact is the leading binary/path that was checked.
+    Absolute paths must be executable on disk (shutil.which requires
+    executability for slash-paths too); bare names must resolve via
+    shutil.which (same PATH the seat will see). The trimmed command is
+    treated as ONE complete executable path (no whitespace split; args
+    live in args:, never in command:). Returns (ok, artifact)
+    where artifact is the command path that was checked.
     """
     if not isinstance(command, str) or not command.strip():
         return (False, str(command))
-    first = command.strip().split()[0]
+    first = command.strip()
     if Path(first).is_absolute():
-        return (Path(first).is_file(), first)
+        return (shutil.which(first) is not None, first)
     if "/" in first:
-        return (Path(first).is_file(), first)
+        return (shutil.which(first) is not None, first)
     return (shutil.which(first) is not None, first)
 
 

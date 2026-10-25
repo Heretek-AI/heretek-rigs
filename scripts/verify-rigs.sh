@@ -2068,6 +2068,8 @@ for _need16 in (
 ):
     if _need16 not in _v16_seed_src:
         fail(f"V16/#74: scripts/seed-rig.py must contain {_need16!r} (REQ-P2)")
+if _v16_seed_src.count("stage_time_provisioning_warns(") < 2:
+    fail("V16/#74: scripts/seed-rig.py must CALL stage_time_provisioning_warns in the staging loop, not just define it (REQ-P2)")
 _v16_lh_src = (root / "scripts/live-health.py").read_text()
 for _need16 in (
     "tool-provisioning",
@@ -2092,9 +2094,19 @@ else:
     ]
     if len(_v16_mcp_names) != 20:
         fail(f"V16/#74: catalog must carry 20 command-bearing servers (got {len(_v16_mcp_names)})")
+    _v16_table_servers = set()
+    for _line16 in _v16_mtext.splitlines():
+        if not _line16.startswith("|"):
+            continue
+        _cells16 = [_c16.strip() for _c16 in _line16.strip().strip("|").split("|")]
+        if len(_cells16) < 2 or _cells16[1].lower() == "server":
+            continue
+        if set(_cells16[1]) <= set("-: "):
+            continue
+        _v16_table_servers.add(_cells16[1])
     for _s16 in _v16_mcp_names:
-        if _s16 not in _v16_mtext:
-            fail(f"V16/#74: matrix doc must name command-bearing server {_s16!r} (REQ-P4)")
+        if _s16 not in _v16_table_servers:
+            fail(f"V16/#74: matrix doc table server column must name command-bearing server {_s16!r} (REQ-P4)")
     for _b16 in ("rabin2", "tshark"):
         if _b16 not in _v16_mtext:
             fail(f"V16/#74: matrix doc must name bash-grant binary {_b16!r} (REQ-P4)")

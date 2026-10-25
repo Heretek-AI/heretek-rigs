@@ -54,11 +54,11 @@ def die(msg: str) -> None:
 def _resolve_artifact74(command) -> tuple:
     if not isinstance(command, str) or not command.strip():
         return (False, str(command))
-    first = command.strip().split()[0]
+    first = command.strip()
     if Path(first).is_absolute():
-        return (Path(first).is_file(), first)
+        return (shutil.which(first) is not None, first)
     if "/" in first:
-        return (Path(first).is_file(), first)
+        return (shutil.which(first) is not None, first)
     return (shutil.which(first) is not None, first)
 
 

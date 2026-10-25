@@ -221,7 +221,9 @@ class FixtureClient:
     def fetch_tool_status(self):
         """provisioning-gate-74 (#74, REQ-P3): replayed tool status, or an
         unassessed marker (SKIP, never healthy) when the fixture ships none."""
-        status = self._load("tool_provisioning.json", default=None)
+        status = self._load(
+            "tool_provisioning.json", default={"missing": [], "total": 0}
+        )
         if status is None:
             return {"missing": [], "total": 0}
         return status
@@ -630,12 +632,12 @@ def live_tool_status(tools_dir=None, catalog_path=None):
             continue
         total += 1
         raw = str(server["command"]).replace("@TOOLS@", tools)
-        first = raw.strip().split()[0] if raw.strip() else ""
+        first = raw.strip()
         if not first:
             missing.append(f"{name}:<empty-command>")
             continue
         if first.startswith("/") or "/" in first:
-            ok = Path(first).is_file()
+            ok = _shutil.which(first) is not None
         else:
             ok = _shutil.which(first) is not None
         if not ok:
