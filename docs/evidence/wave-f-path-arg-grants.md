@@ -95,5 +95,15 @@ Deny (every form denies, zero FAILs):
   `TERMINAL_BASH_DENIES` → verify exit **1** (deny-presence check +
   `test_render_seat` + V13 mirror + V15 frozen-tuple + V19 count cascade).
   Reverted clean.
-- **S6** `-o` escape: `classify_gcc_command` skips `-o` values → 
-...[truncated 890 chars]
+- **S6** `-o` escape: injected `if w == "-o": i += 2; continue` ahead of
+  the `-o`/`-I`/`-isystem`/`-L` operand pairing in `classify_gcc_command`
+  (`scripts/render-seat.py`), so `-o` values bypass `classify_scoped_path_value`
+  → `bash tests/command-effects-redproof.sh` exit **1** (`[FAIL] deny gcc
+  ['-c', 'src/foo.c', '-o', '/tmp/evil.o'] — got allow-effect`, `redproof: 1
+  failures`; `pytest tests/test_command_effects.py` exit **1** — `1 failed`
+  on the same `-o /tmp/evil.o` deny direction, `120 subtests passed`).
+  Reverted via `git checkout -- scripts/render-seat.py`, `git status --short`
+  clean (only untracked T3 verdict report), redproof exit **0**
+  (`redproof: 0 failures`). Closing: the `-o` operand scope check is
+  load-bearing for REQ-A1/A2 — without it an in-scope compile masks an
+  out-of-scope write escape, the exact `-o /tmp/evil.o` vector. Reverted clean.
