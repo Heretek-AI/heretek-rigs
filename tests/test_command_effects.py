@@ -18,8 +18,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 RENDER_SCRIPT = REPO_ROOT / "scripts/render-seat.py"
 
-EXPECTED_38_DENIES = (
-    "*--output*",
+EXPECTED_42_DENIES = (
+    "*--output=*",
+    "*--output *",
+    "*--output\t*",
+    "*--output-junit*",
+    "*--output-log*",
     "*;*",
     "*|*",
     "*>*",
@@ -87,9 +91,9 @@ def load_render_seat():
 
 
 class TestCommandEffectsFrozenDenies(unittest.TestCase):
-    def test_terminal_bash_denies_still_38_ordered(self):
+    def test_terminal_bash_denies_narrowed_42_ordered(self):
         mod = load_render_seat()
-        self.assertEqual(tuple(mod.TERMINAL_BASH_DENIES), EXPECTED_38_DENIES)
+        self.assertEqual(tuple(mod.TERMINAL_BASH_DENIES), EXPECTED_42_DENIES)
 
 
 class TestNoteValueEffect(unittest.TestCase):

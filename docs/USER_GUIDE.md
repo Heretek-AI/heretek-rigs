@@ -375,7 +375,7 @@ To modify a role's permissions, skills, thinking level, or MCP bindings:
 
 ### Live Role Permission Gate Testing (`make gate`)
 
-To test a role's rendered `@gotgenes/pi-permission-system@41.0.0` configuration against a local mock OpenAI server (`scripts/mock-openai.mjs`) and real `pi --no-approve --mode json` execution across 32+ hostile probes (unauthorized writes, `AGENTS.md` overwrites, `..` traversal, `curl`, `;` / `|` / `&` / `$()` / backtick / newline command chaining, `--output` write escapes, `git log -p` / `--patch` / `--full-diff` / `--textconv` read-deny bypasses, `.env` / `*.pem` / `*.url` / `*.user` / `.pi/` / `.agents/` / `fleet/*` / `scripts/*` reads, and `code_rewrite` / `lsp_rename` / `lsp_code_actions` mutations):
+To test a role's rendered `@gotgenes/pi-permission-system@41.0.0` configuration against a local mock OpenAI server (`scripts/mock-openai.mjs`) and real `pi --no-approve --mode json` execution across 40+ hostile probes (unauthorized writes, `AGENTS.md` overwrites, `..` traversal, `curl`, `;` / `|` / `&` / `$()` / backtick / newline command chaining, `--output` write escapes (`=`, space, and tab forms), `--output-junit`/`--output-log` file-writer flags, `git log -p` / `--patch` / `--full-diff` / `--textconv` read-deny bypasses, `.env` / `*.pem` / `*.url` / `*.user` / `.pi/` / `.agents/` / `fleet/*` / `scripts/*` reads, and `code_rewrite` / `lsp_rename` / `lsp_code_actions` mutations) plus a `ctest --output-on-failure` allow probe on ctest-holding roles:
 
 ```bash
 make gate ROLE=appsec-engineer

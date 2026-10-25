@@ -79,7 +79,11 @@ MUTATING_AST_LSP_TOOLS = [
 # scripts/verify-rigs.sh `_TERMINAL_BASH_DENIES`. verify-rigs V13 asserts the
 # two tuples are ordered-identical, so weakening either side flips the gate.
 TERMINAL_BASH_DENIES = (
-    "*--output*",
+    "*--output=*",
+    "*--output *",
+    "*--output\t*",
+    "*--output-junit*",
+    "*--output-log*",
     "*;*",
     "*|*",
     "*>*",
