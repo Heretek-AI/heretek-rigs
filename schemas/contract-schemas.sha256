@@ -1,0 +1,20 @@
+# schemas/contract-schemas.sha256 — local contract-schema freeze pin (issue #98, REQ-D98).
+#
+# The six `schemas/*.v1.schema.json` files are heretek-local "restored
+# baseline" contracts (see each file's title): the upstream
+# `@openrig/cli@0.6.13` npm tarball ships NO JSON schema files, so there
+# are no upstream bytes to vendor or `cmp` against. Upstream authority is
+# therefore the installed 0.6.13 CLI's native verbs (`rig bundle check`,
+# `rig spec validate`), exercised by the verify block; THIS pin freezes
+# the local contracts so a silent local loosening (the issue's mutation
+# proof: local errs `[]` where errors are owed) fails the gate instead of
+# passing quietly. Format is `sha256sum` output (re-verify with
+# `sha256sum -c schemas/contract-schemas.sha256`). On an intentional
+# contract change, update the schema AND refresh this pin in the same
+# change — never one without the other.
+05f83aeff3d548b26165ba458c2ff21dd64798ea01990b67b86b40b2988c56bd  agent-manifest.v1.schema.json
+e5e3b11a1af94993b9cf9a00bffb518cb9a7c4cd1a5d073f195783822bcc9925  bundle-behaviour.v1.schema.json
+d63a6e9422ba8281241ed9c6e93e6a7e8078102a92699f6a70fbf3068f3e07a8  bundle-common.v1.schema.json
+205f3a4d5464a3814ad151411360c300c11a6c0ee483152f4f43d03a7d9b8356  bundle-configurations.v1.schema.json
+2d8d19befde1a2d496caeb57f838cbdd65347b449e6d29ec75cba8e27e691652  bundle-status.v1.schema.json
+1c32ded116e87428f8341f2f1296251d1aba36aea003e5da29679830fdf7cfcf  registry-entry.v1.schema.json

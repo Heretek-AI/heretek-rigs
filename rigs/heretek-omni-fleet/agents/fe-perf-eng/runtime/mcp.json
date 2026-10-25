@@ -7,7 +7,8 @@
       "args": [
         "--headless",
         "--isolated"
-      ]
+      ],
+      "enabled": false
     },
     "playwright": {
       "description": "Browser automation through Playwright accessibility snapshots.",
@@ -16,7 +17,8 @@
       "args": [
         "--headless",
         "--isolated"
-      ]
+      ],
+      "enabled": false
     }
   }
 }

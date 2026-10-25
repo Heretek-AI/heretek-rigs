@@ -2222,6 +2222,214 @@ finally:
 if len(failures) == _v16_before:
     ok("Provisioning existence gate (#74) green: render+seed resolve loudly both directions, live-health WARN-first tool-provisioning, 20-server + B1-B3 matrix on disk")
 
+print("\n== V17. Skill Frontmatter Parse Gate (#101) ==")
+# #101 appended alongside — no V1-V16 line renumbered or reworded. Exactly
+# one ok() below. Every committed SKILL.md (68 shared + every role-local)
+# must `yaml.safe_load`-parse its leading `---` frontmatter (the old V1
+# substring check passes the nextjs-dev `: `-in-description breakage while
+# the loader drops to 67/68), and `name` must equal the skill directory
+# name. The nextjs-dev repair rides fleet/skill-patches/ + regen (never a
+# specs/ hand-edit); this block fails any recurrence.
+_v17_before = len(failures)
+_v17_files = sorted((root / "specs/agents").rglob("SKILL.md"))
+if not _v17_files:
+    fail("V17/#101: no SKILL.md leaves found under specs/agents/")
+for _p17 in _v17_files:
+    try:
+        _t17 = _p17.read_text()
+    except Exception as _e17:
+        fail(f"V17/#101: {_p17.relative_to(root)} unreadable ({_e17})")
+        continue
+    _fl17 = _t17.splitlines(keepends=True)
+    if not _fl17 or _fl17[0].strip() != "---":
+        fail(f"V17/#101: {_p17.relative_to(root)} has no leading --- frontmatter")
+        continue
+    _close17 = next(
+        (i for i in range(1, len(_fl17)) if _fl17[i].strip() == "---"), None
+    )
+    if _close17 is None:
+        fail(f"V17/#101: {_p17.relative_to(root)} frontmatter never closes")
+        continue
+    try:
+        _fm17 = yaml.safe_load("".join(_fl17[1:_close17]))
+    except Exception as _e17:
+        fail(f"V17/#101: {_p17.relative_to(root)} frontmatter unparseable: {_e17}")
+        continue
+    if not isinstance(_fm17, dict):
+        fail(f"V17/#101: {_p17.relative_to(root)} frontmatter is not a mapping")
+        continue
+    for _k17 in ("name", "description"):
+        if not _fm17.get(_k17):
+            fail(f"V17/#101: {_p17.relative_to(root)} frontmatter missing {_k17}")
+    if _fm17.get("name") != _p17.parent.name:
+        fail(
+            f"V17/#101: {_p17.relative_to(root)} frontmatter name {_fm17.get('name')!r} != directory {_p17.parent.name!r}"
+        )
+if len(failures) == _v17_before:
+    ok(
+        f"Skill frontmatter (#101) green: {len(_v17_files)} SKILL.md leaves parse with name == dirname (nextjs-dev repaired via fleet/skill-patches + regen)"
+    )
+
+print("\n== V18. Upstream-Contract Validation (#98) ==")
+# #98 appended alongside — no V1-V17 line renumbered or reworded. Exactly
+# one ok() below. The 0.6.13 npm tarball ships NO JSON schema files, so
+# there are no upstream bytes to vendor/`cmp` (vendoring the 0.6.11-era
+# docs/reference/schemas copies would be false provenance); upstream
+# authority is the installed CLI's native verbs (`rig bundle check`,
+# `rig spec validate` — `rig agent validate` needs a daemon and stays
+# out). The local contracts are frozen by schemas/contract-schemas.sha256
+# and proven non-vacuous by tests/test_schema_contracts.py (a mutated
+# status.json MUST fail) plus an inline red-proof below.
+_v18_before = len(failures)
+_v18r = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_schema_contracts.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+if _v18r.returncode != 0:
+    fail(f"tests/test_schema_contracts.py failed: {_v18r.stderr[-800:]}")
+_v18_pin_lines = [
+    ln.strip()
+    for ln in (root / "schemas/contract-schemas.sha256").read_text().splitlines()
+    if ln.strip() and not ln.strip().startswith("#")
+]
+for _pl18 in _v18_pin_lines:
+    _dg18, _nm18 = _pl18.split(None, 1)
+    _actual18 = hashlib.sha256(
+        (root / "schemas" / _nm18.strip()).read_bytes()
+    ).hexdigest()
+    if _actual18 != _dg18:
+        fail(
+            f"V18/#98: schemas/{_nm18.strip()} drifted without pin refresh (local contract loosening must fail closed)"
+        )
+try:
+    _st18 = json.loads((root / "registry/status.json").read_text())
+    _mut18 = {k: v for k, v in _st18.items() if k != "bodyDigest"}
+    _val18 = Draft202012Validator(
+        schemas["bundle-status.v1.schema.json"], registry=registry
+    )
+    if not list(_val18.iter_errors(_mut18)):
+        fail(
+            "V18/#98 red-proof: status.json without bodyDigest passed local validation (vacuous schema)"
+        )
+    if list(_val18.iter_errors(_st18)):
+        fail("V18/#98: committed registry/status.json fails its own local validation")
+except Exception as _e18:
+    fail(f"V18/#98 inline red-proof failed: {_e18}")
+_v18_rig = _shutil12.which("rig")
+if _v18_rig is None:
+    print(
+        "  [NOTE] V18/#98 native verbs: no `rig` on PATH; installed-copy validation unchecked (local pin + red-proof still enforce)"
+    )
+else:
+    for _slug18 in EXPECTED_8_RIGS:
+        _bc18 = subprocess.run(
+            [_v18_rig, "bundle", "check", str(root / "rigs" / _slug18), "--json"],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+        )
+        if _bc18.returncode != 0:
+            fail(
+                f"V18/#98: rig bundle check rigs/{_slug18} failed (rc={_bc18.returncode}: {_bc18.stderr[:160]})"
+            )
+        else:
+            try:
+                _bj18 = json.loads(_bc18.stdout)
+                _bad18 = [
+                    c for c in _bj18.get("checks", []) if c.get("status") == "fail"
+                ]
+            except Exception:
+                _bad18 = []
+            if _bad18:
+                fail(
+                    f"V18/#98: rig bundle check rigs/{_slug18} reports fail: {_bad18[0]}"
+                )
+    for _spec18 in [root / "rigs" / _s18 / "rig.yaml" for _s18 in EXPECTED_8_RIGS] + [
+        root / "rigs/heretek-omni-fleet/rig.all-51.yaml"
+    ]:
+        _sv18 = subprocess.run(
+            [_v18_rig, "spec", "validate", str(_spec18), "--json"],
+            cwd=str(root),
+            capture_output=True,
+            text=True,
+        )
+        if _sv18.returncode != 0 or '"valid":true' not in _sv18.stdout.replace(" ", ""):
+            fail(
+                f"V18/#98: rig spec validate {_spec18.relative_to(root)} failed (rc={_sv18.returncode}: {_sv18.stdout[:120]}{_sv18.stderr[:120]})"
+            )
+_v18_ran = "?"
+for _line18 in _v18r.stderr.splitlines():
+    if _line18.startswith("Ran ") and "tests" in _line18:
+        _parts18 = _line18.split()
+        if len(_parts18) >= 2:
+            _v18_ran = _parts18[1]
+if len(failures) == _v18_before:
+    ok(
+        f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.6.13"
+    )
+
+print("\n== V19. Canonical Stale-Count Guard (#102) ==")
+# #102 appended alongside — no V1-V18 line renumbered or reworded. Exactly
+# one ok() below. Prose rots by default: every prior count refresh decayed
+# (64-vs-68 skills, 0.6.11 pin, 31-vs-32 checks). This block asserts the
+# live documented counts equal the LIVE summary (`passes` in this process —
+# never a remembered number) and trips on the known stale strings in the
+# live files they were corrected in. History (REMEDIATION_LOG,
+# AUDIT_REPORT_FINDINGS, briefs, snapshots, evidence, reports, sprints)
+# is intentionally out of scope and never scanned.
+_v19_before = len(failures)
+# Self-inclusion: this block's own ok() below is part of the final SUMMARY,
+# so the live expectation is passes+1 (checked before ok() runs). A future
+# appended block without a doc refresh then fails here instead of rotting.
+_v19_live = passes + 1
+for _doc19, _need19 in (
+    (root / "AGENTS.md", f"{_v19_live} checks passed"),
+    (root / "README.md", f"{_v19_live} checks passed"),
+    (root / "docs/USER_GUIDE.md", f"SUMMARY: {_v19_live} checks passed"),
+):
+    try:
+        _dt19 = _doc19.read_text()
+    except Exception as _e19:
+        fail(f"V19/#102: {_doc19.relative_to(root)} unreadable ({_e19})")
+        continue
+    if _need19 not in _dt19:
+        fail(
+            f"V19/#102: {_doc19.relative_to(root)} must state the live count {_need19!r} (docs == live SUMMARY, not memory)"
+        )
+for _doc19, _banned19 in (
+    (root / "AGENTS.md", ["31 checks passed"]),
+    (root / "README.md", ["31 checks passed"]),
+    (root / "docs/USER_GUIDE.md", ["31 checks passed"]),
+    (
+        root / "PROMPT_ADVERSARIAL_FLEET_AUDIT.md",
+        ["0.6.11", "64 vendored skills", "64 shared skills"],
+    ),
+    (
+        root / "docs/TECHNICAL_DOCUMENTATION.md",
+        ["64 shared skills", "64 vendored skills"],
+    ),
+):
+    try:
+        _dt19 = _doc19.read_text()
+    except Exception as _e19:
+        fail(f"V19/#102: {_doc19.relative_to(root)} unreadable ({_e19})")
+        continue
+    for _stale19 in _banned19:
+        if _stale19 in _dt19:
+            fail(
+                f"V19/#102: {_doc19.relative_to(root)} carries stale string {_stale19!r} (refresh through the proper source)"
+            )
+_v19_gen = (root / "scripts/generate-rigs.py").read_text()
+if "64 shared skills" in _v19_gen or "64 vendored skill" in _v19_gen:
+    fail(
+        "V19/#102: scripts/generate-rigs.py carries a stale 64-skills comment (proper source is the generator)"
+    )
+if len(failures) == _v19_before:
+    ok(
+        f"Stale-count guard (#102) green: live docs state the live SUMMARY ({_v19_live} checks passed), no stale 64/0.6.11/31 strings in live files"
+    )
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

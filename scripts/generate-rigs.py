@@ -4,12 +4,13 @@
 Reads canonical source of truth from:
   - fleet/fleet.yaml
   - fleet/mcp-servers.yaml
+  - fleet/skill-patches/*.yaml (post-vendor SKILL.md frontmatter repairs, #101)
   - Pinned local checkouts of Heretek-Crew@5ffb1fc, obra/superpowers@bb92a77, trailofbits/skills@5c99c03,
     getsentry/skills@f57ada2, anthropics/skills@dbd4588, vercel-labs/agent-skills@063bee9, and openrig-core skills.
 
 Generates (with zero symlinks and 100% `rig bundle check` containment):
-  1. fleet/skills-lock.json (tree SHA-256 + license provenance for all 64 shared skills)
-  2. specs/agents/_shared/ (heretek-shared AgentSpec v1.0 + 64 vendored skill dirs)
+  1. fleet/skills-lock.json (tree SHA-256 + license provenance for all 68 shared skills)
+  2. specs/agents/_shared/ (heretek-shared AgentSpec v1.0 + 68 vendored skill dirs)
   3. specs/agents/<domain>/<role>/ (51 AgentSpecs v1.0, guidance/role.md, startup/context.md,
      runtime/{pi-settings,mcp,policy-enforcement}.json, and role-local skills/*/SKILL.md)
   4. rigs/<rig>/ (7 static rigs + heretek-omni-fleet with rig.yaml, CULTURE.md, README.md, SETUP.md,
@@ -396,6 +397,89 @@ def vendor_skill_from_clone(
         if dst_dir.exists():
             shutil.rmtree(dst_dir)
         shutil.copytree(src, dst_dir, symlinks=False)
+
+
+def load_skill_patches(root: Path) -> dict:
+    """Load fleet-side vendor patches from fleet/skill-patches/ (issue #101).
+
+    Each `<skill-id>.yaml` carries `skill:` (must equal the filename stem)
+    and a non-empty `frontmatter:` mapping of key -> replacement scalar.
+    Fail-closed: unknown shapes die instead of silently not applying.
+    An absent directory means no patches (not an error).
+    """
+    patches = {}
+    patch_dir = root / "fleet" / "skill-patches"
+    if not patch_dir.is_dir():
+        return patches
+    for patch_file in sorted(patch_dir.glob("*.yaml")):
+        try:
+            doc = yaml.safe_load(patch_file.read_text())
+        except Exception as exc:
+            die(f"fleet/skill-patches/{patch_file.name} unreadable: {exc}")
+        if not isinstance(doc, dict):
+            die(f"fleet/skill-patches/{patch_file.name} must be a mapping")
+        if doc.get("skill") != patch_file.stem:
+            die(
+                f"fleet/skill-patches/{patch_file.name} skill "
+                f"{doc.get('skill')!r} != filename stem {patch_file.stem!r}"
+            )
+        frontmatter = doc.get("frontmatter")
+        if not isinstance(frontmatter, dict) or not frontmatter:
+            die(f"fleet/skill-patches/{patch_file.name} needs a non-empty frontmatter mapping")
+        for key, value in frontmatter.items():
+            if not isinstance(key, str) or not isinstance(value, str):
+                die(
+                    f"fleet/skill-patches/{patch_file.name} frontmatter "
+                    "keys and values must be strings"
+                )
+        patches[patch_file.stem] = frontmatter
+    return patches
+
+
+def apply_skill_patch(sid: str, dst_sdir: Path, frontmatter: dict) -> None:
+    """Apply one fleet-side frontmatter patch to a vendored SKILL.md (#101).
+
+    Rewrites each patched `key:` line inside the leading `---` frontmatter
+    block with a quoted scalar, then re-parses the block with
+    `yaml.safe_load` and requires `name == <skill-id>`. Any deviation —
+    missing/duplicate key line, unparseable result, renamed skill — dies
+    (exit 2) instead of shipping a half-patched leaf. `specs/` leaves are
+    never hand-edited: this runs inside the generator on every regen, so
+    the patch is provenance-clean and idempotent.
+    """
+    skill_md = dst_sdir / "SKILL.md"
+    try:
+        text = skill_md.read_text()
+    except OSError as exc:
+        die(f"skill patch {sid}: unreadable {skill_md}: {exc}")
+    lines = text.splitlines(keepends=True)
+    if not lines or lines[0].strip() != "---":
+        die(f"skill patch {sid}: {skill_md} has no leading --- frontmatter")
+    closing = next(
+        (i for i in range(1, len(lines)) if lines[i].strip() == "---"), None
+    )
+    if closing is None:
+        die(f"skill patch {sid}: {skill_md} frontmatter never closes")
+    for key, value in frontmatter.items():
+        hits = [i for i in range(1, closing) if lines[i].startswith(f"{key}:")]
+        if len(hits) != 1:
+            die(
+                f"skill patch {sid}: expected exactly one '{key}:' line in "
+                f"{skill_md} frontmatter (got {len(hits)})"
+            )
+        lines[hits[0]] = f"{key}: {json.dumps(value)}\n"
+    patched = "".join(lines)
+    fm_text = "".join(lines[1:closing])
+    try:
+        parsed = yaml.safe_load(fm_text)
+    except Exception as exc:
+        die(f"skill patch {sid}: patched frontmatter unparseable: {exc}")
+    if not isinstance(parsed, dict) or parsed.get("name") != sid:
+        die(
+            f"skill patch {sid}: patched frontmatter name "
+            f"{(parsed or {}).get('name')!r} != skill id {sid!r}"
+        )
+    skill_md.write_text(patched)
 
 
 def resolve_run_attestation(root: Path):
@@ -886,6 +970,8 @@ def generate_all(
     shared_dir.mkdir(parents=True, exist_ok=True)
     lock = {"version": 1, "skills": {}}
     shared_pool = {}
+    skill_patches = load_skill_patches(root)
+    patched_skill_ids = set()
 
     for r in fleet["roles"].values():
         for sid in r["skills"]["openrig_core"]:
@@ -914,6 +1000,12 @@ def generate_all(
                 sdir.relative_to(pins[src]["dir"]).as_posix(),
                 dst_sdir,
             )
+        # #101: fleet-side vendor patch rides the generator (never a
+        # hand-edit of specs/); applied before tree-hash so the lock pins
+        # patched bytes.
+        if sid in skill_patches:
+            apply_skill_patch(sid, dst_sdir, skill_patches[sid])
+            patched_skill_ids.add(sid)
         has_lic = any(re.match(r"^LICEN[CS]E", f.name, re.I) for f in sdir.iterdir())
         lic_file = None
         if not has_lic:
@@ -974,6 +1066,11 @@ def generate_all(
                 src_sdir.relative_to(pins["heretek-crew"]["dir"]).as_posix(),
                 adir / "skills" / s["id"],
             )
+            # #101: fleet-side vendor patch (same mechanism as shared
+            # skills; never a hand-edit of specs/).
+            if s["id"] in skill_patches:
+                apply_skill_patch(s["id"], adir / "skills" / s["id"], skill_patches[s["id"]])
+                patched_skill_ids.add(s["id"])
 
         charter_md = build_charter(rid, r, crew_dir)
         (adir / "guidance").mkdir(parents=True, exist_ok=True)
@@ -1094,6 +1191,16 @@ def generate_all(
             },
         }
         write_yaml(adir / "agent.yaml", agent_yaml)
+
+    # #101 (fail-closed): every fleet-side patch must have landed on a
+    # vendored skill — a patch file for an unknown/renamed skill id dies
+    # instead of silently not applying.
+    for _sid in sorted(skill_patches):
+        if _sid not in patched_skill_ids:
+            die(
+                f"fleet/skill-patches/{_sid}.yaml targets no vendored skill "
+                "(unknown skill id; fix the patch or the fleet binding)"
+            )
 
     # 3. Build all 8 Rigs under rigs/<rig>/ + registry/entries/ + registry/views/ + status.json
     culture_text = "\n".join(

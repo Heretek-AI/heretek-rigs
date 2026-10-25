@@ -1,0 +1,10 @@
+# rust-toolchain.toml — repo toolchain pin (issue #95, REQ-D95).
+#
+# Source of truth for the policy-verifier toolchain pin: the verifier
+# derives its expected snapshot pin from this file's `channel`
+# (fail-closed when absent), instead of comparing two hand-kept
+# revision strings. On a toolchain bump, change `channel` here AND the
+# `pin:` line in scripts/policy-verifier.known-lints.txt together; any
+# mismatch fails EVERY verifier invocation as a stale snapshot.
+[toolchain]
+channel = "1.89.0"

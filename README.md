@@ -44,7 +44,7 @@ mkdir -p -m 700 ~/.config/heretek-rigs/secrets
 printf '%s' "<opencode-go-key>" > ~/.config/heretek-rigs/secrets/opencode-go.key
 chmod 600 ~/.config/heretek-rigs/secrets/opencode-go.key
 
-# 2. Verify the checkout (expect: 31 checks passed, 0 failed)
+# 2. Verify the checkout (expect: 35 checks passed, 0 failed)
 make verify
 
 # 3. Seed seats BEFORE launch (strict; or make seed RIG=<id> for degraded mode)

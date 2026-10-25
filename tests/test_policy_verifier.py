@@ -34,6 +34,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 SCRIPT = REPO_ROOT / "scripts" / "policy-verifier.py"
 CHECKED_IN_SNAPSHOT = REPO_ROOT / "scripts" / "policy-verifier.known-lints.txt"
 CHECKED_IN_PIN = REPO_ROOT / "scripts" / "policy-verifier.toolchain-pin"
+# REQ-D95: the toolchain pin derives from the repo rust-toolchain.toml
+# (fail-closed when absent) — never from a hand-kept revision string.
+RUST_TOOLCHAIN = REPO_ROOT / "rust-toolchain.toml"
 VENDORED_LIVE_TABLE = (
     REPO_ROOT / "tests" / "fixtures" / "policy-verifier" / "live-corrected-lints.toml"
 )
@@ -156,9 +159,32 @@ def read_checked_in_pin():
     raise AssertionError("toolchain pin file must not be empty")
 
 
+def read_derived_pin():
+    """REQ-D95: the toolchain pin derived from rust-toolchain.toml.
+
+    Mirrors scripts/policy-verifier.py parse_toolchain_pin_text (TOML
+    channel first, else first non-comment line) so the corpus and the
+    checker can never disagree on what "derived" means.
+    """
+    import tomllib
+
+    text = RUST_TOOLCHAIN.read_text()
+    try:
+        channel = tomllib.loads(text).get("toolchain", {}).get("channel")
+        if isinstance(channel, str) and channel.strip():
+            return channel.strip()
+    except Exception:
+        pass
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and not stripped.startswith("#"):
+            return stripped
+    raise AssertionError("rust-toolchain.toml must carry a channel pin")
+
+
 def write_snapshot(directory, pin=None):
     if pin is None:
-        pin = read_checked_in_pin()
+        pin = read_derived_pin()
     path = Path(directory) / "known-lints.txt"
     path.write_text(SNAPSHOT_TEXT.replace("fixture-toolchain-1", pin))
     return path
@@ -577,11 +603,17 @@ class PolicyVerifierStagedTests(unittest.TestCase):
             self.assertIn("SNAPSHOT", proc.stdout + proc.stderr)
 
     def test_checked_in_snapshot_and_pin_agree(self):
-        """REQ-P4: the shipped authority files exist and pin-match."""
+        """REQ-P4/D95: the shipped authority files exist and pin-match.
+
+        The snapshot `pin:` line must equal the rust-toolchain.toml
+        channel (derived, fail-closed); the legacy toolchain-pin mirror
+        must agree with the same channel.
+        """
         self.assertTrue(CHECKED_IN_SNAPSHOT.exists(), f"missing {CHECKED_IN_SNAPSHOT}")
         self.assertTrue(CHECKED_IN_PIN.exists(), f"missing {CHECKED_IN_PIN}")
-        pin = read_checked_in_pin()
-        self.assertTrue(pin, "toolchain pin file must not be empty")
+        self.assertTrue(RUST_TOOLCHAIN.exists(), f"missing {RUST_TOOLCHAIN}")
+        pin = read_derived_pin()
+        self.assertTrue(pin, "toolchain pin must not be empty")
         names = {
             line.strip()
             for line in CHECKED_IN_SNAPSHOT.read_text().splitlines()
@@ -591,6 +623,12 @@ class PolicyVerifierStagedTests(unittest.TestCase):
         self.assertIn(pin, pins)
         self.assertIn("clippy::cast_possible_truncation", names)
         self.assertNotIn("clippy::cast_lossy", names)
+        self.assertEqual(
+            read_checked_in_pin(),
+            pin,
+            "scripts/policy-verifier.toolchain-pin mirror must equal "
+            "the rust-toolchain.toml channel",
+        )
 
     def test_staged_uses_indexed_snapshot_not_worktree(self):
         """REQ-P4 index-authority: a worktree snapshot edit left UNSTAGED
@@ -695,6 +733,113 @@ class PolicyVerifierStagedTests(unittest.TestCase):
             out = proc.stdout + proc.stderr
             self.assertNotEqual(proc.returncode, 0, out)
             self.assertIn("frobnicate", out)
+
+
+class PolicyVerifierStructuralD95Tests(unittest.TestCase):
+    """REQ-D95 corpus: the `tomllib` structural walk is authoritative.
+
+    Every spelling below exits 0 on the old line-scan (no table header
+    for the text scan to anchor on) and MUST fail loudly on the
+    structural walk, naming the fake lint with file:line attribution.
+    Synthetic fixtures in /tmp only.
+    """
+
+    def run_toml(self, tmp, text):
+        manifest = Path(tmp) / "crate.toml"
+        manifest.write_text(text)
+        snapshot = write_snapshot(tmp)
+        proc = run_verifier(str(manifest), "--known-lints", str(snapshot))
+        return proc, manifest
+
+    def test_top_level_dotted_workspace_lints_fires(self):
+        """No table header at all: `workspace.lints.clippy.x` fires."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, manifest = self.run_toml(
+                tmp, 'workspace.lints.clippy.cast_lossy = "deny"\n'
+            )
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("clippy::cast_lossy", out)
+            self.assertIn(str(manifest), out)
+
+    def test_top_level_dotted_plain_lints_fires(self):
+        """No table header at all: `lints.clippy.x` fires."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, _ = self.run_toml(tmp, 'lints.clippy.cast_lossy = "deny"\n')
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("clippy::cast_lossy", out)
+
+    def test_inline_table_lints_value_fires(self):
+        """Inline-table spelling: `lints = { clippy = { fake = ... } }`."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, _ = self.run_toml(
+                tmp, 'lints = { clippy = { fake_fake_lint = "warn" } }\n'
+            )
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("clippy::fake_fake_lint", out)
+
+    def test_inline_table_under_header_fires(self):
+        """`[workspace.lints]` with an inline-table tool value fires."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, _ = self.run_toml(
+                tmp,
+                '[workspace.lints]\nclippy = { fake_inline_lint = "warn" }\n',
+            )
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("clippy::fake_inline_lint", out)
+
+    def test_dotted_key_under_tool_header_fires(self):
+        """`[workspace.lints.clippy]` with a dotted fake name fires."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, _ = self.run_toml(
+                tmp,
+                '[workspace.lints.clippy]\nnot_a_real_lint_xyz = "deny"\n',
+            )
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("clippy::not_a_real_lint_xyz", out)
+
+    def test_inline_table_with_real_names_passes(self):
+        """Structural walk never descends into lint values: `{ level,
+        priority }` inline tables with real names pass."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, _ = self.run_toml(
+                tmp,
+                "[workspace.lints.clippy]\n"
+                'all = { level = "deny", priority = -1 }\n'
+                'unwrap_used = "warn"\n',
+            )
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+
+    def test_lints_workspace_true_inheritance_passes(self):
+        """`[lints] workspace = true` is inheritance, not a tool table."""
+        with tempfile.TemporaryDirectory() as tmp:
+            proc, _ = self.run_toml(tmp, "[lints]\nworkspace = true\n")
+            out = proc.stdout + proc.stderr
+            self.assertEqual(proc.returncode, 0, out)
+            self.assertNotIn("UNKNOWN LINT TOOL", out)
+
+    def test_missing_rust_toolchain_pin_fails_closed(self):
+        """REQ-D95 derived pin: an absent rust-toolchain.toml is exit 1,
+        never a silent default-allow."""
+        with tempfile.TemporaryDirectory() as tmp:
+            cargo = Path(tmp) / "Cargo.toml"
+            cargo.write_text('[workspace]\nresolver = "2"\n\n' + FIXED_CLIPPY_STANZA)
+            snapshot = write_snapshot(tmp)
+            proc = run_verifier(
+                str(cargo),
+                "--known-lints",
+                str(snapshot),
+                "--pin-file",
+                str(Path(tmp) / "absent-toolchain.toml"),
+            )
+            out = proc.stdout + proc.stderr
+            self.assertNotEqual(proc.returncode, 0, out)
+            self.assertIn("TOOLCHAIN PIN", out)
 
 
 if __name__ == "__main__":

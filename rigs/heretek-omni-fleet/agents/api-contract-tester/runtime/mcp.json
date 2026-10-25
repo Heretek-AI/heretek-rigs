@@ -6,7 +6,8 @@
       "command": "@TOOLS@/mcp/node_modules/.bin/mcp-openapi-schema-explorer",
       "args": [
         "openapi/openapi.yaml"
-      ]
+      ],
+      "enabled": false
     }
   }
 }

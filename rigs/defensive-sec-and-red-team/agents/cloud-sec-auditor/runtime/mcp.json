@@ -20,7 +20,8 @@
       "description": "Code knowledge graph of the working repository (symbols, call paths, trace_path).",
       "exposure": "deferred",
       "command": "@TOOLS@/mcp/node_modules/.bin/codebase-memory-mcp",
-      "args": []
+      "args": [],
+      "enabled": false
     }
   }
 }

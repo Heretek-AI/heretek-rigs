@@ -13,9 +13,10 @@ Two policy-text classes, one invocation (REQ-P1 + REQ-P2, REQ-P3):
     snapshot (``--known-lints``) carrying the toolchain pin it was taken
     from — never whatever happens to be installed on the runner, so results
     are deterministic and reviewable as a diff. ``--pin-file`` defaults to
-    the checked-in toolchain pin, so a mismatch between the snapshot pin
-    and the repo toolchain pin fails as a stale snapshot on EVERY
-    invocation, not only when a pin flag is passed explicitly.
+    the repo ``rust-toolchain.toml`` channel (REQ-D95 derived pin), so a
+    mismatch between the snapshot pin and the toolchain channel fails as
+    a stale snapshot on EVERY invocation, not only when a pin flag is
+    passed explicitly.
 
 (b) Workflow ``run:`` steps vs package scripts. Every staged
     pipeline/workflow ``run:`` step invoking ``pnpm|npm|yarn <name>`` MUST
@@ -71,7 +72,9 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_KNOWN_LINTS = SCRIPT_DIR / "policy-verifier.known-lints.txt"
-DEFAULT_PIN_FILE = SCRIPT_DIR / "policy-verifier.toolchain-pin"
+# REQ-D95: the toolchain pin derives from the repo rust-toolchain.toml
+# (fail-closed when absent/offline) — never from a hand-kept revision.
+DEFAULT_PIN_FILE = SCRIPT_DIR.parent / "rust-toolchain.toml"
 
 # REQ-P2: package-manager prefixes whose remainder is a workspace script
 # reference. `npx` is deliberately excluded: it executes binaries, which is
@@ -303,21 +306,49 @@ def _table_parts(header):
     return [p.strip().strip("'\"") for p in header.strip().split(".")]
 
 
-def scan_lint_entries(text, origin):
-    """Yield (tool, name, lineno) for lint-table entries (REQ-P1).
+def structural_lint_entries(doc):
+    """Enumerate (tool, name) lint entries from a parsed TOML doc (REQ-D95).
 
-    Line numbers come from a text scan (tomllib reports no positions);
-    every entry is cross-checked against the parsed document so text inside
-    comments or string literals can never report a finding. Unparseable
-    TOML raises PolicyError (fail closed).
+    The `tomllib` document is authoritative: every key under `lints` and
+    `workspace.lints` at the tool level is a lint entry, however it was
+    spelled — `[lints.<tool>]` / `[workspace.lints.<tool>]` headers,
+    top-level dotted keys (`lints.<tool>.<name>`, no header), or
+    inline-table values (`lints = { <tool> = { <name> = ... } }`).
+
+    Only immediate keys of each tool table are entries: lint values are
+    strings or `{ level, priority }` inline tables, so recursion into
+    values would false-positive on `level`/`priority`. Non-dict tool
+    values (notably `[lints] workspace = true`, the inheritance marker)
+    are skipped — they name no lint.
     """
-    try:
-        doc = tomllib.loads(text)
-    except Exception as exc:
-        raise PolicyError(f"UNREADABLE POLICY '{origin}' (invalid TOML: {exc})")
-    if not isinstance(doc, dict):
-        raise PolicyError(f"UNREADABLE POLICY '{origin}' (not a TOML table)")
     entries = []
+
+    def _tools(node):
+        if not isinstance(node, dict):
+            return
+        for tool, table in node.items():
+            if not isinstance(table, dict):
+                continue
+            for name in table:
+                entries.append((tool, name))
+
+    if isinstance(doc, dict):
+        _tools(doc.get("lints"))
+        workspace = doc.get("workspace")
+        if isinstance(workspace, dict):
+            _tools(workspace.get("lints"))
+    return entries
+
+
+def _attribution_index(text):
+    """Map (tool, name) -> first lineno from the legacy line scan.
+
+    REQ-D95 keeps the text scan for `file:line` attribution only: the
+    structural walk decides WHAT is an entry, this index decides WHERE
+    the diagnostic points. Spellings with no line anchor (top-level
+    dotted keys, inline tables) fall back to a name search below.
+    """
+    index = {}
     current = None
     for lineno, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
@@ -349,19 +380,62 @@ def scan_lint_entries(text, origin):
             tool, name = maybe_tool, maybe_name
         if tool is None:
             continue
-        # Cross-check against the parsed document: the table and the key
-        # must really exist there (kills comment/string false positives).
-        node = doc
-        for part in current:
-            if not isinstance(node, dict) or part not in node:
-                node = None
+        index.setdefault((tool, name), lineno)
+    return index
+
+
+def _search_lineno(text, tool, name):
+    """Fallback attribution: first line mentioning the lint or tool name."""
+    for lineno, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if stripped.startswith("#"):
+            continue
+        if name in line or f"{tool}" in line and name.split(".")[0] in line:
+            return lineno
+    return 1
+
+
+def scan_lint_entries(text, origin):
+    """Yield (tool, name, lineno) for lint-table entries (REQ-P1/REQ-D95).
+
+    The `tomllib` structural walk enumerates entries (recursing into
+    inline tables and header-less dotted keys the old line-scan abandoned);
+    the text line-scan is retained for `file:line` attribution only, and
+    every entry is cross-checked against the parsed document so text inside
+    comments or string literals can never report a finding. Unparseable
+    TOML raises PolicyError (fail closed).
+    """
+    try:
+        doc = tomllib.loads(text)
+    except Exception as exc:
+        raise PolicyError(f"UNREADABLE POLICY '{origin}' (invalid TOML: {exc})")
+    if not isinstance(doc, dict):
+        raise PolicyError(f"UNREADABLE POLICY '{origin}' (not a TOML table)")
+    entries = []
+    attribution = _attribution_index(text)
+    for tool, name in structural_lint_entries(doc):
+        # Cross-check against the parsed document: the tool table and the
+        # name must really exist there (kills comment/string false
+        # positives). Both spellings (`lints`, `workspace.lints`) count.
+        found = False
+        for base in (
+            doc.get("lints"),
+            (doc.get("workspace") or {}).get("lints")
+            if isinstance(doc.get("workspace"), dict)
+            else None,
+        ):
+            if (
+                isinstance(base, dict)
+                and isinstance(base.get(tool), dict)
+                and name in base[tool]
+            ):
+                found = True
                 break
-            node = node[part]
-        if not isinstance(node, dict):
+        if not found:
             continue
-        first, _, _ = raw_key.partition(".")
-        if first not in node and raw_key not in node:
-            continue
+        lineno = attribution.get((tool, name))
+        if lineno is None:
+            lineno = _search_lineno(text, tool, name)
         entries.append((tool, name, lineno))
     return entries
 
@@ -920,8 +994,8 @@ def main(argv=None):
     pin_group.add_argument(
         "--pin-file",
         default=str(DEFAULT_PIN_FILE),
-        help="file holding the repo toolchain pin (default: scripts/ "
-        "policy-verifier.toolchain-pin, so every invocation enforces "
+        help="file holding the repo toolchain pin (default: repo "
+        "rust-toolchain.toml channel, so every invocation enforces "
         "snapshot freshness)",
     )
     parser.add_argument(

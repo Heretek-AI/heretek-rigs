@@ -58,7 +58,7 @@ flowchart TD
         GEN["scripts/generate-rigs.py
 (make generate / make idempotent)"]
         SL["fleet/skills-lock.json
-(64 Shared Skills + SHA-256 Tree Hashes)"]
+(68 Shared Skills + SHA-256 Tree Hashes)"]
         SA["specs/agents/_shared + specs/agents/<domain>/<role>/
 (52 AgentSpecs v1.0 + 7 Files per Role)"]
         RB["rigs/<rig>/
@@ -108,8 +108,8 @@ flowchart TD
 | :--- | :--- | :--- |
 | `fleet/fleet.yaml` | Canonical Source | Master machine-readable definition of the model (`opencode-go/muse-spark-1.3-contributor:high`), 7 static rigs, 1 hybrid omni-fleet (`omni`), 15 pods, and all 51 specialist roles (charter sources, skills, MCP bindings, `path_write`, `bash_allow`, escalation chains). |
 | `fleet/mcp-servers.yaml` | Canonical Source | Catalog of 20 pinned Model Context Protocol (MCP) servers (`codebase-memory`, `context7`, `github`, `memory`, `playwright`, `chrome-devtools`, `mobile`, `openapi`, `semgrep`, `radare2`, `aws`, `duckdb`, `postgres`, `kubernetes`, `k6`, `qdrant`, `prometheus`, `clickhouse`, `redis`, `terraform`) plus 3 documented dropped legacy servers (`git`, `filesystem`, `docker`). |
-| `fleet/skills-lock.json` | Generated Artifact | Cryptographic lockfile recording `source`, `path`, `license_file`, and directory `tree` (SHA-256) for all 64 shared skills vendored into `specs/agents/_shared/skills/`. |
-| `specs/agents/_shared/` | Generated Artifact | Shared `heretek-shared` AgentSpec v1.0 (`agent.yaml`) declaring all 64 shared skills in `specs/agents/_shared/skills/<skill-id>/`. |
+| `fleet/skills-lock.json` | Generated Artifact | Cryptographic lockfile recording `source`, `path`, `license_file`, and directory `tree` (SHA-256) for all 68 shared skills vendored into `specs/agents/_shared/skills/`. |
+| `specs/agents/_shared/` | Generated Artifact | Shared `heretek-shared` AgentSpec v1.0 (`agent.yaml`) declaring all 68 shared skills in `specs/agents/_shared/skills/<skill-id>/`. |
 | `specs/agents/<domain>/<role>/` | Generated Artifact | Canonical AgentSpec v1.0 directories partitioned across 9 domains (`cloud-sre`, `data-ai`, `executive`, `gamedev`, `languages`, `operations`, `qa`, `security`, `web-design`). Each role contains 7 core artifacts plus role-local skills. |
 | `rigs/<rig>/` | Generated Artifact | 8 self-contained OpenRig v0.2 bundle directories (`executive-and-architecture`, `fullstack-and-web-studio`, `systems-and-mobile-foundry`, `game-dev-and-sim-rig`, `cloud-sre-and-data-platform`, `qa-and-verification-gauntlet`, `defensive-sec-and-red-team`, `heretek-omni-fleet`). Each includes `rig.yaml`, `bundle.yaml`, `configurations.yaml`, `CULTURE.md`, `README.md`, `SETUP.md`, and materialized `agents/_shared` + `agents/<role>` copies. |
 | `rigs/heretek-omni-fleet/{pods,members}/` | Generated Artifact | 15 pod fragments (`pods/<pod>.yaml`), 51 member fragments (`members/<role>.yaml`), and `rig.all-51.yaml` enabling dynamic runtime scaling via `rig expand` and `rig add`. |
@@ -374,9 +374,9 @@ If a required secret is absent:
 - **`docker` (`docker-mcp==0.2.0`)**: Dropped because it exposed daemon-level Docker access; replaced by the GET-only `tecnativa/docker-socket-proxy:0.5.0` sidecar and scoped `bash_allow` rules.
 - **Replaced Unsafe Legacy Pins**: `pypi:r2mcp==0.2.5` (an unrelated Portuguese `rest2mcp` gateway CLI on PyPI) was replaced with `git:https://github.com/radareorg/radare2-mcp@1.9.0` compiled to `@TOOLS@/bin/r2mcp` with `-R` read-only flag; `npm:aws-mcp@1.0.2` (no repository, unmaintained) was replaced with official `pypi:awslabs.aws-api-mcp-server==1.5.6` with `READ_OPERATIONS_ONLY=true`; `npm:@modelcontextprotocol/server-github` and `server-postgres` (deprecated on npm) were replaced with the official GitHub Copilot remote read-only MCP endpoint and `pypi:postgres-mcp==0.3.0 --access-mode=restricted`.
 
-### The 64 Shared Skills (`fleet/skills-lock.json`) & 62 Role-Local Skills
+### The 68 Shared Skills (`fleet/skills-lock.json`) & 62 Role-Local Skills
 
-Because `PiRuntimeAdapter.projectEntry` skips `plugins` for `runtime: pi`, all 12 `openrig-core` SOP skills and 52 external domain skills (64 shared skills total) are vendored as full directories under `specs/agents/_shared/skills/<skill-id>/` (and materialized into `rigs/<rig>/agents/_shared/skills/<skill-id>/`) with SHA-256 tree hashes locked in `fleet/skills-lock.json`.
+Because `PiRuntimeAdapter.projectEntry` skips `plugins` for `runtime: pi`, all 12 `openrig-core` SOP skills and 56 external domain skills (68 shared skills total) are vendored as full directories under `specs/agents/_shared/skills/<skill-id>/` (and materialized into `rigs/<rig>/agents/_shared/skills/<skill-id>/`) with SHA-256 tree hashes locked in `fleet/skills-lock.json`.
 
 | Upstream Repository / Package | Pinned Commit / Version | License | Skill Count | Vendored Skill IDs (`specs/agents/_shared/skills/`) |
 | :--- | :--- | :--- | :--- | :--- |
@@ -394,7 +394,7 @@ Because `PiRuntimeAdapter.projectEntry` skips `plugins` for `runtime: pi`, all 1
 2. **Pod Lead Tier (All 15 Pod Leads — +3 Skills = 9 Skills)**: Adds `messaging-the-human`, `orienting-to-an-inherited-seat`, and `session-compaction-and-restore`.
 3. **Executive Command Tier (`exec-director` & `tpm-scrum-lead` — +3 Skills = 12 Skills)**: Adds `openrig-user`, `forming-an-openrig-mental-model`, and `agent-operated-workflows`.
 
-In addition to the 64 shared skills in `_shared`, the 51 roles carry **62 role-local specialist skills** under `specs/agents/<domain>/<role>/skills/<skill-id>/SKILL.md` (sourced from `Heretek-AI/Heretek-Crew@5ffb1fc`).
+In addition to the 68 shared skills in `_shared`, the 51 roles carry **62 role-local specialist skills** under `specs/agents/<domain>/<role>/skills/<skill-id>/SKILL.md` (sourced from `Heretek-AI/Heretek-Crew@5ffb1fc`).
 
 ## 8. Multi-Profile Docker Sidecar Architecture (`docker-compose.sidecars.yml`)
 
@@ -443,7 +443,7 @@ Running `make verify` or `bash ./scripts/verify-rigs.sh --check-only` executes 6
 | Verification Stage | Scope | Invariants Checked |
 | :--- | :--- | :--- |
 | **Entry-Point Pre-Check** | `scripts/*` | Verifies that all 8 entry-point scripts (`verify-rigs.sh`, `bootstrap-pi-seats.sh`, `render-seat.py`, `seed-rig.py`, `gate-role.sh`, `gate-run.sh`, `generate-rigs.py`, `audit_loop.py`) have executable mode bits (`0o111`) and start with a valid `#!` shebang. |
-| **V1. Role Parity, Fleet YAML & Skill Lock** | `fleet/`, `specs/agents/` | Confirms all 51 canonical roles exist in `fleet/fleet.yaml` and `specs/agents/<domain>/<role>/`; verifies 64 shared skills in `specs/agents/_shared/skills/` match `fleet/skills-lock.json` tree hashes; checks sibling skill references (`../<id>/`); verifies AgentSpec v1.0 keys, model pins (`opencode-go/muse-spark-1.3-contributor:high`), 18 `builtin:locked` roles, `*..*` last-rule ordering, 11 `path_write` guards, 29 `path` read rules, 15 terminal `bash` denies, and `rendered allows ⊆ fleet-declared allows`. |
+| **V1. Role Parity, Fleet YAML & Skill Lock** | `fleet/`, `specs/agents/` | Confirms all 51 canonical roles exist in `fleet/fleet.yaml` and `specs/agents/<domain>/<role>/`; verifies 68 shared skills in `specs/agents/_shared/skills/` match `fleet/skills-lock.json` tree hashes; checks sibling skill references (`../<id>/`); verifies AgentSpec v1.0 keys, model pins (`opencode-go/muse-spark-1.3-contributor:high`), 18 `builtin:locked` roles, `*..*` last-rule ordering, 11 `path_write` guards, 29 `path` read rules, 15 terminal `bash` denies, and `rendered allows ⊆ fleet-declared allows`. |
 | **V2. 8-Rig Topology & DAG Checks** | `rigs/*/` | Validates RigSpec v0.2 keys against `schemas/rigspec-keys.pinned.json` (and verifies the 64-hex `upstream_tarball.tarball_sha256` attestation); enforces pod-local vs `<pod>.<member>` cross-pod edge qualification; runs DFS cycle detection on `delegates_to` / `spawned_by` graphs; confirms Rigs 1–7 partition all 51 roles (`6+11+4+6+11+6+7=51`); verifies `heretek-omni-fleet` has 3 command seats, 15 pod fragments, 51 member fragments, and `rig.all-51.yaml`. |
 | **V3. Bundle Containment & Symlink Gate** | `specs/`, `rigs/` | Sweeps the entire `specs/` and `rigs/` trees for symlinks (`is_symlink()`); verifies every `agent_ref`, `culture_file`, and `docs` path resolves strictly inside `rigs/<rig>/`; confirms byte-for-byte parity between `specs/agents/<domain>/<role>` and `rigs/<rig>/agents/<role>` (except `local:../../_shared` vs `local:../_shared`); verifies zero `guidance_merge` startup files and zero reserved secret env names in `rig.yaml`. |
 | **V4. OpenRig v1 JSON Schema Conformance** | `rigs/`, `registry/`, `rosters/` | Validates all 8 `configurations.yaml`, 8 `behaviour.json`, 8 `registry/entries/*.yaml`, `registry/status.json`, and `rosters/heretek-omni-fleet.json` against `schemas/*.v1.schema.json` using `jsonschema.Draft202012Validator`. |
