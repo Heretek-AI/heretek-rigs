@@ -504,5 +504,92 @@ class TestStrictPromotion(unittest.TestCase):
         self.assertIn("FAIL", text)
 
 
+class TestToolProvisioning(unittest.TestCase):
+    """provisioning-gate-74 (#74, REQ-P3): WARN-first tool-provisioning
+    sub-check. Missing host artifacts WARN loudly (never fail-closed at
+    runtime per warn-first REQ-LH7); zero missing renders the
+    "0 missing tools" PASS banner."""
+
+    def setUp(self):
+        self.gate = load_gate()
+
+    def test_missing_tools_warn_and_name_artifacts(self):
+        result = self.gate.evaluate_tool_provisioning(
+            {"missing": ["r2", "uvx"], "total": 23}
+        )
+        self.assertEqual(result["name"], "tool-provisioning")
+        self.assertEqual(result["status"], "WARN")
+        self.assertIn("r2", result["detail"])
+        self.assertIn("uvx", result["detail"])
+
+    def test_zero_missing_passes_with_banner(self):
+        result = self.gate.evaluate_tool_provisioning({"missing": [], "total": 23})
+        self.assertEqual(result["name"], "tool-provisioning")
+        self.assertEqual(result["status"], "PASS")
+        self.assertIn("0 missing tools", result["detail"])
+
+    def test_unassessed_never_passes(self):
+        result = self.gate.evaluate_tool_provisioning({"missing": [], "total": 0})
+        self.assertEqual(result["name"], "tool-provisioning")
+        self.assertNotEqual(result["status"], "PASS")
+
+    def test_unreadable_source_skips_never_healthy(self):
+        result = self.gate.evaluate_tool_provisioning(
+            {"missing": [], "total": 0, "error": "catalog unreadable: boom"}
+        )
+        self.assertEqual(result["status"], "SKIP")
+        self.assertIn("boom", result["detail"])
+
+    def test_run_gate_carries_warn_first_tool_check(self):
+        client = FakeClient(
+            {
+                "list": [],
+                "overdue": [],
+                "undelivered": [],
+                "ps": [],
+                "transitions": {},
+            }
+        )
+        fleet_map, unconfigured = heartbeat_map_all_configured()
+        report = self.gate.run_gate(
+            client,
+            fleet_map,
+            unconfigured,
+            default_opts(self.gate),
+            NOW,
+            tool_status={"missing": ["r2"], "total": 23},
+        )
+        by_name = {c["name"]: c for c in report["checks"]}
+        self.assertIn("tool-provisioning", by_name)
+        self.assertEqual(by_name["tool-provisioning"]["status"], "WARN")
+        self.assertIn("r2", by_name["tool-provisioning"]["detail"])
+        # Warn-first: advisory WARN keeps exit 0 without --strict.
+        self.assertEqual(report["overall"], "WARN")
+        self.assertEqual(self.gate.overall_exit(report, strict=False), 0)
+
+    def test_run_gate_zero_missing_tools_passes(self):
+        client = FakeClient(
+            {
+                "list": [],
+                "overdue": [],
+                "undelivered": [],
+                "ps": [],
+                "transitions": {},
+            }
+        )
+        fleet_map, unconfigured = heartbeat_map_all_configured()
+        report = self.gate.run_gate(
+            client,
+            fleet_map,
+            unconfigured,
+            default_opts(self.gate),
+            NOW,
+            tool_status={"missing": [], "total": 23},
+        )
+        by_name = {c["name"]: c for c in report["checks"]}
+        self.assertEqual(by_name["tool-provisioning"]["status"], "PASS")
+        self.assertIn("0 missing tools", by_name["tool-provisioning"]["detail"])
+
+
 if __name__ == "__main__":
     unittest.main()

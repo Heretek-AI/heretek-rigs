@@ -325,6 +325,51 @@ def die(msg: str) -> None:
     sys.exit(2)
 
 
+# provisioning-gate-74 (#74, REQ-P1/P4): read-only existence gate for bound
+# tool artifacts. Resolution is shutil.which + path-exists ONLY — no
+# installs, no pulls, no network. Factors shared by scripts/render-seat.py
+# (render time) and scripts/seed-rig.py (stage time) so both layers degrade
+# with the same warn shape. Never silent: unresolvable artifacts always warn.
+def resolve_tool_artifact(command: str) -> tuple:
+    """Resolve one MCP `command` value read-only.
+
+    Absolute paths must exist on disk; bare names must resolve via
+    shutil.which (same PATH the seat will see). Returns (ok, artifact)
+    where artifact is the leading binary/path that was checked.
+    """
+    if not isinstance(command, str) or not command.strip():
+        return (False, str(command))
+    first = command.strip().split()[0]
+    if Path(first).is_absolute():
+        return (Path(first).is_file(), first)
+    if "/" in first:
+        return (Path(first).is_file(), first)
+    return (shutil.which(first) is not None, first)
+
+
+def bash_leading_binary(pattern: str):
+    """Leading binary of a bash_allow pattern, or None when the pattern is
+    a glob/deny form (leading token starts with a glob/metachar) or empty.
+    A trailing glob suffix (e.g. `rabin2*`) is cut: the binary is the
+    literal prefix. Callers resolve the returned binary with shutil.which."""
+    if not isinstance(pattern, str) or not pattern.strip():
+        return None
+    first = pattern.strip().split()[0]
+    if not first:
+        return None
+    cut = len(first)
+    for i, ch in enumerate(first):
+        if ch in "*?[]{}()$`;&|<>'\"!#~\\":
+            cut = i
+            break
+    candidate = first[:cut]
+    if not candidate:
+        return None
+    if "/" in candidate:
+        return None
+    return candidate
+
+
 def build_seat_files(
     role_id: str,
     rig_id: str,
@@ -553,6 +598,20 @@ def build_seat_files(
                     file=sys.stderr,
                 )
 
+        # provisioning-gate-74 (#74, REQ-P1/P4): read-only render-time
+        # resolution of the bound stdio command (remote-http servers carry
+        # no command and are excluded). Unresolvable entries render
+        # enabled:false AND warn naming server, seat, and artifact — never
+        # silent (mirrors the degraded-secrets path above).
+        if s["transport"] != "http" and "command" in s:
+            _ok74, _art74 = resolve_tool_artifact(entry.get("command", ""))
+            if not _ok74:
+                entry["enabled"] = False
+                print(
+                    f"warn: {session}: {srv_name} disabled, missing tool artifact: {_art74}",
+                    file=sys.stderr,
+                )
+
         mcp_servers[srv_name] = entry
         mcp_allow[srv_name] = "allow"
         if s["exposure"] == "deferred":
@@ -688,6 +747,18 @@ def build_seat_files(
     # mirror in V13).
     for _deny_pat in TERMINAL_BASH_DENIES:
         bash_map[_deny_pat] = "deny"
+    # provisioning-gate-74 (#74, REQ-P1/P4): read-only render-time
+    # resolution of each bash_allow leading binary (r2/rabin2/tshark and
+    # friends). Missing binaries warn naming seat, grant, and artifact —
+    # never silent. The allow entry is kept (policy unchanged): the warn is
+    # the loud degradation, and provisioning the binary silences it.
+    for p in role["permissions"]["bash_allow"]:
+        _bin74 = bash_leading_binary(p)
+        if _bin74 is not None and shutil.which(_bin74) is None:
+            print(
+                f"warn: {session}: bash grant {p!r} missing tool artifact: {_bin74}",
+                file=sys.stderr,
+            )
 
     permission = {
         "*": "deny",

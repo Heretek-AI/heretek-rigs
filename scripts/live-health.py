@@ -61,6 +61,11 @@ FETCH_LIMIT = 100
 IDLE_STATES = {"idle", "idleatprompt", "waiting", "waitingforinput"}
 ACTIVE_STATES = {"running", "active", "busy", "working"}
 
+# provisioning-gate-74 (#74, REQ-P3/P4): host tool artifacts the gate
+# resolves read-only (shutil.which + path-exists, no installs/pulls/
+# network). Bash-grant leading binaries with no catalog command.
+PROVISIONING_BASH_BINARIES = ("r2", "rabin2", "tshark")
+
 
 class DataSourceError(Exception):
     """A live data source is unreachable, errored, or unparseable."""
@@ -173,6 +178,10 @@ class RigClient:
             raise DataSourceError("rig ps --nodes: expected a JSON list")
         return result
 
+    def fetch_tool_status(self):
+        """provisioning-gate-74 (#74, REQ-P3): live host tool resolution."""
+        return live_tool_status()
+
 
 class FixtureClient:
     """Deterministic replay client over saved JSON fixtures (QA red-proofs)."""
@@ -208,6 +217,14 @@ class FixtureClient:
 
     def fetch_fleet_heartbeat(self):
         return self._load("fleet_heartbeat.json", default=None)
+
+    def fetch_tool_status(self):
+        """provisioning-gate-74 (#74, REQ-P3): replayed tool status, or an
+        unassessed marker (SKIP, never healthy) when the fixture ships none."""
+        status = self._load("tool_provisioning.json", default=None)
+        if status is None:
+            return {"missing": [], "total": 0}
+        return status
 
 
 # ---------------------------------------------------------------------------
@@ -585,7 +602,96 @@ def session_role(session):
     return local.split("-", 1)[1]
 
 
-def run_gate(client, fleet_map, unconfigured, opts, now):
+def live_tool_status(tools_dir=None, catalog_path=None):
+    """Resolve every catalog stdio command + bash-grant binaries read-only.
+
+    Returns {"missing": [...], "total": N}. Absolute @TOOLS@ paths must
+    exist on disk; bare names (uvx, docker) must resolve via shutil.which.
+    Remote-http servers (github) carry no command and are excluded.
+    Raises DataSourceError when the catalog is unreadable.
+    """
+    import shutil as _shutil
+
+    tools = tools_dir or os.environ.get(
+        "HERETEK_TOOLS", str(Path.home() / ".local/share/heretek-rigs/tools")
+    )
+    catalog = catalog_path or (REPO_ROOT / "fleet" / "mcp-servers.yaml")
+    try:
+        import yaml
+
+        with open(catalog) as handle:
+            servers = (yaml.safe_load(handle) or {}).get("servers", {})
+    except Exception as exc:
+        raise DataSourceError(f"mcp catalog unreadable: {exc}")
+    missing, total = [], 0
+    for name in sorted(servers):
+        server = servers[name] or {}
+        if server.get("transport") == "http" or "command" not in server:
+            continue
+        total += 1
+        raw = str(server["command"]).replace("@TOOLS@", tools)
+        first = raw.strip().split()[0] if raw.strip() else ""
+        if not first:
+            missing.append(f"{name}:<empty-command>")
+            continue
+        if first.startswith("/") or "/" in first:
+            ok = Path(first).is_file()
+        else:
+            ok = _shutil.which(first) is not None
+        if not ok:
+            missing.append(f"{name}:{first}")
+    for binary in PROVISIONING_BASH_BINARIES:
+        total += 1
+        if _shutil.which(binary) is None:
+            missing.append(binary)
+    return {"missing": sorted(missing), "total": total}
+
+
+def evaluate_tool_provisioning(status):
+    """provisioning-gate-74 (#74, REQ-P3): WARN-first "0 missing tools"
+    sub-check. Missing artifacts WARN (warn-first REQ-LH7, never a
+    runtime hard fail); zero missing PASSes with the "0 missing tools"
+    banner. Unassessed/unreadable sources SKIP, never healthy."""
+    if not isinstance(status, dict):
+        return {
+            "name": "tool-provisioning",
+            "status": "SKIP",
+            "detail": f"tool status unparseable: {status!r}",
+            "breached": [],
+        }
+    if status.get("error"):
+        return {
+            "name": "tool-provisioning",
+            "status": "SKIP",
+            "detail": f"tool source unreachable: {status['error']}",
+            "breached": [],
+        }
+    missing = status.get("missing", [])
+    total = status.get("total", 0)
+    if missing:
+        return {
+            "name": "tool-provisioning",
+            "status": "WARN",
+            "detail": f"{len(missing)} missing host tool artifact(s) of "
+            f"{total} checked: " + ", ".join(sorted(str(m) for m in missing)),
+            "breached": [],
+        }
+    if not total:
+        return {
+            "name": "tool-provisioning",
+            "status": "SKIP",
+            "detail": "no tool artifacts assessed (never healthy)",
+            "breached": [],
+        }
+    return {
+        "name": "tool-provisioning",
+        "status": "PASS",
+        "detail": f"0 missing tools ({total} host tool artifacts resolve)",
+        "breached": [],
+    }
+
+
+def run_gate(client, fleet_map, unconfigured, opts, now, tool_status=None):
     """Run all sub-checks; any DataSourceError degrades to SKIP (REQ-LH2)."""
     fleet_error = None
     if isinstance(unconfigured, Exception):
@@ -607,6 +713,7 @@ def run_gate(client, fleet_map, unconfigured, opts, now):
             skip("undelivered"),
             skip("heartbeat"),
             skip("seat-idleness"),
+            skip("tool-provisioning"),
         ]
         return finalize(checks, opts)
 
@@ -734,7 +841,27 @@ def run_gate(client, fleet_map, unconfigured, opts, now):
         idleness = safe(evaluate_seat_idleness, nodes, holders)
         idleness["name"] = "seat-idleness"
 
-    return finalize([pickup, overdue, undelivered, heartbeat, idleness], opts)
+    # provisioning-gate-74 (#74, REQ-P3): WARN-first tool-provisioning
+    # sub-check. Explicit tool_status (QA replay) wins; fixture clients may
+    # serve tool_provisioning.json; live clients resolve the host read-only.
+    if tool_status is None:
+        fetch_tools = getattr(client, "fetch_tool_status", None)
+        if callable(fetch_tools):
+            try:
+                tool_status = fetch_tools()
+            except Exception as exc:
+                tool_status = {"missing": [], "total": 0, "error": str(exc)}
+        else:
+            try:
+                tool_status = live_tool_status()
+            except Exception as exc:
+                tool_status = {"missing": [], "total": 0, "error": str(exc)}
+    tools_check = safe(evaluate_tool_provisioning, tool_status)
+    tools_check["name"] = "tool-provisioning"
+
+    return finalize(
+        [pickup, overdue, undelivered, heartbeat, idleness, tools_check], opts
+    )
 
 
 def finalize(checks, opts):

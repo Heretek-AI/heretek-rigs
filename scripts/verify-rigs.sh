@@ -2041,6 +2041,175 @@ for _rid15, _rdir15 in sorted(discovered_roles.items()):
 if len(failures) == _v15_before:
     ok(f"Command effects (#106) green: {_v15_checked} permission leaves carry note-effect + body-file-effect, denies frozen")
 
+print("\n== V16. Provisioning Existence Gate (#74) ==")
+# Gate-only, full-matrix: render-time + stage-time resolution degrades loudly
+# (enabled:false + named stderr warn, never silent), live-health carries a
+# WARN-first tool-provisioning sub-check, and the matrix doc covers all 20
+# command-bearing servers + B1-B3. Appended at the end — no existing check
+# renumbered or reworded. Exactly one ok() below.
+_v16_before = len(failures)
+import tempfile as _tf16
+import stat as _stat16
+# (a) gate strings must exist in the three scripts.
+_v16_render_src = (root / "scripts/render-seat.py").read_text()
+for _need16 in (
+    "def resolve_tool_artifact",
+    "def bash_leading_binary",
+    "disabled, missing tool artifact",
+    "bash grant",
+):
+    if _need16 not in _v16_render_src:
+        fail(f"V16/#74: scripts/render-seat.py must contain {_need16!r} (REQ-P1)")
+_v16_seed_src = (root / "scripts/seed-rig.py").read_text()
+for _need16 in (
+    "def stage_time_provisioning_warns",
+    "at stage time",
+    "missing tool artifact",
+):
+    if _need16 not in _v16_seed_src:
+        fail(f"V16/#74: scripts/seed-rig.py must contain {_need16!r} (REQ-P2)")
+_v16_lh_src = (root / "scripts/live-health.py").read_text()
+for _need16 in (
+    "tool-provisioning",
+    "0 missing tools",
+    "def evaluate_tool_provisioning",
+    "PROVISIONING_BASH_BINARIES",
+):
+    if _need16 not in _v16_lh_src:
+        fail(f"V16/#74: scripts/live-health.py must contain {_need16!r} (REQ-P3)")
+# (b) matrix doc coverage: all 20 command-bearing servers + B1-B3 + exclusion.
+_v16_matrix = root / "docs/74-PROVISIONING-MATRIX.md"
+if not _v16_matrix.is_file():
+    fail("V16/#74: docs/74-PROVISIONING-MATRIX.md missing (REQ-P4)")
+else:
+    _v16_mtext = _v16_matrix.read_text()
+    _v16_mcp_names = [
+        _s16
+        for _s16, _d16 in (
+            yaml.safe_load((root / "fleet/mcp-servers.yaml").read_text())["servers"]
+        ).items()
+        if _d16.get("transport") != "http" and "command" in _d16
+    ]
+    if len(_v16_mcp_names) != 20:
+        fail(f"V16/#74: catalog must carry 20 command-bearing servers (got {len(_v16_mcp_names)})")
+    for _s16 in _v16_mcp_names:
+        if _s16 not in _v16_mtext:
+            fail(f"V16/#74: matrix doc must name command-bearing server {_s16!r} (REQ-P4)")
+    for _b16 in ("rabin2", "tshark"):
+        if _b16 not in _v16_mtext:
+            fail(f"V16/#74: matrix doc must name bash-grant binary {_b16!r} (REQ-P4)")
+    if "github" not in _v16_mtext.lower() or "exclu" not in _v16_mtext.lower():
+        fail("V16/#74: matrix doc must record the github remote-http exclusion (REQ-P4)")
+# (c) red-proof both directions through the real renderer: a tool-poor env
+# (stripped PATH + empty tools dir) must degrade loudly; a stub-provisioned
+# env must render enabled with no missing-artifact warns.
+_v16_tmp = _tf16.mkdtemp(prefix="hr-v16-")
+try:
+    _v16_sec = Path(_v16_tmp) / "secrets"
+    _v16_sec.mkdir(mode=0o700)
+    _v16_key = _v16_sec / "opencode-go.key"
+    _v16_key.write_text("dummy")
+    os.chmod(_v16_key, 0o600)
+    _v16_tools = Path(_v16_tmp) / "tools"
+    _v16_pps = _v16_tools / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+    _v16_pps.mkdir(parents=True)
+    (_v16_pps / "package.json").write_text(json.dumps({"version": "41.0.0"}))
+    _v16_emptybin = Path(_v16_tmp) / "emptybin"
+    _v16_emptybin.mkdir()
+    _v16_env = {
+        **os.environ,
+        "HERETEK_SECRETS": str(_v16_sec),
+        "HERETEK_TOOLS": str(_v16_tools),
+        "OPENRIG_HOME": "/tmp/hr-openrig",
+        "PATH": str(_v16_emptybin),
+    }
+
+    def _v16_render(_role16, _pod16, _env16):
+        _p16 = subprocess.run(
+            [
+                sys.executable,
+                str(root / "scripts/render-seat.py"),
+                "--role",
+                _role16,
+                "--rig",
+                "defensive-sec-and-red-team",
+                "--pod",
+                _pod16,
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(root),
+            env=_env16,
+            capture_output=True,
+            text=True,
+        )
+        return _p16
+
+    # missing direction: bare-name (uvx/semgrep) + absolute (r2mcp/radare2)
+    # + bash B1-B3 must all degrade loudly, never silently.
+    _v16_p = _v16_render("appsec-engineer", "blue", _v16_env)
+    if _v16_p.returncode != 0:
+        fail(f"V16/#74: tool-poor render must exit 0 degraded (got {_v16_p.returncode}: {_v16_p.stderr[:200]})")
+    else:
+        _v16_f = json.loads(_v16_p.stdout)["mcp.json"]["mcpServers"]
+        if _v16_f.get("semgrep", {}).get("enabled") is not False:
+            fail("V16/#74 red-proof (missing): semgrep must render enabled:false without uvx")
+        if "semgrep" not in _v16_p.stderr or "missing tool artifact" not in _v16_p.stderr or "uvx" not in _v16_p.stderr:
+            fail("V16/#74 red-proof (missing): stderr must name semgrep + missing tool artifact uvx")
+    _v16_p = _v16_render("binary-reverse-eng", "red", _v16_env)
+    if _v16_p.returncode != 0:
+        fail(f"V16/#74: tool-poor bre render must exit 0 degraded (got {_v16_p.returncode})")
+    else:
+        _v16_f = json.loads(_v16_p.stdout)["mcp.json"]["mcpServers"]
+        if _v16_f.get("radare2", {}).get("enabled") is not False:
+            fail("V16/#74 red-proof (missing): radare2 must render enabled:false without r2mcp")
+        if "r2mcp" not in _v16_p.stderr or "missing tool artifact" not in _v16_p.stderr:
+            fail("V16/#74 red-proof (missing): stderr must name r2mcp as the missing tool artifact")
+        for _b16 in ("r2", "rabin2", "tshark"):
+            if _b16 not in _v16_p.stderr:
+                fail(f"V16/#74 red-proof (missing): stderr must name bash-grant binary {_b16!r}")
+    # present direction: stub-provision every artifact -> enabled, silent.
+    for _stub16 in ("uvx", "semgrep", "trivy", "rig", "git", "strings", "r2", "rabin2", "tshark"):
+        _sp16 = _v16_emptybin / _stub16
+        _sp16.write_text("#!/bin/sh\n")
+        os.chmod(_sp16, 0o755)
+    _v16_cbin = _v16_tools / "mcp/node_modules/.bin"
+    _v16_cbin.mkdir(parents=True)
+    for _stub16 in ("codebase-memory-mcp",):
+        _sp16 = _v16_cbin / _stub16
+        _sp16.write_text("#!/bin/sh\n")
+        os.chmod(_sp16, 0o755)
+    _v16_tbin = _v16_tools / "bin"
+    _v16_tbin.mkdir(parents=True)
+    _sp16 = _v16_tbin / "r2mcp"
+    _sp16.write_text("#!/bin/sh\n")
+    os.chmod(_sp16, 0o755)
+    _v16_p = _v16_render("appsec-engineer", "blue", _v16_env)
+    if _v16_p.returncode == 0:
+        _v16_f = json.loads(_v16_p.stdout)["mcp.json"]["mcpServers"]
+        if _v16_f.get("semgrep", {}).get("enabled") is False:
+            fail("V16/#74 red-proof (present): semgrep must not render enabled:false with uvx stubbed")
+        if _v16_f.get("codebase-memory", {}).get("enabled") is False:
+            fail("V16/#74 red-proof (present): codebase-memory must not render enabled:false with artifact stubbed")
+        if "missing tool artifact" in _v16_p.stderr:
+            fail(f"V16/#74 red-proof (present): stubbed appsec render must not warn (got {_v16_p.stderr[:200]})")
+    else:
+        fail(f"V16/#74: stubbed appsec render must exit 0 (got {_v16_p.returncode})")
+    _v16_p = _v16_render("binary-reverse-eng", "red", _v16_env)
+    if _v16_p.returncode == 0:
+        _v16_f = json.loads(_v16_p.stdout)["mcp.json"]["mcpServers"]
+        if _v16_f.get("radare2", {}).get("enabled") is False:
+            fail("V16/#74 red-proof (present): radare2 must not render enabled:false with r2mcp stubbed")
+        if "missing tool artifact" in _v16_p.stderr:
+            fail(f"V16/#74 red-proof (present): stubbed bre render must not warn (got {_v16_p.stderr[:200]})")
+    else:
+        fail(f"V16/#74: stubbed bre render must exit 0 (got {_v16_p.returncode})")
+finally:
+    import shutil as _sh16
+    _sh16.rmtree(_v16_tmp, ignore_errors=True)
+if len(failures) == _v16_before:
+    ok("Provisioning existence gate (#74) green: render+seed resolve loudly both directions, live-health WARN-first tool-provisioning, 20-server + B1-B3 matrix on disk")
+
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
