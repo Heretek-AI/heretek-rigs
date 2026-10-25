@@ -176,7 +176,11 @@ class TestRenderSeat(unittest.TestCase):
         # --patch` past a `fleet/*` read-deny are denied even on allowed
         # git prefixes.
         for _td in (
-            "*--output*",
+            "*--output=*",
+            "*--output *",
+            "*--output\t*",
+            "*--output-junit*",
+            "*--output-log*",
             "*;*",
             "*|*",
             "*>*",
@@ -199,8 +203,15 @@ class TestRenderSeat(unittest.TestCase):
             "*--unified*",
             "*--cc*",
             "* -c *",
+            "*\t-c *",
+            "* -c\t*",
+            "*\t-c\t*",
             "* -m *",
+            "*\t-m *",
+            "* -m\t*",
+            "*\t-m\t*",
             "* -W*",
+            "*\t-W*",
             "*--function-context*",
             "*--word-diff*",
             "*--color-words*",
@@ -505,7 +516,7 @@ class TestProvisioningGate74(unittest.TestCase):
         self.assertEqual(mod.bash_leading_binary("r2 -e cfg.sandbox=true -q*"), "r2")
         self.assertEqual(mod.bash_leading_binary("rabin2*"), "rabin2")
         self.assertEqual(mod.bash_leading_binary("tshark -r *"), "tshark")
-        self.assertIsNone(mod.bash_leading_binary("*--output*"))
+        self.assertIsNone(mod.bash_leading_binary("*--output=*"))
         self.assertIsNone(mod.bash_leading_binary("*;*"))
         self.assertIsNone(mod.bash_leading_binary(""))
 

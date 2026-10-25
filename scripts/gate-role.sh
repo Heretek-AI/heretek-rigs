@@ -9,7 +9,7 @@ cd "$ROOT"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 PORT=$((18100 + RANDOM % 800))
-read -r RIG POD FIRST < <(python3 -c '
+read -r RIG POD FIRST HAS_CTEST < <(python3 -c '
 import os, re, shutil, sys
 try:
     import yaml
@@ -25,7 +25,9 @@ if not r:
     sys.stderr.write("unknown role\n")
     sys.exit(2)
 g = re.sub(r"\*.*$", "", (r["permissions"]["path_write"] or [""])[0])
-print(r["rig"], r["pod"], "-" if g == "" else g)
+ba = r["permissions"].get("bash_allow") or []
+has_ctest = "1" if any(str(b).startswith("ctest") for b in ba) else "0"
+print(r["rig"], r["pod"], "-" if g == "" else g, has_ctest)
 ' 'pass' "$ROLE")
 A="$TMP/agent"; W="$TMP/work"
 mkdir -p "$W" && git -C "$W" init -q
@@ -56,6 +58,11 @@ expect deny  bash  '{"command":"curl -s https://example.com"}' "bash curl"
 expect deny  bash  '{"command":"git status; echo pwned"}' "bash chaining with semicolon"
 expect deny  bash  '{"command":"git status | tee /tmp/pwned"}' "bash chaining with pipe"
 expect deny  bash  '{"command":"git show --stat --output=/tmp/pwned"}' "bash --output write-escape"
+# #76 narrowing (fail-closed): the space/tab-separated write forms must deny
+# even on allowed git prefixes (JSON `\t` decodes to TAB, probing the
+# `"*--output\t*"` terminal deny the same way the tab-p probes do).
+expect deny  bash  '{"command":"git show --stat --output /tmp/pwned"}' "bash --output space-separated write-escape (#76)"
+expect deny  bash  '{"command":"git show --stat --output\t/tmp/pwned"}' "bash --output tab-separated write-escape (#76)"
 expect deny  bash  '{"command":"git log --oneline > /tmp/pwned"}' "bash redirection with >"
 expect deny  bash  '{"command":"cat < /etc/passwd"}' "bash redirection with <"
 expect deny  bash  '{"command":"git status & evil"}' "bash chaining with & (HR-5.5-enforcement-gap)"
@@ -94,6 +101,13 @@ expect allow bash  '{"command":"git log --oneline -- README.md"}' "bash git log 
 # against the `path` map, so scoping an allowed prefix to a denied path denies.
 expect deny  bash  '{"command":"git log --oneline -- fleet/fleet.yaml"}' "bash git log path-scoped to fleet/* (path-arg policing)"
 expect allow bash  '{"command":"git status --short"}' "bash git status"
+# #76 narrowing (fail-closed): the harmless `ctest --output-on-failure`
+# diagnostic flag must stay allowed — but only on roles holding a `ctest*`
+# allow (cpp-lowlevel-eng, engine-systems-eng); other roles still deny it for
+# lack of an allow prefix, so the probe is conditional on the fleet grant.
+if [[ "$HAS_CTEST" == "1" ]]; then
+  expect allow bash  '{"command":"ctest --test-dir build --output-on-failure"}' "bash ctest --output-on-failure diagnostic flag (#76)"
+fi
 if [[ "$FIRST" != "-" ]]; then
   expect allow write "{\"path\":\"${FIRST}gate-probe.txt\",\"content\":\"x\"}" "write inside ${FIRST}"
   expect deny  write "{\"path\":\"${FIRST}../../../evil.txt\",\"content\":\"x\"}" "dot-dot escape from ${FIRST}"

@@ -425,7 +425,9 @@ def load_skill_patches(root: Path) -> dict:
             )
         frontmatter = doc.get("frontmatter")
         if not isinstance(frontmatter, dict) or not frontmatter:
-            die(f"fleet/skill-patches/{patch_file.name} needs a non-empty frontmatter mapping")
+            die(
+                f"fleet/skill-patches/{patch_file.name} needs a non-empty frontmatter mapping"
+            )
         for key, value in frontmatter.items():
             if not isinstance(key, str) or not isinstance(value, str):
                 die(
@@ -455,9 +457,7 @@ def apply_skill_patch(sid: str, dst_sdir: Path, frontmatter: dict) -> None:
     lines = text.splitlines(keepends=True)
     if not lines or lines[0].strip() != "---":
         die(f"skill patch {sid}: {skill_md} has no leading --- frontmatter")
-    closing = next(
-        (i for i in range(1, len(lines)) if lines[i].strip() == "---"), None
-    )
+    closing = next((i for i in range(1, len(lines)) if lines[i].strip() == "---"), None)
     if closing is None:
         die(f"skill patch {sid}: {skill_md} frontmatter never closes")
     for key, value in frontmatter.items():
@@ -696,7 +696,7 @@ def build_charter(rid: str, r: dict, crew_dir: Path) -> str:
             "- Work arrives as openrig queue items and `rig send` messages; follow `queue-handoff` and `mission-slice-sop`.",
             f"- Escalate blockers to {esc}.",
             f"- Writes are confined to: {writable}. A denial from pi-permission-system is final: hand off, never work around it.",
-            "- A denial reports one blocked command and one rule -- never a capability. Classify by `matchedPattern`: (1) terminal bash syntax/flag guards (`*;*`, `*|*`, `*>*`, `*<*`, `*&*`, ``*`* ``, `*$*`, `*(*`, `*)*`, `*--output*`, `* -p*`, `*--patch*`, `*--full-diff*`, `*--textconv*`) mean the *invocation* was bad -- strip the operator/flag and retry the exact command bare once; (2) path/scope guards (`*..*`, `fleet/*`, `scripts/*`, `.git/*`, `AGENTS.md`, `*.env*`, or out-of-scope `path_write`) mean the *target* is off-limits -- the tool stays live on allowed paths, hand off only the blocked path; (3) locked mutating tools (`code_rewrite`, `lsp_rename`, `lsp_code_actions`) or unbound `mcp` mean only that tool is denied. Denials are non-sticky: a denied call never bans later compliant calls.",
+            "- A denial reports one blocked command and one rule -- never a capability. Classify by `matchedPattern`: (1) terminal bash syntax/flag guards (`*;*`, `*|*`, `*>*`, `*<*`, `*&*`, ``*`* ``, `*$*`, `*(*`, `*)*`, `*--output=*`, `*--output *`, `*--output<TAB>*`, `*--output-junit*`, `*--output-log*`, `* -p*`, `*--patch*`, `*--full-diff*`, `*--textconv*`) mean the *invocation* was bad -- strip the operator/flag and retry the exact command bare once; (2) path/scope guards (`*..*`, `fleet/*`, `scripts/*`, `.git/*`, `AGENTS.md`, `*.env*`, or out-of-scope `path_write`) mean the *target* is off-limits -- the tool stays live on allowed paths, hand off only the blocked path; (3) locked mutating tools (`code_rewrite`, `lsp_rename`, `lsp_code_actions`) or unbound `mcp` mean only that tool is denied. Denials are non-sticky: a denied call never bans later compliant calls.",
             "- One command per `bash` call: no chaining (`;`), pipes (`|`), or redirection (`>`, `<`).",
             "- `rig`/`queue`/`send` access is via `bash` allow-listed commands, not `tool_search` (no rig MCP tools exist). An empty `tool_search` proves nothing about rights.",
             "- Before reporting a blocked capability: retry bare, then read `extensions/pi-permission-system/logs/pi-permission-system-permission-review.jsonl` and quote its `command` and `matchedPattern` verbatim. Evidence is raw output, never paraphrase.",
@@ -1069,7 +1069,9 @@ def generate_all(
             # #101: fleet-side vendor patch (same mechanism as shared
             # skills; never a hand-edit of specs/).
             if s["id"] in skill_patches:
-                apply_skill_patch(s["id"], adir / "skills" / s["id"], skill_patches[s["id"]])
+                apply_skill_patch(
+                    s["id"], adir / "skills" / s["id"], skill_patches[s["id"]]
+                )
                 patched_skill_ids.add(s["id"])
 
         charter_md = build_charter(rid, r, crew_dir)

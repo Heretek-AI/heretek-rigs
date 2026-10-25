@@ -585,7 +585,7 @@ for rid, rdir in sorted(discovered_roles.items()):
     # direct-read denies hold).
     _bash_map = perm.get("bash", {})
     _bash_keys = list(_bash_map.keys())
-    _TERMINAL_BASH_DENIES = ("*--output*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "*\t-c *", "* -c\t*", "*\t-c\t*", "* -m *", "*\t-m *", "* -m\t*", "*\t-m\t*", "* -W*", "*\t-W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
+    _TERMINAL_BASH_DENIES = ("*--output=*", "*--output *", "*--output\t*", "*--output-junit*", "*--output-log*", "*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "*\t-c *", "* -c\t*", "*\t-c\t*", "* -m *", "*\t-m *", "* -m\t*", "*\t-m\t*", "* -W*", "*\t-W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
     for _td in _TERMINAL_BASH_DENIES:
         if _bash_map.get(_td) != "deny":
             fail(f"{rid}: permission bash must contain terminal deny '{_td}': deny")
@@ -1150,8 +1150,16 @@ if "O_NOFOLLOW" not in _seed_text:
 # HR-5.5-prefix-escape (fail-closed): the renderer must emit terminal bash
 # denies LAST so live --output/chaining suffixes cannot escape an allowed
 # trailing-* prefix under prefix-glob matcher semantics.
-if '"*--output*"' not in _seed_text:
-    fail('scripts/render-seat.py must emit terminal "*--output*" bash deny')
+if '"*--output=*"' not in _seed_text:
+    fail('scripts/render-seat.py must emit terminal "*--output=*" bash deny')
+if '"*--output *"' not in _seed_text:
+    fail('scripts/render-seat.py must emit terminal "*--output *" bash deny')
+if '"*--output\\t*"' not in _seed_text:
+    fail('scripts/render-seat.py must emit terminal "*--output<TAB>*" bash deny')
+if '"*--output-junit*"' not in _seed_text:
+    fail('scripts/render-seat.py must emit terminal "*--output-junit*" bash deny')
+if '"*--output-log*"' not in _seed_text:
+    fail('scripts/render-seat.py must emit terminal "*--output-log*" bash deny')
 # HR-5.5-git-patch-read-bypass (fail-closed): the renderer must emit the
 # patch-output flag denies LAST so `git log -p` / `git show --patch` cannot
 # exfiltrate file contents past path read-denies on allowed git prefixes.
@@ -2005,8 +2013,16 @@ except Exception as _e15:
     fail(f"V15/#106: cannot load scripts/render-seat.py ({_e15})")
     _v15_rs_mod = None
 if _v15_rs_mod is not None:
-    if tuple(getattr(_v15_rs_mod, "TERMINAL_BASH_DENIES", ())) != tuple(_TERMINAL_BASH_DENIES):
-        fail("V15/#106: TERMINAL_BASH_DENIES must stay frozen (REQ-G1)")
+    # #76 freeze exception (REQ-G1/REQ-O4): ONLY --output-family entries may
+    # differ from the #106-frozen 38-tuple — exactly one removal ("*--output*")
+    # and five additions at positions 0-4. Partition on the "output" substring
+    # (no non-output entry contains it); any other add/remove/reorder/reword
+    # fails. V13's ordered-identical mirror assert covers lockstep separately.
+    _v15_got = tuple(getattr(_v15_rs_mod, "TERMINAL_BASH_DENIES", ()))
+    _v15_frozen_output = ("*--output=*", "*--output *", "*--output\t*", "*--output-junit*", "*--output-log*")
+    _v15_frozen_rest = ("*;*", "*|*", "*>*", "*<*", "*&*", "*`*", "*$*", "*(*", "*)*", "* -p*", "*\t-p*", "*--patch*", "*--full-diff*", "*--textconv*", "* -u*", "*\t-u*", "* -U*", "*\t-U*", "*--unified*", "*--cc*", "* -c *", "*\t-c *", "* -c\t*", "*\t-c\t*", "* -m *", "*\t-m *", "* -m\t*", "*\t-m\t*", "* -W*", "*\t-W*", "*--function-context*", "*--word-diff*", "*--color-words*", "*--binary*", "*--raw*", "*OPENRIG_SESSION_NAME=*", "*OPENRIG_URL=*")
+    if tuple(_v15_got[:5]) != _v15_frozen_output or tuple(_v15_got[5:]) != _v15_frozen_rest:
+        fail("V15/#106: TERMINAL_BASH_DENIES must stay frozen except the #76 --output-only narrowing (REQ-G1)")
     _v15_want_effects = getattr(_v15_rs_mod, "build_command_effects", lambda _p: [])([])
     _v15_ids = [str(_e15.get("id")) for _e15 in _v15_want_effects]
     if _v15_ids != ["note-effect", "body-file-effect"]:
