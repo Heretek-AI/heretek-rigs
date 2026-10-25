@@ -387,6 +387,14 @@ for _skd69 in sorted(shared_skills_dir.iterdir()):
 
 for rid, rdir in sorted(discovered_roles.items()):
     r_fleet = fleet["roles"][rid]
+    # #91 argv-slot exception (REQ-A2): the fleet-catalog gcc overlay
+    # patterns are the ONLY bash allows permitted after the terminal
+    # denies. Computed once per role (same value fleet-wide).
+    _overlay91 = set(
+        (
+            (fleet.get("command_effects") or {}).get("gcc_effect") or {}
+        ).get("bash_overlay_patterns") or []
+    )
     ay = yaml.safe_load((rdir / "agent.yaml").read_text())
     if ay.get("name") != rid or ay.get("version") != "1.0":
         fail(f"{rid}: invalid name or version in agent.yaml")
@@ -599,7 +607,11 @@ for rid, rdir in sorted(discovered_roles.items()):
     # hand-injected allow AFTER the deny block survive (it would win
     # last-match-wins). No allow key may follow the terminal-deny block:
     # every terminal deny must sit after every allow.
-    _allow_idx = [_i for _i, _k in enumerate(_bash_keys) if _bash_map.get(_k) == "allow"]
+    # #91 exception (REQ-A2, deliberate): fleet-catalog overlay patterns
+    # (gcc compile slot) implement the scoped exception with last-match-wins
+    # precedence, so they are excluded here — and pinned to post-deny
+    # position, two-role scope, and catalog membership in V20 instead.
+    _allow_idx = [_i for _i, _k in enumerate(_bash_keys) if _bash_map.get(_k) == "allow" and _k not in _overlay91]
     if _allow_idx and _term_idx and max(_allow_idx) > min(_term_idx):
         fail(f"{rid}: permission bash terminal denies must come after all role allows, no allow may follow them (got {_bash_keys})")
     # HR-5.5-rendered-allow-superset-gap (fail-closed): rendered allow-sets
@@ -2004,6 +2016,11 @@ print("\n== V15. Command Effects Overlay (#106) ==")
 # one ok() below. Every seat's committed permission leaves must carry the
 # same commandEffects declaration (note-effect REQ-C1 + body-file-effect
 # REQ-C2); deny directions stay covered by the frozen terminal denies (REQ-G1).
+# #91 migration (deliberate, REQ-A0/A1): M0 live-proved the descriptor LIST
+# unparsed by installed pps 41.0.0 (whole layer fails closed to ask), so
+# committed leaves carry the native MAP keyed by bare basename; the audit
+# descriptors (note/body semantics unchanged) ride the sidecar and are pinned
+# via the renderer below, exactly as the ids already were.
 _v15_before = len(failures)
 _v15_rs_spec = importlib.util.spec_from_file_location("render_seat_v15", str(root / "scripts/render-seat.py"))
 _v15_rs_mod = importlib.util.module_from_spec(_v15_rs_spec)
@@ -2027,6 +2044,22 @@ if _v15_rs_mod is not None:
     _v15_ids = [str(_e15.get("id")) for _e15 in _v15_want_effects]
     if _v15_ids != ["note-effect", "body-file-effect"]:
         fail(f"V15/#106: renderer must declare note-effect + body-file-effect (got {_v15_ids})")
+    # #91: note/body descriptor VALUES pinned here (committed leaves now
+    # carry the native map; the sidecar sources these same dicts).
+    _v15_by = {_e15.get("id"): _e15 for _e15 in _v15_want_effects if isinstance(_e15, dict)}
+    _v15_note = _v15_by.get("note-effect", {})
+    _v15_body = _v15_by.get("body-file-effect", {})
+    if str((_v15_note.get("match") or {}).get("pattern")) != "^[A-Za-z0-9 _\\-/.:|]+$":
+        fail("V15/#106: note-effect pattern drifted")
+    if str((_v15_note.get("match") or {}).get("execModel")) != "argv-not-shell":
+        fail("V15/#106: note-effect must be argv-not-shell")
+    if ((_v15_body.get("constraints") or {}).get("maxBytes")) != 262144:
+        fail("V15/#106: body-file-effect maxBytes must be 262144")
+    for _ck15 in ("regularFileOnly", "noSymlinkEscape", "noDotDotEscape", "noAbsoluteTmp"):
+        if ((_v15_body.get("constraints") or {}).get(_ck15)) is not True:
+            fail(f"V15/#106: body-file-effect constraint {_ck15} must be true")
+    if '"ask"' in json.dumps(_v15_want_effects):
+        fail("V15/#106: descriptors contain forbidden 'ask' rule")
 _v15_checked = 0
 for _rid15, _rdir15 in sorted(discovered_roles.items()):
     for _leaf15 in ("runtime/pi-permission-config.json", "runtime/policy-enforcement.json"):
@@ -2036,26 +2069,20 @@ for _rid15, _rdir15 in sorted(discovered_roles.items()):
             fail(f"V15/#106: seat {_rid15}: {_leaf15} unreadable ({_e15})")
             continue
         _fx15 = _d15.get("commandEffects")
-        if not isinstance(_fx15, list):
-            fail(f"V15/#106: seat {_rid15}: {_leaf15} missing commandEffects list")
+        # #91 (deliberate shape migration): the native MAP enforces; the
+        # descriptor list form is unparsed by pps (M0). Only known tool
+        # keys; per-role key sets are pinned in V20.
+        if not isinstance(_fx15, dict):
+            fail(f"V15/#106+#91: seat {_rid15}: {_leaf15} commandEffects must be the native map (got {type(_fx15).__name__})")
             continue
-        _by15 = {_e15.get("id"): _e15 for _e15 in _fx15 if isinstance(_e15, dict)}
-        _note15 = _by15.get("note-effect", {})
-        _body15 = _by15.get("body-file-effect", {})
-        if str((_note15.get("match") or {}).get("pattern")) != "^[A-Za-z0-9 _\\-/.:|]+$":
-            fail(f"V15/#106: seat {_rid15}: {_leaf15} note-effect pattern drifted")
-        if str((_note15.get("match") or {}).get("execModel")) != "argv-not-shell":
-            fail(f"V15/#106: seat {_rid15}: {_leaf15} note-effect must be argv-not-shell")
-        if ((_body15.get("constraints") or {}).get("maxBytes")) != 262144:
-            fail(f"V15/#106: seat {_rid15}: {_leaf15} body-file-effect maxBytes must be 262144")
-        for _ck15 in ("regularFileOnly", "noSymlinkEscape", "noDotDotEscape", "noAbsoluteTmp"):
-            if ((_body15.get("constraints") or {}).get(_ck15)) is not True:
-                fail(f"V15/#106: seat {_rid15}: {_leaf15} body-file-effect constraint {_ck15} must be true")
+        for _ck15 in _fx15:
+            if _ck15 not in ("pytest", "go", "cmake", "gcc", "g++"):
+                fail(f"V15/#106+#91: seat {_rid15}: {_leaf15} unknown commandEffects key {_ck15!r}")
         if '"ask"' in json.dumps(_fx15):
-            fail(f"V15/#106: seat {_rid15}: {_leaf15} commandEffects contains forbidden 'ask' rule")
+            fail(f"V15/#106+#91: seat {_rid15}: {_leaf15} commandEffects contains forbidden 'ask' rule")
         _v15_checked += 1
 if len(failures) == _v15_before:
-    ok(f"Command effects (#106) green: {_v15_checked} permission leaves carry note-effect + body-file-effect, denies frozen")
+    ok(f"Command effects (#106 descriptors + #91 native map) green: {_v15_checked} permission leaves carry the enforced map, denies frozen")
 
 print("\n== V16. Provisioning Existence Gate (#74) ==")
 # Gate-only, full-matrix: render-time + stage-time resolution degrades loudly
@@ -2446,6 +2473,96 @@ if len(failures) == _v19_before:
     ok(
         f"Stale-count guard (#102) green: live docs state the live SUMMARY ({_v19_live} checks passed), no stale 64/0.6.11/31 strings in live files"
     )
+
+print("\n== V20. Scoped Build/Test Path Args (#91) ==")
+# #91 appended alongside — no V1-V19 line renumbered or reworded. This block
+# is FAIL-ONLY (no ok()): V19 freezes the live SUMMARY at 35, so new gates
+# here fail loudly without moving the count. Coverage: catalog stanzas,
+# native-map keys == fresh renderer output per role, overlay patterns in
+# exactly the two engine roles and post-deny in committed leaves, go
+# path_read exception scoping, engine build/* write scope.
+_v20_before = len(failures)
+_v20_rs_spec = importlib.util.spec_from_file_location("render_seat_v20", str(root / "scripts/render-seat.py"))
+_v20_rs_mod = importlib.util.module_from_spec(_v20_rs_spec)
+try:
+    _v20_rs_spec.loader.exec_module(_v20_rs_mod)
+except Exception as _e20:
+    fail(f"V20/#91: cannot load scripts/render-seat.py ({_e20})")
+    _v20_rs_mod = None
+if _v20_rs_mod is not None:
+    _v20_cat = fleet.get("command_effects") or {}
+    for _st20, _fields20 in (
+        ("pytest_effect", ("argv", "scope", "native")),
+        ("go_effect", ("argv", "scope", "package_pattern_branch", "path_read_exception", "native")),
+        ("cmake_effect", ("argv", "scope", "flag_value_pairing", "native")),
+        ("gcc_effect", ("argv", "scope", "compile_slot_only", "bash_overlay_patterns", "overlay_position", "roles_only", "native")),
+    ):
+        _stanza20 = _v20_cat.get(_st20)
+        if not isinstance(_stanza20, dict):
+            fail(f"V20/#91: fleet command_effects catalog missing {_st20} stanza")
+            continue
+        for _f20 in _fields20:
+            if _f20 not in _stanza20:
+                fail(f"V20/#91: catalog {_st20} missing field {_f20}")
+    _v20_over = set(((_v20_cat.get("gcc_effect") or {}).get("bash_overlay_patterns")) or [])
+    if _v20_over != {"gcc *", "g++ *"}:
+        fail(f"V20/#91: catalog gcc overlay patterns must be exactly {{'gcc *', 'g++ *'}} (got {sorted(_v20_over)})")
+    _v20_over_roles = sorted(
+        _rid20 for _rid20, _r20 in fleet.get("roles", {}).items()
+        if _v20_over & set(str(_b20) for _b20 in ((_r20.get("permissions", {}) or {}).get("bash_allow") or []))
+    )
+    if _v20_over_roles != ["cpp-lowlevel-eng", "engine-systems-eng"]:
+        fail(f"V20/#91: gcc overlay patterns must live in exactly the two engine roles' bash_allow (got {_v20_over_roles})")
+    _v20_eng_pw = (((fleet.get("roles", {}).get("engine-systems-eng", {}).get("permissions", {})) or {}).get("path_write") or [])
+    if "build/*" not in _v20_eng_pw:
+        fail("V20/#91: engine-systems-eng path_write must include build/* (greenfield configure writes there)")
+    _v20_other_build = sorted(
+        _rid20 for _rid20, _r20 in fleet.get("roles", {}).items()
+        if _rid20 != "engine-systems-eng"
+        and any(str(_g20) == "build/*" or str(_g20).startswith("build/") for _g20 in (((_r20.get("permissions", {}) or {}).get("path_write")) or []))
+    )
+    if _v20_other_build:
+        fail(f"V20/#91: build/ write scope must stay engine-systems-eng-only (got {_v20_other_build})")
+    for _rid20, _rdir20 in sorted(discovered_roles.items()):
+        _verbs20 = (fleet["roles"][_rid20].get("permissions", {}) or {}).get("bash_allow") or []
+        try:
+            _fresh_map20 = _v20_rs_mod.build_command_effects_map(_verbs20)
+        except Exception as _e20:
+            fail(f"V20/#91: seat {_rid20}: build_command_effects_map raised ({_e20})")
+            continue
+        for _leaf20 in ("runtime/pi-permission-config.json", "runtime/policy-enforcement.json"):
+            try:
+                _d20 = json.loads((_rdir20 / _leaf20).read_text())
+            except Exception as _e20:
+                fail(f"V20/#91: seat {_rid20}: {_leaf20} unreadable ({_e20})")
+                continue
+            if _leaf20 == "runtime/pi-permission-config.json":
+                if _d20.get("commandEffects") != _fresh_map20:
+                    fail(f"V20/#91: seat {_rid20}: committed commandEffects != fresh renderer map")
+                _bkeys20 = list(((_d20.get("permission") or {}).get("bash") or {}).keys())
+                _terms20 = [k for k in _bkeys20 if k in _v20_rs_mod.TERMINAL_BASH_DENIES]
+                if len(_terms20) != 42:
+                    fail(f"V20/#91: seat {_rid20}: committed bash map must carry all 42 terminal denies (got {len(_terms20)})")
+                for _op20 in _v20_over:
+                    if _op20 in [str(_b20) for _b20 in _verbs20]:
+                        if _d20["permission"]["bash"].get(_op20) != "allow":
+                            fail(f"V20/#91: seat {_rid20}: overlay {_op20!r} must render allow")
+                        elif _bkeys20.index(_op20) < _bkeys20.index(_terms20[-1]):
+                            fail(f"V20/#91: seat {_rid20}: overlay {_op20!r} must sit after all terminal denies")
+                    elif _op20 in _bkeys20:
+                        fail(f"V20/#91: seat {_rid20}: overlay {_op20!r} rendered without a fleet grant")
+                _bins20 = set()
+                for _p20 in _verbs20:
+                    _bb20 = _v20_rs_mod.bash_leading_binary(str(_p20))
+                    if _bb20 is not None:
+                        _bins20.add(_bb20)
+                if "go" in _bins20:
+                    if (_d20.get("permission") or {}).get("path_read") != {"*/...": "allow"}:
+                        fail(f"V20/#91: seat {_rid20}: go role must carry path_read */... exception")
+                elif "path_read" in (_d20.get("permission") or {}):
+                    fail(f"V20/#91: seat {_rid20}: non-go role must not carry path_read")
+if len(failures) == _v20_before:
+    print("V20/#91 scoped build/test path args green: catalog, native-map parity, overlay position/scope, go exception scoping, engine build/*")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

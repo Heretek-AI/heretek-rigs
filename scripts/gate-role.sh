@@ -9,7 +9,7 @@ cd "$ROOT"
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 PORT=$((18100 + RANDOM % 800))
-read -r RIG POD FIRST HAS_CTEST < <(python3 -c '
+IFS='|' read -r RIG POD FIRST HAS_CTEST HAS_PYTEST PYTEST_PROBE HAS_GO GO_PROBE HAS_CMAKE_CONFIGURE HAS_GCC < <(python3 -c '
 import os, re, shutil, sys
 try:
     import yaml
@@ -27,7 +27,21 @@ if not r:
 g = re.sub(r"\*.*$", "", (r["permissions"]["path_write"] or [""])[0])
 ba = r["permissions"].get("bash_allow") or []
 has_ctest = "1" if any(str(b).startswith("ctest") for b in ba) else "0"
-print(r["rig"], r["pod"], "-" if g == "" else g, has_ctest)
+pytest_verbs = [str(b) for b in ba if str(b).startswith("pytest")]
+has_pytest = "1" if pytest_verbs else "0"
+pytest_probe = ""
+if pytest_verbs:
+    _pp = pytest_verbs[0].rstrip("*").rstrip()
+    pytest_probe = _pp if _pp != "pytest" else "pytest tests"
+has_go = "1" if any(str(b).split(" ")[0] == "go" for b in ba) else "0"
+go_probe = ""
+if any(str(b).startswith("go build") for b in ba):
+    go_probe = "go build ./..."
+elif has_go == "1":
+    go_probe = "go test ./..."
+has_cmake_configure = "1" if any(str(b).startswith("cmake -S") for b in ba) else "0"
+has_gcc = "1" if any(str(b).startswith("gcc ") or str(b).startswith("g++ ") for b in ba) else "0"
+print("|".join([r["rig"], r["pod"], "-" if g == "" else g, has_ctest, has_pytest, pytest_probe or "-", has_go, go_probe or "-", has_cmake_configure, has_gcc]))
 ' 'pass' "$ROLE")
 A="$TMP/agent"; W="$TMP/work"
 mkdir -p "$W" && git -C "$W" init -q
@@ -40,6 +54,27 @@ printf 'canary: fleet-toolchain\n' > "$W/fleet/fleet.yaml"
 printf '# canary\n' > "$W/scripts/verify-rigs.sh"
 git -C "$W" add -A
 git -C "$W" -c user.email=gate-role@test -c user.name=gate-role commit -qm canary
+# #91 scoped build/test fixtures (fail-open for execution, policy still
+# gates): each charter-verbatim allow probe needs its operand tree present
+# so an allowed tool runs against real content. Deny probes stay decisive
+# without fixtures (policy denies before execution).
+if [[ "$HAS_PYTEST" == "1" && "$PYTEST_PROBE" != "-" ]]; then
+  _ppath=${PYTEST_PROBE#pytest }
+  mkdir -p "$W/$_ppath"
+  printf 'def test_gate_probe():\n    assert True\n' > "$W/$_ppath/test_gate_probe.py"
+fi
+if [[ "$HAS_GO" == "1" ]]; then
+  printf 'module gateprobe\n\ngo 1.23\n' > "$W/go.mod"
+  mkdir -p "$W/pkg/foo"
+  printf 'package foo\nfunc Foo() int { return 1 }\n' > "$W/pkg/foo/foo.go"
+fi
+if [[ "$HAS_CMAKE_CONFIGURE" == "1" ]]; then
+  printf 'cmake_minimum_required(VERSION 3.20)\nproject(gateprobe)\n' > "$W/CMakeLists.txt"
+fi
+if [[ "$HAS_GCC" == "1" && "$FIRST" != "-" ]]; then
+  mkdir -p "$W/${FIRST}"
+  printf 'int main(void){return 0;}\n' > "$W/${FIRST}foo.c"
+fi
 HERETEK_SECRETS="$TMP/secrets" python3 "$ROOT/scripts/render-seat.py" --role "$ROLE" --rig "$RIG" --pod "$POD" \
   --model-provider mock --model-id mock-model --out "$A" --allow-missing-secrets >/dev/null 2>"$TMP/render.err"
 printf '{"providers":{"mock":{"baseUrl":"http://127.0.0.1:%s/v1","api":"openai-completions","apiKey":"mock","models":[{"id":"mock-model"}]}}}\n' "$PORT" > "$A/models.json"
@@ -50,6 +85,18 @@ expect() { # expect <allow|deny> <tool> <json-args> <label>
   if [[ "$want" == allow && "$out" == '"isError":false' ]] || [[ "$want" == deny && "$out" == '"isError":true' ]]; then
     echo "ok   $ROLE $label"
   else echo "FAIL $ROLE $label (wanted $want, got ${out:-no tool_execution_end})"; fails=$((fails+1)); fi
+}
+expect_run() { # expect_run <allow> <tool> <json-args> <label>  (#91 policy-level)
+  # Policy-level allow: the tool RAN (no ask, no policy deny, tool found).
+  # Exit code is NOT asserted — sandbox FS limits (GOCACHE, build/ mkdir,
+  # cwd .o writes) can fail an allowed build after policy approved it; live
+  # post-merge proof covers execution. A policy deny or ask fails here.
+  local want=$1 tool=$2 args=$3 label=$4 out
+  out=$(bash "$ROOT/scripts/gate-run.sh" "$A" "$W" "$tool" "$args" 2>&1 || true)
+  if [[ "$want" == allow ]] && grep -q '"type":"tool_execution_end"' <<<"$out" \
+    && ! grep -q "requires approval\|Denied by policy\|Tool .* not found" <<<"$out"; then
+    echo "ok   $ROLE $label"
+  else echo "FAIL $ROLE $label (wanted policy-$want)"; fails=$((fails+1)); fi
 }
 expect deny  write '{"path":"zz-not-allowed/evil.txt","content":"x"}' "write outside path_write"
 expect deny  write '{"path":"AGENTS.md","content":"x"}' "write AGENTS.md"
@@ -107,6 +154,31 @@ expect allow bash  '{"command":"git status --short"}' "bash git status"
 # lack of an allow prefix, so the probe is conditional on the fleet grant.
 if [[ "$HAS_CTEST" == "1" ]]; then
   expect allow bash  '{"command":"ctest --test-dir build --output-on-failure"}' "bash ctest --output-on-failure diagnostic flag (#76)"
+fi
+# #91 scoped build/test path args (charter-verbatim gate probes, REQ-A4):
+# each advertised verification command expects allow on its seat (policy
+# level via expect_run where sandbox FS limits exit codes; exit-code level
+# via expect where the sandbox permits it). Traversal/absolute/-o/-P forms
+# deny; the gcc slot exception still denies outside the slot.
+if [[ "$HAS_PYTEST" == "1" && "$PYTEST_PROBE" != "-" ]]; then
+  expect_run allow bash  "{\"command\":\"$PYTEST_PROBE\"}" "bash $PYTEST_PROBE charter-verbatim (#91)"
+  expect deny  bash  '{"command":"pytest ../../etc/passwd"}' "bash pytest traversal past scope (#91)"
+fi
+if [[ "$HAS_GO" == "1" && "$GO_PROBE" != "-" ]]; then
+  expect_run allow bash  "{\"command\":\"$GO_PROBE\"}" "bash $GO_PROBE charter-verbatim (#91)"
+  expect deny  bash  '{"command":"go build ../../etc/..."}' "bash go traversal past scope (#91)"
+  expect deny  bash  '{"command":"go build -o /tmp/evil ./..."}' "bash go -o /tmp write-escape (#91)"
+fi
+if [[ "$HAS_CMAKE_CONFIGURE" == "1" ]]; then
+  expect_run allow bash  '{"command":"cmake -S . -B build"}' "bash cmake -S . -B build charter-verbatim (#91)"
+  expect deny  bash  '{"command":"cmake -S . -B /tmp/evil"}' "bash cmake -B /tmp write-escape (#91)"
+  expect deny  bash  '{"command":"cmake -P /tmp/evil.cmake"}' "bash cmake -P script outside scope (#91)"
+fi
+if [[ "$HAS_GCC" == "1" && "$FIRST" != "-" ]]; then
+  expect_run allow bash  "{\"command\":\"gcc -c ${FIRST}foo.c\"}" "bash gcc -c in-scope charter-verbatim (#91)"
+  expect deny  bash  '{"command":"gcc -c ../../evil.c"}' "bash gcc traversal past scope (#91)"
+  expect deny  bash  "{\"command\":\"gcc -c ${FIRST}foo.c -o /tmp/evil.o\"}" "bash gcc -o /tmp write-escape (#91)"
+  expect deny  bash  '{"command":"sh -c evil"}' "bash sh -c still denied outside gcc slot (#91)"
 fi
 if [[ "$FIRST" != "-" ]]; then
   expect allow write "{\"path\":\"${FIRST}gate-probe.txt\",\"content\":\"x\"}" "write inside ${FIRST}"

@@ -620,49 +620,49 @@ integrity:
     agents/exec-director/agent.yaml: 0299ffad054c61edeb9ad18369d6a7bfef8578749ff22dda3b7f28cf144d6171
     agents/exec-director/guidance/role.md: 2f3396cd8b7e551c2df9ddd699fe5592278616ac61d1ba7bdc72245e4682b83e
     agents/exec-director/runtime/mcp.json: 26f4d2ab5bee9766361284c4979b514c46289a19674413f42442220aea1ce315
-    agents/exec-director/runtime/pi-permission-config.json: ecee4b75af8d81056ae6f6aab97d88dd9a169e2d2d92720cab1f4afa25ac507d
+    agents/exec-director/runtime/pi-permission-config.json: 86a14073c87bc9f5789bf223a602abf68462056ef5e0749918d32eb7bc41d029
     agents/exec-director/runtime/pi-settings.json: 3551cf083a0327168bd4b53b7f1526249af54417021caec878502992d7e34a3c
-    agents/exec-director/runtime/policy-enforcement.json: 5399cfdf08a7a6f9efb2e601440d95f5c33163fc7c03c782ee77f291001c06cb
+    agents/exec-director/runtime/policy-enforcement.json: 0b963fe22befcccf19ea12d00f01a268daa56c592f7ee726e37a9d8721d340f1
     agents/exec-director/skills/executive-okr-decomposition/SKILL.md: 3de0bb5e99231483c74f3b19c05f6502ec6635e55868572d0645092a991cac41
     agents/exec-director/startup/context.md: cba7a533eebd8d4697da7efe67f6722b0785747d322c19d135f500e46fb146d1
     agents/git-drift-coord/agent.yaml: 027b8dce7cc4e77da1a1c66899e32f74c63c3dda9b0a74e7a97d7276095e25bf
     agents/git-drift-coord/guidance/role.md: d3d8db29700f468db4a4fb7083a2dbd35e88de630537b80e034c9c1d4b8b3978
     agents/git-drift-coord/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/git-drift-coord/runtime/pi-permission-config.json: db86929f01f95d234289b04b38f709a238fb0765debbf473d69e6f27e1b99170
+    agents/git-drift-coord/runtime/pi-permission-config.json: 9213a38d1e10467f3982444c40fd7ff556930302672aa8af048b4ed6c2ae18d3
     agents/git-drift-coord/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/git-drift-coord/runtime/policy-enforcement.json: 3ee8d81e8b7e41c744dae218e69152205cd6b8ce6fefab6b8cbdb40d24929861
+    agents/git-drift-coord/runtime/policy-enforcement.json: 3dc91dc3f1de827ce6af7a545757f6c31ca4053e4c542449cfe9cb858295207e
     agents/git-drift-coord/skills/worktree-rebase-orchestration/SKILL.md: 5d4f609e77195b9ca141aa79bf0ae51f4a7939e80c129e8f50a4a986ebccc713
     agents/git-drift-coord/startup/context.md: 630943668d6a94416ab69172560fc5b6f266109e8724c812018d16aabe3150b6
     agents/product-director/agent.yaml: 486a3ce72add6494841e0404e4459c88242cd5cb00546d765c9df16858c88501
     agents/product-director/guidance/role.md: e362ba52b2a4b14b799946cdac5035ca3924ad0473fe1b7308ad30d600a59524
     agents/product-director/runtime/mcp.json: 26f4d2ab5bee9766361284c4979b514c46289a19674413f42442220aea1ce315
-    agents/product-director/runtime/pi-permission-config.json: 1550c203849798d78eacb8391e2018144d93a923849eff689648d8b0cac677a4
+    agents/product-director/runtime/pi-permission-config.json: adf29aa94c262cd1d4f8fbb88e506048c221bb6d08b55b5ff6d92670f63ef1f1
     agents/product-director/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/product-director/runtime/policy-enforcement.json: 9031b3d6673e309206ccc8eb4867b6aa4a4f30f32dea5d6fa61c163baf0c774f
+    agents/product-director/runtime/policy-enforcement.json: a8601912996e22fdbabea67d6cfe17a2333c0f7a4aea18734866afbdf60ede02
     agents/product-director/skills/epic-roadmap-authoring/SKILL.md: f9c668cd615d53e4d394a3f83cf6a8cb723fd7d2b482caaf88e0fb0821d565f7
     agents/product-director/startup/context.md: 66b046cc5d72a90f84e08b1bee2e0bb0c04dfd7c3ce9777911e654e640c722ab
     agents/system-architect/agent.yaml: 4338554af1961475866d187abe5ed01fd7202aee9e3d12722a228794b7e84d86
     agents/system-architect/guidance/role.md: 7f2f5ab200325a7f1441108f30775a2926fcef9d040a04710c654b0f9ef7baf0
     agents/system-architect/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
-    agents/system-architect/runtime/pi-permission-config.json: 141cae9cd01690cd33b7976361c10537e88d33364a1cdd4127e8704d5f5bb84e
+    agents/system-architect/runtime/pi-permission-config.json: aaff1ff6d0485ab36f5868dfac493c11619f57bff2096f8069db9e50ddbf70de
     agents/system-architect/runtime/pi-settings.json: 3551cf083a0327168bd4b53b7f1526249af54417021caec878502992d7e34a3c
-    agents/system-architect/runtime/policy-enforcement.json: d1ddf7b2cc82939bf2fbdd16826b4c0f0854cd69a60385edbb80128432b9fb02
+    agents/system-architect/runtime/policy-enforcement.json: 1300f9f75421d542bff8046a3953235e6f7b09d3c4c9d53a850f0eb8809cdc3e
     agents/system-architect/skills/madr-architecture-decision/SKILL.md: 4246a7bbc1ba4618648da83806c9069e0764004c990cf8130322688a279535b9
     agents/system-architect/startup/context.md: 8d81ca31dfd1be61f64fab744471e316d78c3b82fc4c0f1eec2a858f75fe60b4
     agents/tech-docs-lead/agent.yaml: 632e72f5a90796de70fbe452b1f66adea28d749bcabae805e3c795ca72e38674
     agents/tech-docs-lead/guidance/role.md: 3e20d811be38a5fa2be13c08f5f50260e36cec522983a69250618ab3736c9027
     agents/tech-docs-lead/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/tech-docs-lead/runtime/pi-permission-config.json: af88c0f6e8c3aceac4365ce6ae6de1e3f397ed333072eb9e5f33ddceca719f1e
+    agents/tech-docs-lead/runtime/pi-permission-config.json: 1a32be8628787660f7888f27f525264455033e436d43c969ef5f6394cd497d6f
     agents/tech-docs-lead/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/tech-docs-lead/runtime/policy-enforcement.json: f1f1ad619d7ab8f0f825b2df3867fe5ef379c9904abd47168ad68fd5b7319159
+    agents/tech-docs-lead/runtime/policy-enforcement.json: 8415bd11b16eb5aa0deb33d16fc053c0867b91acdefa54969f6cb2b5820feeb1
     agents/tech-docs-lead/skills/docs-as-code-synchronization/SKILL.md: efad3bf18865cc9b17599c95418af0c2101d6c1dd04a9d97fcad545e18aabc81
     agents/tech-docs-lead/startup/context.md: e8d9a279a18deb8181a94798370a925974e248267666955202a2fee9e3f03f40
     agents/tpm-scrum-lead/agent.yaml: 56a1d8ff9268977e8587ac8aaa24557cd43b93ffc5a8d26a7eb028e53eceb81e
     agents/tpm-scrum-lead/guidance/role.md: d72fd83514af6bfb45e244a29c9af56533f30388e532d61beab27fe44588cd78
     agents/tpm-scrum-lead/runtime/mcp.json: 26f4d2ab5bee9766361284c4979b514c46289a19674413f42442220aea1ce315
-    agents/tpm-scrum-lead/runtime/pi-permission-config.json: b2a455bd5a0c24650881e023bd76a22249715011c8ef18d25ec3e1ba14f76936
+    agents/tpm-scrum-lead/runtime/pi-permission-config.json: e3c3d5ef7d0227afd7f542b3a108f32e5ed2cb626ee3f6f84987716e4f9c358c
     agents/tpm-scrum-lead/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/tpm-scrum-lead/runtime/policy-enforcement.json: bda848c6e5bd50ec2c296a7c3206789644efc68ff905ca1e3c69ac8e420987f5
+    agents/tpm-scrum-lead/runtime/policy-enforcement.json: 56816f260f4a7302b66103c0a6f07b33e021e5ac6b450298c48a58e6090bf7b7
     agents/tpm-scrum-lead/skills/planning-with-files/SKILL.md: 46aad3adb80dffe595b5d7ae23af64861dc6af879d3471afb216676dd60bf8ab
     agents/tpm-scrum-lead/skills/sprint-ticket-decomposition/SKILL.md: 49735479a265ca6e11e978621f42d0e6b0143237c07bf252d71040012c402a9b
     agents/tpm-scrum-lead/startup/context.md: dca82906b512136928c3f352314d251a37d836dfd6a05edca4a0c59538a14e8d

@@ -215,6 +215,274 @@ class TestBodyFileEffect(unittest.TestCase):
                     self.assertTrue(reason)
 
 
+class TestScopedPathValue(unittest.TestCase):
+    """REQ-A1: shared flag-value path check (realpath containment + token
+    hygiene, no existence requirement). Mirrors pps enforcement posture."""
+
+    def test_in_scope_relative_allows(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            verdict, _ = mod.classify_scoped_path_value(
+                "src/foo.c", cwd=ws, path_write=["src/*"]
+            )
+            self.assertEqual(verdict, "allow-effect")
+
+    def test_dot_and_build_dir_allow(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            for raw in (".", "build", "./sub"):
+                with self.subTest(raw=raw):
+                    verdict, reason = mod.classify_scoped_path_value(
+                        raw, cwd=ws, path_write=["src/*"]
+                    )
+                    self.assertEqual(verdict, "allow-effect")
+                    self.assertTrue(reason)
+
+    def test_deny_directions_hold(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            outsider = Path(ws).parent / "outsider91.txt"
+            outsider.write_text("x")
+            self.addCleanup(lambda: outsider.unlink(missing_ok=True))
+            for raw in [
+                "",
+                "/etc/passwd",
+                "/tmp/abs-escape",
+                "../../etc/passwd",
+                "sub/../../escape",
+                "a;b",
+                "x$y",
+                "a`b",
+                "x$(id)",
+                "a\nb",
+                "OPENRIG_SESSION_NAME=e",
+                str(outsider),
+            ]:
+                with self.subTest(raw=raw):
+                    verdict, reason = mod.classify_scoped_path_value(
+                        raw, cwd=ws, path_write=["src/*"]
+                    )
+                    self.assertEqual(verdict, "deny")
+                    self.assertTrue(reason)
+
+    def test_symlink_escape_denies(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            link = Path(ws) / "link.c"
+            try:
+                link.symlink_to("/etc/hostname")
+            except OSError:
+                self.skipTest("symlinks unavailable")
+            verdict, reason = mod.classify_scoped_path_value(
+                "link.c", cwd=ws, path_write=["src/*"]
+            )
+            self.assertEqual(verdict, "deny")
+            self.assertTrue(reason)
+
+
+class TestGoPackageArg(unittest.TestCase):
+    """REQ-A1: Go `...` package-pattern branch — patterns within scope
+    allow, never as literal paths; any `..` traversal denies first."""
+
+    def test_package_patterns_allow(self):
+        mod = load_render_seat()
+        for arg in ("./...", "./pkg/...", "pkg/...", "..."):
+            with self.subTest(arg=arg):
+                verdict, reason = mod.classify_go_package_arg(arg)
+                self.assertEqual(verdict, "allow-effect")
+                self.assertTrue(reason)
+
+    def test_traversal_and_absolute_deny(self):
+        mod = load_render_seat()
+        for arg in (
+            "../../etc/...",
+            "../...",
+            "/abs/...",
+            "./a/../b/...",
+            "",
+            "pkg/...;evil",
+            "pkg/...$(id)",
+        ):
+            with self.subTest(arg=arg):
+                verdict, reason = mod.classify_go_package_arg(arg)
+                self.assertEqual(verdict, "deny")
+                self.assertTrue(reason)
+
+    def test_plain_path_is_not_a_package_pattern(self):
+        mod = load_render_seat()
+        verdict, _ = mod.classify_go_package_arg("./pkg/foo")
+        self.assertEqual(verdict, "not-a-pattern")
+
+
+class TestCmakePairing(unittest.TestCase):
+    """REQ-A1: cmake -S/-B flag-value pairing; values resolved against
+    scope roots like any path operand."""
+
+    def test_verbatim_configure_pairs_allow(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            pairs = mod.pair_cmake_flag_values(["cmake", "-S", ".", "-B", "build"])
+            self.assertEqual(pairs, [("-S", "."), ("-B", "build")])
+            for _flag, value in pairs:
+                verdict, _ = mod.classify_scoped_path_value(
+                    value, cwd=ws, path_write=["src/engine/*"]
+                )
+                self.assertEqual(verdict, "allow-effect")
+
+    def test_escape_values_deny(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            for argv in (
+                ["cmake", "-S", "../../etc", "-B", "build"],
+                ["cmake", "-S", ".", "-B", "/tmp/evil"],
+                ["cmake", "-S", ".", "-B", "build;evil"],
+            ):
+                with self.subTest(argv=argv):
+                    pairs = mod.pair_cmake_flag_values(argv)
+                    verdicts = [
+                        mod.classify_scoped_path_value(
+                            v, cwd=ws, path_write=["src/engine/*"]
+                        )[0]
+                        for _, v in pairs
+                    ]
+                    self.assertIn("deny", verdicts)
+
+    def test_dangling_flag_denies(self):
+        mod = load_render_seat()
+        pairs = mod.pair_cmake_flag_values(["cmake", "-S"])
+        self.assertEqual(pairs, [("-S", None)])
+
+
+class TestGccCommand(unittest.TestCase):
+    """REQ-A1/A2: gcc -c + source pairing; -o stays in scope; warning
+    flags coexist without touching the terminal denies."""
+
+    def test_verbatim_compile_classifies(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            src = Path(ws) / "src" / "foo.c"
+            src.parent.mkdir(parents=True)
+            src.write_text("int main(void){return 0;}\n")
+            verdict, detail = mod.classify_gcc_command(
+                ["gcc", "-c", "src/foo.c"], cwd=ws, path_write=["src/*"]
+            )
+            self.assertEqual(verdict, "allow-effect")
+            self.assertIn("src/foo.c", detail)
+
+    def test_wall_coexists_and_o_in_scope_allows(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            verdict, _ = mod.classify_gcc_command(
+                ["gcc", "-Wall", "-Wextra", "-c", "src/foo.c", "-o", "src/foo.o"],
+                cwd=ws,
+                path_write=["src/*"],
+            )
+            self.assertEqual(verdict, "allow-effect")
+
+    def test_deny_directions_hold(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            for argv in (
+                ["gcc", "-c", "../../evil.c"],
+                ["gcc", "-c", "/etc/hostname"],
+                ["gcc", "-c", "src/foo.c", "-o", "/tmp/evil.o"],
+                ["gcc", "-c", "src/foo.c;evil"],
+                ["sh", "-c", "evil"],
+            ):
+                with self.subTest(argv=argv):
+                    verdict, reason = mod.classify_gcc_command(
+                        argv, cwd=ws, path_write=["src/*"]
+                    )
+                    self.assertEqual(verdict, "deny")
+                    self.assertTrue(reason)
+
+    def test_missing_source_denies(self):
+        mod = load_render_seat()
+        with tempfile.TemporaryDirectory() as ws:
+            verdict, _ = mod.classify_gcc_command(
+                ["gcc", "-c"], cwd=ws, path_write=["src/*"]
+            )
+            self.assertEqual(verdict, "deny")
+
+
+class TestNativeMapBuilder(unittest.TestCase):
+    """REQ-A1: native-map declarations (the M0 winner) per held verbs."""
+
+    def test_pytest_role_declares_read(self):
+        mod = load_render_seat()
+        m = mod.build_command_effects_map(["pytest tests/rag*", "git status*"])
+        self.assertEqual(m, {"pytest": {"effects": "read"}})
+
+    def test_go_role_declares_build_test_with_o_guard(self):
+        mod = load_render_seat()
+        m = mod.build_command_effects_map(["go build*", "go test*"])
+        self.assertEqual(
+            m,
+            {
+                "go": {
+                    "unlessOption": ["-o"],
+                    "subcommands": {"build": "read", "test": "read"},
+                }
+            },
+        )
+
+    def test_engine_role_declares_cmake_gcc(self):
+        mod = load_render_seat()
+        m = mod.build_command_effects_map(
+            ["cmake -S *", "cmake --build*", "gcc *", "g++ *"]
+        )
+        self.assertEqual(
+            m,
+            {
+                "cmake": {"effects": "read"},
+                "gcc": {"effects": "read", "unlessOption": ["-o"]},
+                "g++": {"effects": "read", "unlessOption": ["-o"]},
+            },
+        )
+
+    def test_unrelated_verbs_declare_nothing(self):
+        mod = load_render_seat()
+        self.assertEqual(mod.build_command_effects_map(["git status*", "ctest*"]), {})
+        self.assertEqual(mod.build_command_effects_map([]), {})
+
+
+class TestDescriptorsWithVerbs(unittest.TestCase):
+    """REQ-A1/A4: audit descriptor list gains per-tool stanzas only for
+    held verbs; note/body stay first and byte-identical in shape."""
+
+    def test_empty_verbs_keep_note_body_only(self):
+        mod = load_render_seat()
+        ids = [e.get("id") for e in mod.build_command_effects([])]
+        self.assertEqual(ids, ["note-effect", "body-file-effect"])
+
+    def test_engine_verbs_append_cmake_gcc_descriptors(self):
+        mod = load_render_seat()
+        descs = mod.build_command_effects(
+            ["src/engine/*"], ["cmake -S *", "gcc *", "g++ *"]
+        )
+        ids = [e.get("id") for e in descs]
+        self.assertEqual(
+            ids,
+            ["note-effect", "body-file-effect", "cmake-effect", "gcc-effect"],
+        )
+        by_id = {e.get("id"): e for e in descs}
+        self.assertNotIn('"ask"', json.dumps(descs))
+        self.assertEqual(by_id["gcc-effect"]["overlay"], "after-terminal-denies")
+
+    def test_go_verbs_append_go_descriptor(self):
+        mod = load_render_seat()
+        ids = [e.get("id") for e in mod.build_command_effects(["pkg/*"], ["go build*"])]
+        self.assertEqual(ids, ["note-effect", "body-file-effect", "go-effect"])
+
+    def test_pytest_verbs_append_pytest_descriptor(self):
+        mod = load_render_seat()
+        ids = [
+            e.get("id")
+            for e in mod.build_command_effects(["tests/rag/*"], ["pytest tests/rag*"])
+        ]
+        self.assertEqual(ids, ["note-effect", "body-file-effect", "pytest-effect"])
+
+
 class TestCommandEffectsRendered(unittest.TestCase):
     def setUp(self):
         self.tmp_dir = tempfile.TemporaryDirectory()
@@ -255,6 +523,8 @@ class TestCommandEffectsRendered(unittest.TestCase):
         return json.loads(proc.stdout)
 
     def test_every_queue_capable_role_carries_both_effects(self):
+        # #91 migration (deliberate): config.json commandEffects is the
+        # native MAP (M0 winner); audit descriptors ride in the sidecar.
         import yaml
 
         fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
@@ -264,12 +534,17 @@ class TestCommandEffectsRendered(unittest.TestCase):
             if not any(str(a).startswith("rig queue") for a in allows):
                 continue
             with self.subTest(role=rid):
-                cfg = self.render(
+                rendered = self.render(
                     "--role", rid, "--rig", role["rig"], "--pod", role["pod"]
-                )["extensions/pi-permission-system/config.json"]
+                )
+                cfg = rendered["extensions/pi-permission-system/config.json"]
                 effects = cfg.get("commandEffects")
-                self.assertIsInstance(effects, list)
-                by_id = {e.get("id"): e for e in effects}
+                self.assertIsInstance(effects, dict)
+                sidecar = rendered[
+                    "extensions/pi-permission-system/command-effects.descriptors.json"
+                ]
+                self.assertIsInstance(sidecar, list)
+                by_id = {e.get("id"): e for e in sidecar}
                 note = by_id.get("note-effect")
                 body = by_id.get("body-file-effect")
                 self.assertIsNotNone(note)
@@ -279,19 +554,76 @@ class TestCommandEffectsRendered(unittest.TestCase):
                 self.assertEqual(body["constraints"]["maxBytes"], 262144)
                 self.assertTrue(body["constraints"]["regularFileOnly"])
                 self.assertTrue(body["constraints"]["noSymlinkEscape"])
+                self.assertTrue(body["constraints"]["noDotDotEscape"])
+                self.assertTrue(body["constraints"]["noAbsoluteTmp"])
                 checked += 1
         self.assertGreater(checked, 0)
 
     def test_command_effects_carry_no_ask_rule(self):
-        cfg = self.render(
+        rendered = self.render(
             "--role",
             "appsec-engineer",
             "--rig",
             "defensive-sec-and-red-team",
             "--pod",
             "blue",
+        )
+        cfg = rendered["extensions/pi-permission-system/config.json"]
+        sidecar = rendered[
+            "extensions/pi-permission-system/command-effects.descriptors.json"
+        ]
+        self.assertNotIn('"ask"', json.dumps(cfg.get("commandEffects", {})))
+        self.assertNotIn('"ask"', json.dumps(sidecar))
+
+    def test_native_map_keys_match_held_verbs(self):
+        import yaml
+
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        for rid, tools in (
+            ("vector-rag-spec", {"pytest"}),
+            ("go-backend-eng", {"go"}),
+            ("cpp-lowlevel-eng", {"cmake", "gcc", "g++"}),
+            ("engine-systems-eng", {"cmake", "gcc", "g++"}),
+            ("appsec-engineer", set()),
+        ):
+            with self.subTest(role=rid):
+                role = fleet["roles"][rid]
+                cfg = self.render(
+                    "--role", rid, "--rig", role["rig"], "--pod", role["pod"]
+                )["extensions/pi-permission-system/config.json"]
+                self.assertEqual(set(cfg.get("commandEffects", {}).keys()), tools)
+
+    def test_gcc_overlay_renders_after_terminal_denies(self):
+        import yaml
+
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        for rid in ("cpp-lowlevel-eng", "engine-systems-eng"):
+            with self.subTest(role=rid):
+                role = fleet["roles"][rid]
+                cfg = self.render(
+                    "--role", rid, "--rig", role["rig"], "--pod", role["pod"]
+                )["extensions/pi-permission-system/config.json"]
+                keys = list(cfg["permission"]["bash"].keys())
+                terms = [k for k in keys if k in EXPECTED_42_DENIES]
+                self.assertEqual(len(terms), 42)
+                for pat in ("gcc *", "g++ *"):
+                    self.assertEqual(cfg["permission"]["bash"][pat], "allow")
+                    self.assertGreater(keys.index(pat), keys.index(terms[-1]))
+
+    def test_go_path_read_exception_scoped_to_go_roles(self):
+        import yaml
+
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        role = fleet["roles"]["go-backend-eng"]
+        cfg = self.render(
+            "--role", "go-backend-eng", "--rig", role["rig"], "--pod", role["pod"]
         )["extensions/pi-permission-system/config.json"]
-        self.assertNotIn('"ask"', json.dumps(cfg.get("commandEffects", [])))
+        self.assertEqual(cfg["permission"].get("path_read"), {"*/...": "allow"})
+        role = fleet["roles"]["appsec-engineer"]
+        cfg = self.render(
+            "--role", "appsec-engineer", "--rig", role["rig"], "--pod", role["pod"]
+        )["extensions/pi-permission-system/config.json"]
+        self.assertNotIn("path_read", cfg["permission"])
 
 
 if __name__ == "__main__":
