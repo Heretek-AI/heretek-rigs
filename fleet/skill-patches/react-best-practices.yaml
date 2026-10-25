@@ -1,0 +1,13 @@
+# fleet/skill-patches/react-best-practices.yaml — fleet-side vendor patch (issue #101).
+#
+# The upstream vercel-labs/agent-skills react-best-practices SKILL.md
+# declares frontmatter `name: vercel-react-best-practices` while the fleet
+# binds and vendors it as `react-best-practices` (fleet/fleet.yaml). The
+# V17 gate requires `name == dirname`; the mismatch is repaired here via
+# the generator (scripts/generate-rigs.py load_skill_patches /
+# apply_skill_patch), never by hand-editing `specs/`. Content is
+# unchanged — only the name is aligned to the fleet binding.
+skill: react-best-practices
+reason: "align frontmatter name to the fleet skill id (#101 V17)"
+frontmatter:
+  name: "react-best-practices"
