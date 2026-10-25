@@ -93,3 +93,90 @@ warn) when a bound command points at a nonexistent path.
   this untracked evidence file. No production or test files changed by QA.
 
 Refs #74 (never Closes #74; issue stays OPEN per spec REQ-G1).
+
+## 7. Rework-cycle-1 QA re-verification (fix commit 941ff77, CodeQL py/clear-text-logging-sensitive-data)
+
+- Fix under test: `941ff77 fix(provisioning-gate-74): warn raw catalog command
+  token, not substituted path` (on top of T3 `ac44602`). One file changed:
+  `scripts/render-seat.py` (+6/-1). The REQ-P1 MCP warn now logs the raw
+  catalog command leading token (`_raw74`, e.g. `@TOOLS@/bin/r2mcp`) instead
+  of the substituted absolute artifact (`_art74`) derived from secrets/tools
+  dirs. No prod/test logic change beyond the logged token.
+- Date (UTC): 2026-10-25. Worktree:
+  `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/provisioning-gate-74`
+  (branch `feat/provisioning-gate-74` @ `941ff77`). Unity binding: N/A.
+
+### 7a. Baseline acceptance (unmodified tree @ 941ff77)
+
+| Check | Result |
+|---|---|
+| `make verify` | `SUMMARY: 32 checks passed, 0 failed`, exit 0 |
+| `./scripts/verify-rigs.sh --check-only` | `SUMMARY: 32 checks passed, 0 failed`, exit 0, incl. `[PASS] Provisioning existence gate (#74) green` |
+| `pytest tests/test_render_seat.py tests/test_seed_rig.py tests/test_live_health.py tests/test_policy_verifier.py` (acceptance command) | 81 passed, exit 0 (10.29s; 10.14s post-restore rerun) |
+
+### 7b. Fix-property verification (no host-path / no secret content in warn)
+
+- Render with empty tools dir (dummy 0600 secrets + bare tools fixture under
+  `/tmp/opencode/qa74-*`, `PATH=/tmp/opencode/qa74-emptybin`):
+  `render-seat.py --role binary-reverse-eng --rig defensive-sec-and-red-team
+  --pod red --dry-run --allow-missing-secrets` → exit 0, radare2 entry
+  `"enabled": false`, stderr carries exactly
+  `warn: red-binary-reverse-eng@defensive-sec-and-red-team: radare2 disabled, missing tool artifact: @TOOLS@/bin/r2mcp`.
+- Warn names server (`radare2`) + seat
+  (`red-binary-reverse-eng@defensive-sec-and-red-team`) + artifact in catalog
+  form (`@TOOLS@/bin/r2mcp`) per REQ-P1 — still loud, never silent.
+- Leak scan of full stderr: zero matches for the tmpdir path
+  (`/tmp/opencode/qa74`), zero for the secrets dirname, zero for the dummy
+  secret content, zero host-absolute paths (`/tmp/|/home/|*.config|secrets`
+  pattern). The only slash-bearing stderr line is the `@TOOLS@` catalog-form
+  token itself. Bash-grant warns carry bare binary names only
+  (`r2`, `rabin2`, `tshark`, `rig`). No secret CONTENTS in any warn
+  (paths/names only, matching the repo `!cat`-reference convention).
+
+### 7c. Red-proof sabotage, direction (a): missing command → loud degradation
+
+- Defect: `fleet/mcp-servers.yaml`, semgrep block,
+  `command: uvx` → `command: /nonexistent-qa74-rework1-sabotage` (1 line,
+  then `git checkout -- fleet/mcp-servers.yaml` to restore).
+- Under sabotage, appsec-engineer/blue render: exit 0 degraded, semgrep
+  entry `"enabled": false`, stderr carries
+  `warn: blue-appsec-engineer@defensive-sec-and-red-team: semgrep disabled, missing tool artifact: /nonexistent-qa74-rework1-sabotage`
+  (raw catalog token, names server + seat + artifact).
+- Restore: `git checkout -- fleet/mcp-servers.yaml`; `git status --short`
+  empty.
+
+### 7d. Red-proof sabotage, direction (b): silenced warn → verify must RED
+
+- Defect: `scripts/render-seat.py`, replaced the REQ-P1 warn `print(...)`
+  block with `pass  # QA74-REWORK1-SABOTAGE: warn silenced`
+  (then `git checkout -- scripts/render-seat.py` to restore).
+- `./scripts/verify-rigs.sh --check-only` under sabotage: **exit 1**,
+  `SUMMARY: 30 checks passed, 4 failed`, with
+  `[FAIL] V16/#74: scripts/render-seat.py must contain 'disabled, missing tool artifact' (REQ-P1)`,
+  `[FAIL] V16/#74 red-proof (missing): stderr must name semgrep + missing tool artifact uvx`,
+  `[FAIL] V16/#74 red-proof (missing): stderr must name r2mcp as the missing tool artifact`,
+  `[FAIL] tests/test_render_seat.py failed: … TestProvisioningGate74.test_missing_mcp_binary_disables_loudly`.
+- Restore: `git checkout -- scripts/render-seat.py`; verify back to
+  `SUMMARY: 32 checks passed, 0 failed` exit 0; full pytest corpus back to
+  81 passed exit 0; `git status --short` clean.
+
+### 7e. Vacuous-check verdict (rework-cycle-1)
+
+No vacuous checks. The V16 string gate, both behavioral red-proofs, and the
+pytest missing-binary test all turn RED when the warn is silenced, and both
+the `@TOOLS@`-form (radare2) and bare-name (semgrep/uvx) layers observably
+degrade (`enabled:false` + named warn) when the bound command is
+unresolvable — with the warn now provably free of host-absolute
+secrets/tools paths.
+
+### 7f. Restore proofs
+
+- After (a): `git checkout -- fleet/mcp-servers.yaml` → `git status
+  --short` empty.
+- After (b): `git checkout -- scripts/render-seat.py` → `git status
+  --short` empty; `verify-rigs.sh --check-only` 32/0 exit 0; pytest 81
+  passed exit 0.
+- Pre-evidence-commit `git status --short` showed nothing modified except
+  this evidence file. No production or test files changed by QA.
+
+Refs #74 (never Closes #74; issue stays OPEN per spec REQ-G1).
