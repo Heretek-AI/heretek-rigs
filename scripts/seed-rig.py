@@ -45,6 +45,70 @@ def die(msg: str) -> None:
     sys.exit(2)
 
 
+# provisioning-gate-74 (#74, REQ-P2/P4): read-only stage-time existence
+# gate. Same resolution as scripts/render-seat.py (shutil.which +
+# path-exists, no installs/pulls/network) applied to each staged seat's
+# bound MCP commands + bash-grant leading binaries. Degrade-loudly with
+# the same warn shape as the render gate (REQ-P1): never silent, never a
+# hard fail (the renderer itself stays the per-seat authority).
+def _resolve_artifact74(command) -> tuple:
+    if not isinstance(command, str) or not command.strip():
+        return (False, str(command))
+    first = command.strip()
+    if Path(first).is_absolute():
+        return (shutil.which(first) is not None, first)
+    if "/" in first:
+        return (shutil.which(first) is not None, first)
+    return (shutil.which(first) is not None, first)
+
+
+def _bash_leading74(pattern) -> str | None:
+    if not isinstance(pattern, str) or not pattern.strip():
+        return None
+    first = pattern.strip().split()[0]
+    if not first:
+        return None
+    cut = len(first)
+    for i, ch in enumerate(first):
+        if ch in "*?[]{}()$`;&|<>'\"!#~\\":
+            cut = i
+            break
+    candidate = first[:cut]
+    if not candidate:
+        return None
+    if "/" in candidate:
+        return None
+    return candidate
+
+
+def stage_time_provisioning_warns(
+    role_id, session, role, mcp_servers, tools_dir
+) -> list:
+    """Return stage-time warn lines (without the trailing newline) for one
+    seat. Pure read-only resolution; callers print each line to stderr."""
+    warns = []
+    for binding in role.get("mcp", []) or []:
+        srv_name = binding.get("server")
+        server = mcp_servers.get(srv_name, {})
+        if server.get("transport") == "http" or "command" not in server:
+            continue
+        raw = str(server["command"]).replace("@TOOLS@", tools_dir)
+        ok, artifact = _resolve_artifact74(raw)
+        if not ok:
+            warns.append(
+                f"warn: {session}: {srv_name} missing tool artifact "
+                f"at stage time: {artifact}"
+            )
+    for pattern in role.get("permissions", {}).get("bash_allow", []) or []:
+        binary = _bash_leading74(pattern)
+        if binary is not None and shutil.which(binary) is None:
+            warns.append(
+                f"warn: {session}: bash grant {pattern!r} missing tool "
+                f"artifact at stage time: {binary}"
+            )
+    return warns
+
+
 def role_of(m: dict) -> str:
     ref = m.get("agent_ref")
     if not ref:
@@ -113,7 +177,35 @@ def main() -> None:
         die(f"{target_path}: not a rig spec, pod fragment or member fragment")
 
     render_script = Path(__file__).resolve().parent / "render-seat.py"
+    # provisioning-gate-74 (#74, REQ-P2): load the fleet catalog + MCP
+    # catalog once for the stage-time gate. Unreadable catalogs degrade to
+    # a single named warn (the renderer re-checks per seat anyway).
+    _repo74 = Path(__file__).resolve().parent.parent
+    _fleet74, _mcp74 = {}, {}
+    try:
+        _fleet74 = yaml.safe_load((_repo74 / "fleet" / "fleet.yaml").read_text()) or {}
+        _mcp74 = (
+            yaml.safe_load((_repo74 / "fleet" / "mcp-servers.yaml").read_text()) or {}
+        ).get("servers", {})
+    except Exception as _e74:
+        print(f"warn: stage-time provisioning gate unchecked: {_e74}", file=sys.stderr)
+    _tools74 = os.environ.get(
+        "HERETEK_TOOLS", str(Path.home() / ".local/share/heretek-rigs/tools")
+    )
+    _roles74 = _fleet74.get("roles", {}) if isinstance(_fleet74, dict) else {}
     for s in seats:
+        _session74 = f"{s['pod']}-{s['member']}@{s['rig']}"
+        _role74 = _roles74.get(s["role"])
+        if _role74 is None:
+            print(
+                f"warn: {_session74}: unknown role {s['role']} at stage time",
+                file=sys.stderr,
+            )
+        else:
+            for _w74 in stage_time_provisioning_warns(
+                s["role"], _session74, _role74, _mcp74, _tools74
+            ):
+                print(_w74, file=sys.stderr)
         cmd = [
             sys.executable,
             str(render_script),

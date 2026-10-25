@@ -137,7 +137,13 @@ class TestRenderSeat(unittest.TestCase):
         spec.loader.exec_module(mod)
         self.assertEqual(
             mod._sandbox_bind_roots(
-                ["src/*", "tests/chaos/*", "package.json", "*package-lock.json", "docs/*.md"]
+                [
+                    "src/*",
+                    "tests/chaos/*",
+                    "package.json",
+                    "*package-lock.json",
+                    "docs/*.md",
+                ]
             ),
             ["src/", "tests/chaos/", "package.json", "*package-lock.json", "docs/*.md"],
         )
@@ -412,6 +418,171 @@ class TestRenderSeat(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 2)
         self.assertRegex(proc.stderr, r"version 40\.0\.0, need 41\.0\.0")
+
+
+class TestProvisioningGate74(unittest.TestCase):
+    """provisioning-gate-74 REQ-P1/P4: read-only render-time existence gate.
+
+    No installs, no pulls, no network: resolution is shutil.which +
+    path-exists only. Missing artifacts degrade loudly (enabled:false +
+    named stderr warn), never silently.
+    """
+
+    def setUp(self):
+        self.tmp_dir = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp_dir.cleanup)
+        self.secrets = Path(self.tmp_dir.name) / "secrets"
+        self.secrets.mkdir(mode=0o700)
+        key_file = self.secrets / "opencode-go.key"
+        key_file.write_text("dummy")
+        os.chmod(key_file, 0o600)
+        self.tools = Path(self.tmp_dir.name) / "tools"
+        pps = self.tools / "pi-packages/node_modules/@gotgenes/pi-permission-system"
+        pps.mkdir(parents=True)
+        (pps / "package.json").write_text(json.dumps({"version": "41.0.0"}))
+        self.empty_bin = Path(self.tmp_dir.name) / "emptybin"
+        self.empty_bin.mkdir()
+        self.base_env = {
+            **os.environ,
+            "HERETEK_SECRETS": str(self.secrets),
+            "HERETEK_TOOLS": str(self.tools),
+            "OPENRIG_HOME": "/tmp/hr-openrig",
+            "PATH": str(self.empty_bin),
+        }
+
+    def render_proc(self, role, rig, pod, extra_env=None):
+        env = dict(self.base_env)
+        env.update(extra_env or {})
+        return subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                role,
+                "--rig",
+                rig,
+                "--pod",
+                pod,
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=env,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_resolve_tool_artifact_missing_and_present(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("render_seat74", RENDER_SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        ok, artifact = mod.resolve_tool_artifact("definitely-missing-hr-binary-xyz")
+        self.assertFalse(ok)
+        self.assertEqual(artifact, "definitely-missing-hr-binary-xyz")
+        ok, artifact = mod.resolve_tool_artifact("/nonexistent-hr/path/tool-mcp")
+        self.assertFalse(ok)
+        stub = self.empty_bin / "hr-stub-tool"
+        stub.write_text("#!/bin/sh\n")
+        stub.chmod(0o755)
+        env_path = str(self.empty_bin)
+        old_path = os.environ.get("PATH", "")
+        os.environ["PATH"] = env_path
+        try:
+            ok, artifact = mod.resolve_tool_artifact("hr-stub-tool")
+        finally:
+            os.environ["PATH"] = old_path
+        self.assertTrue(ok)
+        self.assertEqual(artifact, "hr-stub-tool")
+
+    def test_bash_leading_binary_skips_globs(self):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("render_seat74b", RENDER_SCRIPT)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        self.assertEqual(mod.bash_leading_binary("r2 -e cfg.sandbox=true -q*"), "r2")
+        self.assertEqual(mod.bash_leading_binary("rabin2*"), "rabin2")
+        self.assertEqual(mod.bash_leading_binary("tshark -r *"), "tshark")
+        self.assertIsNone(mod.bash_leading_binary("*--output*"))
+        self.assertIsNone(mod.bash_leading_binary("*;*"))
+        self.assertIsNone(mod.bash_leading_binary(""))
+
+    def test_missing_mcp_binary_disables_loudly(self):
+        # Fixture tools dir carries no mcp .bin files and PATH carries no
+        # uvx: both bound servers must degrade loudly, never silently.
+        proc = self.render_proc("appsec-engineer", "defensive-sec-and-red-team", "blue")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        files = json.loads(proc.stdout)
+        servers = files["mcp.json"]["mcpServers"]
+        self.assertEqual(servers["semgrep"].get("enabled"), False)
+        self.assertEqual(servers["codebase-memory"].get("enabled"), False)
+        self.assertRegex(
+            proc.stderr,
+            r"warn: blue-appsec-engineer@defensive-sec-and-red-team: "
+            r"semgrep.*missing tool artifact.*uvx",
+        )
+        self.assertRegex(
+            proc.stderr,
+            r"warn: blue-appsec-engineer@defensive-sec-and-red-team: "
+            r"codebase-memory.*missing tool artifact.*codebase-memory-mcp",
+        )
+
+    def test_present_mcp_binary_stays_enabled(self):
+        bindir = self.tools / "mcp/node_modules/.bin"
+        bindir.mkdir(parents=True)
+        for name in ("codebase-memory-mcp",):
+            stub = bindir / name
+            stub.write_text("#!/bin/sh\n")
+            stub.chmod(0o755)
+        uvx = self.empty_bin / "uvx"
+        uvx.write_text("#!/bin/sh\n")
+        uvx.chmod(0o755)
+        # appsec bash grants resolve leading binaries too (semgrep/trivy);
+        # stub them so the only signal under test is the mcp gate.
+        for name in ("semgrep", "trivy", "rig", "git", "strings"):
+            stub = self.empty_bin / name
+            stub.write_text("#!/bin/sh\n")
+            stub.chmod(0o755)
+        proc = self.render_proc("appsec-engineer", "defensive-sec-and-red-team", "blue")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        files = json.loads(proc.stdout)
+        servers = files["mcp.json"]["mcpServers"]
+        self.assertNotEqual(servers["semgrep"].get("enabled"), False)
+        self.assertNotEqual(servers["codebase-memory"].get("enabled"), False)
+        self.assertNotIn("missing tool artifact", proc.stderr)
+
+    def test_missing_bash_binary_warns_loudly(self):
+        # r2/rabin2/tshark are absent from the stripped PATH: the render
+        # must name the seat and the missing artifact on stderr.
+        proc = self.render_proc(
+            "binary-reverse-eng", "defensive-sec-and-red-team", "red"
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        for binary in ("r2", "rabin2", "tshark"):
+            self.assertRegex(
+                proc.stderr,
+                r"warn: red-binary-reverse-eng@defensive-sec-and-red-team: "
+                rf"bash grant .*missing tool artifact: {binary}",
+            )
+
+    def test_present_bash_binary_is_silent(self):
+        for binary in ("r2", "rabin2", "tshark"):
+            stub = self.empty_bin / binary
+            stub.write_text("#!/bin/sh\n")
+            stub.chmod(0o755)
+        r2mcp = self.tools / "bin"
+        r2mcp.mkdir(parents=True)
+        (r2mcp / "r2mcp").write_text("#!/bin/sh\n")
+        (r2mcp / "r2mcp").chmod(0o755)
+        proc = self.render_proc(
+            "binary-reverse-eng", "defensive-sec-and-red-team", "red"
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertNotIn("missing tool artifact: r2", proc.stderr)
+        self.assertNotIn("missing tool artifact: rabin2", proc.stderr)
+        self.assertNotIn("missing tool artifact: tshark", proc.stderr)
 
 
 if __name__ == "__main__":
