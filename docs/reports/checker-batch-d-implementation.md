@@ -113,3 +113,12 @@ behavior, verify-green; and bd6ed99 40-hex provenance, accepted re-lag).
   provenance) — satisfied via the spec's own alternative (validate against
   installed copies via native verbs) + local freeze pin. Upstream
   `docs/reference/schemas` (0.6.11 checkout) deliberately NOT vendored.
+
+## Addendum: final acceptance re-run (2026-10-25, after rate-limit cooldown)
+
+- `make verify` → rc=0, `SUMMARY: 35 checks passed, 0 failed`
+  (incl. `[PASS] Stale-count guard (#102) green: live docs state the live
+  SUMMARY (35 checks passed)...`); live-health daemon SKIPs only.
+- Tree was byte-clean at 771d0b3 for this run; no source changes since the
+  first green run. The V13 rate-limit episode above is closed: transient,
+  environmental, no repo change needed. T1 acceptance evidence is this run.
