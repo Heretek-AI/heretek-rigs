@@ -2380,10 +2380,14 @@ print("\n== V19. Canonical Stale-Count Guard (#102) ==")
 # AUDIT_REPORT_FINDINGS, briefs, snapshots, evidence, reports, sprints)
 # is intentionally out of scope and never scanned.
 _v19_before = len(failures)
+# Self-inclusion: this block's own ok() below is part of the final SUMMARY,
+# so the live expectation is passes+1 (checked before ok() runs). A future
+# appended block without a doc refresh then fails here instead of rotting.
+_v19_live = passes + 1
 for _doc19, _need19 in (
-    (root / "AGENTS.md", f"{passes} checks passed"),
-    (root / "README.md", f"{passes} checks passed"),
-    (root / "docs/USER_GUIDE.md", f"SUMMARY: {passes} checks passed"),
+    (root / "AGENTS.md", f"{_v19_live} checks passed"),
+    (root / "README.md", f"{_v19_live} checks passed"),
+    (root / "docs/USER_GUIDE.md", f"SUMMARY: {_v19_live} checks passed"),
 ):
     try:
         _dt19 = _doc19.read_text()
@@ -2424,7 +2428,7 @@ if "64 shared skills" in _v19_gen or "64 vendored skill" in _v19_gen:
     )
 if len(failures) == _v19_before:
     ok(
-        f"Stale-count guard (#102) green: live docs state the live SUMMARY ({passes} checks passed), no stale 64/0.6.11/31 strings in live files"
+        f"Stale-count guard (#102) green: live docs state the live SUMMARY ({_v19_live} checks passed), no stale 64/0.6.11/31 strings in live files"
     )
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
