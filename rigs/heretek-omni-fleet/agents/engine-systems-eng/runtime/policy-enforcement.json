@@ -170,6 +170,14 @@
       "unlessOption": [
         "-o"
       ]
+    },
+    "ctest": {
+      "effects": "read",
+      "unlessOption": [
+        "-S",
+        "--script",
+        "--script-new-process"
+      ]
     }
   }
 }

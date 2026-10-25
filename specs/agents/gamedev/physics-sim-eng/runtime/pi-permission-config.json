@@ -135,5 +135,14 @@
     },
     "external_directory": "deny"
   },
-  "commandEffects": {}
+  "commandEffects": {
+    "ctest": {
+      "effects": "read",
+      "unlessOption": [
+        "-S",
+        "--script",
+        "--script-new-process"
+      ]
+    }
+  }
 }

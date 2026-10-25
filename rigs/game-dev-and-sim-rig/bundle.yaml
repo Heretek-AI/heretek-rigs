@@ -620,9 +620,9 @@ integrity:
     agents/engine-systems-eng/agent.yaml: 8624285eef1ae2e5a4600da9422ad818fc5f176ab51ddafdee252740304314f4
     agents/engine-systems-eng/guidance/role.md: 6c7cdc69a1604e17cb13c7c5193f22fadb7b96ae6e900e31d06156687fedbaf3
     agents/engine-systems-eng/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/engine-systems-eng/runtime/pi-permission-config.json: 1fef87d9281219979be50c9c199f98f2dba759b01c92e0b250e96207f95e9197
+    agents/engine-systems-eng/runtime/pi-permission-config.json: 8a9049f75a1e132e558eb95b60638aa5f282818993f3a0c81efea318fa68245c
     agents/engine-systems-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/engine-systems-eng/runtime/policy-enforcement.json: 79576a6b2bd9eae3190fb1fd348b59478db6f65a7334df32676cc3b1307317df
+    agents/engine-systems-eng/runtime/policy-enforcement.json: 16c47258c0e2c94d9940b715de571835ecea3c74ea3ec01350c80fb95b083085
     agents/engine-systems-eng/skills/cache-conscious-ecs-design/SKILL.md: d8f4b69cd8cd1b2f65b8bde5f3aa52c2f28ff9e133bddf93bea19b16c647bb39
     agents/engine-systems-eng/startup/context.md: 2d10eb7fd7fc54de5188caa62a49cd77fe9cd4313f1c640314e5c078d5515acf
     agents/game-ai-dev/agent.yaml: ccacc1e8e01dcb435c5bf6ebe8bc75a7fb5f01aabc6e08c47c22404e05d54753
@@ -652,9 +652,9 @@ integrity:
     agents/physics-sim-eng/agent.yaml: 172b5ed0e039624098cc6590a13599a482716fbc9e5f7fad2ed0b8dfc9171567
     agents/physics-sim-eng/guidance/role.md: d07c0ea9e68ac45983139cb52a15ae47379a3ee5f083a8ef5acb38b5eaebd58b
     agents/physics-sim-eng/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/physics-sim-eng/runtime/pi-permission-config.json: fce5e9579054c0585f1dd58777f73f9a0584c3c30375dceda0ecd0f458a34fc8
+    agents/physics-sim-eng/runtime/pi-permission-config.json: 68f879300044e673805169b12d59bbe3df6d5e70918a546ed946183d26f53b0f
     agents/physics-sim-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/physics-sim-eng/runtime/policy-enforcement.json: 4acd183ad644746112173fa2e36e775cc5df06da069665d2139dd47e593c4183
+    agents/physics-sim-eng/runtime/policy-enforcement.json: 1a542f1d4eeb047e754385d6766a9246b71888930370beeab76b62fb77e67e8d
     agents/physics-sim-eng/skills/collision-broadphase-optimization/SKILL.md: 7df3d11a480b25775c0c7381f105a959a7d70f032e4b79c705e3186a95f079a5
     agents/physics-sim-eng/startup/context.md: 2cd8edf6d28c180217dc2e8dd9757fecc3000b1d1840d9350b98d6dbcb3b20cd
     agents/tech-artist-pipeline/agent.yaml: 7417fcd011e1879cecf8a301c6ba0aaf658d48ca12a05807df09a3ace40ab77d
