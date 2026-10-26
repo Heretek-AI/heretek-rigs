@@ -55,6 +55,39 @@ command_effects:
     argv: [rig, queue, --body-file]
     scope: [realpath-CWD, path_write-expanded-roots, pid-scratched-var-tmp]
     max_bytes: 262144
+# #91 scoped build/test path args (REQ-A1/A2/A3): catalog for the argv-slot
+# stanzas the renderer turns into native-map `commandEffects` (enforcement,
+# M0 winner) plus audit descriptors (review). Overlay patterns below are
+# the ONLY bash allows permitted after the terminal denies (REQ-A2).
+  pytest_effect:
+    argv: [pytest, <tests/rag-operand>]
+    scope: [realpath-CWD, path_write-expanded-roots]
+    native: {pytest: {effects: read}}
+  go_effect:
+    argv: [go, <build|test>, <package-pattern-or-path>]
+    scope: [realpath-CWD, path_write-expanded-roots]
+    package_pattern_branch: true
+    path_read_exception: ['*/...']
+    native: {go: {unlessOption: [-o], subcommands: {build: read, test: read}}}
+  cmake_effect:
+    argv: [cmake, -S, <source-dir>, -B, <build-dir>]
+    scope: [realpath-CWD, path_write-expanded-roots]
+    flag_value_pairing: [-S, -B]
+    native: {cmake: {effects: read}}
+  gcc_effect:
+    argv: [gcc|g++, -c, <source>, -o, <object>]
+    scope: [realpath-CWD, path_write-expanded-roots]
+    compile_slot_only: true
+    bash_overlay_patterns: ['gcc *', 'g++ *']
+    overlay_position: after-terminal-denies
+    roles_only: [cpp-lowlevel-eng, engine-systems-eng]
+    native: {gcc: {effects: read, unlessOption: [-o]}, g++: {effects: read, unlessOption: [-o]}}
+  ctest_effect:
+    argv: [ctest, <--test-dir>, <build-dir>]
+    scope: [realpath-CWD, path_write-expanded-roots]
+    test_dir_only: true
+    no_script_mode: true
+    native: {ctest: {effects: read, unlessOption: [-S, --script, --script-new-process]}}
 rigs:
 - id: executive-and-architecture
   title: Executive & Architecture
@@ -1419,6 +1452,8 @@ roles:
       - ctest*
       - ./build.sh*
       - clang-tidy*
+      - gcc *
+      - g++ *
       - rig whoami*
       - rig ps*
       - rig queue *
@@ -1826,13 +1861,17 @@ roles:
       - build.sh
       - CMakePresets.json
       - CMakeLists.txt
+      - build/*
       bash_allow:
       - cargo bench*
       - cargo test engine*
       - cmake --build*
       - ctest*
       - cmake --version*
+      - cmake -S *
       - clang --version*
+      - gcc *
+      - g++ *
       - date +%s
       - rig whoami*
       - rig ps*

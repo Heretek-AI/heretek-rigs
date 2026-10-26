@@ -132,6 +132,9 @@
       "scripts/*": "deny",
       "*..*": "deny"
     },
+    "path_read": {
+      "*/...": "allow"
+    },
     "mcp": {
       "*": "deny",
       "codebase-memory": "allow",
@@ -139,69 +142,15 @@
     },
     "external_directory": "deny"
   },
-  "commandEffects": [
-    {
-      "id": "note-effect",
-      "argv": [
-        "rig",
-        "queue",
-        "--note"
+  "commandEffects": {
+    "go": {
+      "unlessOption": [
+        "-o"
       ],
-      "match": {
-        "position": "single-argv-value",
-        "pattern": "^[A-Za-z0-9 _\\-/.:|]+$",
-        "execModel": "argv-not-shell"
-      },
-      "covers": [
-        "rig queue create --note",
-        "rig queue block --note",
-        "rig queue update --reopen --note",
-        "park-typed-block.py relay",
-        "sweep-typed-blocks.py relay"
-      ],
-      "denyWhen": [
-        ";",
-        "$",
-        "`",
-        "$(",
-        "OPENRIG_SESSION_NAME=",
-        "OPENRIG_URL=",
-        "newline",
-        "carriage-return"
-      ],
-      "effect": "allow-effect"
-    },
-    {
-      "id": "body-file-effect",
-      "argv": [
-        "rig",
-        "queue",
-        "--body-file"
-      ],
-      "scope": {
-        "cwd": "realpath(CWD)",
-        "writeRootsSource": "permissions.path_write",
-        "writeRoots": [
-          "cmd/*",
-          "internal/*",
-          "pkg/*",
-          "go.mod",
-          "go.sum"
-        ],
-        "scratch": "/var/tmp/seatjail.<pid>.*"
-      },
-      "constraints": {
-        "regularFileOnly": true,
-        "maxBytes": 262144,
-        "noSymlinkEscape": true,
-        "noDotDotEscape": true,
-        "noAbsoluteTmp": true
-      },
-      "covers": [
-        "rig queue create --body-file",
-        "send-authenticated.sh --source staged relay"
-      ],
-      "effect": "allow-effect-if-in-scope-else-deny"
+      "subcommands": {
+        "build": "read",
+        "test": "read"
+      }
     }
-  ]
+  }
 }

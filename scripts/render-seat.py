@@ -254,10 +254,13 @@ def check_body_file_path(raw_path: str, *, cwd: str, path_write) -> tuple:
     )
 
 
-def build_command_effects(path_write) -> list:
+def build_command_effects(path_write, role_verbs=None) -> list:
     """REQ-C1/C2 declarative overlay rendered into every seat's permission
-    output. Role-specific write roots ride along as descriptors only."""
-    return [
+    output. Role-specific write roots ride along as descriptors only.
+    #91: with role_verbs (the role's bash_allow), per-tool scoped-arg
+    descriptors (pytest/go/cmake/gcc) are appended for held verbs only;
+    without verbs the list stays note + body-file (V15 pin)."""
+    effects = [
         {
             "id": "note-effect",
             "argv": ["rig", "queue", "--note"],
@@ -299,6 +302,311 @@ def build_command_effects(path_write) -> list:
             "effect": "allow-effect-if-in-scope-else-deny",
         },
     ]
+    if role_verbs:
+        _binaries = set()
+        for _pat in role_verbs:
+            _bin = bash_leading_binary(str(_pat))
+            if _bin is not None:
+                _binaries.add(_bin)
+        if "pytest" in _binaries:
+            effects.append(
+                {
+                    "id": "pytest-effect",
+                    "argv": ["pytest", "<tests/rag-operand>"],
+                    "scope": {
+                        "cwd": "realpath(CWD)",
+                        "writeRootsSource": "permissions.path_write",
+                        "writeRoots": list(path_write or []),
+                    },
+                    "constraints": {
+                        "scopedOperandOnly": True,
+                        "noSymlinkEscape": True,
+                        "noDotDotEscape": True,
+                        "noAbsoluteTmp": True,
+                    },
+                    "covers": ["pytest tests/rag"],
+                    "native": {"pytest": {"effects": "read"}},
+                    "effect": "allow-effect-if-in-scope-else-deny",
+                }
+            )
+        if "go" in _binaries:
+            effects.append(
+                {
+                    "id": "go-effect",
+                    "argv": ["go", "<build|test>", "<package-pattern-or-path>"],
+                    "scope": {
+                        "cwd": "realpath(CWD)",
+                        "writeRootsSource": "permissions.path_write",
+                        "writeRoots": list(path_write or []),
+                    },
+                    "constraints": {
+                        "packagePatternBranch": True,
+                        "noSymlinkEscape": True,
+                        "noDotDotEscape": True,
+                        "noAbsoluteTmp": True,
+                    },
+                    "covers": ["go build ./...", "go build .", "go test ./..."],
+                    "native": {
+                        "go": {
+                            "unlessOption": ["-o"],
+                            "subcommands": {"build": "read", "test": "read"},
+                        }
+                    },
+                    "effect": "allow-effect-if-in-scope-else-deny",
+                }
+            )
+        if "cmake" in _binaries:
+            effects.append(
+                {
+                    "id": "cmake-effect",
+                    "argv": ["cmake", "-S", "<source-dir>", "-B", "<build-dir>"],
+                    "scope": {
+                        "cwd": "realpath(CWD)",
+                        "writeRootsSource": "permissions.path_write",
+                        "writeRoots": list(path_write or []),
+                    },
+                    "constraints": {
+                        "flagValuePairing": ["-S", "-B"],
+                        "noSymlinkEscape": True,
+                        "noDotDotEscape": True,
+                        "noAbsoluteTmp": True,
+                    },
+                    "covers": ["cmake -S . -B build"],
+                    "native": {"cmake": {"effects": "read"}},
+                    "effect": "allow-effect-if-in-scope-else-deny",
+                }
+            )
+        if "gcc" in _binaries or "g++" in _binaries:
+            effects.append(
+                {
+                    "id": "gcc-effect",
+                    "argv": ["gcc|g++", "-c", "<source>", "-o", "<object>"],
+                    "scope": {
+                        "cwd": "realpath(CWD)",
+                        "writeRootsSource": "permissions.path_write",
+                        "writeRoots": list(path_write or []),
+                    },
+                    "constraints": {
+                        "compileSlotOnly": True,
+                        "noSymlinkEscape": True,
+                        "noDotDotEscape": True,
+                        "noAbsoluteTmp": True,
+                    },
+                    "covers": ["gcc -c src/foo.c", "g++ -c src/foo.cpp"],
+                    "overlay": "after-terminal-denies",
+                    "native": {
+                        "gcc": {"effects": "read", "unlessOption": ["-o"]},
+                        "g++": {"effects": "read", "unlessOption": ["-o"]},
+                    },
+                    "effect": "allow-effect-if-in-scope-else-deny",
+                }
+            )
+        if "ctest" in _binaries:
+            effects.append(
+                {
+                    "id": "ctest-effect",
+                    "argv": ["ctest", "<--test-dir>", "<build-dir>"],
+                    "scope": {
+                        "cwd": "realpath(CWD)",
+                        "writeRootsSource": "permissions.path_write",
+                        "writeRoots": list(path_write or []),
+                    },
+                    "constraints": {
+                        "testDirOnly": True,
+                        "noScriptMode": True,
+                        "noSymlinkEscape": True,
+                        "noDotDotEscape": True,
+                        "noAbsoluteTmp": True,
+                    },
+                    "covers": ["ctest --test-dir build --output-on-failure"],
+                    "native": {
+                        "ctest": {
+                            "effects": "read",
+                            "unlessOption": [
+                                "-S",
+                                "--script",
+                                "--script-new-process",
+                            ],
+                        }
+                    },
+                    "effect": "allow-effect-if-in-scope-else-deny",
+                }
+            )
+    return effects
+
+
+# #91 scoped build/test path args (REQ-A1/A2): native-map declarations (the
+# M0 winner — the descriptor list form is unparsed by installed pps 41.0.0
+# and fails the whole permission layer closed to ask) plus the audit-side
+# classifiers below. Enforcement lives in pps (map + path surfaces); the
+# descriptors above document the argv slots for review and red-proofs.
+def build_command_effects_map(bash_allow) -> dict:
+    """REQ-A1 native `commandEffects` map keyed by bare basename (pps
+    config-schema: record of command → entry). Only tools whose verbs the
+    role holds are declared; anything else stays unproven (fail-closed)."""
+    binaries = set()
+    for _pat in bash_allow or []:
+        _bin = bash_leading_binary(str(_pat))
+        if _bin is not None:
+            binaries.add(_bin)
+    declared = {}
+    if "pytest" in binaries:
+        declared["pytest"] = {"effects": "read"}
+    if "go" in binaries:
+        declared["go"] = {
+            "unlessOption": ["-o"],
+            "subcommands": {"build": "read", "test": "read"},
+        }
+    if "cmake" in binaries:
+        declared["cmake"] = {"effects": "read"}
+    if "gcc" in binaries:
+        declared["gcc"] = {"effects": "read", "unlessOption": ["-o"]}
+    if "g++" in binaries:
+        declared["g++"] = {"effects": "read", "unlessOption": ["-o"]}
+    if "ctest" in binaries:
+        declared["ctest"] = {
+            "effects": "read",
+            "unlessOption": ["-S", "--script", "--script-new-process"],
+        }
+    return declared
+
+
+# Shell-control tokens rejected in scoped path values — the same token set
+# as the note-effect deny list (REQ-A1), plus newline/carriage-return.
+def _scoped_value_has_shell_token(raw: str) -> bool:
+    if "\n" in raw or "\r" in raw:
+        return True
+    return any(tok in raw for tok in NOTE_VALUE_DENY_TOKENS)
+
+
+def classify_scoped_path_value(raw_path: str, *, cwd: str, path_write) -> tuple:
+    """REQ-A1 shared flag-value path check: realpath (relative to cwd) must
+    stay inside _expanded_scope_roots; shell tokens, NUL, and resolution
+    failures deny. No existence/regular-file/size requirements (unlike the
+    body-file slot): build dirs and outputs need not exist yet."""
+    if not isinstance(raw_path, str) or not raw_path or "\x00" in raw_path:
+        return ("deny", "empty or invalid path")
+    if _scoped_value_has_shell_token(raw_path):
+        return ("deny", "shell-control token in path value")
+    try:
+        cwd_resolved = os.path.realpath(cwd)
+    except OSError:
+        return ("deny", "scope-resolution error (cwd)")
+    try:
+        if os.path.isabs(raw_path):
+            resolved = os.path.realpath(raw_path)
+        else:
+            resolved = os.path.realpath(os.path.join(cwd_resolved, raw_path))
+    except OSError:
+        return ("deny", "scope-resolution error")
+    roots = _expanded_scope_roots(cwd_resolved, path_write)
+    resolved_norm = os.path.normpath(resolved)
+    for root in roots:
+        r = os.path.normpath(root)
+        if resolved_norm == r or resolved_norm.startswith(r.rstrip("/") + "/"):
+            return ("allow-effect", "in-scope root")
+    if resolved_norm == "/tmp" or resolved_norm.startswith("/tmp/"):
+        return ("deny", "absolute /tmp path outside scope")
+    return ("deny", "outside own scope")
+
+
+def classify_go_package_arg(arg: str) -> tuple:
+    """REQ-A1 Go `...` package-pattern branch: `...`-suffixed args are
+    package patterns within scope, never literal paths — so `./...` allows
+    while `../../etc/...` denies. Any `..` segment outside the trailing
+    `...` itself, absolute forms, and shell tokens deny first."""
+    if not isinstance(arg, str) or not arg:
+        return ("deny", "empty or invalid arg")
+    if _scoped_value_has_shell_token(arg) or "\x00" in arg:
+        return ("deny", "shell-control token in arg")
+    if not arg.endswith("..."):
+        return ("not-a-pattern", "not a ...-suffixed package pattern")
+    stem = arg[:-3]
+    if stem.startswith("/"):
+        return ("deny", "absolute package pattern outside scope")
+    for seg in stem.split("/"):
+        if seg == "..":
+            return ("deny", "dot-dot escape in package pattern")
+    return ("allow-effect", "in-scope package pattern")
+
+
+def pair_cmake_flag_values(argv) -> list:
+    """REQ-A1 cmake -S/-B flag-value pairing. Returns [(flag, value)] with
+    value None for a dangling flag. Supports separate (`-S .`) and attached
+    (`-S.`) spellings; a following -S/-B starts a new pair (fail-closed)."""
+    pairs = []
+    words = list(argv[1:] if argv else [])
+    i = 0
+    while i < len(words):
+        w = words[i]
+        flag = None
+        inline = None
+        if w in ("-S", "-B"):
+            flag = w
+        elif w.startswith("-S") and len(w) > 2:
+            flag, inline = "-S", w[2:]
+        elif w.startswith("-B") and len(w) > 2:
+            flag, inline = "-B", w[2:]
+        if flag is None:
+            i += 1
+            continue
+        if inline is not None:
+            pairs.append((flag, inline))
+            i += 1
+            continue
+        nxt = words[i + 1] if i + 1 < len(words) else None
+        if nxt is None or nxt in ("-S", "-B") or nxt.startswith("-"):
+            pairs.append((flag, None))
+            i += 1
+        else:
+            pairs.append((flag, nxt))
+            i += 2
+    return pairs
+
+
+def classify_gcc_command(argv, *, cwd: str, path_write) -> tuple:
+    """REQ-A1/A2 gcc compile-slot check: head must be the granted gcc
+    family; every non-flag operand plus -o/-I/-isystem/-L values must
+    resolve in scope. -D/-l/-std/-x-style flag values are not paths and
+    are skipped. --output forms deny (defense in depth: the overlay
+    allow sits after the terminal --output denies, so the classifier
+    stays stricter than enforcement)."""
+    words = list(argv or [])
+    if not words:
+        return ("deny", "empty argv")
+    for w in words:
+        if not isinstance(w, str) or "\x00" in w:
+            return ("deny", "invalid argv word")
+        if _scoped_value_has_shell_token(w):
+            return ("deny", "shell-control token in argv")
+        if "--output" in w:
+            return ("deny", "forbidden --output write-escape")
+    head = os.path.basename(words[0])
+    if head not in ("gcc", "g++"):
+        return ("deny", "not a granted compiler head word")
+    operands = []
+    i = 1
+    while i < len(words):
+        w = words[i]
+        if w in ("-o", "-I", "-isystem", "-L"):
+            nxt = words[i + 1] if i + 1 < len(words) else None
+            if nxt is None or nxt.startswith("-"):
+                return ("deny", f"dangling {w} value")
+            operands.append(nxt)
+            i += 2
+            continue
+        if w.startswith("-"):
+            i += 1
+            continue
+        operands.append(w)
+        i += 1
+    if not operands:
+        return ("deny", "no source operands")
+    for op in operands:
+        verdict, _ = classify_scoped_path_value(op, cwd=cwd, path_write=path_write)
+        if verdict != "allow-effect":
+            return ("deny", f"operand outside scope: {op}")
+    return ("allow-effect", "in-scope compile operands: " + " ".join(operands))
 
 
 def _sandbox_bind_roots(path_write):
@@ -759,6 +1067,23 @@ def build_seat_files(
     # mirror in V13).
     for _deny_pat in TERMINAL_BASH_DENIES:
         bash_map[_deny_pat] = "deny"
+    # #91 argv-slot exception (REQ-A2): fleet-catalog overlay patterns for
+    # the gcc compile slot render AFTER the terminal denies, so the grant
+    # takes last-match-wins precedence FOR THAT ARGV SLOT ONLY — mirroring
+    # #106. The tuple above stays byte-identical (REQ-G1); the denies still
+    # fire outside the slot (red-proofed: `sh -c`, chains, -o escapes deny).
+    # Only patterns both catalog-listed AND in this role's bash_allow move;
+    # anything else stays in pre-deny position (V1 subset check still holds).
+    _overlay91 = set(
+        ((fleet_data.get("command_effects") or {}).get("gcc_effect") or {}).get(
+            "bash_overlay_patterns"
+        )
+        or []
+    )
+    for _op91 in role["permissions"]["bash_allow"]:
+        if str(_op91) in _overlay91:
+            bash_map.pop(str(_op91), None)
+            bash_map[str(_op91)] = "allow"
     # provisioning-gate-74 (#74, REQ-P1/P4): read-only render-time
     # resolution of each bash_allow leading binary (r2/rabin2/tshark and
     # friends). Missing binaries warn naming seat, grant, and artifact —
@@ -833,14 +1158,37 @@ def build_seat_files(
         "*..*": "deny",
     }
     permission["path_write"] = path_write
+    # #91 Go `...` relief (REQ-A1): `...`-suffixed package patterns trip the
+    # `*..*` guard above although they are not paths. For roles holding go
+    # verbs, an explicit path_read `*/...` allow takes final say over the
+    # sugar-expanded `*..*` deny (pps: explicit directional entries win).
+    # Traversal still denies at the external_directory boundary (out of
+    # cwd) — live-probed. No other role gains this exception.
+    _binaries91 = set()
+    for _pat91 in role["permissions"]["bash_allow"]:
+        _bin91 = bash_leading_binary(str(_pat91))
+        if _bin91 is not None:
+            _binaries91.add(_bin91)
+    if "go" in _binaries91:
+        permission["path_read"] = {"*/...": "allow"}
     permission["mcp"] = mcp_allow
     permission["external_directory"] = "deny"
 
     files["extensions/pi-permission-system/config.json"] = {
         "promptTimeoutMs": 60000,
         "permission": permission,
-        "commandEffects": build_command_effects(role["permissions"]["path_write"]),
+        # #91 (REQ-A0/A1): M0 live probe through installed pps 41.0.0 proved
+        # the descriptor-LIST form is unparsed (whole layer fails closed to
+        # ask) while the native MAP form enforces. config.json carries the
+        # native map; the audit descriptors ride in the sidecar below.
+        "commandEffects": build_command_effects_map(role["permissions"]["bash_allow"]),
     }
+    files["extensions/pi-permission-system/command-effects.descriptors.json"] = (
+        build_command_effects(
+            role["permissions"]["path_write"],
+            role["permissions"]["bash_allow"],
+        )
+    )
 
     # 5. AGENTS.md: role charter + seat block (never use guidance_merge on shared cwd)
     esc = role.get("reports_to")

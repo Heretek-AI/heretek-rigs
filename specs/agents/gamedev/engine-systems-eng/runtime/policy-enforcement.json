@@ -38,6 +38,7 @@
       "cmake --build*": "allow",
       "ctest*": "allow",
       "cmake --version*": "allow",
+      "cmake -S *": "allow",
       "clang --version*": "allow",
       "date +%s": "allow",
       "rig whoami*": "allow",
@@ -92,7 +93,9 @@
       "*--binary*": "deny",
       "*--raw*": "deny",
       "*OPENRIG_SESSION_NAME=*": "deny",
-      "*OPENRIG_URL=*": "deny"
+      "*OPENRIG_URL=*": "deny",
+      "gcc *": "allow",
+      "g++ *": "allow"
     },
     "path": {
       "*": "allow",
@@ -133,6 +136,7 @@
       "build.sh": "allow",
       "CMakePresets.json": "allow",
       "CMakeLists.txt": "allow",
+      "build/*": "allow",
       ".git/*": "deny",
       "*/.git/*": "deny",
       "AGENTS.md": "deny",
@@ -151,69 +155,29 @@
     },
     "external_directory": "deny"
   },
-  "commandEffects": [
-    {
-      "id": "note-effect",
-      "argv": [
-        "rig",
-        "queue",
-        "--note"
-      ],
-      "match": {
-        "position": "single-argv-value",
-        "pattern": "^[A-Za-z0-9 _\\-/.:|]+$",
-        "execModel": "argv-not-shell"
-      },
-      "covers": [
-        "rig queue create --note",
-        "rig queue block --note",
-        "rig queue update --reopen --note",
-        "park-typed-block.py relay",
-        "sweep-typed-blocks.py relay"
-      ],
-      "denyWhen": [
-        ";",
-        "$",
-        "`",
-        "$(",
-        "OPENRIG_SESSION_NAME=",
-        "OPENRIG_URL=",
-        "newline",
-        "carriage-return"
-      ],
-      "effect": "allow-effect"
+  "commandEffects": {
+    "cmake": {
+      "effects": "read"
     },
-    {
-      "id": "body-file-effect",
-      "argv": [
-        "rig",
-        "queue",
-        "--body-file"
-      ],
-      "scope": {
-        "cwd": "realpath(CWD)",
-        "writeRootsSource": "permissions.path_write",
-        "writeRoots": [
-          "src/engine/*",
-          "tests/engine/*",
-          "build.sh",
-          "CMakePresets.json",
-          "CMakeLists.txt"
-        ],
-        "scratch": "/var/tmp/seatjail.<pid>.*"
-      },
-      "constraints": {
-        "regularFileOnly": true,
-        "maxBytes": 262144,
-        "noSymlinkEscape": true,
-        "noDotDotEscape": true,
-        "noAbsoluteTmp": true
-      },
-      "covers": [
-        "rig queue create --body-file",
-        "send-authenticated.sh --source staged relay"
-      ],
-      "effect": "allow-effect-if-in-scope-else-deny"
+    "gcc": {
+      "effects": "read",
+      "unlessOption": [
+        "-o"
+      ]
+    },
+    "g++": {
+      "effects": "read",
+      "unlessOption": [
+        "-o"
+      ]
+    },
+    "ctest": {
+      "effects": "read",
+      "unlessOption": [
+        "-S",
+        "--script",
+        "--script-new-process"
+      ]
     }
-  ]
+  }
 }
