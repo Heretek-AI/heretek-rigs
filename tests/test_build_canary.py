@@ -8,6 +8,11 @@ execution stay separated). 12c — commit path runs through the REQ-BC4
 envelope (tests/test_check_envelope.py): NO standing `git add` grant exists
 fleet-wide and git-drift-coord stays locked + read-only.
 
+#91 wave F (principal policy 2026-10-25, PR #117) narrows REQ-BC3: the two
+engine roles gain the scoped configure (`cmake -S *`) and compile (`gcc *`,
+`g++ *`) grants, policed by the catalog's command_effects stanzas. The pins
+below hold that exact delta; presets, `./build.sh`, clang++ and cc stay out.
+
 Static pins run anywhere (PyYAML from the repo env). Mock-harness probes
 (F6 sabotage-replay set) need `pi` on PATH and render the canary with the
 mock model — same STRICT classification as the spike: POLICY-DENY only on
@@ -35,14 +40,18 @@ CANARY_ROLE = "engine-systems-eng"
 CANARY_RIG = "game-dev-and-sim-rig"
 CANARY_POD = "engine"
 
-# The canary delta, byte-exact: one appended clock-read grant, nothing else.
+# The canary delta, byte-exact: one appended clock-read grant plus the #91
+# scoped configure/compile grants, nothing else.
 EXPECTED_CANARY_BASH_ALLOW = [
     "cargo bench*",
     "cargo test engine*",
     "cmake --build*",
     "ctest*",
     "cmake --version*",
+    "cmake -S *",
     "clang --version*",
+    "gcc *",
+    "g++ *",
     "date +%s",
     "rig whoami*",
     "rig ps*",
@@ -78,7 +87,7 @@ class CanaryCatalogPins(unittest.TestCase):
         self.assertIn("date +%s", self.canary["permissions"]["bash_allow"])
 
     def test_canary_bash_allow_byte_exact(self):
-        """The canary delta is exactly one appended grant — no drift."""
+        """The canary delta is the clock grant plus #91's scoped grants — no drift."""
         self.assertEqual(
             self.canary["permissions"]["bash_allow"], EXPECTED_CANARY_BASH_ALLOW
         )
@@ -89,8 +98,15 @@ class CanaryCatalogPins(unittest.TestCase):
             self.assertNotIn("cmake --preset", entry)
 
     def test_no_compiler_invocation(self):
-        """REQ-BC3: no direct compiler invocation (version probes stay)."""
+        """REQ-BC3 as narrowed by #91: the only compiler grants are the
+        catalog's gcc overlay patterns, on a role the catalog names."""
+        gcc_effect = self.fleet["command_effects"]["gcc_effect"]
+        overlay = set(gcc_effect["bash_overlay_patterns"])
+        self.assertEqual(overlay, {"gcc *", "g++ *"})
+        self.assertIn(CANARY_ROLE, gcc_effect["roles_only"])
         for entry in self.canary["permissions"]["bash_allow"]:
+            if entry in overlay:
+                continue
             self.assertIsNone(
                 re.match(r"^(clang\+\+|gcc|g\+\+|cc)\b", entry),
                 f"compiler invocation in '{entry}'",
@@ -137,6 +153,8 @@ class CanaryCatalogPins(unittest.TestCase):
             "sabotage-qa-tester",
             "static-analysis-lead",
         ]
+        # #91 wave F (PR #117): cpp-lowlevel-eng gains the gcc/g++ overlay.
+        wave_f_changed = ["cpp-lowlevel-eng"]
         proc = subprocess.run(
             ["git", "show", "a33f3bb:fleet/fleet.yaml"],
             cwd=str(REPO_ROOT),
@@ -158,8 +176,11 @@ class CanaryCatalogPins(unittest.TestCase):
             != base["roles"][name].get("permissions")
         ]
         # Post-delta the changed-role list is exactly the canary plus the
-        # M4 remediation roles. Any other role in the list fails.
-        self.assertEqual(sorted(changed), sorted([CANARY_ROLE, *m4_changed]))
+        # M4 remediation roles and #91's second engine role. Any other role
+        # in the list fails.
+        self.assertEqual(
+            sorted(changed), sorted([CANARY_ROLE, *m4_changed, *wave_f_changed])
+        )
 
 
 class CanaryMockProbes(unittest.TestCase):
