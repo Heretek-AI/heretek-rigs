@@ -12,7 +12,7 @@
         "delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -36,7 +36,7 @@
         "build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -60,7 +60,7 @@
         "mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -84,7 +84,7 @@
         "engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -108,7 +108,7 @@
         "data.analytics-metrics-eng=pi,data.cache-streaming-eng=pi,data.data-pipeline-eng=pi,data.dba-specialist=pi,ml.mlops-serving-eng=pi,ml.vector-rag-spec=pi,platform.cloud-platform-eng=pi,platform.dependency-patcher=pi,platform.k8s-orchestrator=pi,sre.observability-eng=pi,sre.sre-incident-eng=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -132,7 +132,7 @@
         "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -156,7 +156,7 @@
         "blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -180,7 +180,7 @@
         "command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi": {
           "platforms": {
             "linux-x64": {
-              "label": "Not tested",
+              "label": "not_tested",
               "assistanceCount": 0,
               "date": "2026-10-18",
               "openrigVersion": "0.7.2",
@@ -204,7 +204,7 @@
     "harnesses": {
       "pi": {
         "linux-x64": {
-          "result": "Not tested",
+          "result": "NOT_RUN",
           "date": "2026-10-18",
           "openrigVersion": "0.7.2",
           "harnessVersion": "1.4.0",
@@ -213,5 +213,5 @@
       }
     }
   },
-  "bodyDigest": "c81703b554cb35d7af9091931fa235208225aa26617e63800dde7fb4e6e5e30e"
+  "bodyDigest": "c2ba7b6603688dc47e83d2eac72531f71b752eebad48fd6e27c49ffbabbcce67"
 }
