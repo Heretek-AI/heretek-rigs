@@ -512,7 +512,10 @@ for rid, rdir in sorted(discovered_roles.items()):
     pe = json.loads((rdir / "runtime/policy-enforcement.json").read_text())
     expected_pol = "builtin:locked" if rid in LOCKED_18_ROLES else "builtin:standard"
     if pe.get("openrig_permission_policy") != expected_pol or r_fleet.get("permission_policy") != expected_pol:
-        fail(f"{rid}: policy mismatch (got {pe.get('openrig_permission_policy')}, expected {expected_pol})")
+        fail(
+            f"{rid}: policy mismatch (expected {expected_pol}; runtime/policy-enforcement.json has "
+            f"{pe.get('openrig_permission_policy')}, fleet.yaml permission_policy has {r_fleet.get('permission_policy')})"
+        )
     # HR-1.4: standalone pi-permission-config.json must exist and match policy-enforcement permission payload
     try:
         ppc = json.loads((rdir / "runtime/pi-permission-config.json").read_text())
@@ -2564,6 +2567,48 @@ if _v20_rs_mod is not None:
                     fail(f"V20/#91: seat {_rid20}: non-go role must not carry path_read")
 if len(failures) == _v20_before:
     print("V20/#91 scoped build/test path args green: catalog, native-map parity, overlay position/scope, go exception scoping, engine build/*")
+
+print("\n== V21. Vendored Agent File-Set Parity (#102) ==")
+# #102 appended alongside, FAIL-ONLY like V20 (the V19 count stays put).
+# V2 compares three named leaves plus agent.yaml, so a file present in
+# specs/agents/<domain>/<role>/ but missing from a rig's vendored copy (or
+# the reverse) was never flagged. Here every rig member's vendored tree must
+# hold exactly the spec tree's files, byte-identical except agent.yaml
+# (whose imports rewrite V2 already checks).
+_v21_before = len(failures)
+_v21_members = 0
+for _rigdir21 in sorted(p for p in (root / "rigs").iterdir() if p.is_dir()):
+    for _ry21 in sorted(_rigdir21.glob("rig*.yaml")):
+        try:
+            _doc21 = yaml.safe_load(_ry21.read_text()) or {}
+        except Exception as _e21:
+            fail(f"V21/#102: {_ry21.relative_to(root)} unreadable ({_e21})")
+            continue
+        for _pod21 in _doc21.get("pods") or []:
+            for _m21 in _pod21.get("members") or []:
+                _mid21 = _m21.get("id")
+                _ref21 = str(_m21.get("agent_ref", "")).replace("local:", "")
+                if _mid21 not in discovered_roles or not _ref21 or ".." in _ref21:
+                    continue
+                _src21 = discovered_roles[_mid21]
+                _dst21 = _rigdir21 / _ref21
+                _a21 = {q.relative_to(_src21) for q in _src21.rglob("*") if q.is_file()}
+                _b21 = {q.relative_to(_dst21) for q in _dst21.rglob("*") if q.is_file()}
+                _where21 = f"{_ry21.relative_to(root)}:{_mid21}"
+                _v21_members += 1
+                for _rel21 in sorted(_a21 - _b21):
+                    fail(f"V21/#102: {_where21}: spec-only file {_rel21} missing from the vendored copy")
+                for _rel21 in sorted(_b21 - _a21):
+                    fail(f"V21/#102: {_where21}: vendored-only file {_rel21} absent from specs/agents/")
+                for _rel21 in sorted(_a21 & _b21):
+                    if str(_rel21) == "agent.yaml":
+                        continue
+                    if (_src21 / _rel21).read_bytes() != (_dst21 / _rel21).read_bytes():
+                        fail(f"V21/#102: {_where21}: {_rel21} drifted from specs/agents/")
+if _v21_members == 0:
+    fail("V21/#102: no rig members compared (vacuous)")
+if len(failures) == _v21_before:
+    print(f"V21/#102 vendored agent file-set parity green: {_v21_members} rig members match specs/agents/ (file sets + bytes, agent.yaml excepted)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
