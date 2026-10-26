@@ -46,6 +46,7 @@ Not rewritten: dated audit and planning records that name 1.3.0 as what was chec
 ## 4. Verification (cloud container, `pi` 1.4.0 and `rig` 0.7.2 on PATH)
 
 - `scripts/gate-role.sh` for `api-contract-tester`, `release-qa-officer` and `cpp-lowlevel-eng` against the mock model with pi-permission-system 41.0.0 installed: all pass on 1.4.0. For `cpp-lowlevel-eng` the 53-line output is identical to the same run on 1.3.0.
+- `tests/test_build_canary.py` with `HERETEK_TOOLS` pointing at an installed pi-permission-system 41.0.0: 11 OK on both 1.3.0 and 1.4.0, including the `CanaryMockProbes` allow and deny cases that the plain `make test` run skips without the extension.
 - A rendered seat (dummy key, `--allow-missing-secrets`): `pi --list-models opencode-go` lists `muse-spark-1.3-contributor` at 1.0M / 131.1K; `pi mcp list --json` reads the seat's `mcp.json` with no errors.
 - `./scripts/verify-rigs.sh --check-only` → **35 passed, 0 failed**. `make test` → 347 OK. `--check-idempotent` passes.
 
