@@ -2591,8 +2591,13 @@ for _rigdir21 in sorted(p for p in (root / "rigs").iterdir() if p.is_dir()):
             for _m21 in _pod21.get("members") or []:
                 _mid21 = _m21.get("id")
                 _ref21 = str(_m21.get("agent_ref", "")).replace("local:", "")
-                # Absolute or escaping refs are V2's to fail; never scan them.
-                if _mid21 not in discovered_roles or not _ref21 or ".." in _ref21 or _ref21.startswith("/"):
+                # Absolute or escaping refs are never scanned. V2 fails them in
+                # the 8 rig.yaml files; nothing else covers rig.all-51.yaml.
+                if ".." in _ref21 or _ref21.startswith("/"):
+                    if _ry21.name != "rig.yaml":
+                        fail(f"V21/#102: {_ry21.relative_to(root)}:{_mid21}: agent_ref escapes bundle folder: {_m21.get('agent_ref')}")
+                    continue
+                if _mid21 not in discovered_roles or not _ref21:
                     continue
                 _src21 = discovered_roles[_mid21]
                 _dst21 = _rigdir21 / _ref21

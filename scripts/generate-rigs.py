@@ -1868,11 +1868,11 @@ def main() -> None:
                             out[_f.relative_to(_r).as_posix()] = hashlib.sha256(
                                 _f.read_bytes()
                             ).hexdigest()
-            _sl = _r / "fleet/skills-lock.json"
-            if _sl.exists():
-                out["fleet/skills-lock.json"] = hashlib.sha256(
-                    _sl.read_bytes()
-                ).hexdigest()
+            # Single files generate_all() also writes.
+            for _one in ("fleet/skills-lock.json", "schemas/rigspec-keys.pinned.json"):
+                _sl = _r / _one
+                if _sl.exists():
+                    out[_one] = hashlib.sha256(_sl.read_bytes()).hexdigest()
             return out
 
         _before = _hash_tree(Path(args.root).resolve())

@@ -44,6 +44,15 @@ class TestFalseDeliveryClaim(unittest.TestCase):
         findings = self.scan("| T1 | DISPATCHED | qitem-not-real |\n")
         self.assertEqual(len(findings), 1)
 
+    def test_near_miss_qitem_suffix_still_flagged(self):
+        # A non-hex character right after the hex suffix is not a real id.
+        findings = self.scan("| T1 | DISPATCHED | qitem-20261024023942-656bab8g |\n")
+        self.assertEqual(len(findings), 1)
+
+    def test_canonical_qitem_in_table_cell_passes(self):
+        findings = self.scan("| T1 | DISPATCHED | qitem-20261024023942-656bab8f |\n")
+        self.assertEqual(findings, [])
+
     def test_bare_rows_each_flagged(self):
         findings = self.scan("DISPATCHED one\nnothing\nDISPATCHED two\n")
         self.assertEqual(len(findings), 2)
