@@ -25,6 +25,7 @@ Use `yaml.safe_dump` NEVER on `fleet/fleet.yaml` — it strips comments. Surgica
 | Verify tree | `make verify` (or script directly) |
 | Seat render dry-run | `HERETEK_SECRETS=~/.config/heretek-rigs/secrets python3 scripts/render-seat.py --role <id> --rig <id> --pod <id> --dry-run` |
 | Seed then launch | `python3 scripts/seed-rig.py rigs/<rig>/rig.yaml [--allow-missing-secrets]` → `(cd rigs/<rig> && rig up rig.yaml --cwd <workspace> --yes)` |
+| Permission-only change on running seats | `python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only` (pps hot-reloads config.json; no relaunch, #96). Charter/model/MCP changes still need a relaunch. |
 | Talk to a seat | `rig send '<pod>-<member>@<rig>' "<message>"` / `rig capture` / `rig transcript --tail N` |
 | Queue work | `rig queue create --json --verify --destination <session> --body-file <file>` / `rig queue list --json [--destination S] [-a]` (copy qitem IDs only from `--json` output — never retype; bare queue output mixes JSON with a human trailer/advisory and MUST NOT be parsed; bare create output is advisory, not proof of persistence) |
 | Tracker proposals | `make reconcile TRACKER=… [OUT=…]` / `make generate-tracker TRACKER=… OUT=…` — propose-only: NEVER auto-edit trackers or write queue state; `--out` MUST be a fresh non-tracker path (refuse `*dispatch-tracker.md`, `sprints/` locations, existing files; `O_EXCL` create) — violations fail closed (exit 2). |

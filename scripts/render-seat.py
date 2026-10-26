@@ -54,6 +54,10 @@ USAGE = """usage: render-seat.py --role <role-id> --rig <rig-id> --pod <pod-id> 
   --model-id <id>          default muse-spark-1.3-contributor (tests use: mock-model)
   --allow-missing-secrets  write servers whose secret files are missing with "enabled": false
   --dry-run                print the rendered files as JSON instead of writing them
+  --policy-only            rewrite ONLY extensions/pi-permission-system/ (config.json and
+                           its audit sidecar) in an existing seat dir, atomically; pi-permission-system
+                           re-reads it on mtime change, so a running seat picks it
+                           up on its next tool call without a relaunch (#96)
   --help"""
 
 READONLY_AST_LSP_TOOLS = [
@@ -1254,6 +1258,7 @@ def main() -> None:
     parser.add_argument("--model-id", default="muse-spark-1.3-contributor")
     parser.add_argument("--allow-missing-secrets", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--policy-only", action="store_true")
     args, unknown = parser.parse_known_args()
     if unknown:
         die(f"unknown arguments: {' '.join(unknown)}\n{USAGE}")
@@ -1316,6 +1321,27 @@ def main() -> None:
 
     if args.dry_run:
         print(json.dumps(files, indent=2, ensure_ascii=False))
+        return
+
+    if args.policy_only:
+        # #96: refresh a LIVE seat's permission map only. Never create a seat
+        # here: the path must be the one the running pi already reads.
+        policy_dir = "extensions/pi-permission-system/"
+        live_cfg = out_dir / policy_dir / "config.json"
+        if not live_cfg.is_file():
+            die(f"--policy-only needs an already-seeded seat: {live_cfg} not found")
+        # The audit sidecar first, config.json (the file pps watches) last.
+        for rel in sorted(
+            (r for r in files if r.startswith(policy_dir)),
+            key=lambda r: r.endswith("/config.json"),
+        ):
+            target = out_dir / rel
+            tmp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+            tmp.write_text(json.dumps(files[rel], indent=2, ensure_ascii=False) + "\n")
+            os.chmod(tmp, 0o600)
+            # Same-directory rename: the watcher never reads a half-written file.
+            os.replace(tmp, target)
+        print(f"refreshed policy {session} -> {live_cfg}")
         return
 
     for rel, body in files.items():

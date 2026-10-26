@@ -19,7 +19,9 @@ Issue #11 ("`rig launch` refuses running nodes despite 'or relaunch' help; no
 single-node policy refresh") records a real operational gap: after a charter or
 permission change lands (PR merge) and the fleet is re-seeded, a **running**
 session keeps enforcing the **old** policy — there is no supported way to refresh
-exactly one node. The only certain remedies today are a whole-fleet `down`+`up`
+exactly one node. (Correction, #96: this holds for the charter, models and launch
+posture, not for the permission map, which pi-permission-system hot-reloads; see
+§2a.) The only certain remedies today are a whole-fleet `down`+`up`
 (every seat bounces, all in-flight work stops) or destructive per-node surgery.
 
 We felt this concretely around PR #10: after the merge plus a full re-seed, the
@@ -62,6 +64,36 @@ The CLI-side fix (true relaunch semantics for `rig launch`, or a dedicated
 per-node restart verb) is tracked **upstream** in `@openrig/cli` under
 Workstream C. **This runbook is the repo-side fallback until then** — procedure,
 not tooling — and must be retired or rewritten once upstream ships.
+
+---
+
+## 2a. Permission-only changes need no relaunch (#96)
+
+`@gotgenes/pi-permission-system@41.0.0` re-reads
+`<agentDir>/extensions/pi-permission-system/config.json` whenever its mtime
+changes (`src/config/policy-loader.ts`, `getFileStamp` on `statSync().mtimeMs`).
+The 2026-10-24 audit proved it on one live `pi --mode rpc` process: a rule
+edited mid-session took effect on the next tool call and reverted the same way.
+So a change that only touches a seat's permission map (a tightened or widened
+`bash`/`path_write` rule, a `commandEffects` entry) reaches a running seat
+without §3:
+
+```bash
+python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only [--allow-missing-secrets]
+```
+
+This rewrites only `extensions/pi-permission-system/` in each already-seeded
+seat dir, at the exact `<pod>-<member>@<rig>` path the running seat reads,
+with a same-directory atomic rename. It refuses a seat that was never seeded.
+The charter (`AGENTS.md`), `settings.json`, `models.json`, `mcp.json` and the
+OpenRig launch posture are not covered by this: for those, use §3.
+`[UNVERIFIED — confirm on live fleet]`: re-seed one seat with a tightened rule
+and confirm it denies the command on its next turn.
+
+The same hot reload is why a seat must never be able to write its own agent
+dir. `seat-sandbox.sh` binds `/` read-only and masks `~/.openrig`, and
+`tests/test_seat_sandbox.py::test_seat_cannot_rewrite_its_own_permission_config`
+keeps that true.
 
 ---
 

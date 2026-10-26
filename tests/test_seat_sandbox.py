@@ -75,6 +75,21 @@ class SeatSandboxEscapes(unittest.TestCase):
         )
 
     # --- in-scope work still succeeds ---------------------------------
+    def test_seat_cannot_rewrite_its_own_permission_config(self):
+        """#96: pi-permission-system hot-reloads config.json, so the jail
+        must keep a seat's own agent dir read-only."""
+        agent = Path(self.tmp.name) / "openrig/state/pi/blue-x@r/agent"
+        cfg = agent / "extensions/pi-permission-system/config.json"
+        cfg.parent.mkdir(parents=True)
+        cfg.write_text('{"bash": {"*": "deny"}}\n')
+        proc = self.run_jailed(
+            f"echo '{{}}' > {cfg}; mv {cfg} {cfg}.bak; touch {cfg}",
+            PI_CODING_AGENT_DIR=str(agent),
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertEqual(cfg.read_text(), '{"bash": {"*": "deny"}}\n')
+        self.assertFalse(Path(f"{cfg}.bak").exists())
+
     def test_write_inside_dir_root(self):
         proc = self.run_jailed("echo ok > src/a.txt && cat src/a.txt")
         self.assertEqual(proc.returncode, 0, proc.stderr)
