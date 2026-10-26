@@ -1801,7 +1801,9 @@ for _sname13, _sdef13 in sorted(_v13_sidecars.get("services", {}).items()):
         continue
     if _p13.returncode != 0:
         _err13 = (_p13.stderr or "")[:300]
-        if re.search(r"(network|timeout|timed out|connection|refused|Temporary failure|Could not resolve|no such host|TLS|certificate|proxyconnect|proxy connect|toomanyrequests|rate limit)", _err13, re.IGNORECASE):
+        # #107 residual: match the offline keywords on the whole stderr; a long
+        # digest ref pushed `toomanyrequests` past the 300-char display slice.
+        if re.search(r"(network|timeout|timed out|connection|refused|Temporary failure|Could not resolve|no such host|TLS|certificate|proxyconnect|proxy connect|toomanyrequests|rate limit)", _p13.stderr or "", re.IGNORECASE):
             print(f"  [NOTE] V13/#70 image-existence: offline ({_err13[:120]}); {_sname13} existence unchecked")
             _v13_offline = True
             continue
