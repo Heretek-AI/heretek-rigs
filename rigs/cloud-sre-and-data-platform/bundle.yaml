@@ -144,7 +144,7 @@ integrity:
   files:
     CULTURE.md: a5cecee6aa3ac417a2a0c7e66e875943bbf4981c04d2dd072761eedd49d212d5
     README.md: c4170fbe8e1f862882fc672c05c194861789e63221bc0465e9a70ba0e91ef97a
-    SETUP.md: ea82e9e2e231485c2346fdeec98d6273b47247454de68bb19a28075fea4e30d7
+    SETUP.md: 6320e344c58ab4ebf58ec71b3fc6945f5e2b24733ba54e80e3b2afe54af4ac0a
     agents/_shared/agent.yaml: 6d39cfaf9075c348900031cd2fcd7bad7ad942922c0f006bd6477ea179d5dfab
     agents/_shared/skills/address-sanitizer/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/address-sanitizer/SKILL.md: eb9ea8210fa55d50477fbe52993a704e320c88739c10d619864b6ce377ebce25
