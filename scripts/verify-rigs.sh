@@ -291,6 +291,8 @@ for _sid, _smeta in sorted((skills_lock.get("skills", {}) or {}).items()):
         fail(f"shared skill {_sid}: SKILL.md missing valid frontmatter (---/name:/description:)")
     if not any((_sdir / _n).exists() for _n in ("LICENSE", "LICENSE.md", "LICENSE.txt")) and _smeta.get("license_file") not in ("none (see SKILL.md frontmatter)",):
         fail(f"shared skill {_sid}: missing LICENSE (expected {_smeta.get('license_file')})")
+    if _smeta.get("license_file") == "none (see SKILL.md frontmatter)" and not str(_smeta.get("license") or "").strip():
+        fail(f"shared skill {_sid}: no license file and no declared license in skills-lock.json (#102 Claim 6.1)")
     _files = [p for p in _sdir.rglob("*") if p.is_file()]
     _floor = 1 if _smeta.get("license_file") == "none (see SKILL.md frontmatter)" else 2
     if len(_files) < _floor:
@@ -1939,7 +1941,7 @@ for _dom13 in sorted((root / "specs/agents").iterdir()):
             if _m13:
                 fail(f"V13/#87: {_f13.relative_to(root)} contains stub marker {_m13.group(0)!r}")
 
-# --- #97/#99: DIRTY provenance rejected; attestation grounded or "Not tested" ---
+# --- #97/#99: DIRTY provenance rejected; attestation grounded or not_tested/NOT_RUN (#98 upstream enums) ---
 for _rdoc13 in list((root / "registry/entries").glob("*.yaml")) + list((root / "registry/views").rglob("behaviour.json")):
     if "DIRTY-" in _rdoc13.read_text():
         fail(f"V13/#99: {_rdoc13.relative_to(root)} carries DIRTY- provenance (dev-regen output; regenerate from a clean tree)")
@@ -1955,18 +1957,18 @@ for _rr13, _rd13 in _status13.get("listings", {}).items():
     for _cc13, _cd13 in _rd13.get("configurations", {}).items():
         for _pp13, _pd13 in _cd13.get("platforms", {}).items():
             _lbl13, _ids13 = _pd13.get("label"), _pd13.get("recordIds", [])
-            if _lbl13 == "Not tested":
+            if _lbl13 == "not_tested":
                 if _ids13:
-                    fail(f"V13/#97: {_rr13} claims Not tested but lists record ids")
+                    fail(f"V13/#97: {_rr13} claims not_tested but lists record ids")
             elif _lbl13 == "tested":
                 if not _ids13 or any(_i13 not in _grounded13 for _i13 in _ids13):
                     fail(f"V13/#97: {_rr13} tested claim is ungrounded (no docs/evidence/run-records.json covering {_ids13})")
             else:
                 fail(f"V13/#97: {_rr13} has unknown attestation label {_lbl13!r}")
 _hrn13 = _status13.get("harnessChecks", {}).get("harnesses", {}).get("pi", {}).get("linux-x64", {})
-if _hrn13.get("result") == "Not tested":
+if _hrn13.get("result") == "NOT_RUN":
     if _hrn13.get("recordIds", []):
-        fail("V13/#97: harness claims Not tested but lists record ids")
+        fail("V13/#97: harness claims NOT_RUN but lists record ids")
 elif _hrn13.get("result") == "PASS":
     if not _hrn13.get("recordIds", []) or any(_i13 not in _grounded13 for _i13 in _hrn13.get("recordIds", [])):
         fail("V13/#97: harness PASS claim is ungrounded (no docs/evidence/run-records.json covering it)")
@@ -2371,6 +2373,22 @@ if _v18_rig is None:
         "  [NOTE] V18/#98 native verbs: no `rig` on PATH; installed-copy validation unchecked (local pin + red-proof still enforce)"
     )
 else:
+    # #98: the five vendored upstream schemas must equal the installed
+    # CLI's own copies byte-for-byte.
+    _pkg18 = Path(os.path.realpath(_v18_rig)).parent
+    while _pkg18 != _pkg18.parent and not (
+        (_pkg18 / "package.json").is_file()
+        and '"@openrig/cli"' in (_pkg18 / "package.json").read_text()
+    ):
+        _pkg18 = _pkg18.parent
+    _up18 = _pkg18 / "daemon/docs/reference/schemas"
+    if not _up18.is_dir():
+        fail(f"V18/#98: installed @openrig/cli has no daemon/docs/reference/schemas (looked under {_pkg18})")
+    else:
+        for _nm18 in ("bundle-behaviour", "bundle-common", "bundle-configurations", "bundle-status", "registry-entry"):
+            _f18 = f"{_nm18}.v1.schema.json"
+            if not (_up18 / _f18).is_file() or (_up18 / _f18).read_bytes() != (root / "schemas" / _f18).read_bytes():
+                fail(f"V18/#98: schemas/{_f18} differs from the installed CLI's {_up18 / _f18}")
     for _slug18 in EXPECTED_8_RIGS:
         _bc18 = subprocess.run(
             [_v18_rig, "bundle", "check", str(root / "rigs" / _slug18), "--json"],

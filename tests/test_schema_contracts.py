@@ -30,8 +30,12 @@ SCHEMA_FILES = [
     "registry-entry.v1.schema.json",
 ]
 
+# Byte-exact copies of @openrig/cli's daemon/docs/reference/schemas/ (#98).
+UPSTREAM_FILES = [n for n in SCHEMA_FILES if n != "agent-manifest.v1.schema.json"]
+
 try:
     from jsonschema import Draft202012Validator
+    from referencing import Registry, Resource
 
     HAS_JSONSCHEMA = True
 except ImportError:
@@ -39,8 +43,13 @@ except ImportError:
 
 
 def load_validator(schema_name):
+    # Upstream schemas $ref bundle-common by absolute $id; resolve locally.
+    docs = [json.loads((SCHEMA_DIR / n).read_text()) for n in SCHEMA_FILES]
+    registry = Registry().with_resources(
+        (d["$id"], Resource.from_contents(d)) for d in docs
+    )
     schema = json.loads((SCHEMA_DIR / schema_name).read_text())
-    return Draft202012Validator(schema)
+    return Draft202012Validator(schema, registry=registry)
 
 
 class SchemaContractTests(unittest.TestCase):
@@ -99,6 +108,44 @@ class SchemaContractTests(unittest.TestCase):
             any("bodyDigest" in e.message for e in errors),
             f"mutation error must name bodyDigest: {[e.message for e in errors]}",
         )
+
+    def test_upstream_schemas_carry_upstream_ids(self):
+        """#98: the five vendored files are upstream's, not local rewrites."""
+        for name in UPSTREAM_FILES:
+            doc = json.loads((SCHEMA_DIR / name).read_text())
+            stem = name.replace(".schema.json", "")
+            self.assertEqual(
+                doc.get("$id"), f"https://openrig.dev/schemas/{stem}.json", name
+            )
+
+    @unittest.skipUnless(HAS_JSONSCHEMA, "jsonschema library required")
+    def test_issue_98_mutation_fails(self):
+        """#98's mutation proof: a hand-edited notice, a bogus rule and an
+        extra generated field each fail (the old local schema accepted all
+        three)."""
+        validator = load_validator("bundle-status.v1.schema.json")
+        doc = json.loads(STATUS_DOC.read_text())
+        for field, value in (
+            ("notice", "hand edited"),
+            ("rule", "bogus"),
+            ("secretHost", "example.invalid"),
+        ):
+            mutated = copy.deepcopy(doc)
+            mutated["generated"][field] = value
+            self.assertTrue(
+                list(validator.iter_errors(mutated)),
+                f"generated.{field}={value!r} passed validation",
+            )
+
+    @unittest.skipUnless(HAS_JSONSCHEMA, "jsonschema library required")
+    def test_legacy_not_tested_label_fails(self):
+        """#98: the old `Not tested` label is outside upstream's enum."""
+        validator = load_validator("bundle-status.v1.schema.json")
+        doc = json.loads(STATUS_DOC.read_text())
+        listing = next(iter(doc["listings"].values()))
+        config = next(iter(listing["configurations"].values()))
+        next(iter(config["platforms"].values()))["label"] = "Not tested"
+        self.assertTrue(list(validator.iter_errors(doc)))
 
     @unittest.skipUnless(HAS_JSONSCHEMA, "jsonschema library required")
     def test_mutated_status_wrong_type_fails(self):

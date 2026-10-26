@@ -7,7 +7,7 @@ vendor clones. Covers:
     tree, and dies fail-closed on dirty clones / unknown SHAs / missing
     SKILL.md.
   - resolve_run_attestation: real run records ground a "tested" claim;
-    absent/malformed records yield "Not tested" with zero record ids.
+    absent/malformed records yield "not_tested" with zero record ids.
 """
 
 import importlib.util
@@ -145,7 +145,7 @@ class TestResolveRunAttestation(unittest.TestCase):
 
     def test_absent_records_yield_not_tested(self):
         label, ids = GEN.resolve_run_attestation(self.root)
-        self.assertEqual(label, "Not tested")
+        self.assertEqual(label, "not_tested")
         self.assertEqual(ids, [])
 
     def test_malformed_records_yield_not_tested(self):
@@ -153,13 +153,13 @@ class TestResolveRunAttestation(unittest.TestCase):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("{not json")
         label, ids = GEN.resolve_run_attestation(self.root)
-        self.assertEqual(label, "Not tested")
+        self.assertEqual(label, "not_tested")
         self.assertEqual(ids, [])
 
     def test_empty_ids_yield_not_tested(self):
         self.write_records({"recordIds": []})
         label, ids = GEN.resolve_run_attestation(self.root)
-        self.assertEqual(label, "Not tested")
+        self.assertEqual(label, "not_tested")
         self.assertEqual(ids, [])
 
     def test_real_records_ground_tested_claim(self):

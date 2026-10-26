@@ -1,21 +1,23 @@
-# schemas/contract-schemas.sha256 — local contract-schema freeze pin (issue #98, REQ-D98).
+# schemas/contract-schemas.sha256 — contract-schema pin (issue #98, REQ-D98).
 #
-# The six `schemas/*.v1.schema.json` files are heretek-local "restored
-# baseline" contracts (see each file's title). Correction (2026-10-26,
-# #98 reopened): the upstream `@openrig/cli` tarball DOES ship its own
-# copies under `package/daemon/docs/reference/schemas/`; vendoring them is
-# tracked in #98. Until then upstream authority is the installed CLI's
-# native verbs (`rig bundle check`,
-# `rig spec validate`), exercised by the verify block; THIS pin freezes
-# the local contracts so a silent local loosening (the issue's mutation
-# proof: local errs `[]` where errors are owed) fails the gate instead of
-# passing quietly. Format is `sha256sum` output (re-verify with
-# `sha256sum -c schemas/contract-schemas.sha256`). On an intentional
-# contract change, update the schema AND refresh this pin in the same
-# change — never one without the other.
+# Five of the six files are vendored byte-exact from upstream OpenRig:
+# `bundle-behaviour`, `bundle-common`, `bundle-configurations`,
+# `bundle-status` and `registry-entry` `.v1.schema.json` come from
+# `package/daemon/docs/reference/schemas/` in the `npm pack @openrig/cli@0.7.2`
+# tarball (sha256 42b4d4980c062f49f99db7e843a2ba96c0066a420cbaace381f435e22699d4c5,
+# the digest in schemas/rigspec-keys.pinned.json); 0.6.13 ships the same
+# bytes. When `rig` is on PATH, verify-rigs V18 `cmp`s them against the
+# installed package's copies. Do not edit them; refresh them only from a
+# newer pinned tarball, together with this pin.
+#
+# `agent-manifest.v1.schema.json` stays heretek-local: upstream ships no
+# agent-manifest schema.
+#
+# Format is `sha256sum` output (re-verify with
+# `sha256sum -c schemas/contract-schemas.sha256`).
 05f83aeff3d548b26165ba458c2ff21dd64798ea01990b67b86b40b2988c56bd  agent-manifest.v1.schema.json
-e5e3b11a1af94993b9cf9a00bffb518cb9a7c4cd1a5d073f195783822bcc9925  bundle-behaviour.v1.schema.json
-d63a6e9422ba8281241ed9c6e93e6a7e8078102a92699f6a70fbf3068f3e07a8  bundle-common.v1.schema.json
-205f3a4d5464a3814ad151411360c300c11a6c0ee483152f4f43d03a7d9b8356  bundle-configurations.v1.schema.json
-2d8d19befde1a2d496caeb57f838cbdd65347b449e6d29ec75cba8e27e691652  bundle-status.v1.schema.json
-1c32ded116e87428f8341f2f1296251d1aba36aea003e5da29679830fdf7cfcf  registry-entry.v1.schema.json
+608e09afca2c88ae56994ebce55084016556e6cdcbbccab2acb759d7f77896cc  bundle-behaviour.v1.schema.json
+945d743ec36292dc90210bd3dd2bbd36eb98861b9179cd8d114d8c5aabdfc1eb  bundle-common.v1.schema.json
+7fcf3f6201615f2b00794d43f1d8ee6c27d4535f614be5c0b15db227a95fe69a  bundle-configurations.v1.schema.json
+df2e6be1d69a2b741804ad46edb8557a136afeb098e00a2d3d33237f5198ece5  bundle-status.v1.schema.json
+9693a151398750cb65557f8c106dac76646eed799345cc8c0ce2c62ad1a02be6  registry-entry.v1.schema.json

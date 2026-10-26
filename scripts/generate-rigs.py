@@ -489,7 +489,8 @@ def resolve_run_attestation(root: Path):
     Reads docs/evidence/run-records.json (the operator's recorded run
     evidence). Returns ("tested", [ids]) only when the file exists, parses,
     and carries a non-empty list of record id strings; otherwise returns
-    ("Not tested", []) so generated listings never claim an unrecorded run.
+    ("not_tested", []) so generated listings never claim an unrecorded run.
+    Labels are upstream's bundle-status enum (#98).
     """
     try:
         doc = json.loads((root / "docs/evidence/run-records.json").read_text())
@@ -498,7 +499,7 @@ def resolve_run_attestation(root: Path):
             return "tested", list(ids)
     except Exception:
         pass
-    return "Not tested", []
+    return "not_tested", []
 
 
 def write_yaml(path: Path, data: dict) -> None:
@@ -877,11 +878,16 @@ def generate_all(
             "dir": (vendor_dir / "anthropics_skills").resolve(),
             "sha": "dbd4588",
             "repo": "anthropics/skills",
+            # #102 Claim 6.1: no LICENSE file at the root or per skill; the
+            # README at this sha declares the non-document skills Apache 2.0.
+            "license_declared": "Apache-2.0 (anthropics/skills README @dbd4588; docx/pdf/pptx/xlsx excepted)",
         },
         "vercel": {
             "dir": (vendor_dir / "vercel-labs_agent-skills").resolve(),
             "sha": "063bee9",
             "repo": "vercel-labs/agent-skills",
+            # #102 Claim 6.1: no LICENSE file; README "## License" says MIT.
+            "license_declared": "MIT (vercel-labs/agent-skills README @063bee9)",
         },
         "supabase": {
             "dir": (vendor_dir / "supabase_agent-skills").resolve(),
@@ -1013,6 +1019,18 @@ def generate_all(
             lic_file = core_license if src == "openrig-core" else root_license(src)
             if lic_file:
                 shutil.copy2(lic_file, dst_sdir / "LICENSE")
+        # #102 Claim 6.1: a skill without any license file must still have a
+        # declared license, from its frontmatter or its source's README.
+        lic_declared = None
+        if not has_lic and not lic_file:
+            _fm = (dst_sdir / "SKILL.md").read_text().split("---", 2)
+            _fm_lic = re.search(r"^license:\s*(\S.*)$", _fm[1], re.M) if len(_fm) > 2 else None
+            if _fm_lic:
+                lic_declared = f"{_fm_lic.group(1).strip()} (SKILL.md frontmatter)"
+            elif src != "openrig-core" and pins[src].get("license_declared"):
+                lic_declared = pins[src]["license_declared"]
+            else:
+                die(f"shared skill {sid} ({src}) has no license file and no declared license")
         lock["skills"][sid] = {
             "source": (
                 f"npm:@openrig/cli@{OPENRIG_VERSION} daemon/assets/plugins/openrig-core/skills"
@@ -1033,6 +1051,8 @@ def generate_all(
                 )
             ),
         }
+        if lic_declared:
+            lock["skills"][sid]["license"] = lic_declared
 
     write_json(root / "fleet/skills-lock.json", lock)
 
@@ -1690,7 +1710,7 @@ See `SETUP.md`. Seed seats with `python3 scripts/seed-rig.py rigs/{rig_slug}/rig
                     "platforms": {
                         "linux-x64": {
                             # #97: "tested" only when real run records
-                            # ground it; otherwise an explicit "Not tested".
+                            # ground it; otherwise an explicit "not_tested".
                             "label": _run_label,
                             "assistanceCount": 0,
                             "date": REVIEW_DATE,
@@ -1719,8 +1739,8 @@ See `SETUP.md`. Seed seats with `python3 scripts/seed-rig.py rigs/{rig_slug}/rig
                 "pi": {
                     "linux-x64": {
                         # #97: PASS only when real run records ground it;
-                        # otherwise an explicit "Not tested".
-                        "result": "PASS" if _run_label == "tested" else "Not tested",
+                        # otherwise NOT_RUN (upstream harness enum, #98).
+                        "result": "PASS" if _run_label == "tested" else "NOT_RUN",
                         "date": REVIEW_DATE,
                         "openrigVersion": OPENRIG_VERSION,
                         "harnessVersion": PI_VERSION,
