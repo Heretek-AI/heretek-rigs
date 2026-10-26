@@ -59,6 +59,7 @@ from pathlib import Path
 
 OPENRIG_VERSION = "0.7.2"
 OPENRIG_COMMIT = "8b180689"
+PI_VERSION = "1.4.0"
 # HR-3.3: fallback placeholder used ONLY when git resolution is impossible
 # (e.g. source tarball without .git); generate_all() resolves the real commit
 # via `git rev-parse HEAD` first and fails closed on dirty/missing checkouts.
@@ -1309,7 +1310,7 @@ def generate_all(
             f"""# Setup Guide: `{rig_slug}`
 
 ## Prerequisites
-1. Install OpenRig (`@openrig/cli@{OPENRIG_VERSION}`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@1.3.0`).
+1. Install OpenRig (`@openrig/cli@{OPENRIG_VERSION}`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@{PI_VERSION}`).
 2. Install `@gotgenes/pi-permission-system@41.0.0` under `$HERETEK_TOOLS/pi-packages`.
 3. Provision `$HERETEK_SECRETS/opencode-go.key` (mode `0600`) and run:
    ```bash
@@ -1722,7 +1723,7 @@ See `SETUP.md`. Seed seats with `python3 scripts/seed-rig.py rigs/{rig_slug}/rig
                         "result": "PASS" if _run_label == "tested" else "Not tested",
                         "date": REVIEW_DATE,
                         "openrigVersion": OPENRIG_VERSION,
-                        "harnessVersion": "1.3.0",
+                        "harnessVersion": PI_VERSION,
                         "recordIds": list(_run_ids),
                     }
                 }

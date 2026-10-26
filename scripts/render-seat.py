@@ -813,7 +813,7 @@ def build_seat_files(
         # no provider entry at all plus a stderr warning, so the seat is
         # visibly degraded instead of pointing at a nonexistent secret. No
         # literal is ever materialized. #102 HR-4.2-auth-enabled-ignored: pi
-        # 1.3.0's auth-storage never reads `enabled`, so an entry carrying
+        # Pi's auth-storage (1.3.0 and 1.4.0) never reads `enabled`, so an entry carrying
         # `"enabled": false` still ran the `!cat` at call time.
         if has_key:
             files["auth.json"] = {

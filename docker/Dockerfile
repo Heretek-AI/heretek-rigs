@@ -14,7 +14,7 @@ ARG BASE_IMAGE=debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e2
 ARG NODE_VERSION=22.22.1
 ARG UV_VERSION=0.13.3
 ARG OPENRIG_VERSION=0.7.2
-ARG PI_VERSION=1.3.0
+ARG PI_VERSION=1.4.0
 
 # ---------------------------------------------------------------- builder ---
 FROM ${BASE_IMAGE} AS builder

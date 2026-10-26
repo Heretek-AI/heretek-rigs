@@ -75,7 +75,7 @@ class TestRenderSeat(unittest.TestCase):
         )
 
     def test_missing_provider_key_renders_no_auth_entry(self):
-        """#102 HR-4.2: pi 1.3.0 ignores `enabled`, so a degraded seat must
+        """#102 HR-4.2: pi 1.3.0/1.4.0 ignore `enabled`, so a degraded seat must
         carry no provider entry (and no dangling `!cat`) at all."""
         (self.secrets / "opencode-go.key").unlink()
         proc = subprocess.run(

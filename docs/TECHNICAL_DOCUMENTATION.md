@@ -2,14 +2,14 @@
 
 **Repository**: `Heretek-AI/heretek-rigs`
 **Target Orchestration Framework**: OpenRig v0.7.2 (`@openrig/cli@0.7.2`, commit `8b180689`, CLI binary `rig`)
-**Primary Agent Runtime Harness**: Pi Coding Agent v1.3.0 (`@earendil-works/pi-coding-agent@1.3.0`, CLI binary `pi`)
+**Primary Agent Runtime Harness**: Pi Coding Agent v1.4.0 (`@earendil-works/pi-coding-agent@1.4.0`, CLI binary `pi`)
 **Runtime Permission Enforcement**: `@gotgenes/pi-permission-system@41.0.0` (fail-closed policy engine with mandatory `"*..*": "deny"` traversal guard)
 **Optional Builder AST/LSP Extensions**: `pi-lsp-extension@1.4.0` and `pi-ast-grep@0.1.0` (enabled on 21 builder and code-analysis seats)
 **Primary Model & Provider**: `opencode-go/muse-spark-1.3-contributor:high` via OpenCode Go (`https://opencode.ai/inference/go/v1`, `api: openai-responses`, 1,048,576 context window, 131,072 max output tokens)
 
 ## 1. System Overview
 
-`heretek-rigs` is a deterministic, zero-trust, multi-agent software engineering monorepo that packages **51 specialist AI engineering roles** across **8 OpenRig v0.2 bundles** (`rigs/*/`). Synthesized from `Heretek-AI/Heretek-Crew@5ffb1fc` and engineered against the source-verified internals of `@openrig/cli@0.6.13` (re-checked for the 0.7.2 bump; see `docs/sprints/CLI-0.7.2-BUMP.md`) and `@earendil-works/pi-coding-agent@1.3.0`, the repository turns a single declarative catalog (`fleet/fleet.yaml` and `fleet/mcp-servers.yaml`) into a complete fleet of self-contained OpenRig bundles, AgentSpecs, rosters, cryptographic registry views, and isolated runtime seat configurations.
+`heretek-rigs` is a deterministic, zero-trust, multi-agent software engineering monorepo that packages **51 specialist AI engineering roles** across **8 OpenRig v0.2 bundles** (`rigs/*/`). Synthesized from `Heretek-AI/Heretek-Crew@5ffb1fc` and engineered against the source-verified internals of `@openrig/cli@0.6.13` (re-checked for the 0.7.2 bump; see `docs/sprints/CLI-0.7.2-BUMP.md`) and `@earendil-works/pi-coding-agent@1.3.0` (re-checked for the 1.4.0 bump; see `docs/sprints/PI-1.4.0-BUMP.md`), the repository turns a single declarative catalog (`fleet/fleet.yaml` and `fleet/mcp-servers.yaml`) into a complete fleet of self-contained OpenRig bundles, AgentSpecs, rosters, cryptographic registry views, and isolated runtime seat configurations.
 
 ### Core Design Pillars
 
@@ -19,14 +19,14 @@
 - **Complete Bundle Containment & Zero Symlinks**: All 8 rigs materialize their own `agents/_shared` and `agents/<role>` trees with zero symbolic links, satisfying OpenRig's `assertTreeHasNoSymlinks` and `checkBundleFolder` (`rig bundle check`) with zero findings.
 - **Multi-Profile Isolated Sidecars**: Supporting services (`searxng`, `browserless`, `firecrawl`, `ghidra`, `radare2`, `sonarqube`, `qdrant`, `docker-android`, `docker-socket-proxy`) run on loopback-only ports (`127.0.0.1`), pinned container image tags (zero `:latest`), and isolated Docker bridge networks (`heretek`, `heretek-devsec`, `heretek-mobile`) with fail-closed co-scheduling guards.
 
-## 2. Source-Verified Architectural Invariants (OpenRig v0.6.13, re-checked at v0.7.2 + Pi v1.3.0)
+## 2. Source-Verified Architectural Invariants (OpenRig v0.6.13 + Pi v1.3.0, re-checked at OpenRig v0.7.2 and Pi v1.4.0)
 
 Every architectural decision in `heretek-rigs` is grounded in direct source verification of `@openrig/cli@0.6.13` (`mvschwarz/openrig`), `@earendil-works/pi-coding-agent@1.3.0`, and `@gotgenes/pi-permission-system@41.0.0`. The table below documents the 11 foundational invariants and how `heretek-rigs` resolves each constraint.
 
 | # | Architectural Risk / Question | Upstream Source Behavior | Upstream Source Evidence | `heretek-rigs` Resolution |
 | :--- | :--- | :--- | :--- | :--- |
 | 1 | What is the OpenRig CLI binary name, and which commands require the daemon? | CLI binary is `rig` (plus `openrig-tui`), never `openrig`. Offline validation vs live daemon validation are split across subcommands. | `packages/cli/package.json:24-27` | Use `rig spec validate` and `rig bundle check` offline (`rig bundle check --json` emits `[]` on 0 findings); start `rig daemon start --no-kernel` before `rig agent validate` and `rig spec preflight`. |
-| 2 | Does OpenRig support `runtime: opencode`? | **No.** Supported runtimes are `claude-code`, `codex`, `pi`, `omp`, `terminal`, and `stub`. `runtime: opencode` passes `rig spec validate` but fails `rig spec preflight`. | `packages/daemon/src/domain/rigspec-schema.ts:12-20` | All 51 seats run on `runtime: pi` (with `all-omp`, `all-claude`, and `all-codex` presets in `configurations.yaml`), using Pi 1.3.0's built-in `opencode-go` provider. |
+| 2 | Does OpenRig support `runtime: opencode`? | **No.** Supported runtimes are `claude-code`, `codex`, `pi`, `omp`, `terminal`, and `stub`. `runtime: opencode` passes `rig spec validate` but fails `rig spec preflight`. | `packages/daemon/src/domain/rigspec-schema.ts:12-20` | All 51 seats run on `runtime: pi` (with `all-omp`, `all-claude`, and `all-codex` presets in `configurations.yaml`), using Pi 1.4.0's built-in `opencode-go` provider. |
 | 3 | Does OpenRig forward `OPENCODE_API_KEY` into `runtime: pi` child processes? | **No.** `buildPiChildEnv` uses a strict allow-list and only forwards `OPENROUTER_API_KEY`, `ZAI_API_KEY`, `KIMI_API_KEY`, and `MINIMAX_API_KEY` for `pi` (`OPENCODE_API_KEY` is only forwarded for `omp`). | `packages/daemon/src/adapters/pi-runner-protocol.ts:111-117, 140-149` | `scripts/render-seat.py` provisions `<agentDir>/auth.json` (`0600`) with `{"opencode-go": {"type": "api_key", "key": "!cat $HERETEK_SECRETS/opencode-go.key"}}`. |
 | 4 | Is `opencode-go/muse-spark-1.3-contributor` natively supported in Pi 1.3.0? | **Yes.** Pi 1.3.0 ships the `opencode-go` provider (`api: "openai-responses"`, `baseUrl: "https://opencode.ai/inference/go/v1"`, `contextWindow: 1048576`, `maxTokens: 131072`) and parses `:high` / `:xhigh` suffixes via `splitThinkingSuffix`. | `@earendil-works/pi-coding-agent@1.3.0` `dist/bundle/chunks/chunk-66G7ITPS.js` | Pin `opencode-go/muse-spark-1.3-contributor:high` in `rig.yaml` / `agent.yaml` and write explicit provider metadata into `<agentDir>/models.json`. |
 | 5 | Does `rig bundle check` allow `local:../../specs/agents/...` or `openrig-home:` local plugin paths? | **No.** `bundle-check.ts` enforces `fs.realpathSync` containment inside `rigs/<rig>/` and calls `fileRead(entry.source.path, dir)` on `source.kind === "local"` plugins. | `packages/cli/src/lib/bundle-check.ts:41-105` & `commands/specs.ts:44` | Materialize `rigs/<rig>/agents/_shared` and `rigs/<rig>/agents/<role>` inside every rig directory (zero symlinks) with `imports: [{ref: "local:../_shared", version: "1.0"}]` and omit `plugins`. |
@@ -336,13 +336,13 @@ When resolving secrets from `$HERETEK_SECRETS` (default `~/.config/heretek-rigs/
 
 If a required secret is absent:
 - Under default strict mode (`bootstrap-pi-seats.sh` or `render-seat.py` without `--allow-missing-secrets`), rendering fails closed with exit code `2`.
-- Under `--allow-missing-secrets`, the seat is rendered in an explicitly degraded state with `"enabled": false` on the affected MCP server (`mcp.json`), or no provider entry at all in `auth.json` for a missing provider key (pi 1.3.0's auth storage never reads `enabled`), and a warning printed to `stderr`.
+- Under `--allow-missing-secrets`, the seat is rendered in an explicitly degraded state with `"enabled": false` on the affected MCP server (`mcp.json`), or no provider entry at all in `auth.json` for a missing provider key (pi's auth storage, 1.3.0 and 1.4.0, never reads `enabled`), and a warning printed to `stderr`.
 
 ## 7. MCP Server Catalog & Vendored Skills Provenance
 
 ### The 20 Pinned MCP Servers (`fleet/mcp-servers.yaml`)
 
- Pi 1.3.0 provides native MCP support via `<agentDir>/mcp.json`. Servers with `exposure: direct` expose their tools immediately in the seat's context; servers with `exposure: deferred` are discovered on demand via Pi's `tool_search` tool (saving context window tokens).
+ Pi 1.4.0 provides native MCP support via `<agentDir>/mcp.json`. Servers with `exposure: direct` expose their tools immediately in the seat's context; servers with `exposure: deferred` are discovered on demand via Pi's `tool_search` tool (saving context window tokens).
 
 | Server ID | Pinned Package / Source | Transport | Exposure | Verification Status | Command / Endpoint Template | Secret Files (`$HERETEK_SECRETS`) | Description |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
