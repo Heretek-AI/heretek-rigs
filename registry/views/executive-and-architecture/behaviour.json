@@ -5,9 +5,9 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/executive-and-architecture",
-      "resolvedCommit": "c836e3f9a3997a43ec86c842057120ffede12335",
+      "resolvedCommit": "a76659395be2dd8be287dd503605e18748708346",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/c836e3f9a3997a43ec86c842057120ffede12335/rigs/executive-and-architecture"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/a76659395be2dd8be287dd503605e18748708346/rigs/executive-and-architecture"
     },
     "configurationId": "delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi",
     "packageDigest": {

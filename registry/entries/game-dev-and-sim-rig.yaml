@@ -6,7 +6,7 @@ summary: Real-time game engine architecture, ECS systems, deterministic physics 
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/game-dev-and-sim-rig
-  resolvedCommit: c836e3f9a3997a43ec86c842057120ffede12335
+  resolvedCommit: a76659395be2dd8be287dd503605e18748708346
   requestedRef: main
 configurations:
 - id: engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi
