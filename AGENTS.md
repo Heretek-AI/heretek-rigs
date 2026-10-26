@@ -1,7 +1,7 @@
 # AGENTS.md — heretek-rigs operator guide (for agents working in this repo)
 
 51 specialist seats across 8 OpenRig v0.2 bundles, generated deterministically.
-Stack: `@openrig/cli@0.6.13` (`rig`), Pi 1.3.0 (`pi`), `@gotgenes/pi-permission-system@41.0.0`,
+Stack: `@openrig/cli@0.7.2` (`rig`), Pi 1.3.0 (`pi`), `@gotgenes/pi-permission-system@41.0.0`,
 `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`.
 
 ## The one rule

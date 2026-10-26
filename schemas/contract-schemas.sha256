@@ -1,10 +1,11 @@
 # schemas/contract-schemas.sha256 — local contract-schema freeze pin (issue #98, REQ-D98).
 #
 # The six `schemas/*.v1.schema.json` files are heretek-local "restored
-# baseline" contracts (see each file's title): the upstream
-# `@openrig/cli@0.6.13` npm tarball ships NO JSON schema files, so there
-# are no upstream bytes to vendor or `cmp` against. Upstream authority is
-# therefore the installed 0.6.13 CLI's native verbs (`rig bundle check`,
+# baseline" contracts (see each file's title). Correction (2026-10-26,
+# #98 reopened): the upstream `@openrig/cli` tarball DOES ship its own
+# copies under `package/daemon/docs/reference/schemas/`; vendoring them is
+# tracked in #98. Until then upstream authority is the installed CLI's
+# native verbs (`rig bundle check`,
 # `rig spec validate`), exercised by the verify block; THIS pin freezes
 # the local contracts so a silent local loosening (the issue's mutation
 # proof: local errs `[]` where errors are owed) fails the gate instead of

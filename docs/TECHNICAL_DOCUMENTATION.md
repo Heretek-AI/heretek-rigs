@@ -1,7 +1,7 @@
 # Heretek-Rigs Technical & Architecture Documentation
 
 **Repository**: `Heretek-AI/heretek-rigs`
-**Target Orchestration Framework**: OpenRig v0.6.13 (`@openrig/cli@0.6.13`, commit `9eeb2e42`, CLI binary `rig`)
+**Target Orchestration Framework**: OpenRig v0.7.2 (`@openrig/cli@0.7.2`, commit `8b180689`, CLI binary `rig`)
 **Primary Agent Runtime Harness**: Pi Coding Agent v1.3.0 (`@earendil-works/pi-coding-agent@1.3.0`, CLI binary `pi`)
 **Runtime Permission Enforcement**: `@gotgenes/pi-permission-system@41.0.0` (fail-closed policy engine with mandatory `"*..*": "deny"` traversal guard)
 **Optional Builder AST/LSP Extensions**: `pi-lsp-extension@1.4.0` and `pi-ast-grep@0.1.0` (enabled on 21 builder and code-analysis seats)
@@ -9,7 +9,7 @@
 
 ## 1. System Overview
 
-`heretek-rigs` is a deterministic, zero-trust, multi-agent software engineering monorepo that packages **51 specialist AI engineering roles** across **8 OpenRig v0.2 bundles** (`rigs/*/`). Synthesized from `Heretek-AI/Heretek-Crew@5ffb1fc` and engineered against the source-verified internals of `@openrig/cli@0.6.13` and `@earendil-works/pi-coding-agent@1.3.0`, the repository turns a single declarative catalog (`fleet/fleet.yaml` and `fleet/mcp-servers.yaml`) into a complete fleet of self-contained OpenRig bundles, AgentSpecs, rosters, cryptographic registry views, and isolated runtime seat configurations.
+`heretek-rigs` is a deterministic, zero-trust, multi-agent software engineering monorepo that packages **51 specialist AI engineering roles** across **8 OpenRig v0.2 bundles** (`rigs/*/`). Synthesized from `Heretek-AI/Heretek-Crew@5ffb1fc` and engineered against the source-verified internals of `@openrig/cli@0.6.13` (re-checked for the 0.7.2 bump; see `docs/sprints/CLI-0.7.2-BUMP.md`) and `@earendil-works/pi-coding-agent@1.3.0`, the repository turns a single declarative catalog (`fleet/fleet.yaml` and `fleet/mcp-servers.yaml`) into a complete fleet of self-contained OpenRig bundles, AgentSpecs, rosters, cryptographic registry views, and isolated runtime seat configurations.
 
 ### Core Design Pillars
 
@@ -19,7 +19,7 @@
 - **Complete Bundle Containment & Zero Symlinks**: All 8 rigs materialize their own `agents/_shared` and `agents/<role>` trees with zero symbolic links, satisfying OpenRig's `assertTreeHasNoSymlinks` and `checkBundleFolder` (`rig bundle check`) with zero findings.
 - **Multi-Profile Isolated Sidecars**: Supporting services (`searxng`, `browserless`, `firecrawl`, `ghidra`, `radare2`, `sonarqube`, `qdrant`, `docker-android`, `docker-socket-proxy`) run on loopback-only ports (`127.0.0.1`), pinned container image tags (zero `:latest`), and isolated Docker bridge networks (`heretek`, `heretek-devsec`, `heretek-mobile`) with fail-closed co-scheduling guards.
 
-## 2. Source-Verified Architectural Invariants (OpenRig v0.6.13 + Pi v1.3.0)
+## 2. Source-Verified Architectural Invariants (OpenRig v0.6.13, re-checked at v0.7.2 + Pi v1.3.0)
 
 Every architectural decision in `heretek-rigs` is grounded in direct source verification of `@openrig/cli@0.6.13` (`mvschwarz/openrig`), `@earendil-works/pi-coding-agent@1.3.0`, and `@gotgenes/pi-permission-system@41.0.0`. The table below documents the 11 foundational invariants and how `heretek-rigs` resolves each constraint.
 
@@ -381,7 +381,7 @@ Because `PiRuntimeAdapter.projectEntry` skips `plugins` for `runtime: pi`, all 1
 | Upstream Repository / Package | Pinned Commit / Version | License | Skill Count | Vendored Skill IDs (`specs/agents/_shared/skills/`) |
 | :--- | :--- | :--- | :--- | :--- |
 | `trailofbits/skills@5c99c03` | `` | `See LICENSE` | 22 | `address-sanitizer`, `agentic-actions-auditor`, `audit-context-building`, `c-review`, `cargo-fuzz`, `codeql`, `dwarf-expert`, `entry-point-analyzer`, `fp-check`, `libfuzzer`, `modern-python`, `mutation-testing`, `property-based-testing`, `rust-review`, `sarif-parsing`, `semgrep`, `semgrep-rule-creator`, `semgrep-rule-variant-creator`, `spec-to-code-compliance`, `supply-chain-risk-auditor`, `variant-analysis`, `yara-rule-authoring` |
-| `npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills` | `` | `See LICENSE` | 12 | `agent-operated-workflows`, `delegating-work`, `forming-an-openrig-mental-model`, `messaging-the-human`, `mission-slice-sop`, `openrig-operating-model`, `openrig-user`, `orienting-to-an-inherited-seat`, `queue-handoff`, `refocusing`, `seat-continuity-and-handover`, `session-compaction-and-restore` |
+| `npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills` | `` | `See LICENSE` | 12 | `agent-operated-workflows`, `delegating-work`, `forming-an-openrig-mental-model`, `messaging-the-human`, `mission-slice-sop`, `openrig-operating-model`, `openrig-user`, `orienting-to-an-inherited-seat`, `queue-handoff`, `refocusing`, `seat-continuity-and-handover`, `session-compaction-and-restore` |
 | `obra/superpowers@bb92a77` | `` | `See LICENSE` | 13 | `brainstorming`, `dispatching-parallel-agents`, `executing-plans`, `finishing-a-development-branch`, `receiving-code-review`, `requesting-code-review`, `subagent-driven-development`, `systematic-debugging`, `test-driven-development`, `using-git-worktrees`, `using-superpowers`, `verification-before-completion`, `writing-plans` |
 | `Heretek-AI/Heretek-Crew@5ffb1fc` | `` | `See LICENSE` | 7 | `code-review`, `git-flow`, `nextjs-dev`, `security-audit`, `tailwind-ui`, `tdd`, `typescript-astro` |
 | `anthropics/skills@dbd4588` | `` | `See LICENSE` | 3 | `doc-coauthoring`, `frontend-design`, `webapp-testing` |

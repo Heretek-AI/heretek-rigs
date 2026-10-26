@@ -1,5 +1,5 @@
 # Canonical Source of Truth for the 51 Heretek-Rigs Specialist Seats & 8 OpenRig Bundles.
-# Synthesized from Heretek-AI/Heretek-Crew@5ffb1fc, @openrig/cli@0.6.13, @earendil-works/pi-coding-agent@1.3.0,
+# Synthesized from Heretek-AI/Heretek-Crew@5ffb1fc, @openrig/cli@0.7.2, @earendil-works/pi-coding-agent@1.3.0,
 # and @gotgenes/pi-permission-system@41.0.0.
 # Do NOT hand-edit generated files in specs/, rigs/, rosters/, or registry/; edit this file and run:
 #   python3 scripts/generate-rigs.py

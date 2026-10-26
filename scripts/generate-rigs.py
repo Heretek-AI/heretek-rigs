@@ -57,8 +57,8 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-OPENRIG_VERSION = "0.6.13"
-OPENRIG_COMMIT = "9eeb2e42"
+OPENRIG_VERSION = "0.7.2"
+OPENRIG_COMMIT = "8b180689"
 # HR-3.3: fallback placeholder used ONLY when git resolution is impossible
 # (e.g. source tarball without .git); generate_all() resolves the real commit
 # via `git rev-parse HEAD` first and fails closed on dirty/missing checkouts.
@@ -749,7 +749,7 @@ def generate_all(
     # rigspec-schema.ts SHA-256 anchor at generation time so the verifier has
     # a 4th independent value beyond the three local-local copies. Shell hosts
     # refresh the vendored bytes themselves via the JSON provenance recipe
-    # (`npm pack @openrig/cli@0.6.13 ... show 9eeb2e42:...rigspec-schema.ts`);
+    # (`npm pack @openrig/cli@<OPENRIG_VERSION> ... show <OPENRIG_COMMIT>:...rigspec-schema.ts`);
     # the hash here attests the vendored bytes as committed. An identical
     # 3-copy key edit without updating the vendored bytes still flips the
     # verifier (hash mismatch).
@@ -768,13 +768,13 @@ def generate_all(
         die(f"HR-2.1 vendored_sha256 refresh failed: {_e}")
     # HR-2.1-pinned-still-local (fail-closed): provenance.upstream_tarball is
     # NEVER derived from local bytes here. Its tarball_sha256 is recorded by a
-    # human running `npm pack @openrig/cli@0.6.13` on a networked shell host
+    # human running `npm pack @openrig/cli@<OPENRIG_VERSION>` on a networked shell host
     # (see the provenance recipe in schemas/rigspec-keys.pinned.json); the
     # verifier fails while it is absent/placeholder. If a vendored
-    # schemas/openrig-cli-0.6.13.tgz is present, attest its bytes now so the
+    # schemas/openrig-cli-<OPENRIG_VERSION>.tgz is present, attest its bytes now so the
     # record and the vendored bytes stay synchronized across regens.
     try:
-        _tgz_path = root / "schemas/openrig-cli-0.6.13.tgz"
+        _tgz_path = root / f"schemas/openrig-cli-{OPENRIG_VERSION}.tgz"
         _pinned_json_p2 = root / "schemas/rigspec-keys.pinned.json"
         if _tgz_path.exists() and _pinned_json_p2.exists():
             _tsha = hashlib.sha256(_tgz_path.read_bytes()).hexdigest()

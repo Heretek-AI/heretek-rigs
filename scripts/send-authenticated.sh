@@ -4,13 +4,13 @@
 # Never invokes `rig send`: delivery is always `rig queue create --json --verify --source <session> --destination <session> --summary <text> --body-file <file>`,
 # whose JSON receipt (qitemId + state, parsed fail-closed below) is the verifiable identity seats can trust (raw `rig send` from outside a
 # managed seat arrives with no sender identity, so seats hold it as UNVERIFIED).
-# CLI 0.6.13 requires --source outside a managed seat (fails closed with
+# CLI 0.6.13+ requires --source outside a managed seat (fails closed with
 # `--source is required when OPENRIG_SESSION_NAME is not set`); it is recorded as
 # claimed:v1 — a self-declared claim, NOT proof of seat origin. This script NEVER
 # claims seat origin: default --source is `operator`, overridable only to another
 # operator-side label, never to a seat identity.
 # Default --summary is deterministic from human-ref + UTC timestamp; --summary is
-# always passed so the 0.6.13 omission warning never fires.
+# always passed so the 0.6.13+ omission warning never fires.
 set -euo pipefail
 
 # M5 (#72): identity-forgery guard — a leaked OPENRIG_SESSION_NAME in this
@@ -37,8 +37,8 @@ usage: scripts/send-authenticated.sh --destination <seat-session> (--body-file <
   --body-file <file>            Required unless --message is given. File whose content is relayed verbatim.
   --message <text>              Required unless --body-file is given. Inline text relayed verbatim (written to a temp file).
   --human-ref <text>            Required. Decision-record path or prior queue-item ID this relay is grounded in.
-  --source <session>            Optional (default: operator). Declared source recorded as claimed:v1 (a claim, not proof). CLI 0.6.13 requires it outside a managed seat.
-  --summary <text>              Optional (default: deterministic "Operator relay (grounded: <human-ref>) at <UTC>"). Always passed to `rig queue create` so the 0.6.13 warning never fires.
+  --source <session>            Optional (default: operator). Declared source recorded as claimed:v1 (a claim, not proof). CLI 0.6.13+ requires it outside a managed seat.
+  --summary <text>              Optional (default: deterministic "Operator relay (grounded: <human-ref>) at <UTC>"). Always passed to `rig queue create` so the 0.6.13+ warning never fires.
   --dry-run                     Print the exact `rig queue create` invocation plus the fully rendered body; execute nothing.
   --help                        Print full help and exit 0.
 USAGE
@@ -60,12 +60,12 @@ in ~9 seconds) is re-delivering the same content as an authenticated queue item 
 `rig queue create --destination <session> --body-file <file>`. This script codifies
 that exact pattern so operators never hand-roll it (and never fall back to raw send).
 
-CLI 0.6.13 requirement: outside a managed seat (no OPENRIG_SESSION_NAME),
+CLI 0.6.13+ requirement: outside a managed seat (no OPENRIG_SESSION_NAME),
 `rig queue create` fails closed with `--source is required when
 OPENRIG_SESSION_NAME is not set`. This script therefore always passes
 `--source` (default `operator`, overridable via --source) and always passes
 `--summary` (default deterministic from human-ref + UTC timestamp, overridable
-via --summary) so the 0.6.13 omission warning never fires. The --source value
+via --summary) so the 0.6.13+ omission warning never fires. The --source value
 is recorded by the daemon as claimed:v1 — a self-declared claim, NOT proof of
 origin. It exists so the seat sees `From: operator`, never so the operator can
 impersonate a seat.
