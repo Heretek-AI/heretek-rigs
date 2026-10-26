@@ -81,14 +81,28 @@ class ReconcileError(Exception):
     """A fail-closed finding (exit 2 class)."""
 
 
+def _git_work_tree(path):
+    """The nearest ancestor of `path` holding a `.git` entry, else None."""
+    try:
+        here = Path(path).resolve().parent
+    except OSError:
+        return None
+    for candidate in (here, *here.parents):
+        if os.path.lexists(candidate / ".git"):
+            return candidate
+    return None
+
+
 def refuse_out_path(out, trackers):
     """Fail-closed --out guard (REQ-R2): a proposal must never land on a tracker.
 
     Refuses (exit 2 via ReconcileError, destination bytes untouched): an --out
     that resolves to any input --tracker path; any tracker-shaped destination
     (a *dispatch-tracker.md filename, or anything inside a sprints/ tracker
-    directory) regardless of the input set; and ANY existing file at the
-    destination. Only a fresh non-tracker path passes.
+    directory) regardless of the input set; any destination inside the git
+    work tree that holds an input tracker; and ANY existing file at the
+    destination. Only a fresh non-tracker path outside the mission repo
+    passes.
     """
     try:
         resolved = Path(out).resolve()
@@ -105,6 +119,15 @@ def refuse_out_path(out, trackers):
             raise
         except OSError as exc:
             raise ReconcileError(f"UNUSABLE --out '{out}' ({exc})")
+    # #102: the documented promise is OUTSIDE the mission repo, so an --out
+    # inside the git work tree that holds any input tracker is refused too.
+    for tracker in trackers:
+        repo = _git_work_tree(tracker)
+        if repo is not None and (resolved == repo or repo in resolved.parents):
+            raise ReconcileError(
+                f"refusing to write proposal inside the mission repo '{repo}' "
+                f"(proposals go OUTSIDE the mission repo for TPM review)"
+            )
     if TRACKER_OUT_BASENAME_RE.search(resolved.name):
         raise ReconcileError(
             f"refusing to write proposal to tracker-shaped path '{out}' "
