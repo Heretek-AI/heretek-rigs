@@ -5,27 +5,27 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/qa-and-verification-gauntlet",
-      "resolvedCommit": "05324a8daee33bd849275d20df020ee2953bbe3b",
+      "resolvedCommit": "c836e3f9a3997a43ec86c842057120ffede12335",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/05324a8daee33bd849275d20df020ee2953bbe3b/rigs/qa-and-verification-gauntlet"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/c836e3f9a3997a43ec86c842057120ffede12335/rigs/qa-and-verification-gauntlet"
     },
     "configurationId": "qa.api-contract-tester=pi,qa.e2e-browser-qa=pi,qa.load-stress-tester=pi,qa.release-qa-officer=pi,qa.sabotage-qa-tester=pi,qa.static-analysis-lead=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "6bcd72e6a0149936041bfe502ac19ab3ee0b2ad0bf97528f410bf2077bcaf26b",
+      "value": "ceea9e80ecb10493cb6f5a6394e5945a6b0b7de9f1b74644000c556cfd0a4f5f",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {
-      "openrigVersion": "0.6.13",
-      "commit": "9eeb2e42"
+      "openrigVersion": "0.7.2",
+      "commit": "8b180689"
     },
     "generator": {
-      "openrigVersion": "0.6.13",
-      "commit": "9eeb2e42"
+      "openrigVersion": "0.7.2",
+      "commit": "8b180689"
     },
     "compatibility": {
-      "minDaemonVersion": "0.6.13",
-      "minCliVersion": "0.6.13"
+      "minDaemonVersion": "0.7.2",
+      "minCliVersion": "0.7.2"
     },
     "statedProvenance": {
       "notes": "Heretek-Rigs qa-and-verification-gauntlet v1.0.0"
