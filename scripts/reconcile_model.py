@@ -81,16 +81,23 @@ class ReconcileError(Exception):
     """A fail-closed finding (exit 2 class)."""
 
 
-def _git_work_tree(path):
-    """The nearest ancestor of `path` holding a `.git` entry, else None."""
+def _git_work_trees(path):
+    """Git work trees holding `path`, judged from both its lexical location
+    and its resolved target (a tracker symlink can point out of its repo)."""
+    found = set()
     try:
-        here = Path(path).resolve().parent
+        starts = {Path(os.path.abspath(path)).parent, Path(path).resolve().parent}
     except OSError:
-        return None
-    for candidate in (here, *here.parents):
-        if os.path.lexists(candidate / ".git"):
-            return candidate
-    return None
+        return found
+    for here in starts:
+        for candidate in (here, *here.parents):
+            if os.path.lexists(candidate / ".git"):
+                try:
+                    found.add(candidate.resolve())
+                except OSError:
+                    found.add(candidate)
+                break
+    return found
 
 
 def refuse_out_path(out, trackers):
@@ -122,12 +129,12 @@ def refuse_out_path(out, trackers):
     # #102: the documented promise is OUTSIDE the mission repo, so an --out
     # inside the git work tree that holds any input tracker is refused too.
     for tracker in trackers:
-        repo = _git_work_tree(tracker)
-        if repo is not None and (resolved == repo or repo in resolved.parents):
-            raise ReconcileError(
-                f"refusing to write proposal inside the mission repo '{repo}' "
-                f"(proposals go OUTSIDE the mission repo for TPM review)"
-            )
+        for repo in _git_work_trees(tracker):
+            if resolved == repo or repo in resolved.parents:
+                raise ReconcileError(
+                    f"refusing to write proposal inside the mission repo '{repo}' "
+                    f"(proposals go OUTSIDE the mission repo for TPM review)"
+                )
     if TRACKER_OUT_BASENAME_RE.search(resolved.name):
         raise ReconcileError(
             f"refusing to write proposal to tracker-shaped path '{out}' "

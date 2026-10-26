@@ -336,7 +336,7 @@ When resolving secrets from `$HERETEK_SECRETS` (default `~/.config/heretek-rigs/
 
 If a required secret is absent:
 - Under default strict mode (`bootstrap-pi-seats.sh` or `render-seat.py` without `--allow-missing-secrets`), rendering fails closed with exit code `2`.
-- Under `--allow-missing-secrets`, the seat is rendered in an explicitly degraded state with `"enabled": false` on the affected provider (`auth.json`) or MCP server (`mcp.json`) and a warning printed to `stderr`.
+- Under `--allow-missing-secrets`, the seat is rendered in an explicitly degraded state with `"enabled": false` on the affected MCP server (`mcp.json`), or no provider entry at all in `auth.json` for a missing provider key (pi 1.3.0's auth storage never reads `enabled`), and a warning printed to `stderr`.
 
 ## 7. MCP Server Catalog & Vendored Skills Provenance
 

@@ -154,6 +154,35 @@ class TestRenderSeat(unittest.TestCase):
         self.assertNotEqual(proc.returncode, 0)
         self.assertIn("model.base_url must be the pinned", proc.stderr)
 
+    def test_malformed_fleet_model_values_are_refused(self):
+        """#118 review: model values copied from fleet.yaml are validated."""
+        import yaml
+
+        for key, bad, msg in (
+            ("api", "openai-completions", "model.api must be openai-responses"),
+            ("max_tokens", "131072", "model.max_tokens must be a positive integer"),
+            ("context_window", 0, "model.context_window must be a positive integer"),
+        ):
+            with self.subTest(key=key):
+                fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+                fleet["model"][key] = bad
+                alt = Path(self.tmp_dir.name) / f"fleet-{key}.yaml"
+                alt.write_text(yaml.safe_dump(fleet))
+                proc = subprocess.run(
+                    [
+                        sys.executable, str(RENDER_SCRIPT),
+                        "--role", "appsec-engineer",
+                        "--rig", "defensive-sec-and-red-team",
+                        "--pod", "blue",
+                        "--fleet", str(alt),
+                        "--dry-run", "--allow-missing-secrets",
+                    ],
+                    cwd=str(REPO_ROOT), env=self.env,
+                    capture_output=True, text=True,
+                )
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn(msg, proc.stderr)
+
     def test_appsec_settings_pin_model_thinking_and_permission_package(self):
         s = self.render(
             "--role",

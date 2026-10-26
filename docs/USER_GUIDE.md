@@ -110,7 +110,7 @@ Depending on which rigs and MCP servers you use, create the corresponding `0600`
 | `redis-readonly.url` | `redis` | `cache-streaming-eng` | Read-only Redis URI (`redis://ro_user:pass@host:6379/0`) |
 | `clickhouse.host`, `clickhouse.user`, `clickhouse.password` | `clickhouse` | `analytics-metrics-eng` | ClickHouse hostname, read-only username, and password |
 
-> **Tip — Degraded Seeding (`--allow-missing-secrets`)**: If you only have `opencode-go.key` (or want to test seat rendering before provisioning every cloud/database credential), pass `--allow-missing-secrets` to `seed-rig.py` or `bootstrap-pi-seats.sh`. Any MCP server (or `auth.json`) whose required secret file is missing will be written with `"enabled": false` and logged as a warning to `stderr` rather than aborting.
+> **Tip — Degraded Seeding (`--allow-missing-secrets`)**: If you only have `opencode-go.key` (or want to test seat rendering before provisioning every cloud/database credential), pass `--allow-missing-secrets` to `seed-rig.py` or `bootstrap-pi-seats.sh`. Any MCP server whose required secret file is missing will be written with `"enabled": false`, and a missing `opencode-go.key` renders `auth.json` with no provider entry (pi 1.3.0 ignores `enabled`); both are logged as warnings to `stderr` rather than aborting.
 
 ## 3. Quickstart: Verify, Seed, Validate, and Launch a Rig
 
@@ -146,7 +146,7 @@ Or provision all 54 default boot seats across all 8 rigs at once:
 # Strict mode (all required secrets must exist):
 make bootstrap-seats
 
-# Degraded mode (allows missing secrets with "enabled": false):
+# Degraded mode (missing MCP secrets render "enabled": false; a missing provider key renders an empty auth.json):
 bash ./scripts/bootstrap-pi-seats.sh --all --allow-missing-secrets
 ```
 
@@ -454,7 +454,7 @@ queue state. Scans every seat under `OPENRIG_HOME/state/pi`, including archived 
 
 | Symptom / Error Message | Root Cause | Resolution |
 | :--- | :--- | :--- |
-| `error: missing /.../.config/heretek-rigs/secrets/opencode-go.key (chmod 600)` | You ran `render-seat.py`, `seed-rig.py`, or `bootstrap-pi-seats.sh` in default strict mode without provisioning `opencode-go.key` (or a role's required MCP secret). | Provision the secret file in `$HERETEK_SECRETS` with `chmod 600`, or pass `--allow-missing-secrets` to render the missing provider/MCP server with `"enabled": false`. |
+| `error: missing /.../.config/heretek-rigs/secrets/opencode-go.key (chmod 600)` | You ran `render-seat.py`, `seed-rig.py`, or `bootstrap-pi-seats.sh` in default strict mode without provisioning `opencode-go.key` (or a role's required MCP secret). | Provision the secret file in `$HERETEK_SECRETS` with `chmod 600`, or pass `--allow-missing-secrets` to render the missing MCP server with `"enabled": false` (a missing provider key leaves `auth.json` empty). |
 | `error: /.../secrets/opencode-go.key is mode 644; run: chmod 600 ...` | The secret file has group or world permission bits (`mode & 0o077 != 0`). | Run `chmod 600 "$HERETEK_SECRETS"/*` and `chmod 700 "$HERETEK_SECRETS"`. |
 | `error: /.../secrets/<file> must not be a symlink` or `must be owned by uid <uid>` | A file in `$HERETEK_SECRETS` is a symbolic link or owned by a different user account. | Replace the symlink with a regular file owned by your current user (`chown $(id -u):$(id -g)`) and set `chmod 600`. |
 | `error: unknown pod '<pod>' for rig <rig> (valid pods: [...])` | `render-seat.py` or `seed-rig.py` was passed a `--pod` ID that does not belong to `--rig` in `fleet/fleet.yaml`. | Check the valid pod IDs for the target rig (or use `heretek-omni-fleet` when seeding pod/member fragments across all 15 pods). |

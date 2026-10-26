@@ -42,7 +42,9 @@ BAN_CLAIM_RES = [
     re.compile(r"no alternate .*surface", re.I),
 ]
 DISPATCHED_RE = re.compile(r"DISPATCHED")
-QITEM_RE = re.compile(r"qitem-[0-9a-z\-]+")
+# Canonical queue-item id (same shape as reconcile_model.QITEM_RE): a loose
+# `qitem-<anything>` would let `DISPATCHED qitem-not-real` pass (#102).
+QITEM_RE = re.compile(r"qitem-\d{14}-[0-9a-f]+")
 # Secret-shaped substrings redacted from finding output (Comment 1).
 SECRET_RES = [
     re.compile(r"(ghp_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]+|sk-[A-Za-z0-9\-]{8,}|AKIA[0-9A-Z]{16}|xox[bp]-?[A-Za-z0-9\-]+)"),

@@ -2575,8 +2575,9 @@ print("\n== V21. Vendored Agent File-Set Parity (#102) ==")
 # V2 compares three named leaves plus agent.yaml, so a file present in
 # specs/agents/<domain>/<role>/ but missing from a rig's vendored copy (or
 # the reverse) was never flagged. Here every rig member's vendored tree must
-# hold exactly the spec tree's files, byte-identical except agent.yaml
-# (whose imports rewrite V2 already checks).
+# hold exactly the spec tree's files, byte-identical; agent.yaml may differ
+# only by the generator's `local:../../_shared` -> `local:../_shared` rewrite
+# (V2's structural check skips rig.all-51.yaml members, so V21 covers them).
 _v21_before = len(failures)
 _v21_members = 0
 for _rigdir21 in sorted(p for p in (root / "rigs").iterdir() if p.is_dir()):
@@ -2590,7 +2591,8 @@ for _rigdir21 in sorted(p for p in (root / "rigs").iterdir() if p.is_dir()):
             for _m21 in _pod21.get("members") or []:
                 _mid21 = _m21.get("id")
                 _ref21 = str(_m21.get("agent_ref", "")).replace("local:", "")
-                if _mid21 not in discovered_roles or not _ref21 or ".." in _ref21:
+                # Absolute or escaping refs are V2's to fail; never scan them.
+                if _mid21 not in discovered_roles or not _ref21 or ".." in _ref21 or _ref21.startswith("/"):
                     continue
                 _src21 = discovered_roles[_mid21]
                 _dst21 = _rigdir21 / _ref21
@@ -2603,14 +2605,15 @@ for _rigdir21 in sorted(p for p in (root / "rigs").iterdir() if p.is_dir()):
                 for _rel21 in sorted(_b21 - _a21):
                     fail(f"V21/#102: {_where21}: vendored-only file {_rel21} absent from specs/agents/")
                 for _rel21 in sorted(_a21 & _b21):
+                    _want21 = (_src21 / _rel21).read_bytes()
                     if str(_rel21) == "agent.yaml":
-                        continue
-                    if (_src21 / _rel21).read_bytes() != (_dst21 / _rel21).read_bytes():
+                        _want21 = _want21.replace(b"ref: local:../../_shared", b"ref: local:../_shared")
+                    if _want21 != (_dst21 / _rel21).read_bytes():
                         fail(f"V21/#102: {_where21}: {_rel21} drifted from specs/agents/")
 if _v21_members == 0:
     fail("V21/#102: no rig members compared (vacuous)")
 if len(failures) == _v21_before:
-    print(f"V21/#102 vendored agent file-set parity green: {_v21_members} rig members match specs/agents/ (file sets + bytes, agent.yaml excepted)")
+    print(f"V21/#102 vendored agent file-set parity green: {_v21_members} rig members match specs/agents/ (file sets + bytes, agent.yaml modulo the _shared import rewrite)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

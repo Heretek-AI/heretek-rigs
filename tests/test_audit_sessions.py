@@ -34,10 +34,15 @@ class TestFalseDeliveryClaim(unittest.TestCase):
     def test_every_row_cited_is_clean(self):
         self.assertEqual(
             self.scan(
-                "| T1 | DISPATCHED | qitem-a1 |\n| T2 | DISPATCHED | qitem-b2 |\n"
+                "| T1 | DISPATCHED | qitem-20261024023942-656bab8b |\n"
+                "| T2 | DISPATCHED | qitem-20261024023943-0a1b2c3d |\n"
             ),
             [],
         )
+
+    def test_malformed_qitem_does_not_clear_row(self):
+        findings = self.scan("| T1 | DISPATCHED | qitem-not-real |\n")
+        self.assertEqual(len(findings), 1)
 
     def test_bare_rows_each_flagged(self):
         findings = self.scan("DISPATCHED one\nnothing\nDISPATCHED two\n")

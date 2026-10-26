@@ -837,6 +837,14 @@ def build_seat_files(
         for key in ("api", "base_url", "context_window", "max_tokens"):
             if key not in model_cfg:
                 die(f"fleet model.{key} is required for provider {model_provider}")
+        if model_cfg["api"] != "openai-responses":
+            die(f"fleet model.api must be openai-responses for {model_provider} (got {model_cfg['api']!r})")
+        for key in ("context_window", "max_tokens"):
+            val = model_cfg[key]
+            if isinstance(val, bool) or not isinstance(val, int) or val <= 0:
+                die(f"fleet model.{key} must be a positive integer (got {val!r})")
+        if model_cfg["max_tokens"] > model_cfg["context_window"]:
+            die("fleet model.max_tokens must not exceed model.context_window")
         if model_cfg["base_url"] != OPENCODE_GO_BASE_URL:
             die(
                 f"fleet model.base_url must be the pinned {OPENCODE_GO_BASE_URL} "
