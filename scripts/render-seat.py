@@ -632,6 +632,10 @@ def _sandbox_bind_roots(path_write):
     return roots
 
 
+# HR-4.2: the pinned opencode-go endpoint (fleet.yaml model.base_url must match).
+OPENCODE_GO_BASE_URL = "https://opencode.ai/inference/go/v1"
+
+
 def die(msg: str) -> None:
     print(f"error: {msg}", file=sys.stderr)
     sys.exit(2)
@@ -804,11 +808,13 @@ def build_seat_files(
         has_key = secret_ok("opencode-go.key")
         if not has_key and not allow_missing_secrets:
             die(f"missing {Path(secrets_dir) / 'opencode-go.key'} (chmod 600)")
-        # HR-4.3 (fail-closed): never emit a silent dangling `!cat` for the
-        # primary provider key — under --allow-missing-secrets an absent key
-        # renders `"enabled": false` plus a stderr warning (mirroring the mcp
-        # deferred-server path), so the seat is visibly degraded instead of
-        # pointing at a nonexistent secret. No literal is ever materialized.
+        # HR-4.3 (fail-closed): never emit a dangling `!cat` for the primary
+        # provider key. Under --allow-missing-secrets an absent key renders
+        # no provider entry at all plus a stderr warning, so the seat is
+        # visibly degraded instead of pointing at a nonexistent secret. No
+        # literal is ever materialized. #102 HR-4.2-auth-enabled-ignored: pi
+        # 1.3.0's auth-storage never reads `enabled`, so an entry carrying
+        # `"enabled": false` still ran the `!cat` at call time.
         if has_key:
             files["auth.json"] = {
                 "opencode-go": {
@@ -822,18 +828,25 @@ def build_seat_files(
                     f"warn: {session}: opencode-go.key missing, auth disabled",
                     file=sys.stderr,
                 )
-            files["auth.json"] = {
-                "opencode-go": {
-                    "type": "api_key",
-                    "key": f"!cat {Path(secrets_dir) / 'opencode-go.key'}",
-                    "enabled": False,
-                }
-            }
+            files["auth.json"] = {}
+        # #102: fleet.yaml `model:` is the source for the endpoint and window
+        # sizes (it used to be decorative while these were hardcoded here).
+        # HR-4.2 keeps the endpoint pinned: a fleet base_url that differs from
+        # the pin dies, so moving endpoints is a deliberate two-place change.
+        model_cfg = fleet_data.get("model") or {}
+        for key in ("api", "base_url", "context_window", "max_tokens"):
+            if key not in model_cfg:
+                die(f"fleet model.{key} is required for provider {model_provider}")
+        if model_cfg["base_url"] != OPENCODE_GO_BASE_URL:
+            die(
+                f"fleet model.base_url must be the pinned {OPENCODE_GO_BASE_URL} "
+                f"(got {model_cfg['base_url']!r})"
+            )
         files["models.json"] = {
             "providers": {
                 "opencode-go": {
-                    "api": "openai-responses",
-                    "baseUrl": "https://opencode.ai/inference/go/v1",
+                    "api": model_cfg["api"],
+                    "baseUrl": model_cfg["base_url"],
                     "models": [
                         {
                             "id": "muse-spark-1.3-contributor",
@@ -849,8 +862,8 @@ def build_seat_files(
                                 "xhigh": "xhigh",
                                 "max": None,
                             },
-                            "contextWindow": 1048576,
-                            "maxTokens": 131072,
+                            "contextWindow": model_cfg["context_window"],
+                            "maxTokens": model_cfg["max_tokens"],
                             "cost": {
                                 "input": 0.10,
                                 "output": 0.20,
