@@ -353,6 +353,52 @@ class TestProposeNeverEdit(unittest.TestCase):
             self.assertIn("refusing", (proc.stdout + proc.stderr).lower())
             self.assertEqual(dest.read_bytes(), before)
 
+    def test_out_refusing_path_inside_mission_repo(self):
+        """#102: a fresh non-tracker --out inside the git work tree that
+        holds the tracker is refused; the same name outside it writes."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "mission"
+            (repo / "docs").mkdir(parents=True)
+            (repo / ".git").mkdir()
+            tracker = write_tracker(str(repo / "docs"), DRIFTED_TRACKER)
+            qlist, trans = make_queue_state(tmp)
+            inside = repo / "notes" / "review-proposal.txt"
+            inside.parent.mkdir()
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist,
+                "--transitions", trans, "--out", str(inside),
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("mission repo", proc.stdout + proc.stderr)
+            self.assertFalse(inside.exists())
+            outside = Path(tmp) / "review-proposal.txt"
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist,
+                "--transitions", trans, "--out", str(outside),
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertTrue(outside.exists())
+
+    def test_out_refusing_repo_of_symlinked_tracker(self):
+        """#118 review: a tracker symlink inside the mission repo pointing
+        outside it still protects the repo it sits in."""
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "mission"
+            (repo / "docs").mkdir(parents=True)
+            (repo / ".git").mkdir()
+            real = write_tracker(tmp, DRIFTED_TRACKER)
+            link = repo / "docs" / "wave1-dispatch-tracker.md"
+            os.symlink(real, link)
+            qlist, trans = make_queue_state(tmp)
+            inside = repo / "review-proposal.txt"
+            proc = run_reconcile(
+                "--tracker", str(link), "--queue-list", qlist,
+                "--transitions", trans, "--out", str(inside),
+            )
+            self.assertEqual(proc.returncode, 2, proc.stdout + proc.stderr)
+            self.assertIn("mission repo", proc.stdout + proc.stderr)
+            self.assertFalse(inside.exists())
+
     def test_out_to_fresh_non_tracker_path_writes(self):
         """F1(iv): --out to a fresh non-tracker path writes the proposal (exit 1 on diffs)."""
         with tempfile.TemporaryDirectory() as tmp:

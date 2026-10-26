@@ -8,7 +8,7 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "agent-operated-workflows": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "agent-operated-workflows",
       "tree": "sha256:fc525896c38725df2da1e88eedefd393ba1ed6af3940e9f6b2f7c952e42e3cd4",
       "license_file": "LICENSE (copied from source root)"
@@ -56,9 +56,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "delegating-work": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "delegating-work",
-      "tree": "sha256:813381e4e12ca590709b8c8dd247633dcc5383761db992f69ad6dc93968c84f8",
+      "tree": "sha256:a7dca53c34090f2bb6c383801bc08b408c2e23a4abffcd263a0ee7ce1b4eff78",
       "license_file": "LICENSE (copied from source root)"
     },
     "dispatching-parallel-agents": {
@@ -110,9 +110,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "forming-an-openrig-mental-model": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "forming-an-openrig-mental-model",
-      "tree": "sha256:fc508a86cd29ddd92300f501af0507b35b91f77b455d2137f81fb5ee0165ce99",
+      "tree": "sha256:e50af00855452c9b9e97178967609a738c6a10385f19617d756f8467789bec25",
       "license_file": "LICENSE (copied from source root)"
     },
     "fp-check": {
@@ -146,13 +146,13 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "messaging-the-human": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "messaging-the-human",
-      "tree": "sha256:ec59bd0182b532c10a93afc75f04814c8d39656a42e693bf6ad49626c189a5d5",
+      "tree": "sha256:e6bfa11c3647f7bf93af1560a66e990cc49778a0a9387501295d94ac7ac331e1",
       "license_file": "LICENSE (copied from source root)"
     },
     "mission-slice-sop": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "mission-slice-sop",
       "tree": "sha256:7b89c5e46dd8385b792759086f277ab31f1306c7d24976138e70c94c03f29cb3",
       "license_file": "LICENSE (copied from source root)"
@@ -176,19 +176,19 @@
       "license_file": "none (see SKILL.md frontmatter)"
     },
     "openrig-operating-model": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "openrig-operating-model",
       "tree": "sha256:49f111f54f08ade6887b956b4cea55041ab5240b055b277c7515980939185668",
       "license_file": "LICENSE (copied from source root)"
     },
     "openrig-user": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "openrig-user",
-      "tree": "sha256:758b547abcf734177be27acea40388a3cc05a91d35e00fe2bebc48d0b2c25645",
+      "tree": "sha256:bb1029e37a5424bb4432e7aa3f88d351c645d038a6b16de36d912ae125202ee8",
       "license_file": "LICENSE (copied from source root)"
     },
     "orienting-to-an-inherited-seat": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "orienting-to-an-inherited-seat",
       "tree": "sha256:25668b9dce8e41918b51ba8e3ed19b3d82168a949a58c9920ea745527a7cf3dd",
       "license_file": "LICENSE (copied from source root)"
@@ -212,9 +212,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "queue-handoff": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "queue-handoff",
-      "tree": "sha256:ac867c593b4abb031a3e4013981bb84db5024a3615969a53d627d71ce22eb619",
+      "tree": "sha256:d6f9e76466fc2fc13aecc4388b19b1a66e37e56e3511b65cac3cd62679f12074",
       "license_file": "LICENSE (copied from source root)"
     },
     "react-best-practices": {
@@ -230,9 +230,9 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "refocusing": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "refocusing",
-      "tree": "sha256:ffa4c7f97906f377ac47c38e2783ce3bad79c41fd2ea81552e39096861f60d56",
+      "tree": "sha256:55538a68423d51d76d486e41c11f868b527b0c2a5287624197cb36830807fe88",
       "license_file": "LICENSE (copied from source root)"
     },
     "requesting-code-review": {
@@ -254,7 +254,7 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "seat-continuity-and-handover": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "seat-continuity-and-handover",
       "tree": "sha256:ba1fd96624ad4da585b8a068690f9cdfc17a23ce9eb66daa7744c5558e82d5cc",
       "license_file": "LICENSE (copied from source root)"
@@ -290,7 +290,7 @@
       "license_file": "LICENSE (copied from source root)"
     },
     "session-compaction-and-restore": {
-      "source": "npm:@openrig/cli@0.6.13 daemon/assets/plugins/openrig-core/skills",
+      "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
       "path": "session-compaction-and-restore",
       "tree": "sha256:655e4c70e1f4d221ebc7234a500d3c9f97ad83fe9caf382d1c82fca11eb5c705",
       "license_file": "LICENSE (copied from source root)"

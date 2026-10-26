@@ -74,6 +74,115 @@ class TestRenderSeat(unittest.TestCase):
             },
         )
 
+    def test_missing_provider_key_renders_no_auth_entry(self):
+        """#102 HR-4.2: pi 1.3.0/1.4.0 ignore `enabled`, so a degraded seat must
+        carry no provider entry (and no dangling `!cat`) at all."""
+        (self.secrets / "opencode-go.key").unlink()
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "appsec-engineer",
+                "--rig",
+                "defensive-sec-and-red-team",
+                "--pod",
+                "blue",
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        f = json.loads(proc.stdout)
+        self.assertEqual(f["auth.json"], {})
+        self.assertIn("opencode-go.key missing, auth disabled", proc.stderr)
+
+    def test_models_json_follows_fleet_model_block(self):
+        """#102: fleet.yaml `model:` drives the endpoint and window sizes."""
+        import yaml
+
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        fleet["model"]["max_tokens"] = 4242
+        alt = Path(self.tmp_dir.name) / "fleet.yaml"
+        alt.write_text(yaml.safe_dump(fleet))
+        provider = self.render(
+            "--role",
+            "appsec-engineer",
+            "--rig",
+            "defensive-sec-and-red-team",
+            "--pod",
+            "blue",
+            "--fleet",
+            str(alt),
+        )["models.json"]["providers"]["opencode-go"]
+        self.assertEqual(provider["baseUrl"], fleet["model"]["base_url"])
+        self.assertEqual(provider["models"][0]["maxTokens"], 4242)
+        self.assertEqual(provider["api"], fleet["model"]["api"])
+
+    def test_unpinned_fleet_base_url_is_refused(self):
+        """HR-4.2: the endpoint stays pinned even though fleet.yaml drives it."""
+        import yaml
+
+        fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+        fleet["model"]["base_url"] = "https://example.invalid/v1"
+        alt = Path(self.tmp_dir.name) / "fleet.yaml"
+        alt.write_text(yaml.safe_dump(fleet))
+        proc = subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "appsec-engineer",
+                "--rig",
+                "defensive-sec-and-red-team",
+                "--pod",
+                "blue",
+                "--fleet",
+                str(alt),
+                "--dry-run",
+                "--allow-missing-secrets",
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("model.base_url must be the pinned", proc.stderr)
+
+    def test_malformed_fleet_model_values_are_refused(self):
+        """#118 review: model values copied from fleet.yaml are validated."""
+        import yaml
+
+        for key, bad, msg in (
+            ("api", "openai-completions", "model.api must be openai-responses"),
+            ("max_tokens", "131072", "model.max_tokens must be a positive integer"),
+            ("context_window", 0, "model.context_window must be a positive integer"),
+        ):
+            with self.subTest(key=key):
+                fleet = yaml.safe_load((REPO_ROOT / "fleet/fleet.yaml").read_text())
+                fleet["model"][key] = bad
+                alt = Path(self.tmp_dir.name) / f"fleet-{key}.yaml"
+                alt.write_text(yaml.safe_dump(fleet))
+                proc = subprocess.run(
+                    [
+                        sys.executable, str(RENDER_SCRIPT),
+                        "--role", "appsec-engineer",
+                        "--rig", "defensive-sec-and-red-team",
+                        "--pod", "blue",
+                        "--fleet", str(alt),
+                        "--dry-run", "--allow-missing-secrets",
+                    ],
+                    cwd=str(REPO_ROOT), env=self.env,
+                    capture_output=True, text=True,
+                )
+                self.assertNotEqual(proc.returncode, 0)
+                self.assertIn(msg, proc.stderr)
+
     def test_appsec_settings_pin_model_thinking_and_permission_package(self):
         s = self.render(
             "--role",

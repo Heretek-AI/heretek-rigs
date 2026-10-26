@@ -141,19 +141,19 @@ EXPECTED_8_RIGS = [
 
 RIG_KEYS = {"version", "name", "summary", "culture_file", "permission_policy", "managed_blocks", "docs", "startup", "services", "workspace", "pods", "edges", "non_interruptive", "env"}
 POD_KEYS = {"id", "label", "summary", "continuity_policy", "startup", "members", "edges"}
-MEMBER_KEYS = {"id", "label", "agent_ref", "profile", "runtime", "codex_config_profile", "model", "effort", "role", "permission_policy", "cwd", "restore_policy", "compaction_strategy", "mechanic", "startup", "session_source", "starter_ref", "env"}
+MEMBER_KEYS = {"id", "label", "agent_ref", "profile", "runtime", "codex_config_profile", "model", "effort", "advisor", "role", "permission_policy", "claude_permissions", "cwd", "restore_policy", "compaction_strategy", "mechanic", "startup", "session_source", "starter_ref", "env", "agent_file", "append_system_prompt_file", "plugin_dirs"}
 EDGE_KEYS = {"kind", "from", "to"}
 EDGE_KINDS = {"delegates_to", "spawned_by", "can_observe", "collaborates_with", "escalates_to"}
 
 # HR-2.1-schema-drift (fail-closed): the RIG/POD/MEMBER/EDGE key sets above are
-# a copy of the pinned @openrig/cli@0.6.13 rigspec-schema.ts export in
+# a copy of the pinned @openrig/cli@0.7.2 rigspec-schema.ts export in
 # schemas/rigspec-keys.pinned.json plus the vendored bytes in
 # schemas/rigspec-schema.pinned.ts. Diff them here so any upstream bump or
 # local drift flips the gate instead of silently desyncing. A sabotage adding,
 # removing, or renaming one pinned key must exit 1. The vendored .ts file must
 # exist: editing both local copies identically without updating the vendored
 # bytes still fails (upstream-hash attestation; refresh from the real
-# @openrig/cli@0.6.13 rigspec-schema.ts per the JSON provenance recipe).
+# @openrig/cli@0.7.2 rigspec-schema.ts per the JSON provenance recipe).
 # HR-2.1-pinned-self-referential: the three-way local-local diff alone passes
 # an identical 3-copy edit. The 4th anchor below (SHA-256 of the vendored
 # bytes, refreshed at generation time into the JSON provenance) fails closed
@@ -165,32 +165,32 @@ try:
     for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
         _pinned_set = set(_pinned_keys.get(_name, []))
         if _live != _pinned_set:
-            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.6.13 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.7.2 rigspec-schema.ts)")
     _anchored = _pinned_doc.get("provenance", {}).get("vendored_sha256", "")
     if not re.fullmatch(r"[0-9a-f]{64}", str(_anchored or "")):
-        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.6.13 rigspec-schema.ts per provenance recipe)")
+        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.7.2 rigspec-schema.ts per provenance recipe)")
     else:
         _actual_ts_hash = hashlib.sha256((root / "schemas/rigspec-schema.pinned.ts").read_bytes()).hexdigest()
         if _actual_ts_hash != _anchored:
-            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.6.13 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.7.2 rigspec-schema.ts)")
     # HR-2.1-pinned-still-local (fail-closed): the vendored_sha256 anchor above
     # is refreshed FROM the local vendored bytes at generation time, so an
     # identical edit of all three local copies followed by a generator refresh
     # still passes. The upstream tarball anchor below is NEVER derived from
     # local bytes — it is recorded by a human running `npm pack
-    # @openrig/cli@0.6.13` on a networked shell host per the provenance recipe,
+    # @openrig/cli@0.7.2` on a networked shell host per the provenance recipe,
     # and the gate fails while it is absent/placeholder so the gap stays
     # visible instead of silently self-consistent.
     _upstream = _pinned_doc.get("provenance", {}).get("upstream_tarball", {})
     _tb_sha = str(_upstream.get("tarball_sha256", "") or "")
     if not re.fullmatch(r"[0-9a-f]{64}", _tb_sha):
-        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.6.13` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
+        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.7.2` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
     else:
-        _tgz = root / "schemas/openrig-cli-0.6.13.tgz"
+        _tgz = root / "schemas/openrig-cli-0.7.2.tgz"
         if _tgz.exists():
             _actual_tgz = hashlib.sha256(_tgz.read_bytes()).hexdigest()
             if _actual_tgz != _tb_sha:
-                fail(f"schemas/openrig-cli-0.6.13.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.6.13`)")
+                fail(f"schemas/openrig-cli-0.7.2.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.7.2`)")
 except Exception as _e:
     fail(f"schemas/rigspec-keys.pinned.json unreadable for schema-drift check: {_e}")
 try:
@@ -198,11 +198,11 @@ try:
     for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
         _m = re.search(rf"export const {_name} = \[(.*?)\] as const", _vendored_ts, flags=re.DOTALL)
         if not _m:
-            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.6.13 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.7.2 rigspec-schema.ts)")
             continue
         _vendored_set = set(re.findall(r'"([^"]+)"', _m.group(1)))
         if _live != _vendored_set:
-            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.6.13 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.7.2 rigspec-schema.ts)")
 except Exception as _e:
     fail(f"schemas/rigspec-schema.pinned.ts unreadable for schema-drift check: {_e}")
 
@@ -512,7 +512,10 @@ for rid, rdir in sorted(discovered_roles.items()):
     pe = json.loads((rdir / "runtime/policy-enforcement.json").read_text())
     expected_pol = "builtin:locked" if rid in LOCKED_18_ROLES else "builtin:standard"
     if pe.get("openrig_permission_policy") != expected_pol or r_fleet.get("permission_policy") != expected_pol:
-        fail(f"{rid}: policy mismatch (got {pe.get('openrig_permission_policy')}, expected {expected_pol})")
+        fail(
+            f"{rid}: policy mismatch (expected {expected_pol}; runtime/policy-enforcement.json has "
+            f"{pe.get('openrig_permission_policy')}, fleet.yaml permission_policy has {r_fleet.get('permission_policy')})"
+        )
     # HR-1.4: standalone pi-permission-config.json must exist and match policy-enforcement permission payload
     try:
         ppc = json.loads((rdir / "runtime/pi-permission-config.json").read_text())
@@ -1798,7 +1801,9 @@ for _sname13, _sdef13 in sorted(_v13_sidecars.get("services", {}).items()):
         continue
     if _p13.returncode != 0:
         _err13 = (_p13.stderr or "")[:300]
-        if re.search(r"(network|timeout|timed out|connection|refused|Temporary failure|Could not resolve|no such host|TLS|certificate|proxyconnect|proxy connect|toomanyrequests|rate limit)", _err13, re.IGNORECASE):
+        # #107 residual: match the offline keywords on the whole stderr; a long
+        # digest ref pushed `toomanyrequests` past the 300-char display slice.
+        if re.search(r"(network|timeout|timed out|connection|refused|Temporary failure|Could not resolve|no such host|TLS|certificate|proxyconnect|proxy connect|toomanyrequests|rate limit)", _p13.stderr or "", re.IGNORECASE):
             print(f"  [NOTE] V13/#70 image-existence: offline ({_err13[:120]}); {_sname13} existence unchecked")
             _v13_offline = True
             continue
@@ -1810,8 +1815,8 @@ if _v13_offline:
 
 # --- #100: Dockerfile install lists match catalog/fleet pins (drift fails closed) ---
 _dockerfile13 = (root / "docker/Dockerfile").read_text()
-if "ARG OPENRIG_VERSION=0.6.13" not in _dockerfile13:
-    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.6.13")
+if "ARG OPENRIG_VERSION=0.7.2" not in _dockerfile13:
+    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.2")
 _expected_npm13 = {}
 for _n13, _s13 in mcp_catalog.items():
     _pm13 = re.fullmatch(r"npm:(\S+)@(\S+)", str(_s13.get("pin", "")))
@@ -2315,7 +2320,7 @@ if len(failures) == _v17_before:
 
 print("\n== V18. Upstream-Contract Validation (#98) ==")
 # #98 appended alongside — no V1-V17 line renumbered or reworded. Exactly
-# one ok() below. The 0.6.13 npm tarball ships NO JSON schema files, so
+# one ok() below. The 0.6.13+ npm tarballs ship NO JSON schema files, so
 # there are no upstream bytes to vendor/`cmp` (vendoring the 0.6.11-era
 # docs/reference/schemas copies would be false provenance); upstream
 # authority is the installed CLI's native verbs (`rig bundle check`,
@@ -2410,7 +2415,7 @@ for _line18 in _v18r.stderr.splitlines():
             _v18_ran = _parts18[1]
 if len(failures) == _v18_before:
     ok(
-        f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.6.13"
+        f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.2"
     )
 
 print("\n== V19. Canonical Stale-Count Guard (#102) ==")
@@ -2564,6 +2569,56 @@ if _v20_rs_mod is not None:
                     fail(f"V20/#91: seat {_rid20}: non-go role must not carry path_read")
 if len(failures) == _v20_before:
     print("V20/#91 scoped build/test path args green: catalog, native-map parity, overlay position/scope, go exception scoping, engine build/*")
+
+print("\n== V21. Vendored Agent File-Set Parity (#102) ==")
+# #102 appended alongside, FAIL-ONLY like V20 (the V19 count stays put).
+# V2 compares three named leaves plus agent.yaml, so a file present in
+# specs/agents/<domain>/<role>/ but missing from a rig's vendored copy (or
+# the reverse) was never flagged. Here every rig member's vendored tree must
+# hold exactly the spec tree's files, byte-identical; agent.yaml may differ
+# only by the generator's `local:../../_shared` -> `local:../_shared` rewrite
+# (V2's structural check skips rig.all-51.yaml members, so V21 covers them).
+_v21_before = len(failures)
+_v21_members = 0
+for _rigdir21 in sorted(p for p in (root / "rigs").iterdir() if p.is_dir()):
+    for _ry21 in sorted(_rigdir21.glob("rig*.yaml")):
+        try:
+            _doc21 = yaml.safe_load(_ry21.read_text()) or {}
+        except Exception as _e21:
+            fail(f"V21/#102: {_ry21.relative_to(root)} unreadable ({_e21})")
+            continue
+        for _pod21 in _doc21.get("pods") or []:
+            for _m21 in _pod21.get("members") or []:
+                _mid21 = _m21.get("id")
+                _ref21 = str(_m21.get("agent_ref", "")).replace("local:", "")
+                # Absolute or escaping refs are never scanned. V2 fails them in
+                # the 8 rig.yaml files; nothing else covers rig.all-51.yaml.
+                if ".." in _ref21 or _ref21.startswith("/"):
+                    if _ry21.name != "rig.yaml":
+                        fail(f"V21/#102: {_ry21.relative_to(root)}:{_mid21}: agent_ref escapes bundle folder: {_m21.get('agent_ref')}")
+                    continue
+                if _mid21 not in discovered_roles or not _ref21:
+                    continue
+                _src21 = discovered_roles[_mid21]
+                _dst21 = _rigdir21 / _ref21
+                _a21 = {q.relative_to(_src21) for q in _src21.rglob("*") if q.is_file()}
+                _b21 = {q.relative_to(_dst21) for q in _dst21.rglob("*") if q.is_file()}
+                _where21 = f"{_ry21.relative_to(root)}:{_mid21}"
+                _v21_members += 1
+                for _rel21 in sorted(_a21 - _b21):
+                    fail(f"V21/#102: {_where21}: spec-only file {_rel21} missing from the vendored copy")
+                for _rel21 in sorted(_b21 - _a21):
+                    fail(f"V21/#102: {_where21}: vendored-only file {_rel21} absent from specs/agents/")
+                for _rel21 in sorted(_a21 & _b21):
+                    _want21 = (_src21 / _rel21).read_bytes()
+                    if str(_rel21) == "agent.yaml":
+                        _want21 = _want21.replace(b"ref: local:../../_shared", b"ref: local:../_shared")
+                    if _want21 != (_dst21 / _rel21).read_bytes():
+                        fail(f"V21/#102: {_where21}: {_rel21} drifted from specs/agents/")
+if _v21_members == 0:
+    fail("V21/#102: no rig members compared (vacuous)")
+if len(failures) == _v21_before:
+    print(f"V21/#102 vendored agent file-set parity green: {_v21_members} rig members match specs/agents/ (file sets + bytes, agent.yaml modulo the _shared import rewrite)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

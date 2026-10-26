@@ -1,6 +1,6 @@
 # Heretek-Rigs Operator & User Guide
 
-Welcome to the operator manual for **`heretek-rigs`** — the 51-agent, 8-rig software engineering fleet built on **OpenRig v0.6.13** (`rig`), **Pi Coding Agent v1.3.0** (`pi`), **`@gotgenes/pi-permission-system@41.0.0`**, and **OpenCode Go** (`opencode-go/muse-spark-1.3-contributor:high`).
+Welcome to the operator manual for **`heretek-rigs`** — the 51-agent, 8-rig software engineering fleet built on **OpenRig v0.7.2** (`rig`), **Pi Coding Agent v1.4.0** (`pi`), **`@gotgenes/pi-permission-system@41.0.0`**, and **OpenCode Go** (`opencode-go/muse-spark-1.3-contributor:high`).
 
 This guide walks you through installing prerequisites, provisioning zero-leak secrets, seeding isolated seat directories, launching and operating domain rigs, dynamically scaling the `heretek-omni-fleet` command center, running Docker sidecars safely, customizing the fleet catalog, and troubleshooting common issues.
 
@@ -11,19 +11,19 @@ This guide walks you through installing prerequisites, provisioning zero-leak se
 | Component | Required Version | Purpose |
 | :--- | :--- | :--- |
 | **Operating System** | Linux or macOS (WSL2 on Windows) | Host environment for OpenRig daemon, `tmux` sessions, and Docker sidecars. |
-| **Node.js & npm** | Node.js `22.x` or `24.x` (`>=22.19.0`) | Required by `@openrig/cli@0.6.13` (`better-sqlite3` ABI) and `@earendil-works/pi-coding-agent@1.3.0`. (Node 20 is unsupported.) |
+| **Node.js & npm** | Node.js `22.x` or `24.x` (`>=22.19.0`) | Required by `@openrig/cli@0.7.2` (`better-sqlite3` ABI) and `@earendil-works/pi-coding-agent@1.4.0`. (Node 20 is unsupported.) |
 | **tmux** | `3.2+` | Terminal multiplexer backing all OpenRig agent seats. |
 | **Python 3** | `3.10+` with `pyyaml` and `jsonschema` (or `uv`) | Runs `generate-rigs.py`, `render-seat.py`, `seed-rig.py`, `verify-rigs.sh`, and `audit_loop.py`. All scripts automatically fall back to `uv run --with pyyaml --with jsonschema` if `uv` is installed. |
 | **Docker & Compose** | Docker Engine + `docker compose` v2 | Optional for core rig launch; required when starting supporting sidecar profiles (`docker-compose.sidecars.yml`) or the `terraform` MCP container. |
 
 ### Step 1: Install OpenRig CLI (`rig`) and Pi Coding Agent (`pi`)
 
-Install the exact pinned versions of the OpenRig CLI (`@openrig/cli@0.6.13`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@1.3.0`) globally:
+Install the exact pinned versions of the OpenRig CLI (`@openrig/cli@0.7.2`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@1.4.0`) globally:
 
 ```bash
-npm install -g @openrig/cli@0.6.13 @earendil-works/pi-coding-agent@1.3.0
-rig --version   # Expect: 0.6.13 (9eeb2e42)
-pi --version    # Expect: 1.3.0
+npm install -g @openrig/cli@0.7.2 @earendil-works/pi-coding-agent@1.4.0
+rig --version   # Expect: 0.7.2 (8b180689)
+pi --version    # Expect: 1.4.0
 ```
 
 > **Note**: Always invoke the OpenRig CLI using `rig` (or `openrig-tui` for the standalone dashboard binary), never `openrig`.
@@ -110,7 +110,7 @@ Depending on which rigs and MCP servers you use, create the corresponding `0600`
 | `redis-readonly.url` | `redis` | `cache-streaming-eng` | Read-only Redis URI (`redis://ro_user:pass@host:6379/0`) |
 | `clickhouse.host`, `clickhouse.user`, `clickhouse.password` | `clickhouse` | `analytics-metrics-eng` | ClickHouse hostname, read-only username, and password |
 
-> **Tip — Degraded Seeding (`--allow-missing-secrets`)**: If you only have `opencode-go.key` (or want to test seat rendering before provisioning every cloud/database credential), pass `--allow-missing-secrets` to `seed-rig.py` or `bootstrap-pi-seats.sh`. Any MCP server (or `auth.json`) whose required secret file is missing will be written with `"enabled": false` and logged as a warning to `stderr` rather than aborting.
+> **Tip — Degraded Seeding (`--allow-missing-secrets`)**: If you only have `opencode-go.key` (or want to test seat rendering before provisioning every cloud/database credential), pass `--allow-missing-secrets` to `seed-rig.py` or `bootstrap-pi-seats.sh`. Any MCP server whose required secret file is missing will be written with `"enabled": false`, and a missing `opencode-go.key` renders `auth.json` with no provider entry (pi 1.4.0 ignores `enabled`); both are logged as warnings to `stderr` rather than aborting.
 
 ## 3. Quickstart: Verify, Seed, Validate, and Launch a Rig
 
@@ -146,7 +146,7 @@ Or provision all 54 default boot seats across all 8 rigs at once:
 # Strict mode (all required secrets must exist):
 make bootstrap-seats
 
-# Degraded mode (allows missing secrets with "enabled": false):
+# Degraded mode (missing MCP secrets render "enabled": false; a missing provider key renders an empty auth.json):
 bash ./scripts/bootstrap-pi-seats.sh --all --allow-missing-secrets
 ```
 
@@ -365,7 +365,7 @@ Never hand-edit files under `specs/`, `rigs/`, `rosters/`, or `registry/`. Becau
 To modify a role's permissions, skills, thinking level, or MCP bindings:
 1. Edit `fleet/fleet.yaml` or `fleet/mcp-servers.yaml`.
 2. Ensure your git working tree is clean (or set `HERETEK_RIGS_ALLOW_DIRTY=1` during local development so `resolve_heretek_commit()` allows provenance baking on a dirty worktree).
-3. Ensure the pinned upstream checkouts exist in `.scratch/vendor/` (`obra_superpowers@bb92a77`, `trailofbits_skills@5c99c03`, `getsentry_skills@f57ada2`, `anthropics_skills@dbd4588`, `vercel-labs_agent-skills@063bee9`, plus `Heretek-Crew@5ffb1fc` and `@openrig/cli@0.6.13`).
+3. Ensure the pinned upstream checkouts exist in `.scratch/vendor/` (`obra_superpowers@bb92a77`, `trailofbits_skills@5c99c03`, `getsentry_skills@f57ada2`, `anthropics_skills@dbd4588`, `vercel-labs_agent-skills@063bee9`, plus `Heretek-Crew@5ffb1fc` and `@openrig/cli@0.7.2`).
 4. Run the deterministic generator and idempotency gate:
    ```bash
    HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py
@@ -454,7 +454,7 @@ queue state. Scans every seat under `OPENRIG_HOME/state/pi`, including archived 
 
 | Symptom / Error Message | Root Cause | Resolution |
 | :--- | :--- | :--- |
-| `error: missing /.../.config/heretek-rigs/secrets/opencode-go.key (chmod 600)` | You ran `render-seat.py`, `seed-rig.py`, or `bootstrap-pi-seats.sh` in default strict mode without provisioning `opencode-go.key` (or a role's required MCP secret). | Provision the secret file in `$HERETEK_SECRETS` with `chmod 600`, or pass `--allow-missing-secrets` to render the missing provider/MCP server with `"enabled": false`. |
+| `error: missing /.../.config/heretek-rigs/secrets/opencode-go.key (chmod 600)` | You ran `render-seat.py`, `seed-rig.py`, or `bootstrap-pi-seats.sh` in default strict mode without provisioning `opencode-go.key` (or a role's required MCP secret). | Provision the secret file in `$HERETEK_SECRETS` with `chmod 600`, or pass `--allow-missing-secrets` to render the missing MCP server with `"enabled": false` (a missing provider key leaves `auth.json` empty). |
 | `error: /.../secrets/opencode-go.key is mode 644; run: chmod 600 ...` | The secret file has group or world permission bits (`mode & 0o077 != 0`). | Run `chmod 600 "$HERETEK_SECRETS"/*` and `chmod 700 "$HERETEK_SECRETS"`. |
 | `error: /.../secrets/<file> must not be a symlink` or `must be owned by uid <uid>` | A file in `$HERETEK_SECRETS` is a symbolic link or owned by a different user account. | Replace the symlink with a regular file owned by your current user (`chown $(id -u):$(id -g)`) and set `chmod 600`. |
 | `error: unknown pod '<pod>' for rig <rig> (valid pods: [...])` | `render-seat.py` or `seed-rig.py` was passed a `--pod` ID that does not belong to `--rig` in `fleet/fleet.yaml`. | Check the valid pod IDs for the target rig (or use `heretek-omni-fleet` when seeding pod/member fragments across all 15 pods). |
@@ -470,7 +470,7 @@ Public multi-arch images (`linux/amd64`, `linux/arm64`) are published by
 
 | Tag | Contents | Approx. size |
 | :--- | :--- | :--- |
-| `:latest` (slim) | `rig` 0.6.13, `pi` 1.3.0, permission system + AST/LSP packages, 8 npm MCP servers, uvx PyPI MCP servers | ~3.5 GB (dominated by the upstream `codebase-memory-mcp` 330 MB Go binary, tree-sitter WASM grammars, and the Node 22 toolchain) |
+| `:latest` (slim) | `rig` 0.7.2, `pi` 1.4.0, permission system + AST/LSP packages, 8 npm MCP servers, uvx PyPI MCP servers | ~3.5 GB (dominated by the upstream `codebase-memory-mcp` 330 MB Go binary, tree-sitter WASM grammars, and the Node 22 toolchain) |
 | `:full` | slim + Playwright Chromium (+`CHROME_PATH` for chrome-devtools-mcp), source-built radare2 6.2.4, compiled `r2mcp -R` | ~4.7 GB |
 | `:sha-<commit>` / `:sha-<commit>-full` | Pinned releases (provenance + SBOM attestations) | — |
 

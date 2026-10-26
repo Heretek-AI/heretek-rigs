@@ -13,7 +13,8 @@ Flags:
   1. MISATTRIBUTED_DENIAL: assistant text claims a rig/queue/send capability is
      absent, a bash-surface blocked event exists, and the live config still
      allows the rig surface. Cited evidence is the correlated bash event(s).
-  2. FALSE_DELIVERY_CLAIM: docs contain DISPATCHED with no qitem- id.
+  2. FALSE_DELIVERY_CLAIM: a docs line says DISPATCHED with no qitem- id on
+     that same line (per row, so one cited id cannot mask the rest).
 
 Findings are leads for operator review (exit 1), not verdicts: claim matching is
 heuristic and delivery flags do not cross-check live queue state. Secret-shaped
@@ -41,7 +42,10 @@ BAN_CLAIM_RES = [
     re.compile(r"no alternate .*surface", re.I),
 ]
 DISPATCHED_RE = re.compile(r"DISPATCHED")
-QITEM_RE = re.compile(r"qitem-[0-9a-z\-]+")
+# Canonical queue-item id (same shape as reconcile_model.QITEM_RE): a loose
+# `qitem-<anything>` would let `DISPATCHED qitem-not-real` pass (#102). The
+# lookarounds stop a valid-looking prefix of `qitem-…-656bab8g` from counting.
+QITEM_RE = re.compile(r"(?<![0-9A-Za-z_-])qitem-\d{14}-[0-9a-f]+(?![0-9A-Za-z_-])")
 # Secret-shaped substrings redacted from finding output (Comment 1).
 SECRET_RES = [
     re.compile(r"(ghp_[A-Za-z0-9]{8,}|github_pat_[A-Za-z0-9_]+|sk-[A-Za-z0-9\-]{8,}|AKIA[0-9A-Z]{16}|xox[bp]-?[A-Za-z0-9\-]+)"),
@@ -164,10 +168,13 @@ def audit_docs(workspace, findings):
                 content = f.read()
         except (FileNotFoundError, UnicodeDecodeError, PermissionError):
             continue
-        if DISPATCHED_RE.search(content) and not QITEM_RE.search(content):
-            findings.append(
-                f"FALSE_DELIVERY_CLAIM {path}: contains DISPATCHED with no qitem- id."
-            )
+        # #102: judged per line. A whole-file check let one qitem id anywhere
+        # in a tracker mask every bare DISPATCHED row in it.
+        for lineno, line in enumerate(content.splitlines(), 1):
+            if DISPATCHED_RE.search(line) and not QITEM_RE.search(line):
+                findings.append(
+                    f"FALSE_DELIVERY_CLAIM {path}:{lineno}: DISPATCHED with no qitem- id on the row."
+                )
 
 
 def main():

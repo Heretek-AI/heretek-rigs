@@ -5,15 +5,15 @@ created_at: '2026-10-18T00:00:00.000Z'
 rig_spec: rig.yaml
 culture_file: CULTURE.md
 compatibility:
-  min_cli_version: 0.6.13
-  min_daemon_version: 0.6.13
+  min_cli_version: 0.7.2
+  min_daemon_version: 0.7.2
 preconditions:
 - name: Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)
   commands:
   - python3 ./scripts/seed-rig.py rigs/executive-and-architecture/rig.yaml
 assembler:
-  openrigVersion: 0.6.13
-  commit: 9eeb2e42
+  openrigVersion: 0.7.2
+  commit: 8b180689
 configuration:
   id: delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi
   preset: recommended
@@ -89,7 +89,7 @@ integrity:
   files:
     CULTURE.md: a5cecee6aa3ac417a2a0c7e66e875943bbf4981c04d2dd072761eedd49d212d5
     README.md: 9342e98f6ce294fe9f3b6dd7cd614924e5375067ecf025a2e08957bdbd1c8256
-    SETUP.md: 7630c324357255f11f298c90e0817c854d1ac1ff15ac987e1dcca2f43552e9d1
+    SETUP.md: d38d7a1b63dd1796f8a30a989bf017ceb7e5e3dce4efb0274a620b22a34ddb46
     agents/_shared/agent.yaml: 6d39cfaf9075c348900031cd2fcd7bad7ad942922c0f006bd6477ea179d5dfab
     agents/_shared/skills/address-sanitizer/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/address-sanitizer/SKILL.md: eb9ea8210fa55d50477fbe52993a704e320c88739c10d619864b6ce377ebce25
@@ -172,7 +172,7 @@ integrity:
     agents/_shared/skills/codeql/workflows/create-data-extensions.md: f3643e4916e7586c7738c14f781e3919bce35129d75beb00812b963efbbc4673
     agents/_shared/skills/codeql/workflows/run-analysis.md: a85ee6df365445353e482e38c43c73e013a280268570284ac858798f47716626
     agents/_shared/skills/delegating-work/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/delegating-work/SKILL.md: f40346ec08f0ba22d8dccab0dca8442a8d3783173275d36a4e913185e0e29fbd
+    agents/_shared/skills/delegating-work/SKILL.md: fc5638949ce7600446a04e59dbe94996ea910e94beef1fa71cb7a31fa140fce6
     agents/_shared/skills/dispatching-parallel-agents/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/dispatching-parallel-agents/SKILL.md: 1968923066f3b707eb01d1992cdf4c42284c3855f70253b9cd5000ff45fca13c
     agents/_shared/skills/doc-coauthoring/SKILL.md: 2e47d78846faeea4a56e9809c52700087a15a2155a3f293a3efbaded81398ef4
@@ -202,7 +202,7 @@ integrity:
     agents/_shared/skills/finishing-a-development-branch/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/finishing-a-development-branch/SKILL.md: 8db5a922b242dd4e1bf824cb91c13b3e8d8e8a86d6ceaf7f0774eb9cce909d65
     agents/_shared/skills/forming-an-openrig-mental-model/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/forming-an-openrig-mental-model/SKILL.md: a1c14e7e61bbb2b56739ff56ff8d6dd8e9e9d37969db9f1e7b278cf0f650b43f
+    agents/_shared/skills/forming-an-openrig-mental-model/SKILL.md: cd7bfdcc5a87485140cfcac94bc2c703aec5c5b220a3397e139c4fd6db4339e6
     agents/_shared/skills/fp-check/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/fp-check/SKILL.md: 129223b79b8cb1e7c289c90cbe4ba288d9b210e318a0d1464f319e30329481b3
     agents/_shared/skills/fp-check/agents/openai.yaml: 7c0420b00c25c4d1ab70497fbacd47e6687d9310d1ede4d11c285d3a0c7fc309
@@ -232,7 +232,7 @@ integrity:
     agents/_shared/skills/libfuzzer/agents/openai.yaml: 0edbd68f53abc679b392ac26315d4b3fb0647119a27babeba05b59120f806cb7
     agents/_shared/skills/libfuzzer/assets/trail-of-bits-mark.svg: 4bf74c789b38dcf6ad762c136b6832363d27ae19fbaa9a18ec18d66ecce6ca05
     agents/_shared/skills/messaging-the-human/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/messaging-the-human/SKILL.md: 4804d32fe66db050722caf2b43f8b868ca65b3dfcf2f2830f8f4859726f6f1b0
+    agents/_shared/skills/messaging-the-human/SKILL.md: e94095e61cec0d32d96fb8c60df008d0c3ac3bd2fa789a5eb625f46f35945456
     agents/_shared/skills/mission-slice-sop/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
     agents/_shared/skills/mission-slice-sop/SKILL.md: a01e72a526c975a86f0754af206505efbafcbbc3583bea1394c50759dc5a584f
     agents/_shared/skills/modern-python/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
@@ -277,7 +277,7 @@ integrity:
     agents/_shared/skills/openrig-operating-model/templates/SOP.md: 1eaf0daf4f9bbf0715e6a5aaf0f29f030af5fe8b8a10232488ee97c507afa6dc
     agents/_shared/skills/openrig-operating-model/templates/SPEC.md: f126536daa59cea3f1cfb0898d83c7cdf99f6392f6f155ea64fe55187dd0f5f1
     agents/_shared/skills/openrig-user/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/openrig-user/SKILL.md: fe40d7c0f3418e426f8b91acacc81f845461043be0ddd8cdf211390c2ad66420
+    agents/_shared/skills/openrig-user/SKILL.md: 01cb169050a3d4f51ad7b263772c6ed58f62683df820efeac1a88faadf9cd086
     agents/_shared/skills/orienting-to-an-inherited-seat/CHANGELOG.md: 4d0970e75e5c15b00a48d6a7150376d646257777264fd1b9a191165a8d5a6e84
     agents/_shared/skills/orienting-to-an-inherited-seat/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
     agents/_shared/skills/orienting-to-an-inherited-seat/SKILL.md: 252fed402f19027056bbba241df3305be88de3175b67dc8fe051143bb0d4412b
@@ -307,7 +307,7 @@ integrity:
     agents/_shared/skills/property-based-testing/references/refactoring.md: 6eb5c206f575704791f089608bb06e41d6eed91b9d3c7fb27912f969aed07a18
     agents/_shared/skills/property-based-testing/references/reviewing.md: 110b08118a1e7b1a2566def6e9d2a0bf43fc2deefce857d2ce3b4382b07bc774
     agents/_shared/skills/queue-handoff/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/queue-handoff/SKILL.md: 5ff22b30a632b9832dcefa6a107866ef06fc3991f8d7d9f367394eb88261be1c
+    agents/_shared/skills/queue-handoff/SKILL.md: fcfa420a49a09be4fd51ccc6ca89c00847a59484a7bcab205c8eec83837cdc0d
     agents/_shared/skills/react-best-practices/AGENTS.md: fc93e7421177bbf869cce892bc60a6c83a4517d974bc3bf65c4e2c1e58a6ccf6
     agents/_shared/skills/react-best-practices/README.md: 9eafb2123d3b8b2aef41fba0db2648a3f4f49996f8c7c8bb2c86263befd8b48a
     agents/_shared/skills/react-best-practices/SKILL.md: 7abbd5496192757b9fb235858bc140a6ae867a3aa2c67393a6b354ea3ac7db0b
@@ -389,7 +389,7 @@ integrity:
     agents/_shared/skills/refocusing/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
     agents/_shared/skills/refocusing/SKILL.md: b9d1837095dceaaed7cac492cfd4fda0396dafae98e3a7f53d5314e2076540f7
     agents/_shared/skills/refocusing/references/refocus.md: 6e71513e82bd815e1506b0be4f9a972eecd3053a8deb06340c10b1d1792489bc
-    agents/_shared/skills/refocusing/scripts/trace-to-root.py: 70f12547c2e33c7745e188ddc29486833e67294affc97cfb609f1a346ea61446
+    agents/_shared/skills/refocusing/scripts/trace-to-root.py: 877f80f1c84e2b9a922ea7729b77378b25129b3cd44ce999ab7356b91f62747c
     agents/_shared/skills/requesting-code-review/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/requesting-code-review/SKILL.md: 2180e14a448e9410bec88e6646a2d1f0ce7fdd58de27388c1e052e929679d2bc
     agents/_shared/skills/requesting-code-review/code-reviewer.md: 82e370be6b3447523816286195571e4216ba56ba1ad6ad0e87862294c4c78dcb
