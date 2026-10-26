@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-26
 - **Branch:** `claude/project-thread-502xnv` (stacked on PR #118)
-- **Scope:** version pin, RigSpec key pins, provenance refresh, re-vendor of `openrig-core` skills. No charter, permission, seat-scope or MCP-catalog change. Pi stays at 1.3.0 and pi-permission-system at 41.0.0.
+- **Scope:** version pin, RigSpec key pins, provenance refresh, re-vendor of `openrig-core` skills. No charter, permission, seat-scope or MCP-catalog change. Pi stays at 1.3.0 here (bumped to 1.4.0 in `PI-1.4.0-BUMP.md`) and pi-permission-system at 41.0.0.
 - **Authority:** human instruction "update to the most recent version of openrig" (2026-10-26).
 - **Precedent:** `docs/sprints/CLI-0.6.13-BUMP.md` (same recipe).
 
