@@ -70,7 +70,7 @@ graph TD
 * **Focus**: "Do all 51 AgentSpecs, 8 RigBundles, and seeded Pi seats conform to OpenRig `v0.6.13` and Pi `v1.3.0` contracts, pass `rig spec validate` and `rig bundle check`, and launch cleanly?"
 * **Methodology**:
   - Audit every `rigs/*/rig.yaml` (plus `rigs/heretek-omni-fleet/rig.all-51.yaml`, `pods/*.yaml`, `members/*.yaml`) against `RIG_KEYS`, `POD_KEYS`, `MEMBER_KEYS`, and `EDGE_KEYS` from `openrig/packages/daemon/src/domain/rigspec-schema.ts`. Verify pod-local unqualified edges, cross-pod `pod.member` edges, and DAG acyclicity on `delegates_to`/`spawned_by`.
-  - Run `rig spec validate <rig.yaml> --json` and `rig bundle check <rig-dir> --json` across all 8 `rigs/<rig-slug>/` directories. Confirm `rig bundle check --json` outputs `[]` (zero issues) and `find specs rigs -type l` is empty.
+  - Run `rig spec validate <rig.yaml> --json` and `rig bundle check <rig-dir> --json` across all 8 `rigs/<rig-slug>/` directories. Confirm `rig bundle check --json` reports zero failing checks (0.6.13 returns `{"standardVersion":"openrig.bundle-standard/v1","checks":[...]}`; count `.checks[] | select(.status=="fail")`) and `find specs rigs -type l` is empty.
   - If the OpenRig daemon can start on loopback (`HOME=$AUDIT_TMP/home OPENRIG_HOME=$AUDIT_TMP/home/.openrig rig daemon start --no-kernel --port 7699`), run `rig agent validate` across all `agent.yaml` files and `rig spec preflight` across all 8 `rig.yaml` files, and test `rig expand` / `rig add` on `rigs/heretek-omni-fleet`.
   - Verify `scripts/render-seat.py`, `scripts/seed-rig.py`, and `scripts/bootstrap-pi-seats.sh`: confirm every seeded seat in `$OPENRIG_HOME/state/pi/<pod>-<member>@<rig>/agent/` has `models.json`, `auth.json` (`0600`, `"!cat <abs-path>"`), `settings.json`, `mcp.json` (`0600`), `AGENTS.md` (role charter), and `extensions/pi-permission-system/config.json` (`0600`).
   - Verify zero `guidance_merge` entries exist in any `agent.yaml` (`startup.files`), preventing the shared `<cwd>/AGENTS.md` overwrite bug, and confirm all 12 OpenRig core SOP skills (`agent-operated-workflows`, `delegating-work`, `forming-an-openrig-mental-model`, `messaging-the-human`, `mission-slice-sop`, `openrig-operating-model`, `openrig-user`, `orienting-to-an-inherited-seat`, `queue-handoff`, `refocusing`, `seat-continuity-and-handover`, `session-compaction-and-restore`) are projected via `resources.skills`.
@@ -112,7 +112,7 @@ graph TD
 * **Claim 2.2 [A][S]**: Every pod-local edge uses unqualified member IDs within the same pod, every cross-pod edge uses `pod.member` across distinct pods, every edge `kind` is one of `delegates_to`, `spawned_by`, `can_observe`, `collaborates_with`, `escalates_to`, and `delegates_to`/`spawned_by` edges form a cycle-free DAG.
 * **Claim 2.3 [A][S]**: Every `agent.yaml` declares `version: "1.0"`, nested `defaults.lifecycle.{execution_mode: "interactive_resident", compaction_strategy: "default-compaction", restore_policy: "resume_if_possible"}` and `profiles.default.lifecycle.{compaction_strategy: "default-compaction", restore_policy: "resume_if_possible"}`, with zero `hooks` keys at any level.
 * **Claim 2.4 [A][S]**: Zero `agent.yaml` files contain `guidance_merge` startup files (`startup.files` uses `context` only); role charters are rendered to per-seat `<agentDir>/AGENTS.md` so seats sharing `<cwd>` never overwrite each other's `<cwd>/AGENTS.md` managed blocks.
-* **Claim 2.5 [A][S]**: Neither `specs/` nor `rigs/` contains any symbolic links (`find specs rigs -type l` is empty), every relative path inside `rigs/<rig-slug>/` resolves strictly within `rigs/<rig-slug>/`, and `rig bundle check <rig-dir> --json` returns `[]` across all 8 rigs.
+* **Claim 2.5 [A][S]**: Neither `specs/` nor `rigs/` contains any symbolic links (`find specs rigs -type l` is empty), every relative path inside `rigs/<rig-slug>/` resolves strictly within `rigs/<rig-slug>/`, and `rig bundle check <rig-dir> --json` reports zero `"status":"fail"` entries in its `checks` array across all 8 rigs.
 
 ### Domain 3: OpenRig v1 Bundle Formats & Cryptographic Digests
 * **Claim 3.1 [B][S]**: All 8 `rigs/<rig-slug>/configurations.yaml`, 8 `registry/views/<rig-slug>/behaviour.json`, 8 `registry/entries/<rig-slug>.yaml`, and `registry/status.json` validate against `schemas/*.v1.schema.json` using `jsonschema.Draft202012Validator`.
@@ -142,7 +142,7 @@ graph TD
 * **Claim 7.3 [G][S]**: `ghidra`, `radare2`, and `sonarqube` connect only to the isolated `heretek-devsec` internal bridge network (exact network sets — any additional network fails the gate); `ghidra` and `radare2` mount `./workspaces/binaries:/samples:ro`; `docker-android` connects only to `heretek-mobile`; and `Makefile` `guard-profiles` exits 1 when `mobile` is co-scheduled with `devsec` or `web-research`.
 
 ### Domain 8: Deterministic Generator, Verifier & Automated Audit Loop
-* **Claim 8.1 [A][S]**: `python3 scripts/generate-rigs.py` is idempotent: running it twice in a clean checkout produces zero `git status --porcelain` or `packageDigest` diffs.
+* **Claim 8.1 [A][S]**: `python3 scripts/generate-rigs.py` is idempotent: running it twice in a clean checkout produces zero `git status --porcelain` or `packageDigest` diffs, with one known exception: the first regen after a commit rewrites the committed `resolvedCommit` provenance stamps (and only those) to the new HEAD, as accepted in AGENTS.md. A second consecutive run (`--check-idempotent`) must be byte-identical.
 * **Claim 8.2 [A][S]**: `./scripts/verify-rigs.sh --check-only` exits 0 on the clean repository and exits non-zero when any of the `[S]` invariants is sabotaged.
 * **Claim 8.3 [A][S]**: `python3 scripts/audit_loop.py --self-test` exits 0 and proves that its fail-closed evaluator rejects `STATUS: NO_FINDINGS` whenever `verify-rigs.sh` fails, whenever a `### HR-` finding header is present, or whenever a Claim Ledger row is marked `BROKEN` or `PARTIAL`.
 * **Claim 8.4 [B]**: All required planning and automation deliverables (`fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, `docs/OSINT_ECOSYSTEM_REPORT.md`, `docs/OPENRIG_MUSE_GO_ARCHITECTURE.md`, `PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md`, `PROMPT_ADVERSARIAL_FLEET_AUDIT.md`, `PROMPT_FLEET_AUDIT_REMEDIATION.md`, `scripts/audit_loop.py`) exist, are non-empty, and contain no unresolved template placeholders.
@@ -211,7 +211,10 @@ make guard-profiles SIDECAR_PROFILES="web-research"
 # 6. Test bootstrap-pi-seats.sh in an isolated OPENRIG_HOME
 # HR-4.2: the exec pod seats exec-director as exec-exec-director@... (the
 # command pod exists only in heretek-omni-fleet).
-OPENRIG_HOME="$AUDIT_TMP/openrig-home" ./scripts/bootstrap-pi-seats.sh --rig executive-and-architecture
+# Secrets are strict by default, so point at the dummy key from recipe 4 and
+# allow the missing github.pat (HR-4.2-recipe6-stale).
+HERETEK_SECRETS="$AUDIT_TMP/secrets" OPENRIG_HOME="$AUDIT_TMP/openrig-home" \
+  ./scripts/bootstrap-pi-seats.sh --rig executive-and-architecture --allow-missing-secrets
 test -f "$AUDIT_TMP/openrig-home/state/pi/exec-exec-director@executive-and-architecture/agent/models.json"
 test -f "$AUDIT_TMP/openrig-home/state/pi/exec-exec-director@executive-and-architecture/agent/AGENTS.md"
 test "$(stat -c '%a' "$AUDIT_TMP/openrig-home/state/pi/exec-exec-director@executive-and-architecture/agent/auth.json")" = "600"

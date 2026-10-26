@@ -41,6 +41,7 @@ NO permission config — always seed before `up`/`expand`/`add`.
 
 - One branch per change (`fix/…`, `feat/…`, `docs/…`, `remediate/…`), PR before merge to `main`. Never push straight to `main`.
 - Never `--force` (a force-push guardrail has bitten before); if a branch goes stale, open a fresh branch name instead.
+- PR bodies: write a closing keyword before every issue it should close (`Closes #94, closes #95`); GitHub links only the first number in `Closes #94 #95`. Never put `Closes`/`Fixes`/`Resolves` directly before an issue number that must stay open, even in a negation: "never Closes #74" closed #74. Use `Refs #N` for those.
 - Merge-conflict rule for generated files: take `main`'s generator, keep the branch's catalog edit, **re-run `generate-rigs.py`** — never hand-resolve generated leaves.
 - Committed provenance (`resolvedCommit`) pins the pre-merge HEAD and re-lags one commit per merge. Known, accepted; `packageDigest`s stay self-consistent. Do NOT "fix" it by hand-editing registry files.
 - `verify-rigs.sh`'s 35 checks are audit-baselined: add new gates alongside (new script or new block), don't renumber/reword existing checks casually.
