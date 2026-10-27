@@ -360,7 +360,7 @@
     "test-driven-development": {
       "source": "obra/superpowers@bb92a77",
       "path": "skills/test-driven-development",
-      "tree": "sha256:3fac8ba837b2acef753432f1bce9169e87e6392602ce53b5031d59af924ad8d2",
+      "tree": "sha256:1264c69b6af3b9e440af92581204af77723c6536be6b791d5e5ff0fbc02a1242",
       "license_file": "LICENSE (copied from source root)"
     },
     "typescript-astro": {

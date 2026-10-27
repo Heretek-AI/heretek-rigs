@@ -606,7 +606,7 @@ integrity:
     agents/_shared/skills/tdd/SKILL.md: 0ad3799204990ca45831721afad288243914a76fecefe493a5d50cd32c6854e8
     agents/_shared/skills/test-driven-development/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/test-driven-development/SKILL.md: 64b03fce4aee5a97a93160cea8111f3ba13a17b7c001db4bd5836d67fd10705d
-    agents/_shared/skills/test-driven-development/writing-good-tests.md: 51471c853306ff92ca8bb41dcaea05f31c0e46b03651f8f3c99754b7172f4ae1
+    agents/_shared/skills/test-driven-development/writing-good-tests.md: f99bbfc43ea86bff776256f03e27316c7034119e03f981e5c7f220f022cb0b13
     agents/_shared/skills/typescript-astro/SKILL.md: 6db8903dc14702a1cfde72da1ea5d00c2ed799aba8f71c125a8ab1bc46948bc7
     agents/_shared/skills/using-git-worktrees/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/using-git-worktrees/SKILL.md: 8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd
@@ -675,92 +675,92 @@ integrity:
     agents/a11y-specialist/agent.yaml: d31fc400df9a42a17501cc1628fbc9dd7404f6521f5c151963020d982661703e
     agents/a11y-specialist/guidance/role.md: 45c3a889886f8ba96eecd60c4436501e4eecf5429371949e52c5afd76842f022
     agents/a11y-specialist/runtime/mcp.json: 5ffa010d0cdd35b5c67b2aada972552f67b0d73bd41bc5c4055d93ce3d8bd65b
-    agents/a11y-specialist/runtime/pi-permission-config.json: 037083ebe18b5a8a381aeb1a9bab262d5dc21f011b9669a3f5f8292b0e61b75b
+    agents/a11y-specialist/runtime/pi-permission-config.json: 471672a3ae025a376418e6f36ee63f28c9f3de10fa22a5de5cbb71af305711f4
     agents/a11y-specialist/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/a11y-specialist/runtime/policy-enforcement.json: 0b72ae1bf9335ce5fee954b427281728a72521ad8dd0dc36fd4344b60b91874d
+    agents/a11y-specialist/runtime/policy-enforcement.json: f002e90e63f6622902a0bbb221179f1c9968086e693dd4fc0bbc9f0756b90d4c
     agents/a11y-specialist/skills/wcag-axe-audit-automation/SKILL.md: 9a14b471aaa940912b73a5e492513cc0d293089137f897cbe6343b3be059d238
     agents/a11y-specialist/startup/context.md: 2641dcf317dd6e8a6efd7a9abdf558b9516ec86ffc3bb8e6c34f659c14eaf4e6
     agents/brand-copy-spec/agent.yaml: 32aeb7f1a4a3d598abb1a2610a15d7f100ec5bee5beb533711970992d6b8f413
     agents/brand-copy-spec/guidance/role.md: b378492adc5e5527ea24f88ff15f56492d0eaa0dc4e3f7002cd741b7da3017ba
     agents/brand-copy-spec/runtime/mcp.json: d8e397af03b5b032f21d0aa967086f0c78b33c87b76f2e9898ae0a144df7de02
-    agents/brand-copy-spec/runtime/pi-permission-config.json: 6fc2346f516dfcb1ec4d8fcd774c739799225c05a3efad1d6610f6cecb718c2b
+    agents/brand-copy-spec/runtime/pi-permission-config.json: df677e73389bac84ca40921219a43d4c16bf7aa82876ba471385ed9bd2687695
     agents/brand-copy-spec/runtime/pi-settings.json: 7335a3079741653ae3cc50c3eb925c7c84dad396aaa98e0847a59627eec6aff6
-    agents/brand-copy-spec/runtime/policy-enforcement.json: 69ae4b88a8f33840ae7d9e55912ff9ef6f8fcd3509f6e5c02c76cf982cf5a599
+    agents/brand-copy-spec/runtime/policy-enforcement.json: 9340e2a6c970b3febc4bd955d94329e37ef668dd8413a86ce5b48c2ff2b4820f
     agents/brand-copy-spec/skills/actionable-microcopy-refactoring/SKILL.md: a253daccab771e8093517dca51dfac2585d6c20199e915609964dce4fa3aacc3
     agents/brand-copy-spec/skills/humanizer/SKILL.md: f4b4ac5a34576aed19aafd104996ba91bcc9ca4191a50199f219cfab130b1530
     agents/brand-copy-spec/startup/context.md: fbbe06706f5a7d79fb0bc023a1fdde38a75356803664adb4a2e3a1df7668dcf4
     agents/design-system-eng/agent.yaml: 6781f6bbd0c54f163e645dc495d50039bd44c13c0e6897f881899c57ef83fa9d
     agents/design-system-eng/guidance/role.md: db3c91aae11edeb4e3eaa1234db0d273e608b5bfba144a243047c7e670a2a818
     agents/design-system-eng/runtime/mcp.json: 6048560918a978afa942fe467b452f2c2e4f1bfb623657974ab445e0a770860d
-    agents/design-system-eng/runtime/pi-permission-config.json: 8dc3a76b8377c5e8ff3b9c8207f4a71578e70d3fddb6c5b05ce63138add1e099
+    agents/design-system-eng/runtime/pi-permission-config.json: 72d6540813541d3ab4ad46ce93f8805b5ae0d8d720a95c305824a20a50a061b8
     agents/design-system-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/design-system-eng/runtime/policy-enforcement.json: 047ff5585d1098819100c3793fdea018cb23ef5d18a3b352958ca35af41fd3b5
+    agents/design-system-eng/runtime/policy-enforcement.json: 1353a38eeb97f0b09efc9d5111a51a237ddcc427c73779931a55adb606cee682
     agents/design-system-eng/skills/impeccable-taste/SKILL.md: eabf919b2ab5dd1daa3c5e90f95b2b9d7a64d71f260cd7014991b1c179fd884a
     agents/design-system-eng/skills/storybook-component-tokenization/SKILL.md: 910941930718748d054265db327b06ac62bdfb968bd18bda173e9b53722704ae
     agents/design-system-eng/startup/context.md: 56b1506e59f8e77c245a0577d02bea179cf8387d614a4186eac4258979969fa5
     agents/fe-perf-eng/agent.yaml: e40c9e7aab232c71e8d5006fe1718d1155aa120cec7fc91d4ce6a9b2ce328dae
     agents/fe-perf-eng/guidance/role.md: ffe8a0172c87de341e7836e10095d57097de8ee71832bd2f26299e0341471b50
     agents/fe-perf-eng/runtime/mcp.json: 0088c85d3bfa4a725f9626c30e42ce4027db6bfea35be02a93af5888921031a4
-    agents/fe-perf-eng/runtime/pi-permission-config.json: aff1ef28594a7cd4169ef38315942de9914f434e08fd0b4b461b1057d7db3ea3
+    agents/fe-perf-eng/runtime/pi-permission-config.json: 21d8ab8966c311da1aae582fa56f2a9b96d2ba6e20e6f5ceeb9d88f35b11cd47
     agents/fe-perf-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/fe-perf-eng/runtime/policy-enforcement.json: 69e19fe19b31fd9245c2ecb4ca6f28f58b6d80d5e4cf03fc82cf3a56391587ab
+    agents/fe-perf-eng/runtime/policy-enforcement.json: df6bf06a944285a3f569df93e926a337382e9c0e134db801da55cad9ce51cff3
     agents/fe-perf-eng/skills/core-web-vitals-profiling/SKILL.md: 60cea189247ad5f76f1c1ef1b724e6700a2ce0bc45118949211b1426a84d4cce
     agents/fe-perf-eng/startup/context.md: 462b79554bcd22af47442766c57024447f111ad8b5fc8a84251da47eac7a1aae
     agents/go-backend-eng/agent.yaml: 958a68bba4951b950e87b4b05fc7e79caaadce11566d459e608462a9ec7199a0
     agents/go-backend-eng/guidance/role.md: fd3a335fb200c1e8dc754a9d99b2941b27744f0faaa86e406d9063bfe606356e
     agents/go-backend-eng/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
-    agents/go-backend-eng/runtime/pi-permission-config.json: 70d704ef339aa484e1dc4b482c4ec05ce20c8c92dadde14a992bc83a8c652ce5
+    agents/go-backend-eng/runtime/pi-permission-config.json: 0aaf83f9c6943b147da640c037ebd943818e762e741324593bb5c9755cb3f772
     agents/go-backend-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/go-backend-eng/runtime/policy-enforcement.json: 16b9bd4a6be44e0122126d2191cf7328ecc380046c86d5e01ba76f55f2e405c3
+    agents/go-backend-eng/runtime/policy-enforcement.json: f55b5d684c08abc0dc356104290935d6c28ee7159819697aaa8c0ac488d6c975
     agents/go-backend-eng/skills/go-expert/SKILL.md: f24ee20ef163879dcf4337acf7cfadadfb4d729c3f895f1cd0e29c817b2577d9
     agents/go-backend-eng/skills/idiomatic-go-service-development/SKILL.md: 7cbf10e5674c23c8dcab743464eecfe9402e455a09cb0ea891284e01cc0ac34a
     agents/go-backend-eng/startup/context.md: 93fd6371030952fa96e741116832f1ac9735c007c3b5d9c41a436ddf491d5bd2
     agents/java-kotlin-eng/agent.yaml: 68068a21d32a4c32fff5dfa026b293b790cd3d190866e635f640b60eb650dc16
     agents/java-kotlin-eng/guidance/role.md: fc74d723b769fa736ba90bcff8fb5d51ee8c28276473d40ceb42e88e258826d3
     agents/java-kotlin-eng/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/java-kotlin-eng/runtime/pi-permission-config.json: 7866a29ecc111ba02508234bbe6d2d796d8081a347ea0fdfe05d9cb02c4b3d6a
+    agents/java-kotlin-eng/runtime/pi-permission-config.json: 0dde6abed2ab3ff730da040dee41e81c9c5d8997cbd79dd3a0f6e0c52825369b
     agents/java-kotlin-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/java-kotlin-eng/runtime/policy-enforcement.json: 757f18da58e65325ea89b0b15fcec4fc89cf90f18b1517c3b8922d3b47b8f208
+    agents/java-kotlin-eng/runtime/policy-enforcement.json: 4fc146540cd04d3e92cd1414fb333c70e9888cccb1ba1a0ec59c1279d05f2061
     agents/java-kotlin-eng/skills/spring-boot-virtual-thread-tuning/SKILL.md: 67c6a9cba838099ef45523e86ba995a92495b39d7882bc64b387a5f9f3ef8645
     agents/java-kotlin-eng/startup/context.md: a153f9b44eb29752baae3bc48f1611c8b2bdd6a91b787ccd0e622961e6c2e98c
     agents/mobile-web-eng/agent.yaml: 7eef9364e6adf2426aeeb6e968dca7b5267204a8e3cbbfbf3775d9da71038322
     agents/mobile-web-eng/guidance/role.md: 8f7493945ed24e31cd25ef82c2b8fa9e969f34756eed78e7dab81c34ff6e770e
     agents/mobile-web-eng/runtime/mcp.json: 0088c85d3bfa4a725f9626c30e42ce4027db6bfea35be02a93af5888921031a4
-    agents/mobile-web-eng/runtime/pi-permission-config.json: d7ef3f155aa27a858b016751a294b510e893716bbef9e9a70a61e6523e18e7d0
+    agents/mobile-web-eng/runtime/pi-permission-config.json: 0702427f16ae5e769020fa950cfb0dc50e1d1375e12a33dba821c7b7692f3602
     agents/mobile-web-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/mobile-web-eng/runtime/policy-enforcement.json: 7acae3ead14a0bc5c8ccb5a61ce5064778b1d74ab0a4d65869693bf18791845f
+    agents/mobile-web-eng/runtime/policy-enforcement.json: 84a72f27206bcaf6135e6e500a1a1a70d93e200f8aceb2397a3ad44e3287c0c7
     agents/mobile-web-eng/skills/mobile-viewport-emulation-audit/SKILL.md: bca98f5d9b88166dab460488db45ebb96263db1f1907028cbb33c88b6cab2d8e
     agents/mobile-web-eng/startup/context.md: 6dc0f701c5abdf5919e6a784426bfff450850a1f2381505fa36bc1cff8657bd4
     agents/python-backend-spec/agent.yaml: 5f26cfc4421362c066cc1c70c775621cc9216986d35bbc46a7f696bbb07becb7
     agents/python-backend-spec/guidance/role.md: 5925748b475f1f5a96b9fc0898e6ae836394d89bb936f80c7b86c5ac62523031
     agents/python-backend-spec/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
-    agents/python-backend-spec/runtime/pi-permission-config.json: 0ad4608bdb2a019aad92bcc597c0ce1beb677bd7aa62d6268dca298668352b1e
+    agents/python-backend-spec/runtime/pi-permission-config.json: f1e22f0468fde2864a2c9b9a26090310e23692bd0dfdb0be919fd0c9bf8405a7
     agents/python-backend-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/python-backend-spec/runtime/policy-enforcement.json: f76b668d75f677bc604e6ce1d535eecbd014ca207b7536c2845b222ad64523b6
+    agents/python-backend-spec/runtime/policy-enforcement.json: 3967acfdff584181599e3d67b5b8281f29af1808d6e08fd2ece946c6f96be59f
     agents/python-backend-spec/skills/fastapi-async-development/SKILL.md: ea1a366577ee97a3027dd2e20ce0621878a1457c6e7972db421a284e6b951378
     agents/python-backend-spec/startup/context.md: 55c03a7a09e205556b9e8aabdaf47cc922e0701bb254aabcbfb40037c12e201d
     agents/ts-node-fullstack/agent.yaml: 0bcc33367f5d632de30b5ac59bee1cc34b013454f4c32211931b9d07a769311f
     agents/ts-node-fullstack/guidance/role.md: 4e2297512fbd707ad17cf345ff36e29986f90145017a258a3155a734dd1d112c
     agents/ts-node-fullstack/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
-    agents/ts-node-fullstack/runtime/pi-permission-config.json: 840532569403f15be1f4f522aadd2d63db3f479b55af428dfa687e6f2723c38f
+    agents/ts-node-fullstack/runtime/pi-permission-config.json: d9c8ee5483fe7bfeb84ec98f9e160dde0016f00fc9a40f4a97da0ebe7959bb96
     agents/ts-node-fullstack/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/ts-node-fullstack/runtime/policy-enforcement.json: 90d2b77c2ecc802f4b4edb53584afc5bf00cb10be042f9d25984577e42eedd46
+    agents/ts-node-fullstack/runtime/policy-enforcement.json: ce4c7378ba5a711b189eebabc26d1f04d55d22312b9ba5ca2912aae38214b013
     agents/ts-node-fullstack/skills/end-to-end-type-safe-fullstack/SKILL.md: 8081e777f8d5425699c61b62d7ad0e304621b25164c197cdcb57e481a04b6a8c
     agents/ts-node-fullstack/startup/context.md: b451d6b6a96aad608c5ea218c7b4bff87d9e8376ffafc8d3983dd89772010124
     agents/ui-ux-designer/agent.yaml: 310f209a56990e866d485c225782c894217b33fc28f45225d8141c3dfb9fedf9
     agents/ui-ux-designer/guidance/role.md: bf3994b49ce90a50b33fde3fbe4588532e7ac38eb81d7d7c16cc56fcebc54805
     agents/ui-ux-designer/runtime/mcp.json: 0088c85d3bfa4a725f9626c30e42ce4027db6bfea35be02a93af5888921031a4
-    agents/ui-ux-designer/runtime/pi-permission-config.json: 7d79c19e2855674b9e470fdf6dd709ff5acfaf03ec93c05fecb46a693cb1141e
+    agents/ui-ux-designer/runtime/pi-permission-config.json: 6bbfb0ae7dce90e06593bea43a215475451e7ff20bf038630f8f5bf41b52285e
     agents/ui-ux-designer/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/ui-ux-designer/runtime/policy-enforcement.json: 4e4ae882a3fedf85fac9d4c21281157f14dfd2b45a6b99c99a95e7c38ca3fdfc
+    agents/ui-ux-designer/runtime/policy-enforcement.json: fa6e824f14f17925c203137641dbf42d9a4e966b5de16cb66d30bd8ba0748a45
     agents/ui-ux-designer/skills/tailwind-ui-prototyping/SKILL.md: 3e4c0bc412d1de0854b19d1060c63d33b3e72cc9542363e59cf62f9d0fe6121f
     agents/ui-ux-designer/startup/context.md: 3586ec377a2b0f70c97256f3375c9af3d694ab648e155fbdab3b86ff8b024ee3
     agents/ux-research-analyst/agent.yaml: 8bc72c8531f8f92d93a6bab2c3c0b66fb837537c657b87bbb037f0d11d2354f9
     agents/ux-research-analyst/guidance/role.md: 0530fbafe68d77a982682a55ab628ac478856b8fe14ee5aaabc8fa83eedd17a6
     agents/ux-research-analyst/runtime/mcp.json: 2ea2929e44f7409561711e624af98d266bbc065e00bf30e788d553f09e020ead
-    agents/ux-research-analyst/runtime/pi-permission-config.json: 17b100486cd147e9fbad03317e8e15b2fe7a4dd6902b682854859771a375410a
+    agents/ux-research-analyst/runtime/pi-permission-config.json: 20bae3e0fd8914b7c8458299de62f9f28962057969693d76cdd1b846380ea7a4
     agents/ux-research-analyst/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/ux-research-analyst/runtime/policy-enforcement.json: 55b571a2a6c2adfaa57f5a85ea7030db7e7b9d7643d59196109547e0b2153157
+    agents/ux-research-analyst/runtime/policy-enforcement.json: b45cad0f2ef928b2519613affac157defa7ce277a15b943a1dfe433fca2b1a8f
     agents/ux-research-analyst/skills/feedback-clustering-analysis/SKILL.md: da5fe49c524e709f3580284e6530de25412f97f03b8ea37fc97e66627d069723
     agents/ux-research-analyst/startup/context.md: 26d532c6a4a60f8f3ee9790670c5efab0c129d26dc22f5a869e81e6fa59dfa1a
     configurations.yaml: 07c34642895392602ed6746eb39bbe46d76f0a317ccb08fcf54cfee3609713b0

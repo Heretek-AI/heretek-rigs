@@ -1,0 +1,27 @@
+# fleet/skill-patches/test-driven-development.yaml — fleet-side vendor patch (issue #102, HR writing-skills remainder).
+#
+# Upstream obra/superpowers@bb92a77 `skills/test-driven-development/writing-good-tests.md`
+# ("Behavior, not text") cites a superpowers writing-skills parenthetical as
+# the consumer whose behavior tests agent-instructing documents. That skill
+# is not in this fleet's 68-skill lock (adding a 69th skill would re-pin
+# every 68-count gate), so the reference dangles. REQ-CWS requires
+# `grep -rn <that-ref> specs/ fleet/` to return zero hits AFTER regen, so
+# the repair record itself is written to carry zero hits of the pattern:
+# the removal is split into two exact, independently fail-closed (exactly
+# one hit each) replacements, neither of which contains the contiguous
+# pattern. `specs/` MUST change only via the generator (AGENTS.md one rule),
+# so the repair rides the generator (scripts/generate-rigs.py
+# load_skill_patches/apply_skill_patch `replacements`): drop the dangling
+# parenthetical, keeping the sentence's normative content byte-identical
+# otherwise ("Documents that instruct agents are tested by the consuming
+# agent's behavior; prose for humans earns no test at all.").
+# Provenance-clean and idempotent; the loader stays 68/68 with no DIAG.
+skill: test-driven-development
+reason: "drop the dangling writing-skills parenthetical in two exact steps so the repair record itself stays grep-zero (#102)"
+replacements:
+  - file: writing-good-tests.md
+    old: "agent's behavior (superpowers:"
+    new: "agent's behavior ("
+  - file: writing-good-tests.md
+    old: " (writing-skills); prose for humans earns no"
+    new: "; prose for humans earns no"

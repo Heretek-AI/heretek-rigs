@@ -449,3 +449,15 @@ Running `make verify` or `bash ./scripts/verify-rigs.sh --check-only` executes 6
 | **V4. OpenRig v1 JSON Schema Conformance** | `rigs/`, `registry/`, `rosters/` | Validates all 8 `configurations.yaml`, 8 `behaviour.json`, 8 `registry/entries/*.yaml`, `registry/status.json`, and `rosters/heretek-omni-fleet.json` against `schemas/*.v1.schema.json` using `jsonschema.Draft202012Validator`. |
 | **V5. Cryptographic Digest Replay** | `rigs/*/bundle.yaml`, `registry/`, `identity-vectors.json` | Recomputes every file SHA-256 in `bundle.yaml`, `configurationId`, `packageDigest`, and RFC 8785 JCS `bodyDigest` in `registry/status.json`; replays the canonical test vectors in `identity-vectors.json`; rejects unacknowledged `SYNTHETIC-` provenance markers. |
 | **V6. MCP Catalog, Sidecars & Unit Tests** | `fleet/mcp-servers.yaml`, `docker-compose.sidecars.yml`, `tests/` | Verifies all 20 MCP servers use pinned versions and command-backed `!cat` / `!echo Bearer` secrets; verifies `docker-compose.sidecars.yml` binds all published ports to `127.0.0.1`, uses zero `:latest` tags, pins all 20 `docker-socket-proxy` toggles to `"0"`, isolates `heretek-devsec` and `heretek-mobile` networks, wires `sidecars-up` to `guard-profiles`, and runs `tests/test_render_seat.py` (7 unit tests). |
+
+### `rig.all-51.yaml` Canonical Validation (HR-2.5, #102)
+
+`rig spec validate` (V18 spec loop in `scripts/verify-rigs.sh`) is the
+canonical validator for `rigs/heretek-omni-fleet/rig.all-51.yaml`: it
+validates the 8 per-rig `rig.yaml` files PLUS `rig.all-51.yaml` (51 seats,
+15 pod fragments, 51 member fragments, `delegates_to`/`spawned_by` cycle
+check). `rig bundle check` (V18 bundle loop) intentionally covers only the
+8 `rig.yaml` files: it validates bundle folders, and `rig.all-51.yaml` is
+a static 51-seat profile beside — not inside — the boot bundle, so the
+8-rig-only scope is deliberate, not a gap. No code change in this
+requirement: V18 stays green on the committed `rig.all-51.yaml`.

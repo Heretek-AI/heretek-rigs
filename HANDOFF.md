@@ -1,108 +1,112 @@
-# Handoff — next session (2026-10-24, post-#105 triage, PR #104 declined)
+# Handoff — next session (2026-10-26, post-PR #119 merge on main)
 
-> Superseded 2026-10-23 handoff removed below (stale SHA/PR states, superseded frontier); full text in git history.
-> This section is the current plan. Live state re-verified this session before writing.
-
-## Live state (re-verified 2026-10-24)
-
-- Repo: `/home/john/Projects/heretek-rig-workspace/heretek-rigs`. `main` @
-  `1e2979c` (merge PR #110). `git status --short` clean at time of writing.
-- PR #104 (`fix/mcp-browserbridge-provisioning`) CLOSED unmerged 2026-10-24T18:04Z
-  (`mergedAt: null`). Do not assume its contents landed.
-- Open issues: 24 — #9,#11,#12,#15,#16,#17,#18,#66,#74,#76,#77,#78,#80,#81,
-  #91,#94,#95,#96,#98,#101,#102,#106,#107,#111. (#72 closed as mitigated;
-  #88/#89/#90 confirmed CLOSED as dups; GitHub #75 CLOSED = problem,
-  #106 OPEN = implementation.)
-- Since last handoff: PR #105 merged (`72593bc`, 5 gated waves M0–M10 + V14,
-  all `VERDICT: PASS` on disk) closing #67,#68,#69,#70,#71,#73,#79,#82–#87,
-  #92,#93,#97,#99,#100; Claude follow-ups #109 (audit_loop ledger cell) + #110
-  (sandbox scratch, 408 legacy `seatjail.*` deliberately unswept); #103 prompt
-  docs consumed. Per-issue record comments left on #66,#68,#72,#74,#79,#106,
-  #107,#12 + PR #104.
-
-## Roadmap — where to go next (priority order)
-
-### P0-1 — #106 commandEffects (the one unimplemented P0/P1 hardening)
-- Why first: only #105-scope item with zero code hits
-  (`grep -rn commandEffects scripts/ fleet/ tests/` = nothing). Relieves #91
-  note-half without loosening the 31 terminal denies.
-- Acceptance (from issue): seat can pass paths + `|` in `rig queue --note`
-  without tripping denies; `--body-file <path>` inside own write scope allowed;
-  `--body-file prod.env` and `/etc/passwd` stay denied; red-proof both
-  directions into evidence.
-- Suggested wave: spec in `openspec/changes/command-effects/` → implement →
-  red-proofs → VERDICT PASS → PR. Keep #91 OPEN (path-half remains after #106).
-
-### P0-2 — #111 ops sweep (no code, minutes)
-- One-time sweep of legacy `seatjail.XXXXXX` dirs in `/var/tmp` (408 observed in
-  #110 body, pre-pid-naming, explicitly unswept). Verify ownership/content,
-  count-log, confirm only pid-namespaced dirs cycle afterwards. Close #111,
-  note on #68/#66.
-
-### P1 — #107 residuals bundle (quick wins + upstream watch)
-- Verify-harness: V13 `toomanyrequests` skip-regex (went RED twice, fail-closed);
-  firecrawl standalone boot on networked host (pin corrected on-host only).
-- Governance limits (fail-closed, harden later): bare-`TPM` shorthand, `xyz123`
-  human, "QA PASS, no issues" non-terminal, F9 bare-leading-env (upstream
-  per-seat tokens; #72 closed as mitigated, F9 box tracks the request).
-- Noise: footer session-URL (`YZ9W` vs `nx9` — pick one), 26-vs-30 check-count
-  drift (also in #102 — fix in one place, ref the other).
-- Note: #107's "#88–90 don't exist" box is wrong (they exist, CLOSED as dups) —
-  correction comment already left; check the box off.
-
-### P2 — policy decisions needed before code (principal)
-- #76 (`*--output*` deny vs `ctest --output-on-failure`): explicit policy call
-  now that the tuple is 31 entries. Decision gates #91-path-half too.
-- #91 path-half (`pytest tests/rag`, `go build ./...`, `cmake -S . -B build`,
-  `gcc -c …` denied): #106 relieves notes only. Decide: per-tool arg grants vs
-  wrapper scripts vs stays-denied.
-- #74 re-plan (PR #104 declined): per-server provisioning matrix (7/20 MCP +
-  r2/rabin2/tshark) + stage-time existence gate (the missing gate from #89).
-  Do NOT re-submit the single-slice swap as a #74 close; next proposal must
-  cover all servers or scope explicitly to one slice without closing #74.
-
-### P2 — checker hardening batch (can parallelize after decisions)
-- #94 manifest-closure evasions, #95 verifier TOML spellings + fixture pin,
-  #96 config hot-reload (contradicts #11 bounce semantics), #98 hand-made
-  schemas vs 0.6.13, #101 nextjs frontmatter (67/68 loads), #102 P3 bundle
-  (incl. 64-vs-68 + 26-vs-30 drift). Each: extend checker + corpus test +
-  red-proof; new gate blocks, never renumber.
-
-### Structural / live-behavioral (defer unless principal reprioritizes)
-- #77 stuck parent rows (no gate owner), #78 single-workspace pin (#88 dup),
-  #80 snapshot-by-name (upstream `mvschwarz/openrig` + local doc mitigation),
-  #81 park-after-claim (daemon behavior). All untouched by remediation.
-- Older backlog unchanged: #9 (send identity), #11 (launch refresh), #12
-  (canary clock-grant only via #63/#64 — full builds still blocked by
-  #91 + #75/#106; dwarfs the rest, needs own design tree), #15/#16/#17
-  (auth lag / parallel slices / utilization), #18 (GPU runner).
-- Tracking: #66 stays OPEN as umbrella until #106/#107 + P2 decisions close.
-
-## Suggested sequencing
-
-1. Wave A: #106 (spec → implement → red-proofs → VERDICT PASS → PR).
-2. Wave B (parallel-safe, no code): #111 sweep + #107 V13 regex + firecrawl boot.
-3. Decision round: #76 + #91-path-half (principal policy calls).
-4. Wave C: #74 re-plan (matrix + existence gate), scoped honestly.
-5. Wave D: checker batch #94/#95/#96/#98/#101/#102.
-6. Parked: #77/#78/#80/#81, #9/#11/#12/#15–#18 — revisit only on principal call.
-
-## Grilling frontier (adapt-or-adopt)
-
-- Q1 — Wave A scope: #106 alone, or bundle #91-path-half policy with it?
-  Recommend: #106 alone (acceptance is crisp; path-half needs a policy decision first).
-- Q2 — #74: full provisioning matrix, or scoped slice proposals that leave #74 open?
-  Recommend: matrix first (otherwise we repeat #104).
-- Q3 — #76/#91: loosen denies per-tool, or hold the line and bless wrappers?
-  Recommend: principal decides; implementer does not freelance policy.
-
-## Discipline (unchanged)
-
-Spec in `openspec/changes/<id>/` → implement on isolated branch/worktree →
-commit → red-proofs → evidence commit → drift-guard, VERDICT read from disk
-(never from summary) → PR, human merges. Never push to `main`. `make verify`
-green after merges. Prune only your own worktrees. Archive finished
-`openspec/changes/<id>/`.
+> Superseded 2026-10-24 handoff archived in git history (`1e2979c`..`41ccec3`).
+> This document reflects the authoritative state of `main` after merging PR #117, PR #118, and PR #119.
 
 ---
-> Superseded 2026-10-23 handoff removed 2026-10-24 (stale SHA/PR states, superseded frontier); full text in git history.
+
+## 1. Live State & Environment
+
+- **Repository**: `/home/john/Projects/heretek-rig-workspace/heretek-rigs`
+- **Branch**: `main` @ `41ccec3` (Merge PR #119). Working directory clean (`git status -s` clean; sanctioned `.lane/` stray only).
+- **Core Stack**:
+  - `@openrig/cli@0.7.2` (bumped from 0.6.13 in PR #118)
+  - Pi `1.4.0` (`@earendil-works/pi-coding-agent`, bumped from 1.3.0 in PR #118)
+  - `@gotgenes/pi-permission-system@41.0.0`
+  - Model: `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`
+- **Verification Baseline**:
+  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 35 checks passed, 0 failed** (all V1–V21 gates green).
+  - `make test` → **359 unit tests passed, 0 failed** across 15 test suites.
+  - `python3 scripts/audit_loop.py --self-test` → **`SELF-TEST PASSED`**.
+  - `python3 scripts/generate-rigs.py --check-idempotent` → **Byte-identical**.
+
+---
+
+## 2. Merged Landings Since Last Handoff
+
+### PR #119 (`41ccec3`, 2026-10-26)
+- **#98 Contract Schemas**: Vendored upstream contract schemas byte-for-byte from `@openrig/cli@0.7.2` (`package/daemon/docs/reference/schemas/`), pinned in `schemas/contract-schemas.sha256`, and cmp'd in V18 against installed CLI copies. Aligned attestation tokens (`not_tested`, `NOT_RUN`). Local `$ref` resolution handles absolute upstream schema IDs.
+- **#102 Claim 6.1 (License-less Skills)**: Added declared license provenance (`skills-lock.json`) for 10 shared skills lacking license files; `generate-rigs.py` pre-validates licenses using safe YAML parsing (`yaml.safe_load`) before deleting generated trees; `verify-rigs.sh` checks declared licenses against standard SPDX identifiers and cross-verifies against frontmatter / source pins.
+- **#96 Live Policy Refresh**: Implemented `scripts/render-seat.py --policy-only` and `scripts/seed-rig.py --refresh-policy-only` to atomically refresh `extensions/pi-permission-system/` and `sandbox.env` (updating bubblewrap write-roots for `path_write` changes) with `config.json` replaced last via same-directory `.tmp` rename (`0600`). Proved seat subprocess isolation against agentDir self-edits (`test_seat_sandbox.py`).
+- **Remediated Review Feedback**: Sourcery #5660213174 (pre-rmtree validation, SPDX checking), CodeRabbit #5660659989 (frontmatter YAML parsing, dry-run seat check, `sandbox.env` in refresh, V18 npm package resolution fallback), and SonarCloud Security/Complexity rules (path containment, complexity < 15).
+
+### PR #118 (`91da43e`, 2026-10-26)
+- **Stack Upgrades**: OpenRig 0.7.2 bump ledger (`docs/openrig/`); Pi 1.4.0 bump ledger (`docs/pi/`).
+- **V21 Gate**: Vendored agent file-set parity gate (105 rig members match `specs/agents/`).
+- **V13 Fix**: Skopeo offline keyword match on full stderr (handles rate-limiting).
+- **Runtime Degraded Auth**: Degraded seats emit `{}` in `auth.json` (avoids pi failing on dangling `!cat`).
+- **Model Endpoint**: `fleet.yaml` `model.base_url` drives `models.json` with pinned endpoint check.
+- **Audit Row Isolation**: `audit_sessions` `FALSE_DELIVERY_CLAIM` evaluated per-row instead of per-file.
+- **Canary Alignment**: Updated `test_build_canary.py` pins to match #91 scoped compiler grants.
+
+### PR #117 (`17f119c`, 2026-10-26)
+- **#91 Scoped Build/Test Path Args**: Added scoped `pytest`, `go build`, `cmake -S . -B build`, and `gcc -c` grants via native-map `commandEffects`, resolving path-argument policing issues code-side. Added gate V20.
+
+---
+
+## 3. Current Issue Triage (15 Open Issues)
+
+| Issue | Priority | Title / Scope | State & Next Steps |
+|---|---|---|---|
+| **#102** | P3 | Audit P3 bundle: doc drift, minor gates | **Partially done**. Claim 6.1 (10 skill licenses), 64-vs-68 drift, 0.6.11 prompt pin, V19/V21 gates, and `--out` check are resolved. **Remaining**: HR-F18 (bare `rig queue`/`rig send` policy in seat maps), HR-2.5 (`rig bundle check` on `rig.all-51.yaml`), dangling `superpowers:writing-skills` ref, OpenRig DAG cycle report. |
+| **#107** | P2 | Remediation follow-up bundle (post-#105) | **Partially done**. V13 rate-limit regex, session URL, and stale count closed. **Remaining**: firecrawl standalone boot on networked host; governance limitations (bare-TPM shorthand, `xyz123` human check); explore OpenRig 0.7.2 HTTP bearer-token identity grants (upstream #1860) to address F9. |
+| **#91** | P2 | Scoped build/test path args | **Code done** in PR #117 + PR #118. **Pending**: Live proof on fleet host (`pytest tests/rag`, `go build ./...`, `cmake -S . -B build`, `gcc -c`). |
+| **#12** | P1 | No seat can execute builds | **Blockers #106 and #91 cleared code-side**. **Pending**: Real in-seat runner proof D1–D4 on fleet host, committer path D5–D7 through REQ-BC4 envelope. |
+| **#74** | P1 | Granted tools not provisioned | **Gate done** (V16 + render warning in PR #114). **Pending**: Host-side provisioning of 7 npm packages + `r2`/`rabin2`/`tshark`, or updating matrix docs. |
+| **#66** | Umbrella | Tracking: Oct 23–24 adversarial audit | Umbrella issue. Updated with #96 and #98 completions. Stays open until remaining P1/P2 items close. |
+| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | Live workflow/governance item. Needs gate owner assignment or automated gate reconciler. |
+| **#78** | P2 | Seats pinned to one workspace | Architectural: multi-workspace / mission workspace isolation. |
+| **#80** | P3 | `rig snapshot list <name>` prints `[object Object]` | Upstream CLI bug. Documented local mitigation in place. |
+| **#81** | P2 | Seats park idle right after claiming | OpenRig daemon scheduling behavior. |
+| **#9** | P2 | Operator `rig send` carries no sender identity | Needs upstream envelope/identity standard. |
+| **#11** | P2 | `rig launch` refuses running nodes | Replaced repo-side by `#96` live policy refresh; full seat restart tracked upstream. |
+| **#15** | P2 | Authorization loop lags seat fix cycles | Investigation / auto-unblock rules. |
+| **#16** | P2 | Parallel slice execution: throughput vs collision | Investigation / scheduler policy. |
+| **#17** | P2 | Fleet utilization and slice queue patterns | Investigation / telemetry. |
+| **#18** | P2 | GPU-capable runner for godot/bevy testing | Infrastructure provisioning. |
+
+---
+
+## 4. Priority Roadmap for OpenCode
+
+### Priority 1: #102 Close-out (Code & Policy)
+1. **HR-F18 (Bare Queue Discipline)**:
+   - Audit seat bash maps in `fleet/fleet.yaml` and `fleet/command-effects/` to check whether bare `rig queue list`, `rig queue create` (without `--json --verify`), and bare `rig send` should be explicitly denied or warned.
+   - If principal approves denying bare forms in seat maps: update `fleet/fleet.yaml`, regenerate via `python3 scripts/generate-rigs.py`, verify 35/35 green.
+2. **HR-2.5 & Upstream Reports**:
+   - Confirm `rig spec validate` covers `rig.all-51.yaml` (already verified by V3/V18).
+   - Document or submit upstream report for DAG cycle checks if authorized.
+3. **Dangling Skill Reference**:
+   - Address `superpowers:writing-skills` ref in `specs/agents/_shared/skills/test-driven-development/writing-good-tests.md` via fleet vendor patch or upstream PR.
+
+### Priority 2: #107 OpenRig 0.7.2 Identity Integration (Upstream #1860)
+- In `@openrig/cli@0.7.2`, `rig mcp serve --http` introduces per-seat bearer-token grants.
+- Evaluate adopting this primitive for MCP communications to close the F9 / `OPENRIG_SESSION_NAME` provenance gap.
+
+### Priority 3: Fleet Host Proofs (When Operating on Live Host)
+- **#96 Live Check**: Run `python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only` on a running seat with a tightened rule and verify immediate denial on the next turn.
+- **#91 Live Proof**: Verify `pytest tests/rag`, `go build ./...`, `cmake -S . -B build` execute cleanly in-seat.
+- **#12 D1–D4 Proof**: Execute end-to-end engine compile and ELAPSED clocking in-seat.
+- **#74 Host Provisioning**: Install `playwright-mcp`, `chrome-devtools-mcp`, `r2mcp`, and system packages `r2`/`rabin2`/`tshark`.
+
+---
+
+## 5. Standard Operating Discipline
+
+> [!IMPORTANT]
+> **The One Rule**: Never hand-edit `specs/`, `rigs/`, `rosters/`, or `registry/`.
+> Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, `fleet/skill-patches/`, or `scripts/`, then regenerate:
+> ```bash
+> python3 ./scripts/generate-rigs.py
+> ./scripts/verify-rigs.sh --check-only     # Expect: 35 checks passed, 0 failed
+> python3 ./scripts/audit_loop.py --self-test
+> ```
+
+- **Git Discipline**:
+  - Always branch from `main` (`fix/...`, `feat/...`, `chore/...`).
+  - Never push directly to `main`.
+  - Never `--force` push.
+  - One closing keyword per issue (`Closes #X, closes #Y`). Use `Refs #Z` for issues that stay open.
+  - When committing generator changes, commit source changes first, then run `python3 scripts/generate-rigs.py` on the clean tree to bake provenance (`resolvedCommit`), and commit the regenerated leaves in a separate chore commit.
+- **Secrets Rule**:
+  - Keys live strictly in `~/.config/heretek-rigs/secrets/` (0700/0600). Never print, log, or commit secret values. Always use dummy keys in scratch/tests.

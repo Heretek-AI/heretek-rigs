@@ -842,7 +842,9 @@ def build_seat_files(
             if key not in model_cfg:
                 die(f"fleet model.{key} is required for provider {model_provider}")
         if model_cfg["api"] != "openai-responses":
-            die(f"fleet model.api must be openai-responses for {model_provider} (got {model_cfg['api']!r})")
+            die(
+                f"fleet model.api must be openai-responses for {model_provider} (got {model_cfg['api']!r})"
+            )
         for key in ("context_window", "max_tokens"):
             val = model_cfg[key]
             if isinstance(val, bool) or not isinstance(val, int) or val <= 0:
@@ -1058,6 +1060,34 @@ def build_seat_files(
                 f"{role_id}: bash_allow pattern contains forbidden --output write-escape: {p!r}"
             )
         bash_map[p] = "allow"
+    # HR-F18 (#102): per-seat bare queue/send denies from fleet
+    # `permissions.bash_deny`. Rendered AFTER role allows so last-match-wins
+    # denies the exact bare strings (`rig queue list`, `rig queue create`,
+    # `rig send`) while the trailing-` *` allows above keep the `--json` /
+    # `--json --verify` / addressed-send forms live (pps compiles a
+    # trailing `" *"` to an optional-args group, so the bare command matched
+    # the allow before this deny existed). Entries render BEFORE the
+    # TERMINAL_BASH_DENIES tuple below (which stays frozen per REQ-G1):
+    # denies never trip the no-allow-after-terminal gate. Fail-closed on
+    # shape: non-empty strings under the same metachar/`--output` bans as
+    # allows (`*`/`?` glob chars stay permitted).
+    for _deny_entry in role["permissions"].get("bash_deny", []) or []:
+        if not isinstance(_deny_entry, str) or not _deny_entry:
+            die(
+                f"{role_id}: bash_deny entries must be non-empty strings, got {_deny_entry!r}"
+            )
+        if (
+            re.search(r"[;&|$`()\n><\\!#~{}\[\]?\r]", _deny_entry)
+            or "$(" in _deny_entry
+        ):
+            die(
+                f"{role_id}: bash_deny pattern contains shell metachar: {_deny_entry!r}"
+            )
+        if "--output" in _deny_entry:
+            die(
+                f"{role_id}: bash_deny pattern contains forbidden --output write-escape: {_deny_entry!r}"
+            )
+        bash_map[_deny_entry] = "deny"
     # HR-5.5 (fail-closed): prefix-glob matcher semantics — a live command
     # appending `--output=/tmp/x` (or `;`, `|`, `>`, `<`, `&`, backtick,
     # `$()`, subshell parens) to an allowed trailing-* prefix would still

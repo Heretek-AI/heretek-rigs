@@ -2664,6 +2664,96 @@ if _v21_members == 0:
     fail("V21/#102: no rig members compared (vacuous)")
 if len(failures) == _v21_before:
     print(f"V21/#102 vendored agent file-set parity green: {_v21_members} rig members match specs/agents/ (file sets + bytes, agent.yaml modulo the _shared import rewrite)")
+
+print("\n== V22. Bare Queue/Send Deny in Seat Maps (#102/HR-F18) ==")
+# #102 appended alongside — no V1-V21 line renumbered or reworded. This
+# block is FAIL-ONLY (no ok()): V19 freezes the live SUMMARY at 35, so this
+# gate fails loudly without moving the count (same convention as V20/V21).
+# Coverage (REQ-C18): every seat granting `rig queue *` must declare the
+# exact fleet `bash_deny` triple; every committed seat bash map must carry
+# those three denies AFTER all allows; and under pps wildcard semantics
+# (anchored, `*` = any incl. empty, trailing `" *"` = optional args, last
+# match wins — mirrors wildcard-matcher.ts in the installed
+# @gotgenes/pi-permission-system) the bare triple must deny while the
+# `--json` / `--json --verify` / addressed-send forms still allow.
+_v22_before = len(failures)
+_v22_denies = ["rig queue list", "rig queue create", "rig send"]
+_v22_deny_forms = ["rig queue list", "rig queue create", "rig send"]
+_v22_allow_forms = [
+    "rig queue list --json",
+    "rig queue list --json --destination delivery-tpm-scrum-lead@executive-and-architecture",
+    "rig queue show --json qitem-20261022111416-78213c07c3272cbc",
+    "rig queue create --json --verify --source a --destination b --summary s --body-file f",
+    'rig send delivery-tpm-scrum-lead@executive-and-architecture "hello"',
+    "rig whoami",
+]
+
+def _v22_translate(_core22: str) -> str:
+    return "".join(".*" if _c22 == "*" else "." if _c22 == "?" else re.escape(_c22) for _c22 in _core22)
+
+def _v22_match(_pat22: str, _val22: str) -> bool:
+    if _pat22.endswith(" *"):
+        _rx22 = "^" + _v22_translate(_pat22[:-2]) + r"( .*)?$"
+    else:
+        _rx22 = "^" + _v22_translate(_pat22) + "$"
+    return re.match(_rx22, _val22, re.DOTALL) is not None
+
+def _v22_decide(_map22: dict, _cmd22: str) -> str:
+    _dec22 = "deny"
+    for _p22, _v22 in _map22.items():
+        if _v22_match(_p22, _cmd22):
+            _dec22 = _v22
+    return _dec22
+
+_v22_checked = 0
+for _rid22, _rdir22 in sorted(discovered_roles.items()):
+    _rfleet22 = fleet["roles"][_rid22]
+    _ba22 = (_rfleet22.get("permissions", {}) or {}).get("bash_allow") or []
+    if not any(str(_b22).startswith("rig queue") for _b22 in _ba22):
+        fail(f"V22/#102: seat {_rid22} lost its fleet `rig queue` grant (HR-queue-surface floor)")
+        continue
+    _bd22 = (_rfleet22.get("permissions", {}) or {}).get("bash_deny") or []
+    if [str(_x22) for _x22 in _bd22] != _v22_denies:
+        fail(f"V22/#102: seat {_rid22} fleet bash_deny must be exactly {_v22_denies} (got {[str(_x22) for _x22 in _bd22]})")
+        continue
+    try:
+        _ppc22 = json.loads((_rdir22 / "runtime/pi-permission-config.json").read_text())
+        _bash22 = ((_ppc22.get("permission") or {}).get("bash") or {})
+    except Exception as _e22:
+        fail(f"V22/#102: seat {_rid22}: runtime/pi-permission-config.json unreadable ({_e22})")
+        continue
+    for _req22 in ("rig queue *", "rig send *"):
+        if _bash22.get(_req22) != "allow":
+            fail(f"V22/#102: seat {_rid22}: disciplined grant {_req22!r} must stay allow")
+    _keys22 = list(_bash22.keys())
+    # #91 overlay allows (gcc compile slot) sit after the terminal denies by
+    # design and never match `rig ...` strings — excluded here exactly as in
+    # the no-allow-after-terminal gate above.
+    _over22 = set(
+        ((fleet.get("command_effects") or {}).get("gcc_effect") or {}).get(
+            "bash_overlay_patterns"
+        )
+        or []
+    )
+    _allow_idx22 = [
+        _i22 for _i22, _k22 in enumerate(_keys22) if _bash22.get(_k22) == "allow" and _k22 not in _over22
+    ]
+    for _d22 in _v22_denies:
+        if _bash22.get(_d22) != "deny":
+            fail(f"V22/#102: seat {_rid22}: bash map must carry {_d22!r}: deny")
+        elif _allow_idx22 and _keys22.index(_d22) < max(_allow_idx22):
+            fail(f"V22/#102: seat {_rid22}: deny {_d22!r} must sit after all allows (last-match-wins)")
+    for _cmd22 in _v22_deny_forms:
+        if _v22_decide(_bash22, _cmd22) != "deny":
+            fail(f"V22/#102: seat {_rid22}: bare form {_cmd22!r} must deny under pps semantics")
+    for _cmd22 in _v22_allow_forms:
+        if _v22_decide(_bash22, _cmd22) != "allow":
+            fail(f"V22/#102: seat {_rid22}: disciplined form {_cmd22!r} must stay allow under pps semantics")
+    _v22_checked += 1
+if _v22_checked != 51:
+    fail(f"V22/#102: expected 51 seats checked (got {_v22_checked})")
+if len(failures) == _v22_before:
+    print(f"V22/#102 bare queue/send deny green: {_v22_checked} seats deny the bare triple and allow the disciplined forms (FAIL-ONLY, SUMMARY frozen)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
