@@ -1,0 +1,83 @@
+# 107-identity T2 — red-proof sabotage log (REQ-I1/I2/I3/G1, V23)
+
+Date: 2026-10-27. Worktree: `.lane/trees/107-identity` (branch `feat/107-identity`).
+Method: 7-step sabotage per check — inject minimal targeted defect, re-run check,
+confirm non-zero exit (RED), restore with `git checkout -- <file>`, confirm
+`git status --short` clean of sabotage. Evidence-only files
+(docs/evidence/107-identity/qa-run.log, red-proofs.log) are the only allowed dirt.
+
+## Baseline (unmodified tree, all GREEN before sabotage)
+
+- `make verify` → exit 0, `SUMMARY: 35 checks passed, 0 failed` (live-health [SKIP]s are the normal no-daemon data-source skips).
+- `./scripts/verify-rigs.sh --check-only` → exit 0, `SUMMARY: 35 checks passed, 0 failed`, `V23/107-identity M1 green` line present.
+- `python3 -m pytest tests/test_identity_m1.py -q` → exit 0, `15 passed`.
+- `python3 scripts/audit_loop.py --self-test` → exit 0, `SELF-TEST PASSED`.
+
+## S1 — REQ-I1/V23 catalog shape (transport), 2026-10-27T05:3xZ
+
+- Target assertion: V23 `catalog rig-mcp-http must use transport http` + corpus `test_grant_server_catalog_shape_and_opt_in_default`.
+- Defect: `fleet/mcp-servers.yaml` `rig-mcp-http` → `transport: stdio` (one word; stdio must stay default per REQ-I1).
+- Check: `./scripts/verify-rigs.sh --check-only` → exit 1 (RED) with `[FAIL] V23/107-identity: catalog rig-mcp-http must use transport http (stdio stays default)` plus cascading corpus failure.
+- Restore: `git checkout -- fleet/mcp-servers.yaml` → `git status --short` shows only `?? docs/evidence/107-identity/` (evidence dirt); re-run `--check-only` → exit 0, `V23/107-identity M1 green`, `SUMMARY: 35 checks passed, 0 failed`.
+- Verdict: NON-VACUOUS (trips RED on sabotage, GREEN on restore).
+
+## S2 — REQ-I1 filename helper (`.key` suffix), 2026-10-27T05:3xZ
+
+- Target assertion: corpus `test_token_filename_is_verbatim_session_with_key_suffix` + strict-mode missing-file message (`.key` suffix reuses the frozen `*key*` path deny).
+- Defect: `scripts/render-seat.py` `seat_grant_token_filename` → `f"mcp-http-{session}.tok"` (suffix swap).
+- Check: `python3 -m pytest tests/test_identity_m1.py -q` → exit 1 (RED): `2 failed, 13 passed` (`test_token_filename_is_verbatim_session_with_key_suffix`, `test_missing_token_file_is_fatal_in_strict_mode`).
+- Restore: `git checkout -- scripts/render-seat.py` → status clean except evidence dir; re-run → exit 0, `15 passed`.
+- Verdict: NON-VACUOUS.
+
+## S3 — REQ-I1 rendered Bearer header tamper, 2026-10-27T05:3xZ
+
+- Target assertion: corpus `test_bound_role_renders_bearer_header_from_token_file` (exact `{"Authorization": "!echo Bearer $(cat <file>)"}`) + V23 gate over the corpus.
+- Defect: `scripts/render-seat.py` header key → `"X-Bogus-Auth"` (tampered header name; a seat presenting this sends no Bearer credential).
+- Check: corpus → exit 1 (RED): `1 failed, 14 passed`; `./scripts/verify-rigs.sh --check-only` → exit 1 (RED): `[FAIL] V23/107-identity: tests/test_identity_m1.py failed`, `SUMMARY: 35 checks passed, 1 failed`.
+- Restore: `git checkout -- scripts/render-seat.py` → status clean except evidence dir; corpus re-run → `15 passed`.
+- Verdict: NON-VACUOUS (V23 block trips on header sabotage as required).
+
+## S4 — REQ-I1 grant-issuance removal (parser gutted), 2026-10-27T05:3xZ
+
+- Target assertion: issuance path — `parse_issued_token` valid-output test + `issue_seat_grant` fresh-add/heal/idempotence tests (no dead grants: unparseable output revokes the minted grant and dies).
+- Defect: `scripts/seed-rig.py` `parse_issued_token` → unconditional `return None` (simulates issuance removed: every fresh `token add` output becomes unparseable, grant revoked, seeder dies).
+- Check: corpus → exit 1 (RED): `4 failed, 11 passed` (`test_parse_valid_once_printed_output`, `test_fresh_add_stores_token_0600`, `test_grant_without_file_heals_via_revoke_and_re_add`, `test_rerun_is_idempotent_without_re_add`).
+- Restore: `git checkout -- scripts/seed-rig.py` → status clean except evidence dir; corpus re-run → `15 passed`.
+- Verdict: NON-VACUOUS (removing issuance fails loudly, never silently grant-less).
+
+## S5 — REQ-G1 generated-tree hand-edit detection, 2026-10-27T05:3xZ
+
+- Target assertion: V21 vendored file-set parity (`specs/agents/` ↔ `rigs/*/rig*.yaml` + digest gates) — hand-edits to generated leaves must fail loudly (generator rule).
+- Defect: appended `<!-- SABOTAGE-S5: hand-edit probe -->` to `specs/agents/cloud-sre/cache-streaming-eng/skills/kafka-topic-and-consumer-tuning/SKILL.md`.
+- Check: `./scripts/verify-rigs.sh --check-only` → exit 1 (RED): `[FAIL] V21/#102 ... SKILL.md drifted from specs/agents/` (x2 rigs), `SUMMARY: 35 checks passed, 2 failed`.
+- Restore: `git checkout -- <file>` → status clean except evidence dir.
+- G1 positive controls (unmodified tree): `git diff 51d7df1..HEAD --name-only -- specs/ rigs/ rosters/` is EMPTY (no hand-edits; registry/ delta is provenance-stamp-only `resolvedCommit` lines from the `generate-rigs.py` chore regen); V1–V23 headers all present unrenamed (`grep '^print("== V'` counts V1 plus V2&V3…V23 lines, zero `^-.*== V` removals in the range diff); SUMMARY frozen at 35.
+- Verdict: NON-VACUOUS (hand-edit trips V21; append-only rule holds).
+
+## S6 — REQ-I1 live deny matrix (scratch isolation ONLY), 2026-10-27T05:41Z
+
+- Isolation: `SCRATCH=/tmp/qa-107-20261027-014110` (mode 700, marker `/tmp/qa-107-latest`); every `rig` ran with `OPENRIG_HOME=$SCRATCH`; scratch daemon `127.0.0.1:19433` (pid 699756), grant MCP server `127.0.0.1:19437`; real `~/.openrig/daemon.json` sha256 recorded BEFORE (`5a51f3d4...42539`) and AFTER (identical — real state never contacted). `rig` 0.7.2 (`8b180689`). Tokens lived at `$SCRATCH/tok*` (mode 600), passed to probes via file-read python (never a command-line literal); redacted here to status codes + lengths.
+- Sequence: `token add qa-seat --seat qa-session` rc=0 (47-char bearer, `mcp-http-tokens.json` mode 600) → serve banner `each request needs a bearer credential from $SCRATCH/mcp-http-tokens.json`.
+- Results (`curl`-equivalent python `initialize` probes, transport rc=0 throughout):
+  - valid Bearer → `200` (allow).
+  - tampered Bearer (last char flipped) → `401` (tamper denied).
+  - no `Authorization` header → `401` (missing denied).
+  - unknown 47-char bearer → `401` (cross-token denied).
+  - genuinely-valid token minted in a SECOND isolated home (`/tmp/qa-107-foreign`, `foreign-seat3`) presented to this server → `401` with exact body `{"error":"unauthenticated","message":"This credential isn't valid here: it's unknown or was revoked."}` (cross-seat/home token denied — a seat's grant does not reach another seat's scope).
+- Cleanup: serve process killed + `daemon stop` rc=0, `ss -ltn` shows no `1943*` listeners, no qa-107 rig procs remain; foreign bearer files overwritten with zeros (`rm -rf` blocked by shell policy; hashes-only `mcp-http-tokens.json` retained, harmless); scratch dir retained outside the repo per M0 precedent.
+- Verdict: REQ-I1 cross-seat/tampered-deny proven live; complements corpus S1–S4 + M0 §4/§6 + M2 evidence. NON-VACUOUS (valid allows while every mutated/foreign credential 401s on the same server).
+
+## S7 — REQ-I2 live revoke → 401 + rotation matrix (scratch isolation ONLY), 2026-10-27T05:4xZ
+
+- Same scratch server as S6. `cp tok tokOLD` then `token revoke qa-seat` → `Revoked qa-seat: its next request is refused...` rc=0; `token list --json` → `"grants": []`.
+- Re-presented the REVOKED token → `401` (REQ-I2 scenario: revoked-then-represented refused; no restart involved).
+- `token add qa-seat --seat qa-session` again → rc=0, fresh 47-char bearer `DIFFERENT` from revoked.
+- Post-rotation matrix: new bearer → `200`; revoked bearer → `401`; (S6) missing → `401`.
+- Verdict: rotation = revoke + re-add executed live (pre-rotation 200 → revoke → 401 → re-add → new 200 / old 401), matching runbook `docs/evidence/107-identity-rotation.md` §2. NON-VACUOUS (without revoke the same token 200s; revoke flips it to 401 on the very next request).
+
+## S8 — REQ-I3 queue-half disposition: no queue-identity code (detector red-proof), 2026-10-27T05:5xZ
+
+- Positive control (unmodified tree): `git diff 51d7df1..HEAD --name-only | grep -i queue` → ONLY `docs/evidence/107-identity-queue.md` (the M3 note); `grep -rn "token add\|token revoke\|seat_grant" scripts/seed-rig.py scripts/render-seat.py | grep -i queue` → EMPTY (rc=1). No `token add/revoke` or `seat_grant` logic touches any queue path; `scripts/render-seat.py` queue mentions are the pre-existing frozen terminal bash denies (V22) and `rig queue --note/--body-file` argv descriptors, unchanged by this change.
+- Detector red-proof: injected `# SABOTAGE-S8` + `_QUEUE_GRANT_SENTINEL = "queue token add"` above `issue_seat_grant` in `scripts/seed-rig.py` → same grep detector TRIPS (rc=0, line found) → `git checkout -- scripts/seed-rig.py` → status clean except evidence dir. A future queue-identity addition would be caught by this exact detector.
+- Evidence cited: M0 §7 probes 5b/5c (`OPENRIG_SESSION_NAME=spoofed-seat-107 rig queue whoami` → rc=0, served with zero challenge) — daemon-blocked, so M3 is the documented-upstream-blocked note per REQ-I3; no upstream filing (unauthorized).
+- Verdict: NON-VACUOUS (detector empty-clean, trips on injection, restored).
