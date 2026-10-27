@@ -11,6 +11,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import stat
 import subprocess
 import sys
@@ -518,6 +519,39 @@ class CatalogStructureTests(unittest.TestCase):
             if b.get("server") == "rig-mcp-http"
         ]
         self.assertEqual(bound, [])
+
+
+class RotationRunbookStep3Tests(unittest.TestCase):
+    RUNBOOK = REPO_ROOT / "docs/evidence/107-identity-rotation.md"
+
+    def step3_region(self):
+        lines = self.RUNBOOK.read_text().splitlines()
+        start = next(
+            (i for i, l in enumerate(lines) if l.startswith("3. Mint the replacement")),
+            None,
+        )
+        end = next(
+            (i for i, l in enumerate(lines) if l.startswith("4. Redistribute")),
+            None,
+        )
+        self.assertIsNotNone(start, "runbook step-3 anchor missing")
+        self.assertIsNotNone(end, "runbook step-4 anchor missing")
+        self.assertLess(start, end, "runbook step anchors out of order")
+        return "\n".join(lines[start:end])
+
+    def test_step3_mints_with_rig_scope_and_no_rigless_form(self):
+        step3 = self.step3_region()
+        cmds = re.findall(r"`rig mcp token add[^`]*`", step3)
+        self.assertTrue(
+            any("--seat" in c and "--rig" in c for c in cmds),
+            "runbook step 3 must mint with --seat AND --rig (rig-scoped replacement)",
+        )
+        for c in cmds:
+            self.assertIn(
+                "--rig",
+                c,
+                f"runbook step 3 must not carry a rig-less mint form (got {c!r})",
+            )
 
 
 if __name__ == "__main__":

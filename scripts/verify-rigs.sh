@@ -2804,6 +2804,39 @@ elif _v23_ran < 15:
     fail(f"V23/107-identity: tests/test_identity_m1.py ran only {_v23_ran} tests (need >= 15, non-vacuous floor)")
 if len(failures) == _v23_before:
     print(f"V23/107-identity M1 green: seat-grant catalog shape + filename helper + {_v23_ran} corpus tests pass (FAIL-ONLY, SUMMARY frozen)")
+print("\n== V24. Rotation Runbook Step-3 --rig Mandate (107-identity R1) ==")
+# 107-identity cycle 4 closes the R1 coverage gap disclosed in
+# docs/evidence/107-identity/rework3-red-proofs.log (a rig-less step 3 passed
+# every committed gate). Appended alongside — no V1-V23 line renumbered or
+# reworded. This block is FAIL-ONLY (no ok()): V19 freezes the live SUMMARY
+# at 35, so this gate fails loudly without moving the count (same convention
+# as V20/V21/V22/V23). Coverage: the §1 runbook step-3 mint command carries
+# --rig alongside --seat, and no rig-less mint form remains in step 3
+# (non-vacuous: zero mint commands, or any rig-less one, trips the gate).
+_v24_before = len(failures)
+_v24_rot = root / "docs/evidence/107-identity-rotation.md"
+try:
+    _v24_text = _v24_rot.read_text()
+except Exception as _e24:
+    fail(f"V24/107-identity: rotation runbook unreadable ({_e24})")
+    _v24_text = None
+if _v24_text is not None:
+    _v24_lines = _v24_text.splitlines()
+    _v24_start = next((_i24 for _i24, _l24 in enumerate(_v24_lines) if _l24.startswith("3. Mint the replacement")), None)
+    _v24_end = next((_i24 for _i24, _l24 in enumerate(_v24_lines) if _l24.startswith("4. Redistribute")), None)
+    if _v24_start is None or _v24_end is None or _v24_end <= _v24_start:
+        fail("V24/107-identity: runbook step-3 anchors missing (need '3. Mint the replacement' … '4. Redistribute')")
+        _v24_step3 = None
+    else:
+        _v24_step3 = "\n".join(_v24_lines[_v24_start:_v24_end])
+    if _v24_step3 is not None:
+        _v24_cmds = re.findall(r"`rig mcp token add[^`]*`", _v24_step3)
+        if not any("--seat" in _c24 and "--rig" in _c24 for _c24 in _v24_cmds):
+            fail("V24/107-identity: runbook step 3 must mint with --seat AND --rig (rig-scoped replacement)")
+        if any("--rig" not in _c24 for _c24 in _v24_cmds):
+            fail("V24/107-identity: runbook step 3 must not carry a rig-less mint form (omitting --rig revokes-and-replaces on next seed)")
+if len(failures) == _v24_before:
+    print("V24/107-identity R1 green: rotation step 3 mandates --rig alongside --seat, no rig-less mint (FAIL-ONLY, SUMMARY frozen)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
