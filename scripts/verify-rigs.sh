@@ -1835,8 +1835,8 @@ if _v13_offline:
 
 # --- #100: Dockerfile install lists match catalog/fleet pins (drift fails closed) ---
 _dockerfile13 = (root / "docker/Dockerfile").read_text()
-if "ARG OPENRIG_VERSION=0.7.2" not in _dockerfile13:
-    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.2")
+if "ARG OPENRIG_VERSION=0.7.4" not in _dockerfile13:
+    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4")
 _expected_npm13 = {}
 for _n13, _s13 in mcp_catalog.items():
     _pm13 = re.fullmatch(r"npm:(\S+)@(\S+)", str(_s13.get("pin", "")))
@@ -2391,6 +2391,24 @@ if _v18_rig is None:
         "  [NOTE] V18/#98 native verbs: no `rig` on PATH; installed-copy validation unchecked (local pin + red-proof still enforce)"
     )
 else:
+    # Fail closed: the ok() below claims validation ran on installed
+    # 0.7.4 — verify the host binary actually is 0.7.4 before claiming it.
+    try:
+        _ver18 = subprocess.run(
+            [_v18_rig, "--version"],
+            capture_output=True,
+            text=True,
+        )
+        _verout18 = ((_ver18.stdout or "") + (_ver18.stderr or "")).strip()
+        _verrc18 = _ver18.returncode
+    except Exception:
+        _verout18 = ""
+        _verrc18 = 1
+    _verm18 = re.search(r"\d+\.\d+\.\d+", _verout18)
+    if _verrc18 != 0 or _verm18 is None or _verm18.group(0) != "0.7.4":
+        fail(
+            f"V18/#98: host rig --version is not 0.7.4 (got {(_verout18[:80] or 'unreadable')}); validation claim requires installed 0.7.4"
+        )
     # #98: the five vendored upstream schemas must equal the installed
     # CLI's own copies byte-for-byte.
     _pkg18 = Path(os.path.realpath(_v18_rig)).parent
@@ -2459,9 +2477,14 @@ for _line18 in _v18r.stderr.splitlines():
         if len(_parts18) >= 2:
             _v18_ran = _parts18[1]
 if len(failures) == _v18_before:
-    ok(
-        f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.2"
-    )
+    if _v18_rig is None:
+        ok(
+            f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), native-verb validation skipped (no rig on PATH)"
+        )
+    else:
+        ok(
+            f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.4"
+        )
 
 print("\n== V19. Canonical Stale-Count Guard (#102) ==")
 # #102 appended alongside — no V1-V18 line renumbered or reworded. Exactly

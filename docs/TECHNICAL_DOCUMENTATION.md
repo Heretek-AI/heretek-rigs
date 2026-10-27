@@ -1,7 +1,7 @@
 # Heretek-Rigs Technical & Architecture Documentation
 
 **Repository**: `Heretek-AI/heretek-rigs`
-**Target Orchestration Framework**: OpenRig v0.7.2 (`@openrig/cli@0.7.2`, commit `8b180689`, CLI binary `rig`)
+**Target Orchestration Framework**: OpenRig v0.7.4 (`@openrig/cli@0.7.4`, commit `6d9e8e27`, CLI binary `rig`)
 **Primary Agent Runtime Harness**: Pi Coding Agent v1.4.0 (`@earendil-works/pi-coding-agent@1.4.0`, CLI binary `pi`)
 **Runtime Permission Enforcement**: `@gotgenes/pi-permission-system@41.0.0` (fail-closed policy engine with mandatory `"*..*": "deny"` traversal guard)
 **Optional Builder AST/LSP Extensions**: `pi-lsp-extension@1.4.0` and `pi-ast-grep@0.1.0` (enabled on 21 builder and code-analysis seats)
