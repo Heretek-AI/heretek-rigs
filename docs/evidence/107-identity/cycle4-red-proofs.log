@@ -1,0 +1,122 @@
+# 107-identity cycle 4 — QA verification + red-proofs (cycle4-red-proofs.log)
+
+Date: 2026-10-27 (UTC). Verifier: QA subagent (muse-spark-1.3-contributor).
+Stage/wave: 107-identity cycle 4 verification.
+Worktree: `.lane/trees/107-identity` (branch `feat/107-identity`, HEAD `058ef2c`).
+Inputs read from disk: `AGENTS.md`, `openspec/changes/107-identity/specs/identity/spec.md`,
+`docs/reports/107-identity-cycle4.md`, `docs/evidence/107-identity-rotation.md`.
+All commands below ran with cwd inside the worktree unless noted.
+
+## 0. Pre-state
+
+- `git status --short` (worktree): empty → tree clean at `058ef2c`.
+- `sha256sum docs/evidence/107-identity-rotation.md`:
+  `e922084db951beae6c94ccfb3dce48d308ca0da2ec0e257d77b1f5ef6a2a73c2`
+  (matches the cycle-4 report's `e922084d…0da` pre-sabotage hash).
+
+## 1. Baseline (clean tree) — ALL GREEN
+
+1. `make verify > /tmp/c4-make-verify.log 2>&1` → EXIT 0.
+   - `V23/107-identity M1 green: seat-grant catalog shape + filename helper + 26 corpus tests pass (FAIL-ONLY, SUMMARY frozen)`
+   - `V24/107-identity R1 green: rotation step 3 mandates --rig alongside --seat, no rig-less mint (FAIL-ONLY, SUMMARY frozen)`
+   - `SUMMARY: 35 checks passed, 0 failed.`
+2. `./scripts/verify-rigs.sh --check-only` → EXIT 0; `SUMMARY: 35 checks passed, 0 failed`; V23 green (26 tests); V24 green.
+3. `pytest tests/test_identity_m1.py` → EXIT 0; `26 passed`.
+4. `python3 scripts/audit_loop.py --self-test` → EXIT 0; `SELF-TEST PASSED`.
+   (tail: verify-rigs.sh static/schema/digest/security checks PASS, 20-vector sentinel PASS.)
+
+Note: `scripts/accept/` does not exist in this tree (no `wave-107-identity.sh`);
+acceptance is `make verify` + `verify-rigs.sh --check-only` per AGENTS.md. A bare
+`./scripts/verify-rigs.sh` invoked from the parent repo checked the WRONG tree
+(main repo, also 35/0) — all worktree results above used cwd inside
+`.lane/trees/107-identity`. No `make accept STAGE=` target is defined for this stage.
+
+## 2. Sabotage A — revert rotation.md step 3 to rig-less mint (temporary, reverted)
+
+Defect (mechanical, mirrors the disclosed R1 gap): in
+`docs/evidence/107-identity-rotation.md` line 28 replaced the single fixed form
+`` `rig mcp token add <name> --seat <session> --rig <managed-rig>` ``
+with the rig-less form
+`` `rig mcp token add <name> --seat <session>` ``
+(python surgical replace, count asserted == 1). No other file touched.
+
+RED proof (both committed gates trip):
+- `python3 -m pytest tests/test_identity_m1.py::RotationRunbookStep3Tests` → EXIT 1:
+  `FAILED ...::test_step3_mints_with_rig_scope_and_no_rigless_form`
+  `AssertionError: False is not true : runbook step 3 must mint with --seat AND --rig (rig-scoped replacement)`
+- `./scripts/verify-rigs.sh --check-only` → EXIT 1:
+  `[FAIL] V23/107-identity: tests/test_identity_m1.py failed:` (+ `FAILED (failures=1)`)
+  `[FAIL] V24/107-identity: runbook step 3 must mint with --seat AND --rig (rig-scoped replacement)`
+  `[FAIL] V24/107-identity: runbook step 3 must not carry a rig-less mint form (omitting --rig revokes-and-replaces on next seed)`
+  `SUMMARY: 35 checks passed, 3 failed.`
+  (V23 failure is expected collateral: V23 runs the corpus, which is RED under
+  this defect — same as the cycle-4 report §3 recorded. SUMMARY count frozen at
+  35 throughout; exit 1.)
+
+Restore:
+- `git checkout -- docs/evidence/107-identity-rotation.md` → hash back to
+  `e922084db951beae6c94ccfb3dce48d308ca0da2ec0e257d77b1f5ef6a2a73c2`
+  (byte-identical to pre-sabotage; `git status --short` clean).
+- Re-run GREEN: `pytest tests/test_identity_m1.py` → EXIT 0, `26 passed`;
+  `./scripts/verify-rigs.sh --check-only` → EXIT 0,
+  `SUMMARY: 35 checks passed, 0 failed`, V24 green line present.
+
+Conclusion: NEITHER check is vacuous — both go RED (non-zero exit with the
+exact failure lines) on the rig-less regression and GREEN on restore.
+
+## 3. Sabotage B — V24 scoping: §2 rig-less probes must NOT trip it (no file change needed)
+
+Clean-tree fact: the runbook ALREADY contains rig-less `token add` invocations
+in the §2 live-evidence section (Step A line 92 and Step D line 161:
+`$ OPENRIG_HOME=$SCRATCH rig mcp token add rot-seat --seat rot-session`,
+non-backticked shell transcripts), yet V24 is GREEN on the clean tree
+(baseline §1, VERIFY_EXIT 0). So the §2 probes do not trip the gate.
+
+Mechanical scoping proof (read-only probe, no file modified):
+- Whole-file backticked `` `rig mcp token add[^`]*` `` matches: 2 —
+  `` `rig mcp token add --help` `` (line 7, NO `--rig`) and the step-3
+  `` `... --seat <session> --rig <managed-rig>` `` (line 28, has `--rig`).
+- Step-3-region-only matches: 1 (the `--rig` form).
+- A whole-file grep WOULD trip on the line-7 `--help` form, but V24 stays
+  green → V24 examines ONLY the region between the `3. Mint the replacement`
+  and `4. Redistribute` anchors (verified in code: `scripts/verify-rigs.sh`
+  lines 2824–2837 slice `_v24_lines[_v24_start:_v24_end]` and regex only that
+  slice; same slicing in `tests/test_identity_m1.py::step3_region`).
+- §2 transcript lines are additionally out of reach because they are not
+  backticked mint commands at all.
+
+Conclusion: V24 is scoped to step 3 only — PASS on scoping (gate green on the
+clean tree despite rig-less forms elsewhere in the file). No sabotage edit was
+required or made for B; the clean-tree green IS the proof.
+
+## 4. Append-only / no-behavior-change confirmation (read-only git inspection)
+
+- `git show --stat HEAD` (`058ef2c`): 3 files, **146 insertions(+), 0 deletions** —
+  `docs/reports/107-identity-cycle4.md` (79), `scripts/verify-rigs.sh` (+33),
+  `tests/test_identity_m1.py` (+34).
+- `git diff HEAD~1 HEAD -- scripts/verify-rigs.sh` contains ZERO `-` (removed)
+  lines → V1–V23 untouched, V24 purely appended after V23, before SUMMARY.
+- All `== V1 … == V24` headers present in order, unrenamed (V1–V19 multi-check
+  blocks, V20/V21/V22/V23/V24 FAIL-ONLY appended blocks).
+- SUMMARY frozen: single live `SUMMARY: {passes} checks passed…` print;
+  observed `SUMMARY: 35 checks passed, 0 failed` on clean tree AND
+  `35 checks passed, 3 failed` under sabotage (count frozen, failures listed
+  separately, exit 1) — same FAIL-ONLY convention as V20–V23.
+- No `specs/`/`rigs/`/`rosters/`/`registry/` leaves touched, no
+  `fleet/fleet.yaml` or `fleet/mcp-servers.yaml` changes → no generator inputs
+  changed, no regen needed (verify digest gates green confirms).
+
+## 5. Final state
+
+- `git status --short` (worktree): clean EXCEPT this new file
+  (`docs/evidence/107-identity/cycle4-red-proofs.log`, untracked — sanctioned
+  evidence strait per AGENTS.md). All sabotage edits reverted; rotation.md
+  byte-identical (`e922084d…0da`).
+- Nothing committed (per stage orders — left dirty-with-evidence-only).
+
+## Verdict
+
+- Baseline: PASS (`make verify` 0, check-only 35/0 with V23+V24 green, pytest 26/26, audit self-test PASS).
+- Sabotage A: PASS — corpus test RED (exit 1) AND V24 RED (exit 1, both fail lines); restore GREEN + byte-identical.
+- Sabotage B: PASS — V24 scoped to step 3; §2 rig-less probes + line-7 `--help` form do not trip it on the clean tree.
+- Vacuous checks: NONE. V1–V23 unrenamed, SUMMARY frozen at 35, no other behavior change.

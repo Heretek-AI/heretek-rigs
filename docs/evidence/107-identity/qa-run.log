@@ -1,0 +1,44 @@
+=== BASELINE START 2026-10-27T05:32:57Z ===
+  This command needs a running daemon.
+  Run 'rig up' (it auto-starts the daemon), or 'rig daemon start'.
+[SKIP] undelivered: data source unreachable: rig queue list --json -A --limit 100 exited 1: Error: Daemon not running.
+  This command needs a running daemon.
+  Run 'rig up' (it auto-starts the daemon), or 'rig daemon start'.
+[SKIP] heartbeat: data source unreachable: rig queue list --json -A --limit 100 exited 1: Error: Daemon not running.
+  This command needs a running daemon.
+  Run 'rig up' (it auto-starts the daemon), or 'rig daemon start'.
+[SKIP] seat-idleness: data source unreachable: rig queue list --json -A --limit 100 exited 1: Error: Daemon not running.
+  This command needs a running daemon.
+  Run 'rig up' (it auto-starts the daemon), or 'rig daemon start'.
+[SKIP] tool-provisioning: data source unreachable: rig queue list --json -A --limit 100 exited 1: Error: Daemon not running.
+  This command needs a running daemon.
+  Run 'rig up' (it auto-starts the daemon), or 'rig daemon start'.
+sources: 0 ok, 6 skipped
+MAKE_VERIFY_RC=0
+
+== V22. Bare Queue/Send Deny in Seat Maps (#102/HR-F18) ==
+V22/#102 bare queue/send deny green: 51 seats deny the bare triple and allow the disciplined forms (FAIL-ONLY, SUMMARY frozen)
+
+== V23. Per-Seat MCP Bearer Grants (107-identity M1) ==
+V23/107-identity M1 green: seat-grant catalog shape + filename helper + 15 corpus tests pass (FAIL-ONLY, SUMMARY frozen)
+
+SUMMARY: 35 checks passed, 0 failed.
+VERIFY_RC=0
+...............                                                          [100%]
+15 passed in 1.25s
+PYTEST_RC=0
+  [PASS] Found fleet/fleet.yaml (114327 bytes)
+  [PASS] Found fleet/mcp-servers.yaml (14064 bytes)
+  [PASS] ./scripts/verify-rigs.sh passed all static, schema, digest, and security checks
+  [PASS] Fail-closed sentinel evaluator verified against 20 adversarial test vectors
+SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.
+AUDIT_RC=0
+
+=== FINAL (restored tree, all sabotages reverted) ===
+- git diff --stat: EMPTY (no tracked modifications)
+- git status --short: only `?? docs/evidence/107-identity/` (evidence-only dirt for coordinator commit)
+- ./scripts/verify-rigs.sh --check-only → exit 0, V23 green, SUMMARY: 35 checks passed, 0 failed
+- python3 -m pytest tests/test_identity_m1.py -q → 15 passed
+- python3 scripts/audit_loop.py --self-test → SELF-TEST PASSED
+- make verify → exit 0 (recorded at baseline; restored tree is byte-identical to baseline for all tracked files)
+=== QA verdict: PASS (no vacuous checks; S1-S8 all NON-VACUOUS) ===

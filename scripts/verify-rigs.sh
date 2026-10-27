@@ -2754,6 +2754,89 @@ if _v22_checked != 51:
     fail(f"V22/#102: expected 51 seats checked (got {_v22_checked})")
 if len(failures) == _v22_before:
     print(f"V22/#102 bare queue/send deny green: {_v22_checked} seats deny the bare triple and allow the disciplined forms (FAIL-ONLY, SUMMARY frozen)")
+print("\n== V23. Per-Seat MCP Bearer Grants (107-identity M1) ==")
+# 107-identity M1 appended alongside — no V1-V22 line renumbered or
+# reworded. This block is FAIL-ONLY (no ok()): V19 freezes the live SUMMARY
+# at 35, so this gate fails loudly without moving the count (same convention
+# as V20/V21/V22). Coverage: the `rig-mcp-http` catalog entry shape
+# (transport http, seat_grant flag, no static secrets for V6 to scan),
+# the per-seat token filename helper, and the M1 corpus
+# (tests/test_identity_m1.py: issuance idempotence/heal/fail-closed plus
+# render strict/degrade/opt-in — no live daemon needed).
+_v23_before = len(failures)
+_v23_rs_spec = importlib.util.spec_from_file_location("render_seat_v23", str(root / "scripts/render-seat.py"))
+_v23_rs_mod = importlib.util.module_from_spec(_v23_rs_spec)
+try:
+    _v23_rs_spec.loader.exec_module(_v23_rs_mod)
+except Exception as _e23:
+    fail(f"V23/107-identity: cannot load scripts/render-seat.py ({_e23})")
+    _v23_rs_mod = None
+if _v23_rs_mod is not None:
+    _v23_entry = mcp_catalog.get("rig-mcp-http", {})
+    if _v23_entry.get("transport") != "http":
+        fail("V23/107-identity: catalog rig-mcp-http must use transport http (stdio stays default)")
+    if _v23_entry.get("url_template") != "http://127.0.0.1:7437/mcp":
+        fail("V23/107-identity: catalog rig-mcp-http url_template must be the loopback daemon endpoint")
+    if not _v23_entry.get("seat_grant"):
+        fail("V23/107-identity: catalog rig-mcp-http must carry seat_grant: true")
+    if "env" in _v23_entry or "headers" in _v23_entry:
+        fail("V23/107-identity: catalog rig-mcp-http must carry no static env/headers (render injects the per-seat Bearer header)")
+    try:
+        _v23_fn = _v23_rs_mod.seat_grant_token_filename("blue-probe@test-rig")
+    except Exception as _e23:
+        fail(f"V23/107-identity: seat_grant_token_filename raised ({_e23})")
+        _v23_fn = None
+    if _v23_fn is not None and (_v23_fn != "mcp-http-blue-probe@test-rig.key" or ".." in _v23_fn or "/" in _v23_fn):
+        fail(f"V23/107-identity: seat grant filename must embed the session verbatim with a .key suffix (got {_v23_fn!r})")
+_v23_ut = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests/test_identity_m1.py"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v23_ran = 0
+_v23_m = re.search(r"Ran (\d+) tests", _v23_ut.stderr or "")
+if _v23_m:
+    _v23_ran = int(_v23_m.group(1))
+if _v23_ut.returncode != 0:
+    fail(f"V23/107-identity: tests/test_identity_m1.py failed:\n{_v23_ut.stderr[-800:]}")
+elif _v23_ran < 15:
+    fail(f"V23/107-identity: tests/test_identity_m1.py ran only {_v23_ran} tests (need >= 15, non-vacuous floor)")
+if len(failures) == _v23_before:
+    print(f"V23/107-identity M1 green: seat-grant catalog shape + filename helper + {_v23_ran} corpus tests pass (FAIL-ONLY, SUMMARY frozen)")
+print("\n== V24. Rotation Runbook Step-3 --rig Mandate (107-identity R1) ==")
+# 107-identity cycle 4 closes the R1 coverage gap disclosed in
+# docs/evidence/107-identity/rework3-red-proofs.log (a rig-less step 3 passed
+# every committed gate). Appended alongside — no V1-V23 line renumbered or
+# reworded. This block is FAIL-ONLY (no ok()): V19 freezes the live SUMMARY
+# at 35, so this gate fails loudly without moving the count (same convention
+# as V20/V21/V22/V23). Coverage: the §1 runbook step-3 mint command carries
+# --rig alongside --seat, and no rig-less mint form remains in step 3
+# (non-vacuous: zero mint commands, or any rig-less one, trips the gate).
+_v24_before = len(failures)
+_v24_rot = root / "docs/evidence/107-identity-rotation.md"
+try:
+    _v24_text = _v24_rot.read_text()
+except Exception as _e24:
+    fail(f"V24/107-identity: rotation runbook unreadable ({_e24})")
+    _v24_text = None
+if _v24_text is not None:
+    _v24_lines = _v24_text.splitlines()
+    _v24_start = next((_i24 for _i24, _l24 in enumerate(_v24_lines) if _l24.startswith("3. Mint the replacement")), None)
+    _v24_end = next((_i24 for _i24, _l24 in enumerate(_v24_lines) if _l24.startswith("4. Redistribute")), None)
+    if _v24_start is None or _v24_end is None or _v24_end <= _v24_start:
+        fail("V24/107-identity: runbook step-3 anchors missing (need '3. Mint the replacement' … '4. Redistribute')")
+        _v24_step3 = None
+    else:
+        _v24_step3 = "\n".join(_v24_lines[_v24_start:_v24_end])
+    if _v24_step3 is not None:
+        _v24_cmds = re.findall(r"`rig mcp token add[^`]*`", _v24_step3)
+        if not any("--seat" in _c24 and "--rig" in _c24 for _c24 in _v24_cmds):
+            fail("V24/107-identity: runbook step 3 must mint with --seat AND --rig (rig-scoped replacement)")
+        if any("--rig" not in _c24 for _c24 in _v24_cmds):
+            fail("V24/107-identity: runbook step 3 must not carry a rig-less mint form (omitting --rig revokes-and-replaces on next seed)")
+if len(failures) == _v24_before:
+    print("V24/107-identity R1 green: rotation step 3 mandates --rig alongside --seat, no rig-less mint (FAIL-ONLY, SUMMARY frozen)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)
