@@ -54,15 +54,10 @@ jobs:
       - run: ./scripts/verify-rigs.sh --check-only
       - run: python3 ./scripts/audit_loop.py --self-test
       - run: |
-          if make guard-profiles SIDECAR_PROFILES="mobile devsec"; then
-            echo "error: guard-profiles accepted mobile with devsec" >&2
-            exit 1
-          fi
-          if make guard-profiles SIDECAR_PROFILES="mobile web-research"; then
-      - run: |
           if make guard-profiles SIDECAR_PROFILES="mobile devsec"; then echo "guard accepted mobile+devsec" >&2; exit 1; fi
           if make guard-profiles SIDECAR_PROFILES="mobile web-research"; then echo "guard accepted mobile+web-research" >&2; exit 1; fi
           make guard-profiles SIDECAR_PROFILES="web-research"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap && bwrap --version
 
   build:
     name: Build ${{ matrix.target }}
@@ -115,13 +110,6 @@ jobs:
       fail-fast: true
       matrix:
         target: [slim, full]
-    container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
-      credentials:
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }}
-      options: --user 1000:1000
-    defaults:
     container:
       image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
       credentials:
