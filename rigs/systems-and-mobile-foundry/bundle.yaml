@@ -529,7 +529,7 @@ integrity:
     agents/_shared/skills/tdd/SKILL.md: 0ad3799204990ca45831721afad288243914a76fecefe493a5d50cd32c6854e8
     agents/_shared/skills/test-driven-development/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/test-driven-development/SKILL.md: 64b03fce4aee5a97a93160cea8111f3ba13a17b7c001db4bd5836d67fd10705d
-    agents/_shared/skills/test-driven-development/writing-good-tests.md: 51471c853306ff92ca8bb41dcaea05f31c0e46b03651f8f3c99754b7172f4ae1
+    agents/_shared/skills/test-driven-development/writing-good-tests.md: f99bbfc43ea86bff776256f03e27316c7034119e03f981e5c7f220f022cb0b13
     agents/_shared/skills/typescript-astro/SKILL.md: 6db8903dc14702a1cfde72da1ea5d00c2ed799aba8f71c125a8ab1bc46948bc7
     agents/_shared/skills/using-git-worktrees/LICENSE: a37e0e9697144819e1d965176ac4ae5bc3fa02d11e7812036bbcadf6dafe2400
     agents/_shared/skills/using-git-worktrees/SKILL.md: 8cfb86f121269e8f7f12361e6795c4f6738828340e28964c9229d365666c9edd
@@ -598,34 +598,34 @@ integrity:
     agents/android-mobile-spec/agent.yaml: 82ae4293abfa0a668c33f3ab42b12b2cbc9500f2b9f920af98ea3860c504170b
     agents/android-mobile-spec/guidance/role.md: 08ec8727379f3137cd794dcb7f87a4f6adcbe73647336842143cd3fa28fa469d
     agents/android-mobile-spec/runtime/mcp.json: 8cd4b60617f4def24797ca33a64454ad68f1e39e77d7b50f6462db63db3a0b43
-    agents/android-mobile-spec/runtime/pi-permission-config.json: cf57c1b49559b81841d71f00cd854742a402049ebef1ae2a0fe07cff9c2511c9
+    agents/android-mobile-spec/runtime/pi-permission-config.json: 22f13186d4aff99f2d8c03b0789a470e8db4d80cbf74becbfab34ba86ed38cfa
     agents/android-mobile-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/android-mobile-spec/runtime/policy-enforcement.json: f228b65991fb9b2e33f7905c2736f0d7480defcdf26e35cc82ae4b4b5a17334a
+    agents/android-mobile-spec/runtime/policy-enforcement.json: f765217726ba0a11ee12059e4732a6e998540fda622efc00ccc9164b2f50cc62
     agents/android-mobile-spec/skills/artemis-android-ui-exploration/SKILL.md: cc950f025542a3ab33d1b477c645fd9a1e4247f3cb5e570b7069c26f2ec16fc7
     agents/android-mobile-spec/skills/jetpack-compose-state-hoisting/SKILL.md: e58f6a4bed687afc3fa4b7a37dfaa571a430000099dbdb5c52af385e9edc8379
     agents/android-mobile-spec/startup/context.md: 7a9f9bed639454215d5c76ea3a8aea005f3140319f85097f024930a02fd9f7f3
     agents/cpp-lowlevel-eng/agent.yaml: 39e66b5d2f688af893784467f139c964358345074fa03c50255702548726f742
     agents/cpp-lowlevel-eng/guidance/role.md: 615ebf690a143d015cf0b907c4bd1c00197513f63f248ed02dd81533c30f4119
     agents/cpp-lowlevel-eng/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: e97d0249f46bfa6c80d849c3b81595bf8fe6ffc15a283be2e22890c796174ca1
+    agents/cpp-lowlevel-eng/runtime/pi-permission-config.json: 456afece6566f235ce554f9053d7735d37d46754d73b7cfda040a234d8d4d5d0
     agents/cpp-lowlevel-eng/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: 347b59da256958c32dc692b4af83791832f97e3cd9c30721a0441e4e714e3081
+    agents/cpp-lowlevel-eng/runtime/policy-enforcement.json: 3c483526e94de6eb97ad786a684c64a7ac8ef9bfe9b359c40ec48ba7ce01e6b4
     agents/cpp-lowlevel-eng/skills/modern-cpp-sanitizer-verification/SKILL.md: 6d6c0fca870a4ae666f968e147b95c95305b63d6385b9ca8944fb720a35f1b91
     agents/cpp-lowlevel-eng/startup/context.md: 3fcc03a9c90dcc2e36cfa7bef937c018d96cab9c9a2b0ae14716a69fe803cc92
     agents/ios-mobile-spec/agent.yaml: 75e4f2e963b5aa609cb5083b9ae1223fab4703d3ecd7cf76bbe4474ab4ca371f
     agents/ios-mobile-spec/guidance/role.md: f2595903dfdfae57acd2a3bd6d9099276a91f23e979278735a17bef59c16744b
     agents/ios-mobile-spec/runtime/mcp.json: e53caca8248f6cba53cf4499a4ab46f79bc3c316651471178501503112bbfd37
-    agents/ios-mobile-spec/runtime/pi-permission-config.json: 2e26719d66c27228a8166056935fab1fb9c00d1a76de445f3ecf24a1a37504cd
+    agents/ios-mobile-spec/runtime/pi-permission-config.json: 77ab433b3e8e43bce2887a80ba4df8fb7bff4d3a358d31af3c0da2d30f7bb3f5
     agents/ios-mobile-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/ios-mobile-spec/runtime/policy-enforcement.json: 64c10480b83d1663efb5cb9e00996d6bdc268dff6500c01a62e9a121f77dd2d8
+    agents/ios-mobile-spec/runtime/policy-enforcement.json: d73800fc92f0a5e434fc5a9132cfebfff172a64347c732b5c14acd8799f3f5fc
     agents/ios-mobile-spec/skills/swiftui-concurrency-implementation/SKILL.md: 338e848eba55d81424bf475a0087ab64d86b2a1f1de868150f4ad95b26c115e1
     agents/ios-mobile-spec/startup/context.md: 15b186c1778c70cc9cbe64419630a78809d0a0f4b7a9abd3c830344886901bb0
     agents/rust-systems-spec/agent.yaml: 7af8242a5aeaa61109e387668ab6d8136eeed0c90f797b2efb916a261d215c25
     agents/rust-systems-spec/guidance/role.md: 2a2331b66fb201947f66ae71164bc6f5622d769b4cf8a331e66b0c25b517d82f
     agents/rust-systems-spec/runtime/mcp.json: 4223957d6ee7b457ace75239b061d772ab7134d9dff450130d13416406eb8bc2
-    agents/rust-systems-spec/runtime/pi-permission-config.json: e8f836a7262d83d248260a27b84de806c8bb04db8dde6f5391ecba613fcf77f0
+    agents/rust-systems-spec/runtime/pi-permission-config.json: 3e1b379c537a2ca18c7c6481112b66e9fa374a85b1b6cf7871a4c19723c7ccd5
     agents/rust-systems-spec/runtime/pi-settings.json: 2a43ac5fd1552852d428dc008edfb4d630b0353b73d31ecdfdee416fadd66f3d
-    agents/rust-systems-spec/runtime/policy-enforcement.json: 6375c2bb890c56f362befe42df6291a1af7ffb82eef511e181884a80e8869041
+    agents/rust-systems-spec/runtime/policy-enforcement.json: 1ac17822724eff335a391ed1b222cfb7e905a54e205b8a62b93784e2d2a0cbe4
     agents/rust-systems-spec/skills/rust-async-service-hardening/SKILL.md: 045f21f91d4dd6c1f11052713c2954deb4e1970019449209eb7cc47b74e71060
     agents/rust-systems-spec/startup/context.md: 7d5fdd6d6d7721c4ffd41d3d7b533a378e8cb118964799ff498515114807f663
     configurations.yaml: e5addacd5ec2c56e9f4c39b35545661fd3011f70ddf18c271d988e7f68057e61

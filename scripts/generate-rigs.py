@@ -4,7 +4,7 @@
 Reads canonical source of truth from:
   - fleet/fleet.yaml
   - fleet/mcp-servers.yaml
-  - fleet/skill-patches/*.yaml (post-vendor SKILL.md frontmatter repairs, #101)
+  - fleet/skill-patches/*.yaml (post-vendor SKILL.md frontmatter repairs, #101; vendored-file body replacements, #102)
   - Pinned local checkouts of Heretek-Crew@5ffb1fc, obra/superpowers@bb92a77, trailofbits/skills@5c99c03,
     getsentry/skills@f57ada2, anthropics/skills@dbd4588, vercel-labs/agent-skills@063bee9, and openrig-core skills.
 
@@ -401,13 +401,23 @@ def vendor_skill_from_clone(
 
 
 def load_skill_patches(root: Path) -> dict:
-    """Load fleet-side vendor patches from fleet/skill-patches/ (issue #101).
+    """Load fleet-side vendor patches from fleet/skill-patches/ (#101, #102).
 
-    Each `<skill-id>.yaml` carries `skill:` (must equal the filename stem)
-    and a non-empty `frontmatter:` mapping of key -> replacement scalar.
-    Fail-closed: unknown shapes die instead of silently not applying.
-    An absent directory means no patches (not an error).
+    Each `<skill-id>.yaml` carries `skill:` (must equal the filename stem),
+    an informational `reason:`, and one or both of:
+      - `frontmatter:` — a non-empty mapping of key -> replacement scalar
+        applied to the vendored SKILL.md frontmatter (the #101 path);
+      - `replacements:` — a non-empty list of `{file:, old:, new:}` exact
+        string edits applied to vendored skill files (the #102 path, for
+        sibling docs such as `writing-good-tests.md` that frontmatter
+        repair cannot reach).
+    Shape is normalized to
+    `{"frontmatter": dict | None, "replacements": list | None}`.
+    Fail-closed: unknown top-level keys, unreadable files, non-string
+    scalars, or a patch with neither section dies instead of silently
+    not applying. An absent directory means no patches (not an error).
     """
+    _PATCH_KEYS = {"skill", "reason", "frontmatter", "replacements"}
     patches = {}
     patch_dir = root / "fleet" / "skill-patches"
     if not patch_dir.is_dir():
@@ -424,32 +434,81 @@ def load_skill_patches(root: Path) -> dict:
                 f"fleet/skill-patches/{patch_file.name} skill "
                 f"{doc.get('skill')!r} != filename stem {patch_file.stem!r}"
             )
-        frontmatter = doc.get("frontmatter")
-        if not isinstance(frontmatter, dict) or not frontmatter:
-            die(
-                f"fleet/skill-patches/{patch_file.name} needs a non-empty frontmatter mapping"
-            )
-        for key, value in frontmatter.items():
-            if not isinstance(key, str) or not isinstance(value, str):
+        for _k in doc:
+            if _k not in _PATCH_KEYS:
                 die(
-                    f"fleet/skill-patches/{patch_file.name} frontmatter "
-                    "keys and values must be strings"
+                    f"fleet/skill-patches/{patch_file.name} unknown key {_k!r} "
+                    f"(allowed: {sorted(_PATCH_KEYS)})"
                 )
-        patches[patch_file.stem] = frontmatter
+        if "reason" in doc and not isinstance(doc["reason"], str):
+            die(f"fleet/skill-patches/{patch_file.name} reason must be a string")
+        frontmatter = doc.get("frontmatter")
+        if frontmatter is not None:
+            if not isinstance(frontmatter, dict) or not frontmatter:
+                die(
+                    f"fleet/skill-patches/{patch_file.name} needs a non-empty frontmatter mapping"
+                )
+            for key, value in frontmatter.items():
+                if not isinstance(key, str) or not isinstance(value, str):
+                    die(
+                        f"fleet/skill-patches/{patch_file.name} frontmatter "
+                        "keys and values must be strings"
+                    )
+        replacements = doc.get("replacements")
+        if replacements is not None:
+            if not isinstance(replacements, list) or not replacements:
+                die(
+                    f"fleet/skill-patches/{patch_file.name} needs a non-empty replacements list"
+                )
+            for _i, _r in enumerate(replacements):
+                if not isinstance(_r, dict):
+                    die(
+                        f"fleet/skill-patches/{patch_file.name} replacements[{_i}] must be a mapping"
+                    )
+                if set(_r) != {"file", "old", "new"}:
+                    die(
+                        f"fleet/skill-patches/{patch_file.name} replacements[{_i}] "
+                        f"keys must be exactly {{file, old, new}} (got {sorted(set(_r))})"
+                    )
+                for _f in ("file", "old", "new"):
+                    if not isinstance(_r[_f], str) or not _r[_f]:
+                        die(
+                            f"fleet/skill-patches/{patch_file.name} replacements[{_i}] "
+                            f"{_f!r} must be a non-empty string"
+                        )
+        if frontmatter is None and replacements is None:
+            die(
+                f"fleet/skill-patches/{patch_file.name} needs frontmatter and/or replacements"
+            )
+        patches[patch_file.stem] = {
+            "frontmatter": frontmatter,
+            "replacements": replacements,
+        }
     return patches
 
 
-def apply_skill_patch(sid: str, dst_sdir: Path, frontmatter: dict) -> None:
-    """Apply one fleet-side frontmatter patch to a vendored SKILL.md (#101).
+def apply_skill_patch(sid: str, dst_sdir: Path, patch) -> None:
+    """Apply one fleet-side vendor patch to a vendored skill dir (#101, #102).
 
-    Rewrites each patched `key:` line inside the leading `---` frontmatter
-    block with a quoted scalar, then re-parses the block with
-    `yaml.safe_load` and requires `name == <skill-id>`. Any deviation —
-    missing/duplicate key line, unparseable result, renamed skill — dies
-    (exit 2) instead of shipping a half-patched leaf. `specs/` leaves are
-    never hand-edited: this runs inside the generator on every regen, so
-    the patch is provenance-clean and idempotent.
+    `patch` is the normalized mapping from load_skill_patches (a bare
+    frontmatter mapping is still accepted for the legacy #101 call shape).
+    Frontmatter rewrites behave exactly as before: each patched `key:` line
+    inside the leading `---` block is rewritten with a quoted scalar, then
+    the block is re-parsed with `yaml.safe_load` requiring
+    `name == <skill-id>`. `replacements` are exact `{file:, old:, new:}`
+    edits confined to the skill dir: the target must be a relative path
+    with no `..`/absolute form, must exist, and `old` must occur exactly
+    once (zero or several hits die). When the target is SKILL.md its
+    frontmatter is re-validated (`name == <skill-id>`) after the edit.
+    Any deviation dies (exit 2) instead of shipping a half-patched leaf.
+    `specs/` leaves are never hand-edited: this runs inside the generator
+    on every regen, so the patch is provenance-clean and idempotent.
     """
+    if isinstance(patch, dict) and ("frontmatter" in patch or "replacements" in patch):
+        frontmatter = patch.get("frontmatter") or {}
+        replacements = patch.get("replacements") or []
+    else:
+        frontmatter, replacements = patch, []
     skill_md = dst_sdir / "SKILL.md"
     try:
         text = skill_md.read_text()
@@ -481,6 +540,44 @@ def apply_skill_patch(sid: str, dst_sdir: Path, frontmatter: dict) -> None:
             f"{(parsed or {}).get('name')!r} != skill id {sid!r}"
         )
     skill_md.write_text(patched)
+    for _r in replacements:
+        _fname = _r["file"]
+        _rel = Path(_fname)
+        if (
+            not _fname
+            or _rel.is_absolute()
+            or ".." in _rel.parts
+            or _fname.startswith("~")
+            or "\\" in _fname
+        ):
+            die(
+                f"skill patch {sid}: replacement target escapes the skill dir: {_fname!r}"
+            )
+        _target = dst_sdir / _rel
+        try:
+            _tbody = _target.read_text()
+        except OSError as exc:
+            die(f"skill patch {sid}: unreadable replacement target {_target}: {exc}")
+        _old, _new = _r["old"], _r["new"]
+        if _old == _new:
+            die(f"skill patch {sid}: no-op replacement in {_fname!r} (old == new)")
+        _hits = _tbody.count(_old)
+        if _hits != 1:
+            die(
+                f"skill patch {sid}: expected exactly one {(_old[:40] + '...')!r} hit "
+                f"in {_fname!r} (got {_hits})"
+            )
+        _target.write_text(_tbody.replace(_old, _new, 1))
+        if _target.name == "SKILL.md":
+            _recheck = _target.read_text().split("---", 2)
+            try:
+                _refm = yaml.safe_load(_recheck[1]) if len(_recheck) > 2 else None
+            except Exception as exc:
+                die(
+                    f"skill patch {sid}: SKILL.md frontmatter unparseable after edit: {exc}"
+                )
+            if not isinstance(_refm, dict) or _refm.get("name") != sid:
+                die(f"skill patch {sid}: SKILL.md name drifted after body edit")
 
 
 def resolve_run_attestation(root: Path):
@@ -803,6 +900,22 @@ def generate_all(
                 die(
                     f"{_rid}: bash_allow pattern contains forbidden --output write-escape: {_pat!r}"
                 )
+    # HR-F18 (#102): same fail-closed bans for fleet `permissions.bash_deny`
+    # — a deny entry is emitted verbatim into the seat bash map, so shell
+    # metachars or `--output` inside it would weaken (not strengthen) the
+    # map. Non-string entries die here, never in the renderer.
+    for _rid, _r in sorted(fleet.get("roles", {}).items()):
+        for _dpat in _r.get("permissions", {}).get("bash_deny", []) or []:
+            if not isinstance(_dpat, str) or not _dpat:
+                die(
+                    f"{_rid}: bash_deny entries must be non-empty strings, got {_dpat!r}"
+                )
+            if re.search(r"[;&|$`()\n><\\!#~{}\[\]?\r]", _dpat) or "$(" in _dpat:
+                die(f"{_rid}: bash_deny pattern contains shell metachar: {_dpat!r}")
+            if "--output" in _dpat:
+                die(
+                    f"{_rid}: bash_deny pattern contains forbidden --output write-escape: {_dpat!r}"
+                )
     # HR-4.3 (fail-closed): every required/optional secret filename referenced
     # by the catalog must be a bare filename (no dirs, no metachars) even when
     # per-seat rendering bypasses FS checks (check_secret_fs=False).
@@ -966,13 +1079,19 @@ def generate_all(
                 return f
         return None
 
-    def extract_fm_license(
-        skill_md: Path, patch: dict | None = None
-    ) -> str | None:
+    def extract_fm_license(skill_md: Path, patch: dict | None = None) -> str | None:
         if not skill_md.is_file():
             return None
         text = skill_md.read_text()
-        if patch:
+        # #102: patch is the normalized load_skill_patches mapping; only the
+        # frontmatter section rewrites SKILL.md bytes for license extraction
+        # (a bare mapping is the legacy #101 call shape).
+        fm_patch = patch
+        if isinstance(patch, dict) and (
+            "frontmatter" in patch or "replacements" in patch
+        ):
+            fm_patch = patch.get("frontmatter") or {}
+        if fm_patch:
             lines = text.splitlines(keepends=True)
             if lines and lines[0].strip() == "---":
                 closing = next(
@@ -980,7 +1099,7 @@ def generate_all(
                     None,
                 )
                 if closing:
-                    for key, val in patch.items():
+                    for key, val in fm_patch.items():
                         hits = [
                             i
                             for i in range(1, closing)
@@ -1021,9 +1140,7 @@ def generate_all(
         if not has_lic:
             lic_file = core_license if src == "openrig-core" else root_license(src)
         if not has_lic and not lic_file:
-            fm_lic = extract_fm_license(
-                sdir / "SKILL.md", patch=skill_patches.get(sid)
-            )
+            fm_lic = extract_fm_license(sdir / "SKILL.md", patch=skill_patches.get(sid))
             if not fm_lic and not (
                 src != "openrig-core" and pins[src].get("license_declared")
             ):
@@ -1085,7 +1202,9 @@ def generate_all(
             elif src != "openrig-core" and pins[src].get("license_declared"):
                 lic_declared = pins[src]["license_declared"]
             else:
-                die(f"shared skill {sid} ({src}) has no license file and no declared license")
+                die(
+                    f"shared skill {sid} ({src}) has no license file and no declared license"
+                )
         lock["skills"][sid] = {
             "source": (
                 f"npm:@openrig/cli@{OPENRIG_VERSION} daemon/assets/plugins/openrig-core/skills"

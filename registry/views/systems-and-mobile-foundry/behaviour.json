@@ -5,14 +5,14 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/systems-and-mobile-foundry",
-      "resolvedCommit": "5fc07d9a59999d032e60034028efd6a7e4d363a4",
+      "resolvedCommit": "DIRTY-2590a87844e8924aefe6264e95413b1f55b45d56",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/5fc07d9a59999d032e60034028efd6a7e4d363a4/rigs/systems-and-mobile-foundry"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/DIRTY-2590a87844e8924aefe6264e95413b1f55b45d56/rigs/systems-and-mobile-foundry"
     },
     "configurationId": "mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "d5014e758e64da3feb6b443eedee07118910e483637a7137fd7e9b33c0a3cdd4",
+      "value": "d9d62c9962d3dd6d29e12ae51606ad622d1529a06f557e132f1373a308c66b73",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {

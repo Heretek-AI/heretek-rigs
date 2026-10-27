@@ -5,14 +5,14 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/game-dev-and-sim-rig",
-      "resolvedCommit": "5fc07d9a59999d032e60034028efd6a7e4d363a4",
+      "resolvedCommit": "DIRTY-2590a87844e8924aefe6264e95413b1f55b45d56",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/5fc07d9a59999d032e60034028efd6a7e4d363a4/rigs/game-dev-and-sim-rig"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/DIRTY-2590a87844e8924aefe6264e95413b1f55b45d56/rigs/game-dev-and-sim-rig"
     },
     "configurationId": "engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "647b2ae81f7030c24be2cc403a15b917df3d64541731bebf3226e7fea96a88dc",
+      "value": "5be270fd2516b8a20829a2edf1d3ecc7b4ded1c09f4ebe583fe4d81efb467205",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {

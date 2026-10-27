@@ -6,7 +6,7 @@ summary: Executive governance, product strategy, sprint decomposition, system ar
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/executive-and-architecture
-  resolvedCommit: 5fc07d9a59999d032e60034028efd6a7e4d363a4
+  resolvedCommit: DIRTY-2590a87844e8924aefe6264e95413b1f55b45d56
   requestedRef: main
 configurations:
 - id: delivery.git-drift-coord=pi,delivery.tech-docs-lead=pi,delivery.tpm-scrum-lead=pi,exec.exec-director=pi,exec.product-director=pi,exec.system-architect=pi
@@ -14,7 +14,7 @@ configurations:
   recommended: true
   packageDigest:
     algorithm: sha256
-    value: a614beb0c49a904c19bcf3b0de93a674ce7953cb1a496a0f8956903e00d31115
+    value: 2e705b230a02b621b87edaab281af5768f3d44ec30a420bb099242d1e767d9d5
     coverage: openrig.package-digest/v1
   assembler:
     openrigVersion: 0.7.2

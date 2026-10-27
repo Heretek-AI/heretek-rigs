@@ -654,6 +654,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/a11y-specialist/AGENTS.md
       opencode_json: roles/a11y-specialist/opencode/opencode.json
@@ -731,6 +735,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/ai-red-teamer/AGENTS.md
       opencode_json: roles/ai-red-teamer/opencode/opencode.json
@@ -789,6 +797,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/analytics-metrics-eng/AGENTS.md
       opencode_json: roles/analytics-metrics-eng/opencode/opencode.json
@@ -861,6 +873,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/android-mobile-spec/AGENTS.md
       opencode_json: roles/android-mobile-spec/opencode/opencode.json
@@ -933,6 +949,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/api-contract-tester/AGENTS.md
       opencode_json: roles/api-contract-tester/opencode/opencode.json
@@ -1007,6 +1027,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/appsec-engineer/AGENTS.md
       opencode_json: roles/appsec-engineer/opencode/opencode.json
@@ -1076,6 +1100,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/binary-reverse-eng/AGENTS.md
       opencode_json: roles/binary-reverse-eng/opencode/opencode.json
@@ -1134,6 +1162,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/brand-copy-spec/AGENTS.md
       opencode_json: roles/brand-copy-spec/opencode/opencode.json
@@ -1192,6 +1224,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/cache-streaming-eng/AGENTS.md
       opencode_json: roles/cache-streaming-eng/opencode/opencode.json
@@ -1258,6 +1294,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/cloud-platform-eng/AGENTS.md
       opencode_json: roles/cloud-platform-eng/opencode/opencode.json
@@ -1323,6 +1363,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/cloud-sec-auditor/AGENTS.md
       opencode_json: roles/cloud-sec-auditor/opencode/opencode.json
@@ -1389,6 +1433,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/compliance-auditor/AGENTS.md
       opencode_json: roles/compliance-auditor/opencode/opencode.json
@@ -1465,6 +1513,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/cpp-lowlevel-eng/AGENTS.md
       opencode_json: roles/cpp-lowlevel-eng/opencode/opencode.json
@@ -1530,6 +1582,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/data-pipeline-eng/AGENTS.md
       opencode_json: roles/data-pipeline-eng/opencode/opencode.json
@@ -1593,6 +1649,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/dba-specialist/AGENTS.md
       opencode_json: roles/dba-specialist/opencode/opencode.json
@@ -1671,6 +1731,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/dependency-patcher/AGENTS.md
       opencode_json: roles/dependency-patcher/opencode/opencode.json
@@ -1740,6 +1804,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/design-system-eng/AGENTS.md
       opencode_json: roles/design-system-eng/opencode/opencode.json
@@ -1810,6 +1878,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/e2e-browser-qa/AGENTS.md
       opencode_json: roles/e2e-browser-qa/opencode/opencode.json
@@ -1884,6 +1956,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/engine-systems-eng/AGENTS.md
       opencode_json: roles/engine-systems-eng/opencode/opencode.json
@@ -1951,6 +2027,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/exec-director/AGENTS.md
       opencode_json: roles/exec-director/opencode/opencode.json
@@ -2014,6 +2094,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/fe-perf-eng/AGENTS.md
       opencode_json: roles/fe-perf-eng/opencode/opencode.json
@@ -2081,6 +2165,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/firmware-sec-analyst/AGENTS.md
       opencode_json: roles/firmware-sec-analyst/opencode/opencode.json
@@ -2140,6 +2228,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/game-ai-dev/AGENTS.md
       opencode_json: roles/game-ai-dev/opencode/opencode.json
@@ -2208,6 +2300,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/game-systems-dev/AGENTS.md
       opencode_json: roles/game-systems-dev/opencode/opencode.json
@@ -2273,6 +2369,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/git-drift-coord/AGENTS.md
       opencode_json: roles/git-drift-coord/opencode/opencode.json
@@ -2347,6 +2447,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/go-backend-eng/AGENTS.md
       opencode_json: roles/go-backend-eng/opencode/opencode.json
@@ -2413,6 +2517,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/graphics-shader-eng/AGENTS.md
       opencode_json: roles/graphics-shader-eng/opencode/opencode.json
@@ -2480,6 +2588,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/ios-mobile-spec/AGENTS.md
       opencode_json: roles/ios-mobile-spec/opencode/opencode.json
@@ -2551,6 +2663,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/java-kotlin-eng/AGENTS.md
       opencode_json: roles/java-kotlin-eng/opencode/opencode.json
@@ -2612,6 +2728,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/k8s-orchestrator/AGENTS.md
       opencode_json: roles/k8s-orchestrator/opencode/opencode.json
@@ -2671,6 +2791,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/load-stress-tester/AGENTS.md
       opencode_json: roles/load-stress-tester/opencode/opencode.json
@@ -2731,6 +2855,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/mlops-serving-eng/AGENTS.md
       opencode_json: roles/mlops-serving-eng/opencode/opencode.json
@@ -2799,6 +2927,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/mobile-web-eng/AGENTS.md
       opencode_json: roles/mobile-web-eng/opencode/opencode.json
@@ -2863,6 +2995,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/observability-eng/AGENTS.md
       opencode_json: roles/observability-eng/opencode/opencode.json
@@ -2923,6 +3059,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/physics-sim-eng/AGENTS.md
       opencode_json: roles/physics-sim-eng/opencode/opencode.json
@@ -2990,6 +3130,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/product-director/AGENTS.md
       opencode_json: roles/product-director/opencode/opencode.json
@@ -3064,6 +3208,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/python-backend-spec/AGENTS.md
       opencode_json: roles/python-backend-spec/opencode/opencode.json
@@ -3137,6 +3285,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/release-qa-officer/AGENTS.md
       opencode_json: roles/release-qa-officer/opencode/opencode.json
@@ -3214,6 +3366,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/rust-systems-spec/AGENTS.md
       opencode_json: roles/rust-systems-spec/opencode/opencode.json
@@ -3283,6 +3439,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/sabotage-qa-tester/AGENTS.md
       opencode_json: roles/sabotage-qa-tester/opencode/opencode.json
@@ -3346,6 +3506,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/sre-incident-eng/AGENTS.md
       opencode_json: roles/sre-incident-eng/opencode/opencode.json
@@ -3422,6 +3586,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/static-analysis-lead/AGENTS.md
       opencode_json: roles/static-analysis-lead/opencode/opencode.json
@@ -3495,6 +3663,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/system-architect/AGENTS.md
       opencode_json: roles/system-architect/opencode/opencode.json
@@ -3553,6 +3725,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/tech-artist-pipeline/AGENTS.md
       opencode_json: roles/tech-artist-pipeline/opencode/opencode.json
@@ -3612,6 +3788,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/tech-docs-lead/AGENTS.md
       opencode_json: roles/tech-docs-lead/opencode/opencode.json
@@ -3679,6 +3859,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/threat-modeler/AGENTS.md
       opencode_json: roles/threat-modeler/opencode/opencode.json
@@ -3752,6 +3936,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/tpm-scrum-lead/AGENTS.md
       opencode_json: roles/tpm-scrum-lead/opencode/opencode.json
@@ -3837,6 +4025,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/ts-node-fullstack/AGENTS.md
       opencode_json: roles/ts-node-fullstack/opencode/opencode.json
@@ -3911,6 +4103,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/ui-ux-designer/AGENTS.md
       opencode_json: roles/ui-ux-designer/opencode/opencode.json
@@ -3972,6 +4168,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/ux-research-analyst/AGENTS.md
       opencode_json: roles/ux-research-analyst/opencode/opencode.json
@@ -4032,6 +4232,10 @@ roles:
       - git diff --name-only*
       - git log --oneline*
       - git show --stat*
+      bash_deny:
+      - rig queue list
+      - rig queue create
+      - rig send
     source:
       charter: roles/vector-rag-spec/AGENTS.md
       opencode_json: roles/vector-rag-spec/opencode/opencode.json
