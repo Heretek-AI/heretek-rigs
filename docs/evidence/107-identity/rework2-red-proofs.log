@@ -1,0 +1,47 @@
+# 107-identity rework cycle 2 — QA red-proof log
+Date (UTC): 2026-10-27
+Worktree: .lane/trees/107-identity (branch feat/107-identity at 2b2fc12, tree clean at start)
+Scope: verify + red-proof the rework-2 bearer-redaction fix (CodeQL py/clear-text-logging-sensitive-data),
+  per docs/reports/107-identity-rework2.md. No production/test code changed except temporary sabotage (reverted).
+  No commits made. Dummy bearer-shaped runs below are Q*47 test fixtures, not secrets.
+
+## 1. Baseline (unmodified tree) — all GREEN
+- `python3 -m pytest tests/test_identity_m1.py -q` -> 25 passed, exit 0
+- `python3 -m pytest tests/test_identity_m1.py -v -k "redact"` -> 2 passed
+  (test_add_failure_output_bearer_is_redacted_in_log [strict],
+   test_add_failure_output_bearer_redacted_when_degraded [degraded]), exit 0.
+  Both assert captured stderr contains "token add failed" AND matches no
+  `[A-Za-z0-9_-]{40,}` run -> leak-closed proof on the unmodified tree
+  (fake rig emits a 47-char Q-run bearer-shaped run in failure stderr via FAKE_RIG_LEAK_ADD=1).
+- `python3 scripts/audit_loop.py --self-test` -> SELF-TEST PASSED, exit 0
+- `./scripts/verify-rigs.sh --check-only` -> SUMMARY: 35 checks passed, 0 failed;
+  V23/107-identity M1 green (25 corpus tests pass), exit 0
+- `make verify` -> exit 0; SUMMARY 35/0; V23 green. Live-health [SKIP] lines are the
+  normal no-daemon data-source skips (rig daemon not running), same as the implementation report.
+
+## 2. Sabotage (RED proof) — bypass _redact_for_log at the _fail choke point
+- Injected defect (temporary, uncommitted) in scripts/seed-rig.py:290:
+    OLD: `        msg = _redact_for_log(msg)`
+    NEW: `        msg = msg  # SABOTAGE-QA: redaction bypassed`
+  (single-line bypass at the _fail choke point covering all grant-path _fail call sites;
+   `git diff --stat` confirmed exactly 1 file changed, 1 insertion, 1 deletion)
+- `python3 -m pytest tests/test_identity_m1.py -k "redact" -q` -> PYTEST_EXIT:1 (RED),
+  2 failed (both strict and degraded redaction tests).
+  Failure output proves the bearer-shaped run reaches stderr verbatim when redaction is
+  bypassed: AssertionError shows the 47-char Q-run matching `[A-Za-z0-9_-]{40,}` inside
+  'warn: blue-x@rig-y: seat grant not issued (token add failed: ... internal error bearer Q...Q (47) ...)'.
+  The checks are therefore NOT vacuous: they fail if and only if the redaction is absent.
+- Restore: `git checkout -- scripts/seed-rig.py` -> `git status --short` empty (clean),
+  `git diff --stat` empty. No debris.
+
+## 3. Post-restore regression — all GREEN
+- `python3 -m pytest tests/test_identity_m1.py -q` -> 25 passed, exit 0
+- `python3 -m unittest tests.test_render_seat tests.test_seed_rig` -> Ran 27 tests, OK, exit 0
+- Tree-identical to baseline (git status clean apart from this log file), so the
+  baseline `make verify` / `verify-rigs.sh --check-only` 35/0 results stand.
+
+## Verdict
+PASS: baseline green (make verify 35/0, V23 green at 25 tests, pytest 25 pass, audit self-test green);
+red-proof sabotage of the _fail redaction choke point turns the 2 new redaction tests RED (exit 1)
+with the verbatim bearer-shaped run visible in stderr; restore returns GREEN. No vacuous checks found.
+Only modification left in the tree is this evidence log file.
