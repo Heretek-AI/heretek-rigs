@@ -11,6 +11,6 @@
 - [ ] T2 — Red-proofs (agency-qa, same worktree, evidence commit).
       Do: prove ledger claims (version string, SHA presence); sabotage one updated pin back to 0.7.2 and prove a gate/ledger check trips; restore.
       Evidence: `docs/evidence/overhaul-bump/red-proofs.log`.
-      Acceptance command: `./scripts/verify-rigs.sh --check-only AND python3 scripts/audit_loop.py --self-test`
+      Acceptance command: `./scripts/verify-rigs.sh --check-only && python3 scripts/audit_loop.py --self-test`
 
 - [ ] T3 — Drift-guard (VERDICT from disk) → PR (Refs only; no Closes).
