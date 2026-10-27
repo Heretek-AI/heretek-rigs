@@ -1,0 +1,51 @@
+# overhaul-bump red-proofs.log — QA verifier (agency-qa)
+
+- Date (UTC): 2026-10-27 (verification run; design ledger dated 2026-10-27/28)
+- Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/overhaul-bump`
+- Branch: `feat/overhaul-bump` @ `57d5007` (base `main` `88cd930`), tree clean at start
+- Skill: `red-proof-sabotage` 7-step protocol (inject → RED → `git checkout --` restore → `git status --short` clean → log). No commits made; sabotage reverted.
+
+## 1. Baseline (unmodified tree — all GREEN before any sabotage)
+
+| Command | Exit | Output signature |
+|---|---|---|
+| `rig --version` | 0 | `0.7.4 (6d9e8e27)` |
+| `./scripts/verify-rigs.sh --check-only` | 0 | `SUMMARY: 35 checks passed, 0 failed.` + V22/V23/V24 info lines (V22 bare queue/send deny, V23 seat-grant catalog, V24 runbook --rig mandate) |
+| `python3 scripts/audit_loop.py --self-test` | 0 | `SELF-TEST PASSED` |
+| `make verify` | 0 | 35/0 + live-health SKIP lines (real daemon untouched, by design) |
+
+## 2. Ledger claims (docs/sprints/CLI-0.7.4-BUMP.md) — each proved present AND accurate
+
+- Version string: ledger §1/`§4 claims `rig --version` → `0.7.4 (6d9e8e27)`; live `rig --version` prints exactly `0.7.4 (6d9e8e27)`. MATCH.
+- Tarball SHA: ledger §1 records sha256 `d11dd8a6fc78f0c4d7afeae462c07c2af0fb9fe460990950be495016734920a1`; independent re-pack in `/tmp/opencode/qa-sha` (`npm pack @openrig/cli@0.7.4` + `sha256sum`) printed the identical `d11dd8a6…920a1`. MATCH (also matches proposal/design/spec values). Scratch tgz removed after.
+- Pin locations: ledger §3 table names every updated file; spot-verified live — `AGENTS.md:4` `@openrig/cli@0.7.4`, `Makefile:3` `v0.7.4`, `docker/Dockerfile:16` `ARG OPENRIG_VERSION=0.7.4`, `README.md:9,39,40`, `USER_GUIDE.md:3,14,21,24,25,473`, `TECHNICAL_DOCUMENTATION.md:4`, `PROMPT_ADVERSARIAL_FLEET_AUDIT.md:5,16,40,70,167`, `verify-rigs.sh:1838-1839` V13 assert + `:2463` V18 message. All present, no stale `0.7.2` in any listed pin line.
+- Verify output: ledger §4 records 35/0 + V13 green + SELF-TEST PASSED; re-observed live this run (see §1). MATCH.
+
+## 3. RED-PROOF sabotage #1 (pin check is fail-closed, NOT vacuous)
+
+- Target assertion: V13 gate `docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4` (`scripts/verify-rigs.sh:1838-1839`, paired with `docker/Dockerfile:16`).
+- Injected defect (minimal, uncommitted): `docker/Dockerfile` line 16 `ARG OPENRIG_VERSION=0.7.4` → `ARG OPENRIG_VERSION=0.7.2` (python exact-string replace, 1 occurrence asserted).
+- Check run: `./scripts/verify-rigs.sh --check-only` → exit **1 (RED)**. Output: `[FAIL] V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4`, cascading `[FAIL] V19` stale-count guards (docs still state live SUMMARY), `SUMMARY: 33 checks passed, 4 failed.`
+- Restore: `git checkout -- docker/Dockerfile` → line 16 back to `ARG OPENRIG_VERSION=0.7.4`.
+- Clean proof: `git status --short` empty; re-run `./scripts/verify-rigs.sh --check-only` → exit **0**, `SUMMARY: 35 checks passed, 0 failed.`
+- Verdict: V13 pin gate is FAIL-CLOSED. Not vacuous.
+
+## 4. Canary pre-existing determination (NOT fixed — Wave B M5 owns it)
+
+- Empty-diff proof: `git diff 88cd930 HEAD -- fleet/fleet.yaml tests/test_build_canary.py` → **empty output, exit 0**; `--stat` likewise empty. This wave touches neither file, so the test outcome is input-identical on clean `main`.
+- Single-test run: `python3 -m pytest tests/test_build_canary.py::CanaryCatalogPins::test_canary_scope_only` → exit **1 (RED, expected)**. Failure signature: `AssertionError: Lists differ` at `tests/test_build_canary.py:181`, first differing element `a11y-specialist` vs `ai-red-teamer`, `First list contains 44 additional elements`, first extra `brand-copy-spec`, diff 1304 chars. Identical across runs.
+- Cause proof (102-closeout triple, not the bump):
+  - `git log --oneline -S 'bash_deny' -- fleet/fleet.yaml` → exactly ONE commit: `892e1a7 feat(102-closeout): implement stage requirements`; that commit's fleet hunk adds `+      bash_deny:` × **51**.
+  - `git diff a33f3bb HEAD -- fleet/fleet.yaml | grep -c` patterns: `bash_deny` 51, `rig queue list` 51, `rig send` 51.
+  - Spot check `a11y-specialist`: base `a33f3bb` keys `[bash_allow, path_write]` vs current `[bash_allow, bash_deny, path_write]`; `bash_deny == ['rig queue list', 'rig queue create', 'rig send']`.
+  - Exhaustive: expected set per test lines 149-157 = `{engine-systems-eng + 5 M4 + cpp-lowlevel-eng}` (7); current changed = 51, extra = **44**; strip-`bash_deny` equality holds **44/44, zero non-conforming**; the single distinct `bash_deny` value across all 44 is exactly the `rig queue list / rig queue create / rig send` triple.
+- Verdict: failure cause is the post-`a33f3bb` 102-closeout `bash_deny` triple on all 51 roles. Pre-existing on `88cd930` by logic (untouched inputs). Left RED for Wave B M5; no file touched.
+
+## 5. Regression — full `make test`
+
+- `make test` (run 2× foreground, ~96 s each): `Ran 359 tests`, `FAILED (failures=1)`, make exit **2**. Single failure `FAIL: test_canary_scope_only (tests.test_build_canary.CanaryCatalogPins.test_canary_scope_only)` both times. No `ERROR` lines (errors = 0); no failure attributable to the 0.7.4 bump.
+- Matches the wave implementation report §5/`§6 (`359 run, 358 pass, 1 pre-existing canary failure`).
+
+## 6. Final state
+
+- `git status --short` shows NOTHING except the intended evidence artifact `docs/evidence/overhaul-bump/red-proofs.log` (untracked). All sabotage reverted (Dockerfile restored, scratch tarballs removed from `/tmp`). No production or test file modified, nothing committed. No vacuous checks found.
