@@ -1240,6 +1240,33 @@ def build_seat_files(
     return files
 
 
+def refresh_seat_policy(
+    out_dir: Path, session: str, files: dict, policy_dir: str
+) -> None:
+    """Refresh a live seat's permission policy and sandbox.env in place (#96, #119)."""
+    live_cfg = out_dir / policy_dir / "config.json"
+    resolved_out = out_dir.resolve()
+    for rel in sorted(
+        (r for r in files if r == "sandbox.env" or r.startswith(policy_dir)),
+        key=lambda r: r.endswith("/config.json"),
+    ):
+        target = (out_dir / rel).resolve()
+        if not target.is_relative_to(resolved_out):
+            die(f"invalid relative path in policy refresh: {rel}")
+        body = files[rel]
+        content = (
+            body
+            if isinstance(body, str)
+            else json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+        )
+        tmp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
+        tmp.write_text(content)
+        os.chmod(tmp, 0o600)
+        # Same-directory rename: the watcher never reads a half-written file.
+        os.replace(tmp, target)
+    print(f"refreshed policy {session} -> {live_cfg}")
+
+
 def main() -> None:
     if "--help" in sys.argv or "-h" in sys.argv:
         print(USAGE)
@@ -1319,33 +1346,27 @@ def main() -> None:
         check_secret_fs=True,
     )
 
+    policy_dir = "extensions/pi-permission-system/"
+    if args.policy_only:
+        # #96: refresh a LIVE seat's permission map only. Never create a seat
+        # here: the path must be the one the running pi already reads.
+        live_cfg = out_dir / policy_dir / "config.json"
+        if not live_cfg.is_file():
+            die(f"--policy-only needs an already-seeded seat: {live_cfg} not found")
+
     if args.dry_run:
         print(json.dumps(files, indent=2, ensure_ascii=False))
         return
 
     if args.policy_only:
-        # #96: refresh a LIVE seat's permission map only. Never create a seat
-        # here: the path must be the one the running pi already reads.
-        policy_dir = "extensions/pi-permission-system/"
-        live_cfg = out_dir / policy_dir / "config.json"
-        if not live_cfg.is_file():
-            die(f"--policy-only needs an already-seeded seat: {live_cfg} not found")
-        # The audit sidecar first, config.json (the file pps watches) last.
-        for rel in sorted(
-            (r for r in files if r.startswith(policy_dir)),
-            key=lambda r: r.endswith("/config.json"),
-        ):
-            target = out_dir / rel
-            tmp = target.with_name(f".{target.name}.{os.getpid()}.tmp")
-            tmp.write_text(json.dumps(files[rel], indent=2, ensure_ascii=False) + "\n")
-            os.chmod(tmp, 0o600)
-            # Same-directory rename: the watcher never reads a half-written file.
-            os.replace(tmp, target)
-        print(f"refreshed policy {session} -> {live_cfg}")
+        refresh_seat_policy(out_dir, session, files, policy_dir)
         return
 
+    resolved_out = out_dir.resolve()
     for rel, body in files.items():
-        p = out_dir / rel
+        p = (out_dir / rel).resolve()
+        if not p.is_relative_to(resolved_out):
+            die(f"invalid relative path: {rel}")
         p.parent.mkdir(parents=True, exist_ok=True)
         content = (
             body

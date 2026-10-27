@@ -291,8 +291,26 @@ for _sid, _smeta in sorted((skills_lock.get("skills", {}) or {}).items()):
         fail(f"shared skill {_sid}: SKILL.md missing valid frontmatter (---/name:/description:)")
     if not any((_sdir / _n).exists() for _n in ("LICENSE", "LICENSE.md", "LICENSE.txt")) and _smeta.get("license_file") not in ("none (see SKILL.md frontmatter)",):
         fail(f"shared skill {_sid}: missing LICENSE (expected {_smeta.get('license_file')})")
-    if _smeta.get("license_file") == "none (see SKILL.md frontmatter)" and not str(_smeta.get("license") or "").strip():
-        fail(f"shared skill {_sid}: no license file and no declared license in skills-lock.json (#102 Claim 6.1)")
+    if _smeta.get("license_file") == "none (see SKILL.md frontmatter)":
+        _lic = str(_smeta.get("license") or "").strip()
+        if not _lic:
+            fail(f"shared skill {_sid}: no license file and no declared license in skills-lock.json (#102 Claim 6.1)")
+        else:
+            _spdx_id = _lic.split()[0]
+            if _spdx_id not in ("MIT", "Apache-2.0", "BSD-2-Clause", "BSD-3-Clause", "ISC", "MPL-2.0", "CC0-1.0", "Unlicense"):
+                fail(f"shared skill {_sid}: invalid SPDX license '{_spdx_id}' declared in skills-lock.json")
+            _fm_lic = None
+            if _sk.startswith("---") and len(_sk.split("---", 2)) > 2:
+                try:
+                    _fmdoc = yaml.safe_load(_sk.split("---", 2)[1])
+                    if isinstance(_fmdoc, dict) and isinstance(_fmdoc.get("license"), str):
+                        _fm_lic = _fmdoc["license"].strip()
+                except Exception:
+                    pass
+            if _fm_lic:
+                _expected_lic = f"{_fm_lic} (SKILL.md frontmatter)"
+                if _lic != _expected_lic:
+                    fail(f"shared skill {_sid}: declared license '{_lic}' != expected '{_expected_lic}' from SKILL.md")
     _files = [p for p in _sdir.rglob("*") if p.is_file()]
     _floor = 1 if _smeta.get("license_file") == "none (see SKILL.md frontmatter)" else 2
     if len(_files) < _floor:
@@ -2382,6 +2400,15 @@ else:
     ):
         _pkg18 = _pkg18.parent
     _up18 = _pkg18 / "daemon/docs/reference/schemas"
+    if not _up18.is_dir():
+        # Fallback: resolve @openrig/cli package directory via npm if rig is a wrapper/shim (#119)
+        try:
+            _nr = subprocess.run(["npm", "root", "-g"], capture_output=True, text=True, check=False).stdout.strip()
+            if _nr and (Path(_nr) / "@openrig/cli/daemon/docs/reference/schemas").is_dir():
+                _pkg18 = Path(_nr) / "@openrig/cli"
+                _up18 = _pkg18 / "daemon/docs/reference/schemas"
+        except Exception:
+            pass
     if not _up18.is_dir():
         fail(f"V18/#98: installed @openrig/cli has no daemon/docs/reference/schemas (looked under {_pkg18})")
     else:

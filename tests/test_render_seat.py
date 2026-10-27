@@ -104,19 +104,33 @@ class TestRenderSeat(unittest.TestCase):
         self.assertIn("already-seeded seat", proc.stderr)
         self.assertFalse(out.exists())
 
-    def test_policy_only_rewrites_just_the_permission_config(self):
-        """#96: --policy-only restores config.json in place and leaves the
-        rest of the seat (charter, settings) untouched."""
+    def test_policy_only_dry_run_refuses_unseeded_seat(self):
+        """#119 review: --dry-run --policy-only fails closed on unseeded seats."""
+        out = Path(self.tmp_dir.name) / "agent-dry"
+        proc = self._render_to(out, "--policy-only", "--dry-run")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("already-seeded seat", proc.stderr)
+        self.assertFalse(out.exists())
+
+    def test_policy_only_rewrites_permission_config_and_sandbox_env(self):
+        """#96, #119: --policy-only restores config.json and sandbox.env in place
+        and leaves the rest of the seat (charter, settings) untouched."""
         out = Path(self.tmp_dir.name) / "agent"
         self.assertEqual(self._render_to(out).returncode, 0)
         cfg = out / "extensions/pi-permission-system/config.json"
         good = cfg.read_text()
         cfg.write_text('{"tampered": true}\n')
+        senv = out / "sandbox.env"
+        good_senv = senv.read_text()
+        self.assertIn("HERETEK_SANDBOX_WRITE=", good_senv)
+        senv.write_text("HERETEK_SANDBOX_WRITE=tampered\n")
         (out / "AGENTS.md").write_text("local edit\n")
         proc = self._render_to(out, "--policy-only")
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertEqual(cfg.read_text(), good)
         self.assertEqual(cfg.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(senv.read_text(), good_senv)
+        self.assertEqual(senv.stat().st_mode & 0o777, 0o600)
         self.assertEqual((out / "AGENTS.md").read_text(), "local edit\n")
         self.assertEqual(
             sorted(p.name for p in cfg.parent.iterdir()),

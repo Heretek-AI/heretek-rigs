@@ -82,11 +82,13 @@ without §3:
 python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only [--allow-missing-secrets]
 ```
 
-This rewrites only `extensions/pi-permission-system/` in each already-seeded
-seat dir, at the exact `<pod>-<member>@<rig>` path the running seat reads,
-with a same-directory atomic rename. It refuses a seat that was never seeded.
-The charter (`AGENTS.md`), `settings.json`, `models.json`, `mcp.json` and the
-OpenRig launch posture are not covered by this: for those, use §3.
+This rewrites `extensions/pi-permission-system/` and `sandbox.env` in
+each already-seeded seat dir, at the exact `<pod>-<member>@<rig>` path the
+running seat reads, with same-directory atomic renames (`sandbox.env` and
+sidecars first, `config.json` last so pps hot-reloads only after bubblewrap
+`path_write` roots are updated on disk). It refuses a seat that was never
+seeded. The charter (`AGENTS.md`), `settings.json`, `models.json`, `mcp.json`
+and the OpenRig launch posture are not covered by this: for those, use §3.
 `[UNVERIFIED — confirm on live fleet]`: re-seed one seat with a tightened rule
 and confirm it denies the command on its next turn.
 

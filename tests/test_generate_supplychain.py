@@ -169,5 +169,29 @@ class TestResolveRunAttestation(unittest.TestCase):
         self.assertEqual(ids, ["rr-local-001"])
 
 
+class TestSharedSkillLicenseValidation(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def test_frontmatter_license_safe_yaml_parse(self):
+        """#119 review: safe YAML parsing does not read past empty or multiline values."""
+        import yaml
+        sk = self.root / "SKILL.md"
+        # Normal frontmatter
+        sk.write_text("---\nname: demo\nlicense: MIT\ndescription: ok\n---\n# Body\n")
+        parts = sk.read_text().split("---", 2)
+        doc = yaml.safe_load(parts[1])
+        self.assertEqual(doc.get("license"), "MIT")
+
+        # Empty license followed by another key (regex with \s* crossed newlines)
+        sk.write_text("---\nname: demo\nlicense:\ndescription: ok\n---\n# Body\n")
+        parts = sk.read_text().split("---", 2)
+        doc = yaml.safe_load(parts[1])
+        self.assertIsNone(doc.get("license"))
+        self.assertNotEqual(doc.get("license"), "description: ok")
+
+
 if __name__ == "__main__":
     unittest.main()
