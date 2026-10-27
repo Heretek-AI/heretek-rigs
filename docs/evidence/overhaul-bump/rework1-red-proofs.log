@@ -1,0 +1,70 @@
+# overhaul-bump rework cycle 1 — QA verification + red-proofs (agency-qa)
+
+- Stage/wave id: overhaul-bump rework cycle 1 verification (review findings F1–F3)
+- Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/overhaul-bump`
+- Branch: `feat/overhaul-bump` @ `e624e1a`, tree clean at start (`git status --short` empty)
+- Date (UTC): 2026-10-27
+- Skill: `red-proof-sabotage` 7-step protocol (inject → RED → `git checkout --` restore → `git status --short` clean → log). Shims in `/tmp/opencode/overhaul-bump-V18-qa` only; real `rig` binary/state untouched. Sabotage reverted; nothing committed.
+
+## 1. Baseline (unmodified tree — all GREEN)
+
+| Command | Exit | Output signature |
+|---|---|---|
+| `rig --version` | 0 | `0.7.4 (6d9e8e27)` |
+| `./scripts/verify-rigs.sh --check-only` | 0 | `SUMMARY: 35 checks passed, 0 failed.` + V22/V23/V24 info lines; V18 `[PASS] Upstream contracts (#98) green: ... clean on installed 0.7.4` |
+| `make verify` | 0 | `SUMMARY: 35 checks passed, 0 failed.` (+ live-health SKIP lines, daemon untouched by design) |
+| `python3 scripts/audit_loop.py --self-test` | 0 | `SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.` |
+
+## 2. F1 — idempotence-with-0.7.4-vendor deferred to Wave B (no false HOLD, no tree mutation)
+
+- Spec record: `openspec/changes/overhaul-bump/specs/bump/spec.md:12` now reads `... MUST pass (idempotence-with-0.7.4-vendor deferred to Wave B: the default resolver now sources installed 0.7.4 skills per generate-rigs.py:623-643, so a run here would vendor Wave B content; this wave holds by empty leaf diff) ...`; scenario `spec.md:15` matches (`idempotence-with-0.7.4-vendor deferred to Wave B (empty leaf diff)`). No false HOLD claim of a live `--check-idempotent` run.
+- No-mutation proof: `git diff 88cd930 -- specs rigs rosters registry` → empty output, exit 0; `git diff --stat 88cd930 -- specs rigs rosters registry` → empty (no stat lines). The `--check-idempotent` live run was NOT executed on the worktree per finding orders (would rewrite leaves with 0.7.4 vendor bytes); hold is by empty leaf diff.
+- Verdict: F1 FIXED.
+
+## 3. F2 — T2 acceptance command runs end-to-end (exact copy-paste from tasks.md:14)
+
+- `tasks.md:14` reads: `Acceptance command: \`./scripts/verify-rigs.sh --check-only && python3 scripts/audit_loop.py --self-test\`` (`&&`, not `AND`).
+- Copy-paste execution: `./scripts/verify-rigs.sh --check-only && python3 scripts/audit_loop.py --self-test` → exit **0**. Tail: `SUMMARY: 35 checks passed, 0 failed.` then `SELF-TEST PASSED`.
+- Verdict: F2 FIXED — command is runnable and green end-to-end.
+
+## 4. F3 — V18 version gate (fail-closed; shim proofs, /tmp scratch only)
+
+Gate under test: `scripts/verify-rigs.sh:2394-2411` probes `rig --version`, regex-extracts `\d+\.\d+\.\d+`, `fail("V18/#98: host rig --version is not 0.7.4 ...")` on nonzero rc / unparseable / mismatch (fail-closed incl. exception → unreadable). ok-split `:2479-2488`: rig-present branch keeps original `... clean on installed 0.7.4` string byte-identical; rig-absent branch prints `... native-verb validation skipped (no rig on PATH)` with NO installed-version claim.
+
+- F3a wrong-version shim (must RED with new fail line):
+  - Shim: `/tmp/opencode/overhaul-bump-V18-qa/shim-wrong/rig` — `if [ "$1" = "--version" ]; then echo "0.7.2 (8b180689)"; exit 0; fi; exec /home/john/.npm-global/bin/rig "$@"` (all other verbs delegate to real binary).
+  - Run: `PATH=/tmp/opencode/overhaul-bump-V18-qa/shim-wrong:$PATH ./scripts/verify-rigs.sh --check-only` → exit **1 (RED)**.
+  - Output: `[FAIL] V18/#98: host rig --version is not 0.7.4 (got 0.7.2 (8b180689)); validation claim requires installed 0.7.4` (+ expected V19 live-count cascade `SUMMARY: 33 checks passed, 4 failed` — non-vacuous failure, not a silent pass).
+  - Full log: `/tmp/opencode/overhaul-bump-V18-qa/wrong.log`.
+- F3b rig absent (must stay GREEN without installed-version claim):
+  - Run: `env PATH=/usr/local/bin:/usr/bin:/usr/local/sbin:/usr/sbin ./scripts/verify-rigs.sh --check-only` (`which rig` → not found in this PATH) → exit **0**.
+  - Output: `[NOTE] V18/#98 native verbs: no \`rig\` on PATH; ...` + `[PASS] Upstream contracts (#98) green: ... native-verb validation skipped (no rig on PATH)`; `SUMMARY: 35 checks passed, 0 failed.`; `grep -c "installed 0.7.4"` → 0 (claim absent).
+  - Full log: `/tmp/opencode/overhaul-bump-V18-qa/absent.log`.
+- F3c correct host (must GREEN with claim):
+  - Run: `./scripts/verify-rigs.sh --check-only` → exit **0**, `SUMMARY: 35 checks passed, 0 failed.`, `[PASS] Upstream contracts (#98) green: ... rig bundle check + spec validate clean on installed 0.7.4` (original string intact).
+  - Full log: `/tmp/opencode/overhaul-bump-V18-qa/correct.log`.
+- Verdict: F3 FIXED — wrong version trips fail-closed RED; absent path makes no false claim; correct path keeps the claim.
+
+## 5. Mandatory file-level red-proof sabotages (each restored GREEN)
+
+- S1 pin sabotage (V13 fail-closed, NOT vacuous):
+  - Target: V13 gate `docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4` (`scripts/verify-rigs.sh:1838-1839` + `docker/Dockerfile:16`).
+  - Defect: `docker/Dockerfile` line 16 `ARG OPENRIG_VERSION=0.7.4` → `ARG OPENRIG_VERSION=0.7.2` (sed, uncommitted).
+  - Check: `./scripts/verify-rigs.sh --check-only` → exit **1 (RED)**; `[FAIL] V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4` + V19 cascade `SUMMARY: 33 checks passed, 4 failed.` (log `/tmp/opencode/overhaul-bump-V18-qa/s1-red.log`).
+  - Restore: `git checkout -- docker/Dockerfile` → line 16 back to `ARG OPENRIG_VERSION=0.7.4`; re-run → exit **0**, `SUMMARY: 35 checks passed, 0 failed.` (log `s1-green.log`); `git status --short` clean.
+- S2 V18-expectation sabotage (V18 gate non-vacuous):
+  - Target: V18 version comparison `scripts/verify-rigs.sh:2408` `_verm18.group(0) != "0.7.4"`.
+  - Defect: `"0.7.4"` → `"9.9.9"` (sed, uncommitted).
+  - Check: `./scripts/verify-rigs.sh --check-only` → exit **1 (RED)**; `[FAIL] V18/#98: host rig --version is not 0.7.4 (got 0.7.4 (6d9e8e27)); ...` (log `s2-red.log`). Correct host now fails because expectation is wrong — gate actually evaluates the version.
+  - Restore: `git checkout -- scripts/verify-rigs.sh` → line 2408 back to `!= "0.7.4"`; re-run → exit **0**, `SUMMARY: 35 checks passed, 0 failed.` (log `s2-green.log`); `git status --short` clean.
+- Verdict: no vacuous checks. Every tripped gate restored GREEN via `git checkout --`.
+
+## 6. Regression — full `make test`
+
+- `make test` → `Ran 359 tests`, `FAILED (failures=1)`, make exit **2**. Single failure: `FAIL: test_canary_scope_only (tests.test_build_canary.CanaryCatalogPins.test_canary_scope_only)` — `AssertionError: Lists differ` at `test_build_canary.py:181` (`a11y-specialist` vs `ai-red-teamer`, 44 additional elements). No `ERROR` lines.
+- Matches rework report expectation: single pre-existing canary failure only (out of scope; Wave B M5 owns it). No failure attributable to the 0.7.4 bump or the 3 rework files.
+
+## 7. Final state
+
+- `git status --short` shows NOTHING except this untracked evidence file `docs/evidence/overhaul-bump/rework1-red-proofs.log`. All file sabotages reverted (`git checkout -- docker/Dockerfile scripts/verify-rigs.sh`); PATH shims remain only in `/tmp/opencode/overhaul-bump-V18-qa/` scratch (real `rig` untouched, no state mutated); nothing committed.
+- Checks run: baseline (4 GREEN) + F1 (spec + empty leaf diff) + F2 (T2 exact command exit 0) + F3a/b/c (RED 1 / GREEN 0 / GREEN 0) + S1/S2 (RED then GREEN) + `make test` (359 run, 1 pre-existing canary failure). Vacuous checks: none.
