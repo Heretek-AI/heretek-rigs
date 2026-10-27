@@ -1,0 +1,121 @@
+# 107-identity rework cycle 1 — QA acceptance + red-proof log
+Date: 2026-10-27. Worktree: .lane/trees/107-identity (branch feat/107-identity @ 82aa808).
+QA method: baseline GREEN on unmodified tree, then 7-step sabotage per finding
+(inject minimal defect -> prove RED non-zero exit -> `git checkout -- <file>` restore ->
+prove GREEN + `git status --short` clean). No production/test code patched; only this
+evidence file added. Dummy tokens only (FOR-TEST-ONLY / scratch 0700/0600, shredded after).
+
+## 0. Baseline (unmodified tree) — all GREEN
+- `python3 -m unittest tests/test_identity_m1.py` -> Ran 23 tests OK (exit 0)
+- `./scripts/verify-rigs.sh --check-only` -> SUMMARY: 35 checks passed, 0 failed (exit 0);
+  V23 line: "V23/107-identity M1 green: ... 23 corpus tests pass (FAIL-ONLY, SUMMARY frozen)"
+- `make verify` -> exit 0, SUMMARY 35/0 (live-health [SKIP]s are the normal no-daemon skips)
+- `python3 scripts/audit_loop.py --self-test` -> SELF-TEST PASSED (exit 0)
+- `git status --short` -> clean (empty)
+
+## F1 — runbook step 5 prohibits curl-arg bearers, prescribes @file/@- forms (GREEN)
+- `sed -n '35,45p' docs/evidence/107-identity-rotation.md` shows step 5 text:
+  "the bearer MUST NEVER appear in a curl argument — neither literally nor through
+  shell expansion such as `$(cat file)` or `$TOK` ... pass it with curl's `@file`
+  form (`curl -H @/path/to/auth.header ...`), or pipe a header securely with `-H @-`".
+- Live corroboration: F5 probe below authenticated with exactly the `-H @auth.header`
+  (mode-600 header file) form -> 200.
+- F1 gate (/tmp/f1-gate.sh): G1 prohibition present + G2 `-H @` prescription present +
+  G3 no old `$(cat file)` prescription -> F1-GATE GREEN (exit 0).
+
+## F2 — grant gating: bound/opt-in only (GREEN demo, ALL 5 PASS)
+- `python3 /tmp/107-qa-demo.py` (fake rig in /tmp/107-qa-*, repo modules loaded unmodified):
+  PASS bound role needs grant / unbound needs no grant / empty+None need no grant /
+  opt-in override issues without binding / no-opt-in unbound stays off. EXIT=0.
+- Fleet default confirmed by corpus: zero fleet roles bind `rig-mcp-http`
+  (`test_grant_server_catalog_shape_and_opt_in_default` asserts bound == []).
+
+## F3 — mismatched-grant reuse refused/replaced (GREEN demo, ALL 8 PASS)
+- Same demo script: foreign-seat grant (seat evil@rig-y under name blue-x@rig-y) ->
+  rc=0, "token revoke" + rig-scoped "token add --seat blue-x@rig-y --rig rig-y" in rig log,
+  stale bearer file replaced, grant seat now ours.
+- Scope-widened grant (rigs ["other-rig"]) -> rc=0, revoked, rigs now exactly ["rig-y"].
+  The foreign bearer's file content is never rendered under the mismatched grant. EXIT=0.
+
+## F4 — permissive token file refused before mint (GREEN demo, ALL 7 PASS)
+- Same demo script: pre-created 0644 file + strict mode -> rc=2, NO "token add" in rig log,
+  planted file byte-identical, mode still 0644, seat named on stderr.
+- `--allow-missing-secrets` -> rc=0 loud warn, no grant minted, no token add. EXIT=0.
+
+## F5 — live rig-scoped issuance + allow (scratch ONLY, real state untouched)
+- Isolation: SCRATCH=/tmp/107-qa-f5-20261027-032037 (700); scratch daemon :18453
+  (pid 1001477), grant serve :18457; real ~/.openrig/daemon.json pre-read
+  (pid 57353, port 7433). No real daemon contact, no real token files.
+- `OPENRIG_HOME=$SCRATCH rig mcp token add qa-probe@testrig --seat qa-probe@testrig --rig testrig`
+  -> rc=0, 47-char bearer (redacted or...3s).
+- `token list --json` -> grants[0] = {name, seat qa-probe@testrig, rigs ["testrig"],
+  roots [], workspace false, owner false} — NO token/hash/secret fields (exit 0).
+- `curl ... -H @auth.header(600) initialize` -> HTTP=200 (proves F5 go-condition: rig-scoped
+  allow equivalent to M0 seat-only; also proves F1 safe header-file form live).
+- Bad-token control -> HTTP=401.
+- Cleanup: scratch `daemon stop` rc=0, serve pid killed by exact PID (1001993; job-control
+  `%1` could not reach it across shell invocations — killed by PID, never pkill pattern),
+  listeners gone, serve proc gone, header/add-output files shredded.
+- Real-state intact: ~/.openrig/daemon.json byte-identical to pre-read
+  (pid 57353, port 7433, startedAt 2026-10-23T18:31:27.164Z).
+
+## S1 RED-PROOF — F2 gate sabotage (CRITICAL check: gate must fail)
+- Sabotage: scripts/seed-rig.py `seat_needs_grant` body replaced with unconditional
+  `return True` (force-issue for unbound — the exact F2 defect shape).
+- `python3 -m unittest tests.test_identity_m1.SeatNeedsGrantTests` -> FAILED (failures=2:
+  test_unbound_role_needs_no_grant, opt-in negative) — exit 1. RED PROVEN.
+- Restore: `git checkout -- scripts/seed-rig.py` -> diff vs pre-sabotage copy: byte-identical.
+  Re-run SeatNeedsGrantTests -> OK (exit 0). `git status --short` clean.
+
+## S2 RED-PROOF — F3 metadata-match sabotage
+- Sabotage: `_grant_scope_matches` forced `return True` (name-only reuse — the F3 defect).
+- The 2 metadata tests -> FAILED (failures=2, "token revoke ... not found") — exit 1. RED PROVEN.
+- Restore: `git checkout -- scripts/seed-rig.py` -> byte-identical vs pre-copy.
+  Re-run the 2 tests -> OK (exit 0). `git status --short` clean.
+
+## S3 RED-PROOF — F4 pre-check sabotage
+- Sabotage: lstat mode condition inverted (`!= 0o600` -> `== 0o600`: rejects good files,
+  accepts permissive — the F4 defect).
+- `test_permissive_existing_file_is_rejected_before_add` + idempotence -> FAILED
+  (failures=1) — exit 1. RED PROVEN. (Idempotence still passes: reuse short-circuits
+  before the store path — expected, documented.)
+- Restore: `git checkout -- scripts/seed-rig.py` -> byte-identical.
+  Re-run -> OK (exit 0). `git status --short` clean.
+
+## S4 RED-PROOF — F5 rig-scope sabotage
+- Sabotage: `--rig` append dropped from `token add` (seat-only issuance — the F5 defect).
+- `test_add_scopes_grant_to_managed_rig` -> FAILED ("--rig rig-y not found in log") —
+  exit 1. RED PROVEN.
+- Restore: `git checkout -- scripts/seed-rig.py` -> byte-identical.
+  Re-run -> OK (exit 0). `git status --short` clean.
+
+## S5 RED-PROOF — F1 runbook sabotage
+- Sabotage: docs/evidence/107-identity-rotation.md step 5 rewritten to the pre-fix form
+  ("use the `$(cat file)` form or a header file" — the exact F1 defect).
+- F1 gate -> G1 MISSING + G2 MISSING + G3 VIOLATION -> F1-GATE RED (exit 1). RED PROVEN.
+- Restore: `git checkout -- docs/evidence/107-identity-rotation.md` -> byte-identical
+  vs pre-copy. Gate -> F1-GATE GREEN (exit 0). `git status --short` clean.
+
+## S6 RED-PROOF — V23 appended gate sabotage (gate-level, non-vacuous proof)
+- Sabotage: fleet/mcp-servers.yaml `seat_grant: true` -> `false`.
+- `./scripts/verify-rigs.sh --check-only` -> SUMMARY: 35 checks passed, 2 failed (exit 1):
+  [FAIL] V23 catalog must carry seat_grant: true, AND [FAIL] V23 corpus
+  (CatalogStructureTests reads the live catalog) — both layers catch it. RED PROVEN.
+- Restore: `git checkout -- fleet/mcp-servers.yaml` -> byte-identical vs pre-copy.
+  `git status --short` clean. Full V23 re-verified GREEN in regression below.
+
+## Regression after all restores — all GREEN
+- `python3 -m pytest tests/test_identity_m1.py` -> 23 passed (exit 0)
+- `./scripts/verify-rigs.sh --check-only` -> SUMMARY: 35 checks passed, 0 failed (exit 0)
+- `make verify` -> exit 0, SUMMARY 35/0, V23 green line present
+- `python3 scripts/audit_loop.py --self-test` -> SELF-TEST PASSED (exit 0)
+- `python3 -m unittest tests/test_render_seat.py tests/test_seed_rig.py` covered in
+  implementation report (27 OK); rework touches no render paths beyond aligned comments.
+- `git status --short` -> shows ONLY untracked docs/evidence/107-identity/rework1-red-proofs.log
+  (this file; evidence-only dirt per stage orders). Zero modified tracked files:
+  `git diff --stat` empty.
+
+## Vacuous-check verdict
+No vacuous checks: S1/S2/S3/S4/S5/S6 each turned RED (non-zero exit) under minimal
+targeted sabotage and returned GREEN after `git checkout --` restore.
+Vacuous checks found: none. PASS.
