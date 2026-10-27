@@ -1,0 +1,86 @@
+# 107-identity rework cycle 3 (FINAL) — QA verification + red-proof log
+Date: 2026-10-27. Worktree: `.lane/trees/107-identity` (branch `feat/107-identity` @ `3e080e0`).
+QA method: baseline GREEN on unmodified tree, then targeted sabotage per item
+(inject minimal defect -> prove check outcome -> `git checkout -- <file>` restore ->
+prove GREEN + hash/`git status --short` clean). No production/test code patched;
+only this evidence file added. No live `rig`/`curl` probes run (doc + corpus scope only);
+no secrets touched (0644 fixtures intentionally unmodified, see N3+N4).
+
+## 0. Baselines (unmodified tree) — all GREEN
+- `python3 -m pytest tests/test_identity_m1.py` -> 25 passed (exit 0)
+- `./scripts/verify-rigs.sh --check-only` -> `SUMMARY: 35 checks passed, 0 failed` (exit 0);
+  V23 line: "V23/107-identity M1 green: seat-grant catalog shape + filename helper + 25 corpus tests pass (FAIL-ONLY, SUMMARY frozen)"
+- `make verify` -> exit 0, SUMMARY 35/0, V23 green; live-health `[SKIP]`s are the normal no-daemon data-source skips
+- `python3 scripts/audit_loop.py --self-test` -> SELF-TEST PASSED (exit 0)
+- `git status --short` -> clean (empty); pre-sabotage sha256 recorded:
+  scripts/seed-rig.py `2d3a7f73...ceb`, docs/evidence/107-identity-rotation.md `e922084d...0da`
+
+## N1–N4 — no QA action (benign verdicts confirmed read-only, fixtures untouched)
+- N1 (sourcery dangerous-subprocess): all 5 `subprocess.run` sites list-form
+  (:212 list grants, :255 revoke, :358 rig-scoped add, :552/:557 render-seat argv);
+  zero `shell=` anywhere in scripts/seed-rig.py. BENIGN, no change.
+- N2 (CodeQL clear-text logging): `_fail` redacts at line 290 (`msg = _redact_for_log(msg)`)
+  as its FIRST statement, covering :297 strict error + all degraded paths. COVERED, no change.
+- N3+N4 (0644 chmod): lines 270/281 `os.chmod(p, 0o644)` intact inside the two F4
+  attack-setup fixtures; corpus 25/25 green unmodified. ACCEPTED-RISK BY DESIGN, file untouched.
+- No edits made for N1–N4; nothing to red-proof (no behavior change exists to redden).
+
+## R1 — runbook step 3 carries `--rig` + revoke-and-replace rationale (GREEN)
+- Verified: line 28 reads `` `rig mcp token add <name> --seat <session> --rig <managed-rig>` ``
+  with the parenthetical naming the seeder scope, the F3 `_grant_scope_matches` check,
+  and the revoke-and-replace consequence of omitting `--rig` (lines 29–33).
+- RED-PROOF (sabotage = step-3 command reverted to rig-less
+  `` `rig mcp token add <name> --seat <session>` ``, rationale prose left intact):
+  - `python3 -m pytest tests/test_identity_m1.py` -> 25 passed (exit 0). NO TRIP.
+  - `./scripts/verify-rigs.sh --check-only` -> SUMMARY 35/0, V23 green (exit 0). NO TRIP.
+  - HONEST GAP (not weakened to pass): NO committed gate asserts on rotation-runbook
+    prose — V23 checks catalog shape + filename helper + corpus count only. The rig-less
+    step-3 form passes every committed check. Recorded as a coverage gap, not as coverage.
+  - Ad-hoc detector `/tmp/107-r1-gate.sh` (NOT committed coverage; same pattern as
+    rework-1 `/tmp/f1-gate.sh`): G1 step-3 command contains `--rig` + G2
+    `revoke-and-replace` rationale + G3 `_grant_scope_matches` reference ->
+    sabotaged tree: G1 MISSING -> R1-GATE RED (exit 1). Defect is real and mechanically
+    checkable; it is simply not covered by any committed gate.
+- Restore: `git checkout -- docs/evidence/107-identity-rotation.md` -> sha256
+  `e922084d...0da` byte-identical to pre-sabotage. Ad-hoc gate -> R1-GATE GREEN (exit 0).
+  `git status --short` clean.
+
+## R2 — spec issuance limited to seat_grant:true/opt-in, behavior matches (GREEN)
+- Verified: REQ-I1 line 12 limits issuance to "seats whose role binds a catalog entry
+  marked `seat_grant: true` (or via explicit opt-in)" with unmarked HTTP + stdio unchanged.
+- Behavior (clean tree): `SeatNeedsGrantTests` + `CatalogStructureTests` -> 4 tests OK (exit 0):
+  bound role needs grant / unbound (incl. empty/None) needs none / opt-in True issues
+  without binding / opt-in False stays off / catalog `seat_grant: true` + zero bound roles.
+- RED-PROOF (sabotage = `seat_needs_grant` fall-through `return bool(opt_in)` ->
+  unconditional `return True`, the exact over-issuance defect shape):
+  - `python3 -m unittest tests.test_identity_m1.SeatNeedsGrantTests` ->
+    FAILED (failures=2: test_unbound_role_needs_no_grant, opt-in negative) — exit 1. RED PROVEN.
+- Restore: `git checkout -- scripts/seed-rig.py` -> sha256 `2d3a7f73...ceb`
+  byte-identical to pre-sabotage. Re-run SeatNeedsGrantTests -> OK (exit 0).
+  `git status --short` clean.
+
+## R3 — premise refuted live in rework-3 report; no code/check change to red-proof
+- QA takes no action: rework-3 §R3 records the scratch-isolation live proof
+  (A→A / B→B resolution, no seat-level scope flag in 0.7.2). Nothing committed to verify
+  beyond the report text, which is unchanged by this QA pass.
+
+## Regression after all restores — all GREEN
+- `python3 -m pytest tests/test_identity_m1.py` -> 25 passed (exit 0)
+- Baselines §0 re-confirmed on the restored tree (verify-rigs 35/0 + V23 green,
+  make verify exit 0, audit_loop SELF-TEST PASSED — all run pre-sabotage on the
+  identical byte-content; post-restore hashes prove identical bytes).
+- `git status --short` -> shows ONLY untracked `docs/evidence/107-identity/rework3-red-proofs.log`
+  (this file; evidence-only dirt per stage orders). Zero modified tracked files:
+  `git diff --stat` empty.
+
+## Vacuous-check verdict
+- R2: NON-VACUOUS — sabotage turned the corpus RED (exit 1), restore returned GREEN.
+- R1: GAP, stated plainly — no committed check trips on rig-less step 3 (corpus 25/25
+  and verify 35/0 stay green under sabotage). The ad-hoc /tmp detector trips RED and
+  returns GREEN, proving the property is checkable, but it is NOT committed coverage
+  and is not claimed as such. Recommend (out of QA scope, NOT implemented): a V24/future
+  appended gate asserting `--rig` in runbook step 3, per the append-only rule.
+- Vacuous checks found among committed gates for R2: none. R1 committed coverage: absent
+  (gap, not vacuous — vacuous would require a check that claims to cover it and doesn't trip).
+- N1–N4: verification-only, no checks added or modified. 0644 fixtures untouched.
+- Verdict: PASS with the noted R1 coverage gap. Never committed; sabotage edits reverted.
