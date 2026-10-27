@@ -24,8 +24,13 @@ on the next request, no restart involved (proven §2).
    `rig mcp token revoke <name>`
    Expected: `Revoked <name>: its next request is refused. Its rows and
    records stay.` (`rc=0`). Already-handed-over work stays with its owners.
-3. Mint the replacement (same name, same seat scope):
-   `rig mcp token add <name> --seat <session>`
+3. Mint the replacement (same name, same seat + rig scope):
+   `rig mcp token add <name> --seat <session> --rig <managed-rig>`
+   (`<managed-rig>` is the seat's own rig — the same scope the seeder
+   mints with `issue_seat_grant(..., rig=<rig>)` and the same scope the
+   F3 reuse check (`_grant_scope_matches`) expects. Omitting `--rig`
+   mints a rig-unscoped grant that the next seed will treat as a scope
+   mismatch and revoke-and-replace, undoing this rotation.)
    The token prints ONCE — capture it to the secrets file immediately, e.g.
    per the M1 seed path `$HERETEK_SECRETS/mcp-http-<session>.key` (mode 600):
    never paste it on a command line, in chat, or in a file that is committed.
