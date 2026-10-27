@@ -47,7 +47,8 @@
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/appsec-engineer/.opencode/skills/code-review",
       "tree": "sha256:1e4dbfc5ea9bebe318b38367964a3c77c81cafc1f756f6505c3970e9163fe1ff",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "codeql": {
       "source": "trailofbits/skills@5c99c03",
@@ -71,7 +72,8 @@
       "source": "anthropics/skills@dbd4588",
       "path": "skills/doc-coauthoring",
       "tree": "sha256:bb40097e54fbb99b14b7fab0b9b3bae502cddfcb48ba530be2c339e2cabcbc4f",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "Apache-2.0 (anthropics/skills README @dbd4588; docx/pdf/pptx/xlsx excepted)"
     },
     "document-api-endpoint": {
       "source": "getsentry/skills@f57ada2",
@@ -137,7 +139,8 @@
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/git-drift-coord/.opencode/skills/git-flow",
       "tree": "sha256:592873786e98992a371de44d1539d80826bb0fe586fdd81933178d5f1da8a0c5",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "libfuzzer": {
       "source": "trailofbits/skills@5c99c03",
@@ -173,7 +176,8 @@
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/mobile-web-eng/.opencode/skills/nextjs-dev",
       "tree": "sha256:1fdf8cf9a87496c45a9617ed6f0f58a5692bc0c5920433d824598a267789bf96",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "openrig-operating-model": {
       "source": "npm:@openrig/cli@0.7.2 daemon/assets/plugins/openrig-core/skills",
@@ -221,7 +225,8 @@
       "source": "vercel-labs/agent-skills@063bee9",
       "path": "skills/react-best-practices",
       "tree": "sha256:721b7012ce9ded956bd4eef9920f068e62ed49795b787b9944528ba2e8439fc2",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "receiving-code-review": {
       "source": "obra/superpowers@bb92a77",
@@ -263,7 +268,8 @@
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/appsec-engineer/.opencode/skills/security-audit",
       "tree": "sha256:403e053bfbdd464b3dcc90adfc9c5086d943d6f0036812b62050e97f18e3e3a9",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "security-review": {
       "source": "getsentry/skills@f57ada2",
@@ -341,13 +347,15 @@
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/design-system-eng/.opencode/skills/tailwind-ui",
       "tree": "sha256:9bf39ac230bdc5fc22e35064cb519c32f526ea39a734dc4fd343318f0015e2ae",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "tdd": {
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/api-contract-tester/.opencode/skills/tdd",
       "tree": "sha256:c538ffb25d1ba5601c058b6d923e1acad9014ae3988bb87996c37b54eed69949",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "test-driven-development": {
       "source": "obra/superpowers@bb92a77",
@@ -359,7 +367,8 @@
       "source": "Heretek-AI/Heretek-Crew@5ffb1fc",
       "path": "roles/design-system-eng/.opencode/skills/typescript-astro",
       "tree": "sha256:97ed01931902ae445bacf175ffcd55d69d3a19797caff61db98320e82ec6678d",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (SKILL.md frontmatter)"
     },
     "using-git-worktrees": {
       "source": "obra/superpowers@bb92a77",
@@ -389,7 +398,8 @@
       "source": "vercel-labs/agent-skills@063bee9",
       "path": "skills/web-design-guidelines",
       "tree": "sha256:d5cb29ea15d5ceeb4ef0802e75c17ef4287c6f60ff8aa05e46c6080f615178bc",
-      "license_file": "none (see SKILL.md frontmatter)"
+      "license_file": "none (see SKILL.md frontmatter)",
+      "license": "MIT (vercel-labs/agent-skills README @063bee9)"
     },
     "webapp-testing": {
       "source": "anthropics/skills@dbd4588",

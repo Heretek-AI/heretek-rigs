@@ -7,7 +7,7 @@ vendor clones. Covers:
     tree, and dies fail-closed on dirty clones / unknown SHAs / missing
     SKILL.md.
   - resolve_run_attestation: real run records ground a "tested" claim;
-    absent/malformed records yield "Not tested" with zero record ids.
+    absent/malformed records yield "not_tested" with zero record ids.
 """
 
 import importlib.util
@@ -145,7 +145,7 @@ class TestResolveRunAttestation(unittest.TestCase):
 
     def test_absent_records_yield_not_tested(self):
         label, ids = GEN.resolve_run_attestation(self.root)
-        self.assertEqual(label, "Not tested")
+        self.assertEqual(label, "not_tested")
         self.assertEqual(ids, [])
 
     def test_malformed_records_yield_not_tested(self):
@@ -153,13 +153,13 @@ class TestResolveRunAttestation(unittest.TestCase):
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text("{not json")
         label, ids = GEN.resolve_run_attestation(self.root)
-        self.assertEqual(label, "Not tested")
+        self.assertEqual(label, "not_tested")
         self.assertEqual(ids, [])
 
     def test_empty_ids_yield_not_tested(self):
         self.write_records({"recordIds": []})
         label, ids = GEN.resolve_run_attestation(self.root)
-        self.assertEqual(label, "Not tested")
+        self.assertEqual(label, "not_tested")
         self.assertEqual(ids, [])
 
     def test_real_records_ground_tested_claim(self):
@@ -167,6 +167,30 @@ class TestResolveRunAttestation(unittest.TestCase):
         label, ids = GEN.resolve_run_attestation(self.root)
         self.assertEqual(label, "tested")
         self.assertEqual(ids, ["rr-local-001"])
+
+
+class TestSharedSkillLicenseValidation(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+
+    def test_frontmatter_license_safe_yaml_parse(self):
+        """#119 review: safe YAML parsing does not read past empty or multiline values."""
+        import yaml
+        sk = self.root / "SKILL.md"
+        # Normal frontmatter
+        sk.write_text("---\nname: demo\nlicense: MIT\ndescription: ok\n---\n# Body\n")
+        parts = sk.read_text().split("---", 2)
+        doc = yaml.safe_load(parts[1])
+        self.assertEqual(doc.get("license"), "MIT")
+
+        # Empty license followed by another key (regex with \s* crossed newlines)
+        sk.write_text("---\nname: demo\nlicense:\ndescription: ok\n---\n# Body\n")
+        parts = sk.read_text().split("---", 2)
+        doc = yaml.safe_load(parts[1])
+        self.assertIsNone(doc.get("license"))
+        self.assertNotEqual(doc.get("license"), "description: ok")
 
 
 if __name__ == "__main__":

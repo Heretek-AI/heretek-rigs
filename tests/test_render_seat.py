@@ -74,6 +74,69 @@ class TestRenderSeat(unittest.TestCase):
             },
         )
 
+    def _render_to(self, out, *extra):
+        return subprocess.run(
+            [
+                sys.executable,
+                str(RENDER_SCRIPT),
+                "--role",
+                "appsec-engineer",
+                "--rig",
+                "defensive-sec-and-red-team",
+                "--pod",
+                "blue",
+                "--out",
+                str(out),
+                "--allow-missing-secrets",
+                *extra,
+            ],
+            cwd=str(REPO_ROOT),
+            env=self.env,
+            capture_output=True,
+            text=True,
+        )
+
+    def test_policy_only_refuses_unseeded_seat(self):
+        """#96: --policy-only never creates a seat; the path must be live."""
+        out = Path(self.tmp_dir.name) / "agent"
+        proc = self._render_to(out, "--policy-only")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("already-seeded seat", proc.stderr)
+        self.assertFalse(out.exists())
+
+    def test_policy_only_dry_run_refuses_unseeded_seat(self):
+        """#119 review: --dry-run --policy-only fails closed on unseeded seats."""
+        out = Path(self.tmp_dir.name) / "agent-dry"
+        proc = self._render_to(out, "--policy-only", "--dry-run")
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertIn("already-seeded seat", proc.stderr)
+        self.assertFalse(out.exists())
+
+    def test_policy_only_rewrites_permission_config_and_sandbox_env(self):
+        """#96, #119: --policy-only restores config.json and sandbox.env in place
+        and leaves the rest of the seat (charter, settings) untouched."""
+        out = Path(self.tmp_dir.name) / "agent"
+        self.assertEqual(self._render_to(out).returncode, 0)
+        cfg = out / "extensions/pi-permission-system/config.json"
+        good = cfg.read_text()
+        cfg.write_text('{"tampered": true}\n')
+        senv = out / "sandbox.env"
+        good_senv = senv.read_text()
+        self.assertIn("HERETEK_SANDBOX_WRITE=", good_senv)
+        senv.write_text("HERETEK_SANDBOX_WRITE=tampered\n")
+        (out / "AGENTS.md").write_text("local edit\n")
+        proc = self._render_to(out, "--policy-only")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(cfg.read_text(), good)
+        self.assertEqual(cfg.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(senv.read_text(), good_senv)
+        self.assertEqual(senv.stat().st_mode & 0o777, 0o600)
+        self.assertEqual((out / "AGENTS.md").read_text(), "local edit\n")
+        self.assertEqual(
+            sorted(p.name for p in cfg.parent.iterdir()),
+            ["command-effects.descriptors.json", "config.json"],
+        )
+
     def test_missing_provider_key_renders_no_auth_entry(self):
         """#102 HR-4.2: pi 1.3.0/1.4.0 ignore `enabled`, so a degraded seat must
         carry no provider entry (and no dangling `!cat`) at all."""

@@ -34,7 +34,7 @@ import re
 import subprocess
 from pathlib import Path
 
-USAGE = """usage: seed-rig.py <rig.yaml | pod-fragment.yaml | member-fragment.yaml> [--rig <rig-id>] [--pod <pod-id>] [--dry-run] [--allow-missing-secrets]
+USAGE = """usage: seed-rig.py <rig.yaml | pod-fragment.yaml | member-fragment.yaml> [--rig <rig-id>] [--pod <pod-id>] [--dry-run] [--allow-missing-secrets] [--refresh-policy-only]
   rig.yaml          seeds every member of every pod (rig id = name:)
   pod fragment      needs --rig (the rig you will rig expand into)
   member fragment   needs --rig and --pod (the target of rig add)"""
@@ -128,6 +128,7 @@ def main() -> None:
     parser.add_argument("--pod")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--allow-missing-secrets", action="store_true")
+    parser.add_argument("--refresh-policy-only", action="store_true")
     args, unknown = parser.parse_known_args()
     if unknown or not args.target:
         print(USAGE)
@@ -222,6 +223,8 @@ def main() -> None:
             cmd.append("--dry-run")
         if args.allow_missing_secrets:
             cmd.append("--allow-missing-secrets")
+        if args.refresh_policy_only:
+            cmd.append("--policy-only")
         if args.dry_run:
             proc = subprocess.run(cmd, stdout=subprocess.DEVNULL)
             if proc.returncode != 0:
