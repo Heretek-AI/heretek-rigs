@@ -1,0 +1,66 @@
+# 102-closeout QA red-proofs (agency-qa, worktree .lane/trees/102-closeout, branch feat/102-closeout)
+# Baseline (unmodified tree): all green. Started 2026-10-27.
+
+## BASELINE
+- python3 tests/test_bare_queue_send_deny.py -> exit 0, 4/4 OK
+- python3 tests/test_skill_patch_replacements.py -> exit 0, 8/8 OK
+- ./scripts/verify-rigs.sh --check-only -> exit 0, SUMMARY 35 passed 0 failed, V22 green (51 seats)
+- make verify -> exit 0
+- python3 scripts/audit_loop.py --self-test -> exit 0 (SELF-TEST PASSED)
+- grep -rn 'superpowers:writing-skills' specs/ fleet/ -> exit 1 (zero hits); skills 68 dirs / 68 lock keys
+- docs/TECHNICAL_DOCUMENTATION.md carries M2 canonical subsection (HR-2.5, #102)
+- docs/evidence/102-closeout-dag.md cites scripts/verify-rigs.sh:896
+
+## S1 REQ-C18 rendered-leaf sabotage (target: test_rendered_maps_deny_bare_forms + V22 rendered assertions)
+- DEFECT: deleted key 'rig queue list' (deny) from specs/agents/cloud-sre/cache-streaming-eng/runtime/pi-permission-config.json bash map (python json edit, file otherwise valid)
+- RED unit: python3 tests/test_bare_queue_send_deny.py -> exit 1, FAILED (failures=1): bare forms allowed: ["cache-streaming-eng: allows 'rig queue list'"]
+- RED gate: ./scripts/verify-rigs.sh --check-only -> non-zero, SUMMARY 31 passed 8 failed; V22 fail lines:
+  [FAIL] V22/#102: seat cache-streaming-eng: bash map must carry 'rig queue list': deny
+  [FAIL] V22/#102: seat cache-streaming-eng: bare form 'rig queue list' must deny under pps semantics
+  (plus expected parity/drift cascade: policy-enforcement parity FAIL, V21 x2 drift FAILs, digest FAILs — all rooted in the single sabotaged leaf)
+- RESTORE: git checkout -- <leaf>; git status --short clean (exit 0)
+- GREEN: unit test exit 0 4/4 OK; verify-rigs.sh exit 0 SUMMARY 35/0 + V22 green line. NOT VACUOUS.
+
+## S2 REQ-C18 fleet-declaration sabotage (target: test_fleet_declares_bare_denies + V22 fleet-parity assertion)
+- DEFECT: dropped fleet.yaml line 658 ('- rig queue list') — first role (a11y-specialist) bash_deny triple now 2 entries
+- RED unit: python3 tests/test_bare_queue_send_deny.py -> exit 1, FAILED (failures=1): roles missing exact bash_deny [...]: ['a11y-specialist']
+- RESTORE: git checkout -- fleet/fleet.yaml; git status --short shows only untracked docs/evidence/102-closeout/ (allowed evidence dirt)
+- GREEN: unit test exit 0 4/4 OK. NOT VACUOUS.
+
+## S3 REQ-C25 docs-presence sabotage (target: M2 acceptance 'docs state canonical + intentional')
+- CHECK: grep -c "Canonical Validation (HR-2.5" docs/TECHNICAL_DOCUMENTATION.md (baseline 1)
+- DEFECT: renamed subsection header to '### `rig.all-51.yaml` Validation note' (HR-2.5 canonical marker gone)
+- RED: grep count 0, exit 1 (presence assertion fails)
+- RESTORE: git checkout -- docs/TECHNICAL_DOCUMENTATION.md; count back to 1, exit 0; status clean except evidence dir. NOT VACUOUS.
+
+## S4 REQ-C25 V18-coverage sabotage (target: V18 spec-validate loop covers rig.all-51.yaml, :2442-2454)
+- CHECK (exact V18 command): rig spec validate rigs/heretek-omni-fleet/rig.all-51.yaml --json (baseline {"valid":true} exit 0)
+- DEFECT: appended 'INVALID_SABOTAGE_QA: [unclosed' to rig.all-51.yaml (YAML corruption)
+- RED: {"valid":false,"errors":["Flow sequence ... line 1049 ..."]} exit 1 -> V18 loop condition (rc!=0 or '"valid":true' absent) would fail()
+- RESTORE: git checkout -- rigs/heretek-omni-fleet/rig.all-51.yaml; status clean except evidence dir
+- GREEN: {"valid":true,"errors":[]} exit 0. V18 all-51 coverage NOT VACUOUS.
+
+## S5 REQ-CWS end-to-end sabotage (target: grep-zero + 68/68 via vendor/patch regen path)
+- DEFECT: moved fleet/skill-patches/test-driven-development.yaml to /tmp (patch absent) + regen under sanctioned dev hatch (HERETEK_RIGS_ALLOW_DIRTY=1, same generator + vendor dir)
+- RED: grep -rn 'superpowers:writing-skills' specs/ fleet/ -> exit 0 with exact upstream hit:
+  specs/agents/_shared/skills/test-driven-development/writing-good-tests.md:51:agent's behavior (superpowers:writing-skills); prose for humans earns no
+- RESTORE: patch moved back + regen -> grep exit 1 (zero hits); then git checkout -- specs/ rigs/ rosters/ registry/ fleet/skills-lock.json (16 DIRTY-stamp files from dev-hatch regens) -> status clean except untracked docs/evidence/102-closeout/
+- GREEN: grep exit 1, unit test 8/8 OK, 68 skill dirs / 68 lock keys. NOT VACUOUS.
+
+## S6 REQ-CWS unit-test sabotage (target: tests/test_skill_patch_replacements.py replacements path)
+- DEFECT: scripts/generate-rigs.py apply_skill_patch: 'replacements = patch.get("replacements") or []' -> 'replacements = []  # QA-SABOTAGE'
+- RED: python3 tests/test_skill_patch_replacements.py -> exit 1, FAILED (failures=5), incl 'AssertionError: SystemExit not raised'
+- RESTORE: git checkout -- scripts/generate-rigs.py; status clean except evidence dir
+- GREEN: 8/8 OK exit 0. NOT VACUOUS.
+
+## S7 REQ-CDAG evidence-note sabotage (target: docs/evidence/102-closeout-dag.md cites verify-rigs.sh:896)
+- Cited gate verified real: scripts/verify-rigs.sh:896 = fail("rig.all-51.yaml: cycle detected in delegates_to/spawned_by launch graph") (DFS _has_cycle51 over all-51 delegates_to/spawned_by graph)
+- CHECK: grep -c "verify-rigs.sh:896" docs/evidence/102-closeout-dag.md (baseline 1)
+- DEFECT: sed cite :896 -> :000
+- RED: grep count 0, exit 1 (cite-presence assertion fails)
+- RESTORE: git checkout -- docs/evidence/102-closeout-dag.md; count back to 1, exit 0; status clean except evidence dir. NOT VACUOUS.
+
+## CLOSE
+- No vacuous checks found. All 7 sabotages (S1-S7) turned their check RED and restored GREEN with git-clean proof.
+- Final tree state: git status --short shows ONLY untracked docs/evidence/102-closeout/red-proofs.log (this file) — no production/test modifications remain.
+- QA made zero code edits; all sabotage edits reverted via git checkout (generator dev-hatch regens in S5 reverted via checkout of generated leaves).
