@@ -636,6 +636,25 @@ def _sandbox_bind_roots(path_write):
     return roots
 
 
+# 107-identity M1 (REQ-I1): per-seat MCP-over-HTTP bearer grants.
+# The catalog server `rig-mcp-http` carries `seat_grant: true` and NO static
+# env/headers (the V6 shape-check stays vacuous). At render time the seat's
+# grant token file (seed-issued, 0600, secrets dir) is wired as the existing
+# `!echo Bearer $(cat ...)` Authorization form — never a third substitution
+# form. The `.key` suffix reuses the frozen `*.key` path deny, so no seat can
+# read another seat's grant through the permission layer.
+SEAT_GRANT_FLAG = "seat_grant"
+
+
+def seat_grant_token_filename(session: str) -> str:
+    """Secrets-dir filename for a seat's MCP HTTP bearer grant.
+
+    The session is embedded verbatim (grant names accept `@`; render dies on
+    `.`/`@` in pod/member ids, so exactly one `@` separates member and rig).
+    """
+    return f"mcp-http-{session}.key"
+
+
 # HR-4.2: the pinned opencode-go endpoint (fleet.yaml model.base_url must match).
 OPENCODE_GO_BASE_URL = "https://opencode.ai/inference/go/v1"
 
@@ -905,7 +924,12 @@ def build_seat_files(
         if srv_name not in mcp_catalog:
             die(f"role {role_id} binds unknown MCP server {srv_name}")
         s = mcp_catalog[srv_name]
-        need = s.get("required_secrets", [])
+        need = list(s.get("required_secrets", []))
+        if s.get(SEAT_GRANT_FLAG):
+            # REQ-I1: the per-seat grant token file is dynamic (one per
+            # session), so it cannot sit in the static required_secrets
+            # list — it joins the same missing/degraded machinery instead.
+            need.append(seat_grant_token_filename(session))
         missing = [f for f in need if not secret_ok(f)]
         toolset = b.get("toolset", "")
         entry = {
@@ -915,6 +939,13 @@ def build_seat_files(
         if s["transport"] == "http":
             entry["url"] = s["url_template"].replace("{toolset}", toolset or "repos")
             entry["headers"] = {k: subst(v) for k, v in s.get("headers", {}).items()}
+            if s.get(SEAT_GRANT_FLAG) and not missing:
+                # REQ-I1: wire the seat's own grant as the existing Bearer
+                # header form (same shape as the github Authorization entry).
+                token_path = Path(secrets_dir) / seat_grant_token_filename(session)
+                entry["headers"] = {
+                    "Authorization": f"!echo Bearer $(cat {token_path})"
+                }
         else:
             entry["command"] = subst(s["command"])
             entry["args"] = [subst(x) for x in s.get("args", [])]

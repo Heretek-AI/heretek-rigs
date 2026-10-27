@@ -30,6 +30,7 @@ except ImportError:
     raise
 
 import argparse
+import json
 import re
 import subprocess
 from pathlib import Path
@@ -117,6 +118,176 @@ def role_of(m: dict) -> str:
     return Path(cleaned).name
 
 
+# 107-identity M1 (REQ-I1): seed-time per-seat grant issuance.
+# `seed-rig.py` runs `rig mcp token add <session> --seat <session>` (M0-proven
+# seat-only scope: no --rig/--root/--workspace/--owner flags), stores the
+# once-printed token under the secrets dir (0600, same pattern as
+# github.pat), and render-seat.py wires it into the seat's MCP client config
+# via the existing `!echo Bearer $(cat ...)` header form. stdio stays default.
+_TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,}$")
+
+
+def _render_seat_mod():
+    """Load scripts/render-seat.py as a module: single source of truth for
+    the per-seat grant token filename (never duplicated here)."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "render_seat_grants", Path(__file__).resolve().parent / "render-seat.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def parse_issued_token(output: str, grant_name: str) -> str | None:
+    """Extract the once-printed token from `rig mcp token add` stdout.
+
+    Fail-closed: anything but the exact `Token for <name>,` first line plus
+    a token-shaped second line yields None — callers revoke the minted grant
+    and die, so a grant with an unknown token never lingers.
+    """
+    lines = [ln.strip() for ln in (output or "").splitlines() if ln.strip()]
+    if len(lines) < 2:
+        return None
+    if not lines[0].startswith(f"Token for {grant_name},"):
+        return None
+    if _TOKEN_RE.fullmatch(lines[1]) is None:
+        return None
+    return lines[1]
+
+
+def _list_grant_names(rig_bin: str):
+    """Return the set of existing grant names, or None when `rig` cannot list."""
+    try:
+        proc = subprocess.run(
+            [rig_bin, "mcp", "token", "list", "--json"],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if proc.returncode != 0:
+        return None
+    try:
+        grants = json.loads(proc.stdout).get("grants", [])
+    except (ValueError, AttributeError):
+        return None
+    if not isinstance(grants, list):
+        return None
+    return {str(g.get("name")) for g in grants if isinstance(g, dict)}
+
+
+def _revoke_grant(rig_bin: str, session: str) -> bool:
+    try:
+        proc = subprocess.run(
+            [rig_bin, "mcp", "token", "revoke", session],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return proc.returncode == 0
+
+
+def issue_seat_grant(
+    session: str,
+    secrets_dir: str,
+    rig_bin: str = "rig",
+    allow_missing_secrets: bool = False,
+) -> int:
+    """Issue (or reuse) the seat's MCP HTTP bearer grant.
+
+    Returns 0 on issued/reused (or loud degrade under
+    --allow-missing-secrets), 2 on fatal. The token itself is never printed.
+    """
+    render_mod = _render_seat_mod()
+    token_path = Path(secrets_dir) / render_mod.seat_grant_token_filename(session)
+
+    def _fail(msg: str) -> int:
+        if allow_missing_secrets:
+            print(
+                f"warn: {session}: seat grant not issued ({msg}), continuing degraded",
+                file=sys.stderr,
+            )
+            return 0
+        print(f"error: {session}: seat grant issuance failed: {msg}", file=sys.stderr)
+        return 2
+
+    for _ in range(2):
+        names = _list_grant_names(rig_bin)
+        if names is None:
+            return _fail(f"cannot list grants via {rig_bin}")
+        if session in names:
+            if token_path.is_symlink():
+                # HR-4.3: a secrets dir entry that is a symlink is untrusted —
+                # remove it and re-issue rather than reusing or following it.
+                try:
+                    token_path.unlink()
+                except OSError as e:
+                    return _fail(f"cannot remove symlinked {token_path.name}: {e}")
+                print(
+                    f"warn: {session}: {token_path.name} was a symlink; removed, re-issuing",
+                    file=sys.stderr,
+                )
+            elif token_path.is_file():
+                print(
+                    f"ok {session}: seat grant already issued (reuse {token_path.name})"
+                )
+                return 0
+            else:
+                print(
+                    f"warn: {session}: grant exists but {token_path.name} is missing; re-issuing",
+                    file=sys.stderr,
+                )
+            if not _revoke_grant(rig_bin, session):
+                return _fail(f"cannot revoke stale grant {session}")
+            continue
+        # No grant yet: mint a seat-only grant (M0 winner: no scope flags).
+        try:
+            proc = subprocess.run(
+                [rig_bin, "mcp", "token", "add", session, "--seat", session],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.TimeoutExpired) as e:
+            return _fail(f"token add failed: {e}")
+        if proc.returncode != 0:
+            detail = proc.stderr.strip() or proc.stdout.strip()
+            if "already has a grant" in detail:
+                continue
+            return _fail(f"token add failed: {detail}")
+        token = parse_issued_token(proc.stdout, session)
+        if token is None:
+            _revoke_grant(rig_bin, session)
+            print(
+                f"error: {session}: token add printed unparseable output; minted grant revoked",
+                file=sys.stderr,
+            )
+            return 2
+        try:
+            fd = os.open(
+                token_path,
+                os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0),
+                0o600,
+            )
+            with os.fdopen(fd, "w") as fh:
+                fh.write(token)
+        except OSError as e:
+            _revoke_grant(rig_bin, session)
+            print(
+                f"error: {session}: cannot store grant token: {e}; minted grant revoked",
+                file=sys.stderr,
+            )
+            return 2
+        print(f"ok {session}: seat grant issued ({token_path.name})")
+        return 0
+    return _fail("grant state did not converge after retry")
+
+
 def main() -> None:
     if "--help" in sys.argv or "-h" in sys.argv:
         print(USAGE)
@@ -194,6 +365,15 @@ def main() -> None:
         "HERETEK_TOOLS", str(Path.home() / ".local/share/heretek-rigs/tools")
     )
     _roles74 = _fleet74.get("roles", {}) if isinstance(_fleet74, dict) else {}
+    # 107-identity M1 (REQ-I1): seed-time per-seat grant issuance runs before
+    # each seat's render (strict render needs the token file to exist).
+    # Skipped for --dry-run (no side effects) and --refresh-policy-only
+    # (policy refresh never mints grants).
+    _secrets_dir = os.environ.get(
+        "HERETEK_SECRETS", str(Path.home() / ".config/heretek-rigs/secrets")
+    )
+    _issue_grants = not (args.dry_run or args.refresh_policy_only)
+    _rig_bin = shutil.which("rig") or "rig"
     for s in seats:
         _session74 = f"{s['pod']}-{s['member']}@{s['rig']}"
         _role74 = _roles74.get(s["role"])
@@ -207,6 +387,15 @@ def main() -> None:
                 s["role"], _session74, _role74, _mcp74, _tools74
             ):
                 print(_w74, file=sys.stderr)
+        if _issue_grants:
+            _grc = issue_seat_grant(
+                _session74,
+                _secrets_dir,
+                rig_bin=_rig_bin,
+                allow_missing_secrets=args.allow_missing_secrets,
+            )
+            if _grc != 0:
+                sys.exit(_grc)
         cmd = [
             sys.executable,
             str(render_script),
