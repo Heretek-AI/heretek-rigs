@@ -1835,8 +1835,8 @@ if _v13_offline:
 
 # --- #100: Dockerfile install lists match catalog/fleet pins (drift fails closed) ---
 _dockerfile13 = (root / "docker/Dockerfile").read_text()
-if "ARG OPENRIG_VERSION=0.7.2" not in _dockerfile13:
-    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.2")
+if "ARG OPENRIG_VERSION=0.7.4" not in _dockerfile13:
+    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4")
 _expected_npm13 = {}
 for _n13, _s13 in mcp_catalog.items():
     _pm13 = re.fullmatch(r"npm:(\S+)@(\S+)", str(_s13.get("pin", "")))
@@ -2460,7 +2460,7 @@ for _line18 in _v18r.stderr.splitlines():
             _v18_ran = _parts18[1]
 if len(failures) == _v18_before:
     ok(
-        f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.2"
+        f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.4"
     )
 
 print("\n== V19. Canonical Stale-Count Guard (#102) ==")
