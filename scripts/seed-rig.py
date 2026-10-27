@@ -32,7 +32,9 @@ except ImportError:
 import argparse
 import json
 import re
+import stat
 import subprocess
+import tempfile
 from pathlib import Path
 
 USAGE = """usage: seed-rig.py <rig.yaml | pod-fragment.yaml | member-fragment.yaml> [--rig <rig-id>] [--pod <pod-id>] [--dry-run] [--allow-missing-secrets] [--refresh-policy-only]
@@ -119,8 +121,10 @@ def role_of(m: dict) -> str:
 
 
 # 107-identity M1 (REQ-I1): seed-time per-seat grant issuance.
-# `seed-rig.py` runs `rig mcp token add <session> --seat <session>` (M0-proven
-# seat-only scope: no --rig/--root/--workspace/--owner flags), stores the
+# `seed-rig.py` runs `rig mcp token add <session> --seat <session>
+# --rig <rig>` (least-privilege scope for the seat's own managed rig: no
+# --root/--workspace/--owner flags; verified live that a rig-scoped grant
+# still allows its seat, docs/reports/107-identity-rework1.md), stores the
 # once-printed token under the secrets dir (0600, same pattern as
 # github.pat), and render-seat.py wires it into the seat's MCP client config
 # via the existing `!echo Bearer $(cat ...)` header form. stdio stays default.
@@ -157,8 +161,35 @@ def parse_issued_token(output: str, grant_name: str) -> str | None:
     return lines[1]
 
 
-def _list_grant_names(rig_bin: str):
-    """Return the set of existing grant names, or None when `rig` cannot list."""
+# 107-identity rework-1 (F2): grants issue only for seats whose role binds a
+# seat-grant catalog server (e.g. rig-mcp-http) or via explicit opt-in.
+# Unbound seats stay on the ordinary seed path with no grant issued.
+GRANT_OPT_IN_ENV = "HERETEK_SEAT_GRANT_OPT_IN"
+
+
+def seat_needs_grant(role, mcp_catalog, opt_in: bool = False) -> bool:
+    """True when this seat's role binds a `seat_grant` server or opted in.
+
+    `role` is the fleet role dict (None when the role is unknown — never a
+    reason to mint a grant). `mcp_catalog` maps server names to catalog
+    entries. Explicit opt-in is the HERETEK_SEAT_GRANT_OPT_IN=1 env switch,
+    passed in by main().
+    """
+    for binding in (role or {}).get("mcp", []) or []:
+        if not isinstance(binding, dict):
+            continue
+        if (mcp_catalog or {}).get(binding.get("server"), {}).get("seat_grant"):
+            return True
+    return bool(opt_in)
+
+
+def _list_grants(rig_bin: str):
+    """Return {grant-name: grant-metadata-dict}, or None when list fails.
+
+    The match in issue_seat_grant is designed on these list-exposed fields
+    only (name/seat/rigs/roots/workspace/owner/createdAt): `token list`
+    never shows tokens or hashes (M0 §1), so nothing secret is compared.
+    """
     try:
         proc = subprocess.run(
             [rig_bin, "mcp", "token", "list", "--json"],
@@ -176,7 +207,29 @@ def _list_grant_names(rig_bin: str):
         return None
     if not isinstance(grants, list):
         return None
-    return {str(g.get("name")) for g in grants if isinstance(g, dict)}
+    return {str(g.get("name")): g for g in grants if isinstance(g, dict)}
+
+
+def _grant_scope_matches(grant, session: str, rig: str | None) -> bool:
+    """True when the listed grant is exactly this seat's expected scope.
+
+    Fail-closed: a missing field or any seat/rig/roots/workspace/owner
+    deviation is a mismatch — callers revoke and re-issue rather than
+    reusing the token file's bearer under a foreign grant.
+    """
+    if not isinstance(grant, dict):
+        return False
+    if grant.get("seat") != session:
+        return False
+    if list(grant.get("rigs", []) or []) != ([rig] if rig else []):
+        return False
+    if list(grant.get("roots", []) or []) != []:
+        return False
+    if grant.get("workspace", False):
+        return False
+    if grant.get("owner", False):
+        return False
+    return True
 
 
 def _revoke_grant(rig_bin: str, session: str) -> bool:
@@ -197,11 +250,18 @@ def issue_seat_grant(
     secrets_dir: str,
     rig_bin: str = "rig",
     allow_missing_secrets: bool = False,
+    rig: str | None = None,
 ) -> int:
     """Issue (or reuse) the seat's MCP HTTP bearer grant.
 
-    Returns 0 on issued/reused (or loud degrade under
-    --allow-missing-secrets), 2 on fatal. The token itself is never printed.
+    `rig` is the seat's own managed rig: the grant is scoped to it
+    (`--rig <rig>`; least-privilege per 107-identity rework-1 F5, verified
+    live to preserve the M0-proven allow behavior). Reuse requires the
+    listed grant's seat AND scope to match (F3); the token file is stored
+    atomically with restrictive permissions and never written into an
+    existing permissive path (F4). Returns 0 on issued/reused (or loud
+    degrade under --allow-missing-secrets), 2 on fatal. The token itself
+    is never printed.
     """
     render_mod = _render_seat_mod()
     token_path = Path(secrets_dir) / render_mod.seat_grant_token_filename(session)
@@ -217,11 +277,19 @@ def issue_seat_grant(
         return 2
 
     for _ in range(2):
-        names = _list_grant_names(rig_bin)
-        if names is None:
+        grants = _list_grants(rig_bin)
+        if grants is None:
             return _fail(f"cannot list grants via {rig_bin}")
-        if session in names:
-            if token_path.is_symlink():
+        if session in grants:
+            if not _grant_scope_matches(grants[session], session, rig):
+                # F3: the grant name is taken but its seat/scope is not
+                # ours — revoke and re-issue rather than ever rendering the
+                # token file's bearer under a foreign grant.
+                print(
+                    f"warn: {session}: grant metadata mismatch (seat/scope); revoking and re-issuing",
+                    file=sys.stderr,
+                )
+            elif token_path.is_symlink():
                 # HR-4.3: a secrets dir entry that is a symlink is untrusted —
                 # remove it and re-issue rather than reusing or following it.
                 try:
@@ -245,10 +313,29 @@ def issue_seat_grant(
             if not _revoke_grant(rig_bin, session):
                 return _fail(f"cannot revoke stale grant {session}")
             continue
-        # No grant yet: mint a seat-only grant (M0 winner: no scope flags).
+        # F4: validate the target path BEFORE minting a grant — an existing
+        # non-regular file, symlink, or wrong-mode file is rejected here so
+        # reseeding never writes a new bearer into an existing permissive
+        # path (os.open's mode applies only at creation; O_TRUNC would keep
+        # a pre-existing 0644 file permissive).
+        try:
+            _st = os.lstat(token_path)
+        except FileNotFoundError:
+            _st = None
+        if _st is not None and (
+            not stat.S_ISREG(_st.st_mode) or stat.S_IMODE(_st.st_mode) != 0o600
+        ):
+            return _fail(
+                f"refusing to store grant in existing {token_path.name} "
+                f"(not a 0600 regular file); remove it and re-seed"
+            )
+        # No grant yet: mint a rig-scoped grant (F5).
+        add_cmd = [rig_bin, "mcp", "token", "add", session, "--seat", session]
+        if rig:
+            add_cmd += ["--rig", rig]
         try:
             proc = subprocess.run(
-                [rig_bin, "mcp", "token", "add", session, "--seat", session],
+                add_cmd,
                 capture_output=True,
                 text=True,
                 timeout=60,
@@ -269,13 +356,24 @@ def issue_seat_grant(
             )
             return 2
         try:
-            fd = os.open(
-                token_path,
-                os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0),
-                0o600,
+            # F4: mint a fresh 0600 temp file and atomically replace the
+            # path — the bearer never passes through an existing file, and
+            # os.replace onto a symlink swaps the link itself (never the
+            # link target).
+            tmp_fd, tmp_name = tempfile.mkstemp(
+                dir=str(token_path.parent), prefix=token_path.name + "."
             )
-            with os.fdopen(fd, "w") as fh:
-                fh.write(token)
+            try:
+                os.fchmod(tmp_fd, 0o600)
+                with os.fdopen(tmp_fd, "w") as fh:
+                    fh.write(token)
+                os.replace(tmp_name, token_path)
+            except BaseException:
+                try:
+                    os.unlink(tmp_name)
+                except OSError:
+                    pass
+                raise
         except OSError as e:
             _revoke_grant(rig_bin, session)
             print(
@@ -388,14 +486,29 @@ def main() -> None:
             ):
                 print(_w74, file=sys.stderr)
         if _issue_grants:
-            _grc = issue_seat_grant(
-                _session74,
-                _secrets_dir,
-                rig_bin=_rig_bin,
-                allow_missing_secrets=args.allow_missing_secrets,
+            # 107-identity rework-1 (F2): issue a grant only when the
+            # seeded seat's role binds a seat-grant catalog server or via
+            # explicit HERETEK_SEAT_GRANT_OPT_IN=1 opt-in; unbound seats
+            # stay on the ordinary seed path with no grant issued.
+            _need_grant = _role74 is not None and seat_needs_grant(
+                _role74,
+                _mcp74,
+                opt_in=os.environ.get(GRANT_OPT_IN_ENV) == "1",
             )
-            if _grc != 0:
-                sys.exit(_grc)
+            if not _need_grant:
+                print(
+                    f"ok {_session74}: no seat-grant binding, ordinary seed path (no grant issued)"
+                )
+            else:
+                _grc = issue_seat_grant(
+                    _session74,
+                    _secrets_dir,
+                    rig_bin=_rig_bin,
+                    allow_missing_secrets=args.allow_missing_secrets,
+                    rig=s["rig"],
+                )
+                if _grc != 0:
+                    sys.exit(_grc)
         cmd = [
             sys.executable,
             str(render_script),

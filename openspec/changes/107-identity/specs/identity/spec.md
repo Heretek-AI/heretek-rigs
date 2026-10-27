@@ -9,7 +9,7 @@ The change MUST begin with a live M0 spike against the installed `rig` 0.7.2 (`8
 - When the implementer finishes M0, `docs/evidence/107-identity-m0.md` contains the exact commands plus Bearer-allow (200), bad-token 401, revoked-token 401, and `rig_whoami` authenticated-vs-declared outputs and the queue-half probe result, and M1's design section cites which winner it follows.
 
 ### Requirement: REQ-I1 — per-seat MCP bearer grants with seed issuance
-Seat MCP-over-HTTP access MUST require a per-seat bearer grant (`rig mcp token add <name> --seat <session>`, hash-only storage). Issuance MUST run at seed time (`seed-rig.py`), storing the once-printed token under the secrets dir and rendering it into the seat's MCP client config via the existing `!cat` pattern. A seat's grant MUST NOT reach another seat's rigs/roots (scope `--rig/--root/--workspace/--owner` per M0 outcome).
+Seat MCP-over-HTTP access MUST require a per-seat bearer grant (`rig mcp token add <name> --seat <session> --rig <rig>`, hash-only storage). Issuance MUST run at seed time (`seed-rig.py`), storing the once-printed token under the secrets dir and rendering it into the seat's MCP client config via the existing `!cat` pattern. A seat's grant MUST NOT reach another seat's rigs/roots (scoped to the seat's own managed rig via `--rig`; no `--root/--workspace/--owner` per M0 outcome).
 
 #### Scenario: cross-seat bearer denied
 - When a request presents seat A's token for seat B's scope, the MCP HTTP adapter refuses with 401/`out_of_scope` and the red-proof log records the exact refusal.

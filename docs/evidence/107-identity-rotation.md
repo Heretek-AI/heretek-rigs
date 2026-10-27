@@ -32,9 +32,15 @@ on the next request, no restart involved (proven §2).
 4. Redistribute: seat config picks the new file up through the existing
    `!echo Bearer $(cat ...)` header on the seat's next MCP reconnect
    (no config edit — the header references the file, not the token).
-5. Verify, in order (token passed via file/pipe, never `Authorization:` on a
-   command line that lands in shell history — use the `$(cat file)` form or a
-   header file):
+5. Verify, in order (the bearer MUST NEVER appear in a curl argument —
+   neither literally nor through shell expansion such as `$(cat file)`
+   or `$TOK`, which place the secret in the process argument vector
+   visible to `ps`: keep the token in a mode-600 header file holding
+   the single line `Authorization: Bearer <token>` and pass it with
+   curl's `@file` form (`curl -H @/path/to/auth.header ...`), or pipe
+   a header securely with `-H @-`
+   (`cat /path/to/auth.header | curl -H @- ...`). Never put
+   `Authorization:` on a command line that lands in shell history):
    old token → expect `401` `{"error":"unauthenticated",...}`;
    new token → expect `200`.
 6. If step 3's output is unparseable (token unrecoverable): `revoke <name>`

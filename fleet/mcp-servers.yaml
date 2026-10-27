@@ -277,7 +277,7 @@ servers:
     url_template: "http://127.0.0.1:7437/mcp"
     seat_grant: true
     exposure: deferred
-    description: Rig's own MCP server over Streamable HTTP. Each request needs the seat's bearer grant (seed-issued via `rig mcp token add --seat <session>`, token in the secrets dir, rendered as an Authorization header). Opt-in hardened path; stdio stays the default.
+    description: Rig's own MCP server over Streamable HTTP. Each request needs the seat's bearer grant (seed-issued via `rig mcp token add <session> --seat <session> --rig <rig>`, token in the secrets dir, rendered as an Authorization header). Opt-in hardened path; stdio stays the default.
   terraform:
     pin: oci:docker.io/hashicorp/terraform-mcp-server:1.0.0
     source: https://github.com/hashicorp/terraform-mcp-server

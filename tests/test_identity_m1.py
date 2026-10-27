@@ -44,16 +44,20 @@ try:
         state = json.load(fh)
 except FileNotFoundError:
     state = {"grants": {}, "counter": 0}
+for _gname, _g in list(state.get("grants", {}).items()):
+    if isinstance(_g, str):
+        state["grants"][_gname] = {"seat": _g, "rigs": [], "roots": [],
+                                    "workspace": False, "owner": False}
 args = sys.argv[1:]
 if args[:3] == ["mcp", "token", "list"]:
     print(json.dumps({
         "configured": True,
         "file": state_path,
         "grants": [
-            {"name": n, "seat": s, "rigs": [], "roots": [],
-             "workspace": False, "owner": False,
+            {"name": n, "seat": g["seat"], "rigs": g["rigs"], "roots": g["roots"],
+             "workspace": g["workspace"], "owner": g["owner"],
              "createdAt": "2026-10-27T00:00:00.000Z"}
-            for n, s in sorted(state["grants"].items())
+            for n, g in sorted(state["grants"].items())
         ],
     }))
 elif args[:3] == ["mcp", "token", "add"]:
@@ -61,13 +65,23 @@ elif args[:3] == ["mcp", "token", "add"]:
         print("fake rig: add failed", file=sys.stderr)
         sys.exit(1)
     name = args[3]
-    seat = args[args.index("--seat") + 1] if "--seat" in args else ""
+    rest = args[4:]
+    def flag_vals(key):
+        return [rest[i + 1] for i, a in enumerate(rest)
+                if a == key and i + 1 < len(rest)]
+    seat_vals = flag_vals("--seat")
+    seat = seat_vals[0] if seat_vals else ""
+    rigs = flag_vals("--rig")
+    roots = flag_vals("--root")
+    workspace = "--workspace" in rest
+    owner = "--owner" in rest
     if name in state["grants"]:
         print(f"'{name}' already has a grant; revoke it first to issue a new token")
         sys.exit(1)
     state["counter"] += 1
     token = "fakegrantsessiontoken%06d" % state["counter"]
-    state["grants"][name] = seat
+    state["grants"][name] = {"seat": seat, "rigs": rigs, "roots": roots,
+                             "workspace": workspace, "owner": owner}
     with open(state_path, "w") as fh:
         json.dump(state, fh)
     print(f"Token for {name}, shown once (only its hash is kept in {state_path}):")
@@ -151,7 +165,7 @@ class IssueSeatGrantTests(unittest.TestCase):
         os.environ.clear()
         os.environ.update(self._old_env)
 
-    def issue(self, session, allow_missing=False, rig_bin=None):
+    def issue(self, session, allow_missing=False, rig_bin=None, rig="rig-y"):
         out, err = io.StringIO(), io.StringIO()
         with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
             rc = SEED_MOD.issue_seat_grant(
@@ -159,6 +173,7 @@ class IssueSeatGrantTests(unittest.TestCase):
                 str(self.secrets),
                 rig_bin=str(rig_bin or self.fake_rig),
                 allow_missing_secrets=allow_missing,
+                rig=rig,
             )
         return rc, out.getvalue(), err.getvalue()
 
@@ -174,7 +189,103 @@ class IssueSeatGrantTests(unittest.TestCase):
         body = p.read_text()
         self.assertRegex(body, r"^[A-Za-z0-9_-]{16,}$")
         state = json.loads(self.state.read_text())
-        self.assertEqual(state["grants"].get("blue-x@rig-y"), "blue-x@rig-y")
+        grant = state["grants"].get("blue-x@rig-y")
+        self.assertIsInstance(grant, dict)
+        self.assertEqual(grant.get("seat"), "blue-x@rig-y")
+
+    def test_add_scopes_grant_to_managed_rig(self):
+        rc, _, _ = self.issue("blue-x@rig-y")
+        self.assertEqual(rc, 0)
+        log = self.log.read_text()
+        self.assertIn("token add blue-x@rig-y --seat blue-x@rig-y --rig rig-y", log)
+        state = json.loads(self.state.read_text())
+        grant = state["grants"].get("blue-x@rig-y")
+        self.assertEqual(grant.get("rigs"), ["rig-y"])
+        self.assertEqual(grant.get("roots"), [])
+        self.assertFalse(grant.get("workspace"))
+        self.assertFalse(grant.get("owner"))
+
+    def test_reuse_requires_matching_grant_metadata(self):
+        self.state.write_text(
+            json.dumps(
+                {
+                    "grants": {
+                        "blue-x@rig-y": {
+                            "seat": "evil@rig-y",
+                            "rigs": [],
+                            "roots": [],
+                            "workspace": False,
+                            "owner": False,
+                        }
+                    },
+                    "counter": 0,
+                }
+            )
+        )
+        stale = self.token_path("blue-x@rig-y")
+        stale.write_text("stalebearer FOR-TEST-ONLY-0001")
+        os.chmod(stale, 0o600)
+        rc, _, _ = self.issue("blue-x@rig-y")
+        self.assertEqual(rc, 0)
+        log = self.log.read_text()
+        self.assertIn("token revoke blue-x@rig-y", log)
+        self.assertIn("token add blue-x@rig-y --seat blue-x@rig-y --rig rig-y", log)
+        fresh_body = self.token_path("blue-x@rig-y").read_text()
+        self.assertNotEqual(fresh_body, "stalebearer FOR-TEST-ONLY-0001")
+        state = json.loads(self.state.read_text())
+        self.assertEqual(state["grants"]["blue-x@rig-y"]["seat"], "blue-x@rig-y")
+
+    def test_reuse_rejects_scope_widened_grant(self):
+        self.state.write_text(
+            json.dumps(
+                {
+                    "grants": {
+                        "blue-x@rig-y": {
+                            "seat": "blue-x@rig-y",
+                            "rigs": ["other-rig"],
+                            "roots": [],
+                            "workspace": False,
+                            "owner": False,
+                        }
+                    },
+                    "counter": 0,
+                }
+            )
+        )
+        self.token_path("blue-x@rig-y").write_text("stalebearer FOR-TEST-ONLY-0002")
+        os.chmod(self.token_path("blue-x@rig-y"), 0o600)
+        rc, _, _ = self.issue("blue-x@rig-y")
+        self.assertEqual(rc, 0)
+        log = self.log.read_text()
+        self.assertIn("token revoke blue-x@rig-y", log)
+        state = json.loads(self.state.read_text())
+        self.assertEqual(state["grants"]["blue-x@rig-y"]["rigs"], ["rig-y"])
+
+    def test_permissive_existing_file_is_rejected_before_add(self):
+        p = self.token_path("blue-x@rig-y")
+        p.write_text("attacker-planted FOR-TEST-ONLY-0003")
+        os.chmod(p, 0o644)
+        rc, _, err = self.issue("blue-x@rig-y")
+        self.assertNotEqual(rc, 0)
+        self.assertNotIn("token add", self.log.read_text())
+        self.assertIn("blue-x@rig-y", err)
+        self.assertEqual(p.read_text(), "attacker-planted FOR-TEST-ONLY-0003")
+        self.assertEqual(stat.S_IMODE(p.stat().st_mode), 0o644)
+
+    def test_permissive_existing_file_degrades_loudly_with_opt_out(self):
+        p = self.token_path("blue-x@rig-y")
+        p.write_text("attacker-planted FOR-TEST-ONLY-0004")
+        os.chmod(p, 0o644)
+        rc, _, err = self.issue("blue-x@rig-y", allow_missing=True)
+        self.assertEqual(rc, 0)
+        self.assertNotIn("token add", self.log.read_text())
+        self.assertIn("warn", err)
+        state = (
+            json.loads(self.state.read_text())
+            if self.state.exists()
+            else {"grants": {}}
+        )
+        self.assertNotIn("blue-x@rig-y", state.get("grants", {}))
 
     def test_rerun_is_idempotent_without_re_add(self):
         self.assertEqual(self.issue("blue-x@rig-y")[0], 0)
@@ -218,6 +329,29 @@ class IssueSeatGrantTests(unittest.TestCase):
         )
         self.assertEqual(rc, 0)
         self.assertIn("warn", err)
+
+
+class SeatNeedsGrantTests(unittest.TestCase):
+    CATALOG = {
+        "rig-mcp-http": {"transport": "http", "seat_grant": True},
+        "memory": {"transport": "stdio"},
+    }
+
+    def test_bound_role_needs_grant(self):
+        role = {"mcp": [{"server": "rig-mcp-http"}, {"server": "memory"}]}
+        self.assertTrue(SEED_MOD.seat_needs_grant(role, self.CATALOG))
+
+    def test_unbound_role_needs_no_grant(self):
+        role = {"mcp": [{"server": "memory"}]}
+        self.assertFalse(SEED_MOD.seat_needs_grant(role, self.CATALOG))
+        self.assertFalse(SEED_MOD.seat_needs_grant({"mcp": []}, self.CATALOG))
+        self.assertFalse(SEED_MOD.seat_needs_grant({}, self.CATALOG))
+        self.assertFalse(SEED_MOD.seat_needs_grant(None, self.CATALOG))
+
+    def test_explicit_opt_in_issues_without_binding(self):
+        role = {"mcp": [{"server": "memory"}]}
+        self.assertTrue(SEED_MOD.seat_needs_grant(role, self.CATALOG, opt_in=True))
+        self.assertFalse(SEED_MOD.seat_needs_grant(role, self.CATALOG, opt_in=False))
 
 
 def _write_probe_fleet(tmpdir):
