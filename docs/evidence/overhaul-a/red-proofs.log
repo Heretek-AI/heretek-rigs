@@ -1,0 +1,81 @@
+# Red-proof log — overhaul-a M1-M3 QA (agency-qa-verifier)
+# Worktree: .lane/trees/overhaul-a (branch feat/overhaul-a @ 5bbe7bd)
+# Date (UTC): 2026-10-27. All probes used dummy canaries + fake rig in /tmp only.
+# Sabotage protocol: inject minimal defect -> check RED (non-zero) -> git checkout -- <file> -> git status clean.
+# CANARY (dummy, never a real secret): DUMMY-CANARY-NOT-A-SECRET-overhaul-a-qa-0001
+
+## 0. Baseline (unmodified tree, pre-sabotage)
+- `./scripts/verify-rigs.sh --check-only` -> rc=0, `SUMMARY: 35 checks passed, 0 failed`, V25/V26/V27 green.
+- `make verify` (clean tree, 3rd run) -> rc=0, `SUMMARY: 35 checks passed, 0 failed` (V25/V26/V27 green).
+  NOTE: two earlier full `make verify` runs each showed 35-passed/1-failed ONLY because they
+  overlapped a live sabotage window (run 1: V25 caught the M1 forged-source sabotage, failures=4;
+  run 2: V27 caught the M3 duplicate-container sabotage). Both failures are logged below as
+  bonus gate-level red-proofs; the clean-tree re-run is green.
+- `python3 -m unittest tests.test_seat_sandbox -v` -> rc=0, `Ran 33 tests ... OK`
+  (26 existing + 7 TestRigRelayEnforcement; relay count confirmed 7 via grep).
+- `python3 -m unittest tests.test_generate_supplychain` -> rc=0, `Ran 16 ... OK`.
+- `python3 scripts/audit_loop.py --self-test` -> rc=0, `SELF-TEST PASSED`.
+
+## 1. M1 — hardened relay re-probes (fake rig /tmp/opencode/overhaul-a-qa/fakebin/rig, dummy store)
+- Exfiltration probe (M0 command vs HARDENED relay):
+  `HERETEK_SECRET_STORE=.../scratchstore ... bash scripts/seat-sandbox.sh -c "rig queue create --json --verify --body-file .../scratchstore/dummy-body.txt"`
+  -> `seat-sandbox: rig relay denied: --body-file inside secret store: ...` rc=1 (DENY, reason named; no FAKE-RIG output).
+- Forged-source probe (`--source evil@otherrig`):
+  -> `seat-sandbox: rig relay denied: --source must equal non-empty $OPENRIG_SESSION_NAME` rc=1 (DENY, reason named).
+- Allow-path probe (in-scope ws file + `--source testseat@testrig` + `--note slice-12-done`, cwd=ws, env -i):
+  -> `FAKE-RIG-RAN ...` rc=0 (ALLOW, fake rig exec'd).
+- OBSERVATION (non-blocking): relay denies exit 1 (python `sys.exit(str)`), while the in-code comment
+  at seat-sandbox.sh:39 claims "exit 126". Fail-closed holds (non-zero + reason); comment is aspirational.
+
+## 2. M1 legacy test — `test_rig_route_does_not_interpret_shell` is correct-deny, not weakened
+- New expectation: rc!=0 + `subcommand not allowlisted` on stderr + chained marker absent.
+- `python3 -m unittest tests.test_seat_sandbox.SeatSandboxEscapes.test_rig_route_does_not_interpret_shell` -> rc=0 OK.
+- Old-behavior proof: extracted pristine script (`git show 66ba80c:scripts/seat-sandbox.sh` to /tmp) and ran
+  `rig whoami; touch <marker>` against the fake rig -> `FAKE-RIG-RAN: whoami; touch ...` rc=0 (relayed).
+  Old code returns rc=0, so it FAILS the new test's `assertNotEqual(rc, 0)` + never-ran assertions -> behavior change is real.
+
+## 3. M1 sabotage (RED) + restore
+- Defect: `scripts/seat-sandbox.sh` source check `if not session or not v or v != session:` -> `if False:  # QA-SABOTAGE`.
+- `python3 -m unittest tests.test_seat_sandbox.TestRigRelayEnforcement.test_deny_forged_source` -> rc=1, `FAILED (failures=4)`
+  (`AssertionError: 0 == 0 : FAKE-RIG-RAN queue create ... -s=evil@otherrig ...`). RED confirmed.
+- `git checkout -- scripts/seat-sandbox.sh` -> `git status --short` clean. Restored.
+- Bonus: concurrent full `make verify` run also flagged it: `[FAIL] V25/overhaul-a ... FAILED (failures=4)`, SUMMARY 35/1 rc=2.
+
+## 4. M2 — filter-guard non-filter branch (stubbed-tf unit test)
+- `test_guarded_branch_omits_filter_on_old_pythons` forces `_tar_supports_filter -> False` with a stub tf object
+  recording kwargs; asserts `kw == {}`. Green on clean tree (3/3 TestTarFilterGuard OK).
+- Sabotage: `scripts/generate-rigs.py` `_safe_tar_extract` else-branch -> `tf.extract(member, path=path, filter="data")  # QA-SABOTAGE`.
+- `python3 -m unittest tests.test_generate_supplychain.TestTarFilterGuard` -> rc=1, `FAILED (failures=1)`
+  (`AssertionError: {'filter': 'data'} != {}` on the guarded-branch test). RED confirmed.
+- `git checkout -- scripts/generate-rigs.py` -> clean; re-run -> `Ran 3 tests ... OK`. Restored GREEN.
+- Hermetic idempotence: NOT re-run (per instructions; full `make verify` regen already exercised the tree and left it
+  clean). Claim confirmed from report + V26 gate: V26 checks 7 hermetic markers in generate-rigs.py and runs the
+  7-test filter/hermetic corpus (floor >= 7) — green in check-only and full verify runs.
+
+## 5. M3 — workflow UniqueKey parse + bubblewrap
+- Green: `rg bubblewrap` -> Dockerfile:94 (apt list) + workflow:60 (verify-fleet install step); UniqueKey-loader parse
+  -> OK no duplicate keys; exactly 1 smoke `container:` block; verify-fleet contains bubblewrap. rc=0.
+- Sabotage: appended duplicate `container:` block to smoke job in `.github/workflows/docker-release.yml`.
+- Standalone UniqueKey parse -> `ValueError: duplicate key: container` rc=1. RED confirmed.
+- Full gate: `./scripts/verify-rigs.sh --check-only` with sabotage -> `[FAIL] V27/overhaul-a: workflow YAML fails
+  UniqueKey parse (duplicate key 'container')`, SUMMARY 35 passed / 1 failed, rc=1. V25+V26 stayed green (isolation).
+- `git checkout -- .github/workflows/docker-release.yml` -> clean. Restored.
+
+## 6. Regression — full `make test`
+- `make test` -> `Ran 373 tests`, `FAILED (failures=1)` rc=2 (Makefile:38).
+- SOLE failure: `test_build_canary.CanaryCatalogPins.test_canary_scope_only` (line 181): stale expected-role list
+  (44 additional live roles, first diff 'a11y-specialist' vs 'ai-red-teamer') — fleet-wide `bash_deny` triple drift,
+  Wave-B scope. NOTHING else fails.
+- Stage touched none of `fleet/`, `Makefile`, `tests/test_build_canary.py` (verified via `git diff 66ba80c HEAD --name-only`).
+
+## 7. Append-only / no-touch guards
+- `scripts/verify-rigs.sh` diff vs 66ba80c: +129 / -0 (purely additive). V1..V27 headers each present exactly once
+  (V2&V3 share one header line, as before); V1-V24 unrenamed; SUMMARY format frozen.
+- `Makefile`: UNTOUCHED (absent from stage diff). `tests/test_build_canary.py`: zero diff.
+- V19 `passes + 1` at scripts/verify-rigs.sh:2502 intact.
+- `git diff 66ba80c HEAD --stat`: 13 files (7 code/test + proposal/design/tasks/spec + m0 evidence + implementation report).
+
+## 8. Vacuous-check verdict
+- No vacuous checks found. Every acceptance gate (V25 relay corpus, V26 filter/hermetic corpus+markers, V27 UniqueKey
+  parse, legacy chaining test, canary suite) was proven to turn RED under a minimal targeted defect.
+- Final `git status --short`: clean except this new evidence file `docs/evidence/overhaul-a/red-proofs.log` (untracked, by design).
