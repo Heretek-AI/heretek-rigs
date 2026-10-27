@@ -61,6 +61,9 @@ if args[:3] == ["mcp", "token", "list"]:
         ],
     }))
 elif args[:3] == ["mcp", "token", "add"]:
+    if os.environ.get("FAKE_RIG_LEAK_ADD") == "1":
+        print("token add failed: internal error bearer " + "Q" * 47, file=sys.stderr)
+        sys.exit(1)
     if os.environ.get("FAKE_RIG_FAIL_ADD") == "1":
         print("fake rig: add failed", file=sys.stderr)
         sys.exit(1)
@@ -306,6 +309,23 @@ class IssueSeatGrantTests(unittest.TestCase):
         self.assertNotEqual(second_body, first_body)
         log = self.log.read_text()
         self.assertIn("token revoke blue-x@rig-y", log)
+
+    def test_add_failure_output_bearer_is_redacted_in_log(self):
+        os.environ["FAKE_RIG_LEAK_ADD"] = "1"
+        rc, _, err = self.issue("blue-x@rig-y")
+        self.assertNotEqual(rc, 0)
+        self.assertIn("token add failed", err)
+        self.assertNotRegex(err, r"[A-Za-z0-9_-]{40,}")
+        self.assertFalse(self.token_path("blue-x@rig-y").exists())
+
+    def test_add_failure_output_bearer_redacted_when_degraded(self):
+        os.environ["FAKE_RIG_LEAK_ADD"] = "1"
+        rc, _, err = self.issue("blue-x@rig-y", allow_missing=True)
+        self.assertEqual(rc, 0)
+        self.assertIn("warn", err)
+        self.assertIn("token add failed", err)
+        self.assertNotRegex(err, r"[A-Za-z0-9_-]{40,}")
+        self.assertFalse(self.token_path("blue-x@rig-y").exists())
 
     def test_add_failure_is_fatal_in_strict_mode(self):
         os.environ["FAKE_RIG_FAIL_ADD"] = "1"

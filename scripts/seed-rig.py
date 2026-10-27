@@ -183,6 +183,24 @@ def seat_needs_grant(role, mcp_catalog, opt_in: bool = False) -> bool:
     return bool(opt_in)
 
 
+# 107-identity rework-2 (CodeQL py/clear-text-logging-sensitive-data):
+# failure output from `rig mcp token` subprocess calls (detail) and
+# rig-subprocess exception strings are tainted as secret-bearing, so every
+# grant-path log line interpolating them is routed through this single
+# redaction choke point. Bearer-shaped runs (40+ base64url chars) are
+# replaced and output is truncated; pure name/session/filename lines carry
+# no external output and need no change.
+_BEARER_RUN_RE = re.compile(r"[A-Za-z0-9_-]{40,}")
+
+
+def _redact_for_log(value) -> str:
+    text = value if isinstance(value, str) else str(value)
+    text = _BEARER_RUN_RE.sub("…redacted…", text)
+    if len(text) > 200:
+        text = text[:200] + "…"
+    return text
+
+
 def _list_grants(rig_bin: str):
     """Return {grant-name: grant-metadata-dict}, or None when list fails.
 
@@ -267,6 +285,9 @@ def issue_seat_grant(
     token_path = Path(secrets_dir) / render_mod.seat_grant_token_filename(session)
 
     def _fail(msg: str) -> int:
+        # Rework-2: msg may derive from rig-subprocess output/exceptions —
+        # redact at this single choke point (covers every _fail call site).
+        msg = _redact_for_log(msg)
         if allow_missing_secrets:
             print(
                 f"warn: {session}: seat grant not issued ({msg}), continuing degraded",
@@ -377,7 +398,7 @@ def issue_seat_grant(
         except OSError as e:
             _revoke_grant(rig_bin, session)
             print(
-                f"error: {session}: cannot store grant token: {e}; minted grant revoked",
+                f"error: {session}: cannot store grant token: {_redact_for_log(e)}; minted grant revoked",
                 file=sys.stderr,
             )
             return 2
