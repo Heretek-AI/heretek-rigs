@@ -1,0 +1,465 @@
+# Red-proofs (09-send-identity S1, Refs #9)
+
+For EACH of the four REQ-S2 forgery tests, the forgery was temporarily
+re-introduced (sabotage), the corresponding test turned RED, then the tree
+was reverted. Clean-tree reruns are green (see S1 acceptance below).
+
+## S1a — spoofed --source ignored
+- Sabotage: `scripts/send_identity.py` attested return changed to
+  `sender=claimed_source or sender` (records the client claim).
+- Test: `AttestationVerifyTests.test_spoofed_claimed_source_is_ignored`
+- Result: RED (`AssertionError: 'red-actor@other-rig' != 'blue-probe@test-rig'`
+  — the forged claim was recorded). Reverted via backup copy; rerun OK.
+
+## S1b — replay rejected
+- Sabotage: replay gate disabled
+  (`if nonce in seen and False:` in `verify_attestation`).
+- Test: `AttestationVerifyTests.test_replay_of_valid_attestation_is_rejected`
+- Result: RED (second presentation accepted as `attested` instead of
+  `rejected`). Reverted via backup copy; rerun OK.
+
+## S1c — cross-rig impersonation impossible
+- Sabotage: scope gate disabled
+  (`if rig != expected_rig and False:` in `verify_attestation`).
+- Test: `AttestationVerifyTests.test_cross_rig_presentation_fails_scope`
+- Result: RED (rig-Y presentation of a rig-X attestation verified).
+  Reverted via backup copy; rerun OK.
+
+## S1d — bare-send bypass still denied
+- Sabotage: first `      - rig send` deny line removed from
+  `fleet/fleet.yaml` (working tree only, no regen — the corpus test reads
+  the fleet file directly).
+- Test: `BareSendDenyTests.test_fleet_declares_exact_bare_deny_triple`
+- Result: RED (`roles missing exact bash_deny triple: ['a11y-specialist']`).
+  Reverted via `git checkout -- fleet/fleet.yaml`; rerun OK.
+
+## S2 FAIL-ONLY demonstration (V28 vs pre-fix tree)
+
+V28 MUST be FAIL-ONLY pre-fix (spoof succeeds on the unpatched tree) and
+PASS post-fix. Demonstrated two ways (recorded 2026-10-28, Refs #9):
+
+(a) Dynamic — `scripts/send_identity.py` moved out of the tree (pre-fix
+shape), `./scripts/verify-rigs.sh --check-only` run, file restored
+byte-identical after. Result: exit 1,
+`SUMMARY: 35 checks passed, 4 failed`, with exactly these V28 lines:
+
+- `[FAIL] V28/09-send-identity: cannot load scripts/send_identity.py
+  ([Errno 2] No such file or directory: '.../scripts/send_identity.py')`
+- `[FAIL] V28/09-send-identity: scripts/send_identity.py unreadable
+  ([Errno 2] No such file or directory: '...')`
+- `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`
+  (corpus import error — module absent; no secret material in output)
+
+plus the expected S1-layering cascade
+(`[FAIL] V23/107-identity: tests/test_identity_m1.py failed:` — its S1
+fixture imports the attestation module). Unbound-role renders are
+unaffected (the render import is lazy: bound roles only). Full failing
+output retained in scratch (`/tmp/v28-failonly3.txt`, scratch-only).
+
+(b) Static — the true pre-fix tree (spec base 4b453a2) additionally lacks
+the S1 render block and the S0 evidence file, so V28's remaining checks
+fail there too (verified read-only, no worktree mutation):
+
+- `git show 4b453a2:scripts/render-seat.py | grep -c
+  "send-identity.json|sender_binding_filename"` → `0` (each render-marker
+  check calls `fail()`)
+- `git show 4b453a2:scripts/send_identity.py` → `fatal: path
+  '.../send_identity.py' exists on disk, but not in '4b453a2'`
+- S0 evidence `docs/evidence/09-send-identity-spoof.md` committed in S0
+  (51228f3), absent at base → `fail()` on the evidence checks.
+
+Post-fix: `SUMMARY: 36 checks passed, 0 failed` with
+`[PASS] V28 send-identity attestation (09-send-identity S1) green:
+binding rules + !cat render + 24 corpus tests pass + S0 evidence present`.
+
+## QA re-verification (acceptance verifier, 2026-10-28, branch feat/09-send-identity @ e04a7f8)
+
+Each sabotage below was applied to the working tree, the check observed RED
+(verbatim output recorded), then reverted (`git checkout -- <file>` or
+byte-identical restore) and the check observed GREEN again with
+`git status --short` clean. Programmer entries above left untouched; these
+are independent QA re-runs. Baseline before sabotage: verify 36/0,
+`make test` Ran 530 OK, corpus 25/25 OK, self-test PASSED, idempotent PASS.
+
+## QA-R1 — V28 gate fails without the attestation module
+- Sabotage: `mv scripts/send_identity.py /tmp/qa-send_identity.R1` (pre-fix shape).
+- Check: `./scripts/verify-rigs.sh --check-only`
+- RED verbatim: `[FAIL] V28/09-send-identity: cannot load
+  scripts/send_identity.py ([Errno 2] No such file or directory: '...')`,
+  `[FAIL] V28/09-send-identity: scripts/send_identity.py unreadable (...)`,
+  `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`,
+  `SUMMARY: 35 checks passed, 4 failed.`, exit 1.
+- Restore: moved back; rerun `SUMMARY: 36 checks passed, 0 failed.`, exit 0;
+  `git status --short` clean.
+
+## QA-R2 — `make test` fails when a corpus assertion is inverted
+- Sabotage: `tests/test_send_identity.py` spoof test expectation changed to
+  `self.assertEqual(res.sender, "red-actor@other-rig")` (forged claim recorded).
+- Check: `make test` — RED verbatim: `Ran 530 tests ... FAILED (failures=1)`,
+  `make: *** [Makefile:38: test] Error 1`, exit 2. Scoped rerun verbatim:
+  `FAIL: test_spoofed_claimed_source_is_ignored ... AssertionError:
+  'blue-probe@test-rig' != 'red-actor@other-rig'`.
+- Restore: `git checkout -- tests/test_send_identity.py`; full `make test`
+  rerun: `Ran 530 tests ... OK`, exit 0; `git status --short` clean.
+
+## QA-R3a — spoofed --source ignored (REQ-S2 class 1)
+- Sabotage: `scripts/send_identity.py` final return changed to
+  `sender=claimed_source or sender` (records the client claim).
+- Check: `AttestationVerifyTests.test_spoofed_claimed_source_is_ignored`
+- RED verbatim: `AssertionError: 'red-actor@other-rig' != 'blue-probe@test-rig'`
+  (forged claim recorded). Restored from backup; full corpus 25/25 OK;
+  `git status --short` clean.
+
+## QA-R3b — replay rejected (REQ-S2 class 2)
+- Sabotage: replay gate disabled (`if nonce in seen and False:`).
+- Check: `AttestationVerifyTests.test_replay_of_valid_attestation_is_rejected`
+- RED verbatim: `AssertionError: 'attested' != 'rejected'` (second presentation
+  accepted). Restored; corpus 25/25 OK; status clean.
+
+## QA-R3c — cross-rig impersonation impossible (REQ-S2 class 3)
+- Sabotage: scope gate disabled (`if rig != expected_rig and False:`).
+- Check: `AttestationVerifyTests.test_cross_rig_presentation_fails_scope`
+- RED verbatim: `AssertionError: 'attested' != 'unverified'` (rig-Y presentation
+  of a rig-X attestation verified). Restored; corpus 25/25 OK; status clean.
+
+## QA-R3d — bare-send bypass still denied (REQ-S2 class 4)
+- Sabotage: first `      - rig send` deny line removed from `fleet/fleet.yaml`
+  (working tree only, no regen).
+- Check: `BareSendDenyTests.test_fleet_declares_exact_bare_deny_triple`
+- RED verbatim: `AssertionError: Lists differ: ['a11y-specialist'] != []`.
+  Restored via `git checkout -- fleet/fleet.yaml`; corpus 25/25 OK; clean.
+
+## QA-R4 — audit_loop self-test executes its vectors
+- Sabotage: `scripts/audit_loop.py:343` expectation flipped to
+  `assert status_lie == STATUS_NO_FINDINGS`.
+- Check: `python3 scripts/audit_loop.py --self-test` — RED verbatim:
+  `AssertionError: Parser failed to catch false NO_FINDINGS with ### HR- header!`,
+  exit 1.
+- Restore: `git checkout -- scripts/audit_loop.py`; rerun `SELF-TEST PASSED`;
+  status clean.
+
+## QA-R5 — --check-idempotent detects nondeterministic generation
+- Sabotage: appended a `time_ns()` tail write to `rosters/heretek-omni-fleet.json`
+  at the end of `generate_all` in `scripts/generate-rigs.py`. Note: the
+  generator's dirty guard fires first on a dirty tree (exit 2, by design); the
+  sabotage run used the documented dev path `HERETEK_RIGS_ALLOW_DIRTY=1`.
+- Check: `python3 scripts/generate-rigs.py --check-idempotent` — RED verbatim:
+  `error: non-idempotent generation (diff keys: [])`, exit 2.
+- Restore: `git checkout -- scripts/generate-rigs.py registry/ rosters/`;
+  rerun `idempotence check passed (two consecutive runs byte-identical)`,
+  exit 0; restamp reverted; status clean. (Post-run registry re-stamp to HEAD
+  is sanctioned provenance-only: 32 `resolvedCommit` lines + `canonicalUrl`
+  embeds, zero other diff lines — verified and reverted.)
+
+## QA-R6 — secrets grep is non-vacuous
+- Sabotage: appended `QA-SABOTAGE-TOKEN orAbCdEfGhIjKlMnOpQrStUvWxYz0123456789AB`
+  (47-char bearer-shaped) to `docs/evidence/09-send-identity-spoof.md`.
+- Check: `grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/09-send-identity-spoof.md
+  docs/evidence/09-send-identity-rotation.md` — RED verbatim: printed the
+  sabotage line, exit 0 (secret found).
+- Restore: `git checkout -- docs/evidence/09-send-identity-spoof.md`; grep exit 1
+  (no output); status clean.
+
+## QA-R7 — V28 requires the S0 evidence file
+- Sabotage: `mv docs/evidence/09-send-identity-spoof.md /tmp/qa-spoof.R7.md`.
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: S0 evidence file unreadable ([Errno 2] No such
+  file or directory: '.../docs/evidence/09-send-identity-spoof.md')`, exit 1.
+- Restore: moved back; rerun `SUMMARY: 36 checks passed, 0 failed.`; clean.
+
+QA verdict: no vacuous checks found. All 7 acceptance checks + all 4 REQ-S2
+forgery classes turn RED under targeted sabotage and GREEN on restore.
+
+## QA-R2 series — r1 re-verification (acceptance verifier, 2026-10-28, branch fix/09-send-identity-r1 @ 1915d5b)
+Prior QA-R1…QA-R7 entries above left untouched. All sabotage temporary and
+fully reverted; `git status --short` clean after each cycle (verified via
+`git diff --stat` empty on the sabotaged paths + green rerun).
+
+## QA-R2a — F5 fix is non-vacuous (expected_sender check removed)
+- Sabotage: deleted the `if sender != expected_sender` block from
+  `verify_attestation` in `scripts/send_identity.py` (the F5 fix).
+- Check: `python3 -m unittest
+  tests.test_send_identity.AttestationVerifyTests.test_cross_seat_secret_cannot_authenticate_other_sender`
+  — RED verbatim:
+  `AssertionError: 'attested' != 'unverified'`
+  (`Ran 1 test ... FAILED (failures=1)`, exit 1). A seat-A secret minting a
+  seat-B attestation verifies `attested` — the cross-seat hole is real.
+- Restore: byte-restore of `scripts/send_identity.py` (`git diff --stat`
+  empty); full corpus `Ran 26 tests ... OK`, exit 0; clean.
+
+## QA-R2b — F6 V28 skip-floor is non-vacuous (injected skip)
+- Sabotage 1 (fixed code under test): added
+  `@unittest.skip("QA-R2b sabotage: injected skip")` to
+  `test_valid_fresh_attestation_records_attested_sender` in
+  `tests/test_send_identity.py`. Corpus alone stays green-but-skipped:
+  `Ran 26 tests ... OK (skipped=1)`, exit 0 — the exact shape the old V28
+  miscounted.
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: tests.test_send_identity skipped 1 test(s)
+  (skips must not count toward the corpus threshold)`,
+  `SUMMARY: 35 checks passed, 1 failed.`, exit 1.
+- Vacuity proof of the OLD form: with the skip still injected, V28's skip
+  branch temporarily reverted to the pre-F6 counting form
+  (`elif _v28_ran < 20:`) → GREEN verbatim:
+  `[PASS] V28 send-identity attestation (09-send-identity S1) green:
+  binding rules + !cat render + 26 corpus tests pass + S0 evidence present`,
+  `SUMMARY: 36 checks passed, 0 failed.`, exit 0. The old code counted the
+  skip toward the floor — the F6 hole was real, the fix closes it.
+- Restore: `scripts/verify-rigs.sh` + `tests/test_send_identity.py`
+  byte-restored (`git diff --stat` empty on both); rerun V28 PASS,
+  `SUMMARY: 36 checks passed, 0 failed.`, exit 0; clean.
+
+## QA-R2c — V28 gate fails without the attestation module (battery check 1)
+- Sabotage: `mv scripts/send_identity.py /tmp/r1-si.hidden.py` (module gone).
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: cannot load scripts/send_identity.py
+  ([Errno 2] No such file or directory: '.../scripts/send_identity.py')`
+  plus unreadable-file + corpus-failed FAILs,
+  `SUMMARY: 35 checks passed, 4 failed.`, exit 1.
+- Restore: moved back (`git status --short` empty on the path); rerun
+  `SUMMARY: 36 checks passed, 0 failed.`, exit 0 (one rerun needed a retry
+  past the 120s tool window under load; second run 36/0 exit 0); clean.
+
+## QA-R2d — secrets grep is non-vacuous (battery check 6)
+- Sabotage: appended `QA-R2D-SABOTAGE
+  orAbCdEfGhIjKlMnOpQrStUvWxYz0123456789AB` (47-char bearer-shaped) to
+  `docs/evidence/09-send-identity-rotation.md`.
+- Check: `grep -rE '[A-Za-z0-9_-]{40,}'
+  docs/evidence/09-send-identity-spoof.md
+  docs/evidence/09-send-identity-rotation.md` — RED verbatim: printed the
+  sabotage line
+  (`docs/evidence/09-send-identity-rotation.md:QA-R2D-SABOTAGE
+  orAbCdEf...`), exit 0 (secret found).
+- Restore: `git checkout -- docs/evidence/09-send-identity-rotation.md`;
+  grep exit 1 (no output); status clean.
+
+QA-R2 verdict: no vacuous checks found. The F5 cross-seat fix, the F6
+skip-floor fix, the V28 gate, and the secrets grep all turn RED under
+targeted sabotage and GREEN on restore (old counting-skips form proven
+vacuous-by-comparison, as F6 claimed).
+
+## Rework-2 — CodeQL findings C1…C5 on PR #128 (Refs #9, 2026-10-28)
+Fix under test: scripts/send_identity.py routes every session/binding
+log interpolation through seed-rig `_redact_for_log` (`_session_log` /
+`_binding_log`); tests/test_send_identity.py refusal fixture uses 0o640
+instead of 0o644; new `test_reuse_path_emits_no_token_material`.
+CodeQL cannot run locally — each fix below is red-proven by sabotage
+(RED) + restore (GREEN), and acceptance is the gate battery.
+
+## RP-R2-C1 — 0o644 sabotage is world-readable; 0o640 is not (H1 proven)
+- Sabotage: `os.chmod(target, 0o640)` → `0o644` in
+  `test_existing_non_0600_store_refuses_pre_mint`.
+- Check: scratch probe asserting `stat.S_IMODE & 0o007 == 0` on a 0644
+  fixture — RED verbatim (`AssertionError: RED: fixture is
+  world-readable (py/overly-permissive-file class)`; mode 644,
+  world-bits 4), probe exit 1. The refusal test itself still passed
+  under sabotage (any non-0600 refuses), proving H1's semantics claim:
+  the mask change preserves the test's meaning exactly.
+- Restore: `0o644` → `0o640`; probe GREEN (mode 640, world-bits 0,
+  still != 0600), refusal test OK.
+
+## RP-R2-C2C5 — raw `{session}` sink leaks bearer-shaped ids; redacted does not (H2 proven)
+- Data-flow trace (HEAD code): C2 (mismatch warn), C3 (symlink warn),
+  C4 (missing-file warn), C5 (issued ok) interpolate only `session` /
+  `binding_path.name` (session-derived filename, `/`+`..` refused).
+  Token bytes cannot reach them: the minted token flows
+  `proc.stdout → parse_issued_token → 0600 mkstemp+replace` only; every
+  subprocess/exception detail (`detail`, `{e}`) already flows through
+  redacting `_fail`. So no live token leak — identifier-only sinks,
+  hardened per REQ-S4 via the existing `_redact_for_log` choke point.
+- Sabotage: reuse-path print back to raw
+  `f"ok {session}: ... (reuse {binding_path.name})"`; drove issue→reuse
+  with bearer-shaped-but-legal session `"A"*45` — RED verbatim (stdout
+  `ok AAAA…(45)…: sender binding already issued`, bearer regex hit).
+- Restore: `_session_log`/`_binding_log`; same probe GREEN (stdout
+  `ok …redacted…: sender binding already issued (reuse …redacted….key)`,
+  no 40+ run on stdout/stderr). Byte-identical claim proven:
+  `_redact_for_log(x) == x` for `blue-x@rig-y`,
+  `send-id-blue-x@rig-y.key`, `blue-x@rig-y/send-identity`
+  (`@`/`.` break runs; all < 200 chars).
+
+## RP-R2-H3 — _deny choke point covers attacker fields; no new fix needed
+- Sweep of every print/raise site in scripts/send_identity.py: all
+  exception/subprocess detail already flows through redacting `_fail`
+  (L136/L141/L161/L177/L187/L201/L206) or `_deny` (L317); the L350 raw
+  `{e}` sibling flows into `_deny` → redacted; L362 redacts both
+  sender and claim explicitly. L75/L262/L268 ValueErrors are
+  caller-facing, carry identifiers/static text only — left untouched
+  (minimal diff).
+- Sabotage: `_deny` print back to raw `({reason})`; fed attestation
+  `v1.blue-probe@test-rig.BBBB…(45).nnnn…(16).000…(64)` — RED verbatim
+  (attacker rig field in stderr raw, bearer regex hit).
+- Restore: `({_redact(reason)})`; same probe GREEN (stderr
+  `send-identity: unverified (scope mismatch: attestation rig
+  '…redacted…' != 'test-rig')`, no 40+ run).
+
+## QA-R3 series — r2 acceptance re-verification (acceptance verifier, 2026-10-28, branch fix/09-send-identity-r2 @ a570bf1)
+Prior entries above left untouched. All sabotage temporary and fully
+reverted; `git status --short` clean and `git diff --stat` empty after
+each cycle. Baseline before sabotage: verify 36/0 with V28 PASS,
+`make test` Ran 532 OK, corpus Ran 27 OK, self-test PASSED,
+--check-idempotent PASS (provenance-only restamp verified and reverted),
+secrets grep exit 1 (no output).
+
+## QA-R3a — refusal-fixture mask 0o640 preserves refusal; 0o644 is world-readable (H1 semantics)
+- Sabotage: `os.chmod(target, 0o640)` → `0o644` in
+  `test_existing_non_0600_store_refuses_pre_mint`
+  (`tests/test_send_identity.py:237`).
+- Check 1 (semantics preserved):
+  `python3 -m unittest tests.test_send_identity.IssueSenderBindingTests.test_existing_non_0600_store_refuses_pre_mint`
+  under sabotage → still OK (`Ran 1 test ... OK`, exit 0). The refusal
+  gate refuses anything `!= 0o600`, so 0644 refuses exactly like 0640 —
+  proving H1's claim that the C1 mask change preserves the test's meaning.
+- Check 2 (world-readability RED): scratch probe asserting
+  `stat.S_IMODE & 0o007 == 0` on a 0644 fixture — RED verbatim:
+  `AssertionError: RED: fixture is world-readable
+  (py/overly-permissive-file class, mode 0644)`, probe exit 1
+  (mode 644, world-bits 4).
+- Restore: `git checkout -- tests/test_send_identity.py` (line back to
+  `0o640`); probe GREEN (mode 640, world-bits 0, still != 0600),
+  refusal test OK; `git status --short` clean.
+
+## QA-R3b — raw reuse-ok sink leaks a 45-char token-shaped session; redacted sink does not (H2 live)
+- Sabotage: reuse-ok print in `issue_sender_binding`
+  (`scripts/send_identity.py:168`) back to raw
+  `f"ok {session}: sender binding already issued (reuse {binding_path.name})"`;
+  drove issue→reuse with bearer-shaped-but-legal session `"A"*45`.
+- Check (guard form): assert no `[A-Za-z0-9_-]{40,}` run on reuse
+  stdout/stderr — RED verbatim, exit 1:
+  `AssertionError: RED: bearer-shaped run leaked on reuse stdout:
+  'ok AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: sender binding
+  already issued (reuse send-id-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.key)'`.
+  Direct probe likewise showed the 45-char session on stdout verbatim
+  with a bearer-regex HIT — proving the sink is live and the
+  `_session_log`/`_binding_log` helper is what stops it.
+- Restore: `git checkout -- scripts/send_identity.py` (line back to
+  `f"ok {_session_log}: ... (reuse {_binding_log})"`); same guard probe
+  GREEN (`GREEN: reuse path emits no bearer-shaped runs`, exit 0);
+  `test_reuse_path_emits_no_token_material` OK; `git status --short` clean.
+
+## QA-R3c — V28 gate fails without the attestation module (full-battery check)
+- Sabotage: `mv scripts/send_identity.py /tmp/qa-r3c-send_identity.py`
+  (pre-fix shape).
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim, exit 1:
+  `[FAIL] V28/09-send-identity: cannot load scripts/send_identity.py
+  ([Errno 2] No such file or directory: '.../scripts/send_identity.py')`,
+  `[FAIL] V28/09-send-identity: scripts/send_identity.py unreadable (...)`,
+  `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`,
+  `SUMMARY: 35 checks passed, 4 failed.`
+- Restore: moved back byte-identical (`git status --short` clean,
+  `git diff --stat` empty); rerun GREEN verbatim, exit 0:
+  `[PASS] V28 send-identity attestation (09-send-identity S1) green:
+  binding rules + !cat render + 27 corpus tests pass + S0 evidence present`,
+  `SUMMARY: 36 checks passed, 0 failed.`
+
+QA-R3 verdict: no vacuous checks found. The 0o640 fixture still refuses
+(H1), the redaction-routed sink is live and leaks when bypassed (H2),
+and the V28 gate turns RED without the module and GREEN on restore.
+
+## Rework-3 — PR #128 review threads G1…G5 (Refs #9, 2026-10-28, branch fix/09-send-identity-r3)
+G1 is a docs-only correction (no code path changed — grounded by the
+scratch matrix below, not a sabotage cycle). G4 was verified STALE on
+disk (expected_sender already required + enforced + tested since
+rework-1) and skipped with evidence. G5's 0o400 fixture is validated by
+the suite itself (refusal keys on exact `!= 0o600`). G2/G3 sabotage
+cycles (temporary, fully reverted):
+
+G1 scratch matrix (dummy keys, /tmp/opencode/g1-scratch, 2026-10-28):
+missing+degraded rc=0 disabled entry; missing+strict rc=2;
+0640+degraded rc=2 (`...key is mode 640; run: chmod 600 ...`);
+0640+strict rc=2. Only true absence degrades — `secret_ok`
+(`scripts/render-seat.py:780-816`) dies on wrong-mode/symlink/
+foreign-owner/unsafe-open in both modes.
+
+## RP-R3-G2 — reuse branch validates 0600 regular file (review thread G2)
+- Sabotage: removed the rework-3 lstat/S_ISREG/0600 guard from the
+  `elif binding_path.is_file()` reuse branch
+  (`scripts/send_identity.py:167-186` removed, unconditional reuse).
+- Check: `python3 -m unittest
+  tests.test_send_identity.IssueSenderBindingTests.test_reuse_of_non_0600_binding_file_refuses`
+  — RED verbatim: `AssertionError: 0 == 0`
+  (`Ran 1 test ... FAILED (failures=1)`): a 0400 binding file was wrongly
+  reported "already issued" with rc 0.
+- Restore: guard re-applied; same test GREEN (`Ran 1 test ... OK`);
+  full `IssueSenderBindingTests` 9/9 OK.
+
+## RP-R3-G3 — sender-binding gate matches the render gate (outside-diff thread G3)
+- Sabotage: `seat_needs_sender_binding` body (`scripts/seed-rig.py:186`)
+  replaced with unconditional `return True` (opt-in unbound seats get
+  bindings the renderer configures no entry for).
+- Check: `python3 -m unittest
+  tests.test_identity_m1.SeatNeedsSenderBindingTests` — RED verbatim:
+  `AssertionError: True is not false`
+  (`Ran 3 tests ... FAILED (failures=2)`):
+  `test_unbound_role_needs_no_sender_binding` and
+  `test_opted_in_unbound_role_gets_grant_but_no_sender_binding` fail —
+  proving the gate (not the caller) is what stops unusable bindings.
+- Restore: body back to
+  `seat_needs_grant(role, mcp_catalog, opt_in=False)`; 3/3 OK;
+  `SeatNeedsGrantTests` unaffected (opt-in seat-grant gate intact).
+
+## RP-R3-G5 — 0400 refusal fixture (CodeQL alert 99, no local re-scan)
+- CodeQL cannot run locally. Substitute validation: (1) the refusal
+  guards key on exact `!= 0o600` (`scripts/send_identity.py:178`
+  reuse, `:201` pre-mint), so 0400 provably refuses — and the suite
+  proves it: `test_existing_non_0600_store_refuses_pre_mint` (0400)
+  plus the new `test_reuse_of_non_0600_binding_file_refuses` (0400)
+  both GREEN; (2) 0400 carries no group/other bits
+  (`S_IMODE & 0o077 == 0`), clearing the py/overly-permissive-file
+  class the 0640 mask tripped; (3) `grep` sweep of
+  `tests/test_send_identity.py` shows no remaining group/other-bit
+  file masks (only 0600 files, 0700 dirs). The 0o644 fixtures in
+  `tests/test_identity_m1.py:271-282` belong to wave-107 seat-grant
+  tests (pre-existing, not part of alert 99) — left untouched.
+
+Rework-3 verdict: G2/G3 fixes turn RED under targeted sabotage and
+GREEN on restore; G1/G5 grounded by scratch matrix + suite; G4 stale.
+
+## QA-R4a — reuse-branch mode guard removed (rework-3 G2, PR #128)
+- Sabotage: reuse-branch 0600-regular-file guard in
+  `scripts/send_identity.py` (`os.lstat` + `S_ISREG` + exact `0o600`,
+  `_fail` closed) replaced with unconditional reuse
+  (`pass  # QA-R4 SABOTAGE(a)`).
+- Check: `python3 -m unittest
+  tests.test_send_identity.IssueSenderBindingTests.test_reuse_of_non_0600_binding_file_refuses`
+  — RED verbatim:
+  `AssertionError: 0 == 0`
+  (`Ran 1 test ... FAILED (failures=1)`, exit 1).
+- Blast radius: full `tests.test_send_identity` under sabotage →
+  `Ran 28 tests ... FAILED (failures=1)` — ONLY the reuse-refusal test
+  fails; valid reuse (`test_issue_reuses_matching_grant_and_file`) still
+  passes, proving the guard narrows only the unsafe path.
+- Restore: `git checkout -- scripts/send_identity.py`; `git status --short`
+  clean; rerun `Ran 28 tests ... OK` (exit 0). GREEN.
+
+## QA-R4b — unaligned seed gate restored (rework-3 G3, PR #128)
+- Sabotage: `seat_needs_sender_binding` body (`scripts/seed-rig.py`)
+  replaced with unconditional `return True  # QA-R4 SABOTAGE(b)`
+  (opt-in unbound seats get bindings the renderer configures no entry
+  for — the pre-fix divergence).
+- Check: `python3 -m unittest
+  tests.test_identity_m1.SeatNeedsSenderBindingTests` — RED verbatim:
+  `AssertionError: True is not false`
+  (`Ran 3 tests ... FAILED (failures=2)`, exit 1):
+  `test_unbound_role_needs_no_sender_binding` and
+  `test_opted_in_unbound_role_gets_grant_but_no_sender_binding` fail —
+  proving the gate (not the caller) is what stops unusable bindings.
+- Restore: `git checkout -- scripts/seed-rig.py`; `git status --short`
+  clean; rerun 3/3 OK (exit 0). GREEN.
+
+## QA-R4c — V28 full-battery gate non-vacuous (grant-suffix sabotage)
+- Sabotage: `SENDER_BINDING_GRANT_SUFFIX` in `scripts/send_identity.py`
+  changed `/send-identity` → `/sender-binding  # QA-R4 SABOTAGE(c)`.
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: binding grant name must scope the sender
+  with /send-identity (got 'blue-probe@test-rig/sender-binding')`
+  plus `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`;
+  `SUMMARY: 35 checks passed, 2 failed.` (exit 1).
+- Restore: `git checkout -- scripts/send_identity.py`; `git status --short`
+  clean; rerun `SUMMARY: 36 checks passed, 0 failed.` with
+  `[PASS] V28 send-identity attestation (09-send-identity S1) green:
+  binding rules + !cat render + 28 corpus tests pass + S0 evidence present`
+  (exit 0). GREEN.
+
+Rework-3 QA-R4 verdict: all three sabotage runs turn RED and restore to
+GREEN with `git status --short` clean. No vacuous acceptance check found.

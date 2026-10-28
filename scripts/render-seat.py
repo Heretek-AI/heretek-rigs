@@ -997,6 +997,53 @@ def build_seat_files(
 
     files["mcp.json"] = {"mcpServers": mcp_servers}
 
+    # 09-send-identity S1 (REQ-S1): per-seat sender-binding reference for
+    # grant-bound seats (same gate as the REQ-I1 grant header: the role binds
+    # a catalog server carrying `seat_grant: true`). The binding secret is
+    # seed-issued (0600 store) and is referenced here as a `!cat` whole-value
+    # form — never an inline secret. Strict render dies on a missing binding
+    # file (the relay cannot attest without it); degraded render marks the
+    # entry disabled so the seat holds sends UNVERIFIED instead of pointing
+    # at a nonexistent secret. Unbound roles render no entry at all.
+    import importlib.util as _ilu09
+
+    _bound09 = [
+        b
+        for b in role.get("mcp", []) or []
+        if isinstance(b, dict)
+        and mcp_catalog.get(b.get("server"), {}).get(SEAT_GRANT_FLAG)
+    ]
+    if _bound09:
+        # Lazy: unbound roles never touch the attestation module (zero
+        # render cost, no hard dependency); bound roles fail closed here
+        # when the module is absent instead of rendering without identity.
+        _si09_spec = _ilu09.spec_from_file_location(
+            "send_identity_render",
+            Path(__file__).resolve().parent / "send_identity.py",
+        )
+        try:
+            _si09_mod = _ilu09.module_from_spec(_si09_spec)
+            _si09_spec.loader.exec_module(_si09_mod)
+        except Exception as _e09:
+            die(f"send-identity module missing (scripts/send_identity.py: {_e09})")
+        _sbfn09 = _si09_mod.sender_binding_filename(session)
+        if secret_ok(_sbfn09):
+            files["send-identity.json"] = {
+                "sender": session,
+                "scope": {"rig": rig_id},
+                "binding": f"!cat {Path(secrets_dir) / _sbfn09}",
+                "version": _si09_mod.ATTESTATION_VERSION,
+            }
+        elif not allow_missing_secrets:
+            die(f"send-identity needs {Path(secrets_dir) / _sbfn09} (chmod 600)")
+        else:
+            if check_secret_fs:
+                print(
+                    f"warn: {session}: send-identity disabled, missing binding: {_sbfn09}",
+                    file=sys.stderr,
+                )
+            files["send-identity.json"] = {"sender": session, "enabled": False}
+
     # 3. settings.json
     tools = ["read", "grep", "find", "ls", "bash", "edit", "write"]
     if deferred:

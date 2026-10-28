@@ -183,6 +183,21 @@ def seat_needs_grant(role, mcp_catalog, opt_in: bool = False) -> bool:
     return bool(opt_in)
 
 
+def seat_needs_sender_binding(role, mcp_catalog) -> bool:
+    """True when the renderer configures this seat for attestation (09-send-identity).
+
+    Mirrors the render gate in render-seat.py (`_bound09`: the role binds a
+    catalog server carrying `seat_grant: true`) — deliberately WITHOUT the
+    HERETEK_SEAT_GRANT_OPT_IN escape. An opted-in but otherwise unbound seat
+    keeps its seat grant yet must receive no sender binding: the renderer
+    emits no `send-identity.json` entry for it, so the binding would be
+    unusable. Equivalent to `seat_needs_grant(role, mcp_catalog,
+    opt_in=False)`; kept as a named helper so the seed call site reads as
+    the render gate, not the grant gate.
+    """
+    return seat_needs_grant(role, mcp_catalog, opt_in=False)
+
+
 # 107-identity rework-2 (CodeQL py/clear-text-logging-sensitive-data):
 # failure output from `rig mcp token` subprocess calls (detail) and
 # rig-subprocess exception strings are tainted as secret-bearing, so every
@@ -493,6 +508,25 @@ def main() -> None:
     )
     _issue_grants = not (args.dry_run or args.refresh_policy_only)
     _rig_bin = shutil.which("rig") or "rig"
+    # 09-send-identity S1 (REQ-S1): sender-binding issuance reuses the
+    # issue_seat_grant discipline via scripts/send_identity.py (lazy import
+    # on first need: single source of truth for filenames/scope, never
+    # duplicated here; paths that issue no binding never load the module).
+    _si09_mod = None
+
+    def _load_si09_mod():
+        nonlocal _si09_mod
+        if _si09_mod is None:
+            import importlib.util as _ilu09
+
+            _si09_spec = _ilu09.spec_from_file_location(
+                "send_identity_seed",
+                Path(__file__).resolve().parent / "send_identity.py",
+            )
+            _si09_mod = _ilu09.module_from_spec(_si09_spec)
+            _si09_spec.loader.exec_module(_si09_mod)
+        return _si09_mod
+
     for s in seats:
         _session74 = f"{s['pod']}-{s['member']}@{s['rig']}"
         _role74 = _roles74.get(s["role"])
@@ -530,6 +564,27 @@ def main() -> None:
                 )
                 if _grc != 0:
                     sys.exit(_grc)
+                # 09-send-identity S1 (rework-3): sender binding issues ONLY
+                # for seats the renderer configures for attestation
+                # (`seat_needs_sender_binding`: bound role, no opt-in) — an
+                # opted-in but otherwise unbound seat keeps its seat grant
+                # above yet gets no binding, since render emits no
+                # send-identity.json entry for it (unusable binding).
+                if _role74 is not None and seat_needs_sender_binding(_role74, _mcp74):
+                    _sbrc = _load_si09_mod().issue_sender_binding(
+                        _session74,
+                        _secrets_dir,
+                        rig_bin=_rig_bin,
+                        allow_missing_secrets=args.allow_missing_secrets,
+                        rig=s["rig"],
+                    )
+                    if _sbrc != 0:
+                        sys.exit(_sbrc)
+                else:
+                    print(
+                        f"ok {_session74}: no send-identity binding, "
+                        "renderer configures no attestation (no binding issued)"
+                    )
         cmd = [
             sys.executable,
             str(render_script),

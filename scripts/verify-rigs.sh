@@ -2514,11 +2514,17 @@ _v19_before = len(failures)
 # not move with host state. On a fully green run the live count must still
 # equal the frozen total, so a new ok()-bearing gate that forgot to bump the
 # freeze fails here instead of rotting.
-_v19_canonical = 35
+# 09-send-identity S2: V28 is the first ok()-bearing gate since the freeze,
+# so the canonical total moves 35 -> 36 here (and only here — no other V1-V27
+# line changes). The three live-count docs move with it.
+_v19_canonical = 36
 if not failures:
-    if passes + 1 != _v19_canonical:
+    # 09-send-identity S2: +1 is V19's own ok() below, +1 is V28 (the first
+    # ok()-bearing gate since the freeze). A second post-freeze ok() gate
+    # must bump this addend alongside the canonical total.
+    if passes + 2 != _v19_canonical:
         fail(
-            f"V19/#102: green-run live count is {passes + 1}, not the frozen canonical total {_v19_canonical} (a new ok()-bearing gate must bump the freeze + docs)"
+            f"V19/#102: green-run live count is {passes + 2}, not the frozen canonical total {_v19_canonical} (a new ok()-bearing gate must bump the freeze + docs)"
         )
 _v19_live = _v19_canonical
 for _doc19, _need19 in (
@@ -3010,6 +3016,116 @@ if _yaml27 is not None:
             fail("V27/overhaul-a: verify-fleet job must install bubblewrap")
 if len(failures) == _v27_before:
     print("V27/overhaul-a M3 green: Dockerfile bubblewrap + UniqueKey workflow parse + verify-fleet install (FAIL-ONLY, SUMMARY frozen)")
+print("\n== V28. Send-Identity Attestation (09-send-identity S1) ==")
+# 09-send-identity S1 appended alongside — no V1-V27 line renumbered or
+# reworded. This block bears ok() (the first since the V19 freeze), so the
+# V19 canonical total moves 35 -> 36 alongside the three live-count docs
+# (AGENTS.md, README.md, docs/USER_GUIDE.md) per the freeze's own bump rule.
+# Coverage: the sender-binding filename/grant-name rules, the !cat render
+# markers (never an inline secret), the issuance-discipline + relay-verify
+# markers, the S1 corpus (tests/test_send_identity.py, all four REQ-S2
+# forgery classes, dummy keys only), and the S0 pre-fix evidence file
+# (accepted-forgery line present, zero bearer-shaped strings).
+_v28_before = len(failures)
+_v28_si_spec = importlib.util.spec_from_file_location("send_identity_v28", str(root / "scripts/send_identity.py"))
+_v28_si_mod = importlib.util.module_from_spec(_v28_si_spec)
+try:
+    _v28_si_spec.loader.exec_module(_v28_si_mod)
+except Exception as _e28:
+    fail(f"V28/09-send-identity: cannot load scripts/send_identity.py ({_e28})")
+    _v28_si_mod = None
+if _v28_si_mod is not None:
+    try:
+        _v28_fn = _v28_si_mod.sender_binding_filename("blue-probe@test-rig")
+    except Exception as _e28:
+        fail(f"V28/09-send-identity: sender_binding_filename raised ({_e28})")
+        _v28_fn = None
+    if _v28_fn is not None and (_v28_fn != "send-id-blue-probe@test-rig.key" or ".." in _v28_fn or "/" in _v28_fn):
+        fail(f"V28/09-send-identity: binding filename must embed the session verbatim with a .key suffix and no path separators (got {_v28_fn!r})")
+    try:
+        _v28_gn = _v28_si_mod.sender_binding_grant_name("blue-probe@test-rig")
+    except Exception as _e28:
+        fail(f"V28/09-send-identity: sender_binding_grant_name raised ({_e28})")
+        _v28_gn = None
+    if _v28_gn is not None and _v28_gn != "blue-probe@test-rig/send-identity":
+        fail(f"V28/09-send-identity: binding grant name must scope the sender with /send-identity (got {_v28_gn!r})")
+    if not hasattr(_v28_si_mod, "mint_attestation") or not hasattr(_v28_si_mod, "verify_attestation"):
+        fail("V28/09-send-identity: send_identity.py must expose mint_attestation + verify_attestation")
+    if not hasattr(_v28_si_mod, "issue_sender_binding"):
+        fail("V28/09-send-identity: send_identity.py must expose issue_sender_binding")
+_v28_si_src = ""
+try:
+    _v28_si_src = (root / "scripts/send_identity.py").read_text()
+except Exception as _e28:
+    fail(f"V28/09-send-identity: scripts/send_identity.py unreadable ({_e28})")
+if _v28_si_src:
+    for _marker28 in (
+        '"--seat"',
+        '"--rig"',
+        "_revoke_grant",
+        "parse_issued_token",
+        "_redact_for_log",
+        "0o600",
+        "mkstemp",
+        "compare_digest",
+        '"attested"',
+        '"rejected"',
+        '"unverified"',
+    ):
+        if _marker28 not in _v28_si_src:
+            fail(f"V28/09-send-identity: scripts/send_identity.py lost issuance/verify marker {_marker28!r}")
+    if re.search(r"[A-Za-z0-9_-]{40,}", _v28_si_src):
+        fail("V28/09-send-identity: scripts/send_identity.py carries a bearer-shaped run (no inline secrets)")
+_v28_rs_src = (root / "scripts/render-seat.py").read_text()
+for _marker28 in (
+    "send-identity.json",
+    "sender_binding_filename",
+    "send-identity needs",
+):
+    if _marker28 not in _v28_rs_src:
+        fail(f"V28/09-send-identity: scripts/render-seat.py lost send-identity render marker {_marker28!r}")
+if '!cat {Path(secrets_dir)' not in _v28_rs_src and '"!cat "' not in _v28_rs_src:
+    fail("V28/09-send-identity: scripts/render-seat.py must render the binding as a !cat reference")
+_v28_ri28 = _v28_rs_src.find("09-send-identity S1 (REQ-S1)")
+if _v28_ri28 < 0:
+    fail("V28/09-send-identity: scripts/render-seat.py lost the send-identity render block anchor")
+elif re.search(r"[A-Za-z0-9_-]{40,}", _v28_rs_src[_v28_ri28:_v28_ri28 + 2500]):
+    fail("V28/09-send-identity: send-identity render block carries a bearer-shaped run (no inline secrets)")
+_v28_ev = root / "docs/evidence/09-send-identity-spoof.md"
+try:
+    _v28_ev_text = _v28_ev.read_text()
+except Exception as _e28:
+    fail(f"V28/09-send-identity: S0 evidence file unreadable ({_e28})")
+    _v28_ev_text = None
+if _v28_ev_text is not None:
+    if "accepted forged sender:" not in _v28_ev_text:
+        fail("V28/09-send-identity: S0 evidence must carry the accepted-forged-sender line")
+    if "SPOOF-OK pre-fix" not in _v28_ev_text:
+        fail("V28/09-send-identity: S0 evidence must carry the SPOOF-OK verdict line")
+    if re.search(r"[A-Za-z0-9_-]{40,}", _v28_ev_text):
+        fail("V28/09-send-identity: S0 evidence carries an unredacted bearer-shaped run")
+_v28_ut = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests.test_send_identity"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v28_ran = 0
+_v28_m = re.search(r"Ran (\d+) tests", _v28_ut.stderr or "")
+if _v28_m:
+    _v28_ran = int(_v28_m.group(1))
+_v28_skipped = 0
+_v28_sk = re.search(r"skipped=(\d+)", _v28_ut.stderr or "")
+if _v28_sk:
+    _v28_skipped = int(_v28_sk.group(1))
+if _v28_ut.returncode != 0:
+    fail(f"V28/09-send-identity: tests.test_send_identity failed:\n{_v28_ut.stderr[-800:]}")
+elif _v28_skipped:
+    fail(f"V28/09-send-identity: tests.test_send_identity skipped {_v28_skipped} test(s) (skips must not count toward the corpus threshold)")
+elif _v28_ran - _v28_skipped < 20:
+    fail(f"V28/09-send-identity: tests.test_send_identity ran only {_v28_ran - _v28_skipped} executed tests (need >= 20, non-vacuous floor)")
+if len(failures) == _v28_before:
+    ok(f"V28 send-identity attestation (09-send-identity S1) green: binding rules + !cat render + {_v28_ran} corpus tests pass + S0 evidence present")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

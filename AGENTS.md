@@ -12,7 +12,7 @@ Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, or `scripts/`, then regenerat
 ```bash
 python3 ./scripts/generate-rigs.py        # no blocking dirt only: sanctioned session strays ignored (issue #43 allowlist), tracked/non-allowlisted dirt refuses (by design)
 HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py   # dev iterations only
-./scripts/verify-rigs.sh --check-only     # expect: 35 checks passed, 0 failed
+./scripts/verify-rigs.sh --check-only     # expect: 36 checks passed, 0 failed
 python3 ./scripts/audit_loop.py --self-test
 ```
 
@@ -70,3 +70,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `archive/2026-10-28-overhaul/docs/PROMPT_REVIEW_ARGON.md`, `archive/2026-10-28-overhaul/docs/PROMPT_REVIEW_WEB.md` — prompt-pass decision record (archived 2026-10-28).
 - `AUDIT_REPORT_FINDINGS.md` — audit trail (append, don't rewrite history). `REMEDIATION_LOG.md` archived at `archive/2026-10-28-overhaul/REMEDIATION_LOG.md`.
 - `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` — audit protocol. `PROMPT_FLEET_AUDIT_REMEDIATION.md` archived at `archive/2026-10-28-overhaul/PROMPT_FLEET_AUDIT_REMEDIATION.md`.
+- `openspec/changes/archive/2026-10-28-09-send-identity/` — wave 9 spec: per-seat sender attestation for `rig send` (Refs #9, repo-side only).
