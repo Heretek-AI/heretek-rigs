@@ -292,3 +292,66 @@ CodeQL cannot run locally — each fix below is red-proven by sabotage
 - Restore: `({_redact(reason)})`; same probe GREEN (stderr
   `send-identity: unverified (scope mismatch: attestation rig
   '…redacted…' != 'test-rig')`, no 40+ run).
+
+## QA-R3 series — r2 acceptance re-verification (acceptance verifier, 2026-10-28, branch fix/09-send-identity-r2 @ a570bf1)
+Prior entries above left untouched. All sabotage temporary and fully
+reverted; `git status --short` clean and `git diff --stat` empty after
+each cycle. Baseline before sabotage: verify 36/0 with V28 PASS,
+`make test` Ran 532 OK, corpus Ran 27 OK, self-test PASSED,
+--check-idempotent PASS (provenance-only restamp verified and reverted),
+secrets grep exit 1 (no output).
+
+## QA-R3a — refusal-fixture mask 0o640 preserves refusal; 0o644 is world-readable (H1 semantics)
+- Sabotage: `os.chmod(target, 0o640)` → `0o644` in
+  `test_existing_non_0600_store_refuses_pre_mint`
+  (`tests/test_send_identity.py:237`).
+- Check 1 (semantics preserved):
+  `python3 -m unittest tests.test_send_identity.IssueSenderBindingTests.test_existing_non_0600_store_refuses_pre_mint`
+  under sabotage → still OK (`Ran 1 test ... OK`, exit 0). The refusal
+  gate refuses anything `!= 0o600`, so 0644 refuses exactly like 0640 —
+  proving H1's claim that the C1 mask change preserves the test's meaning.
+- Check 2 (world-readability RED): scratch probe asserting
+  `stat.S_IMODE & 0o007 == 0` on a 0644 fixture — RED verbatim:
+  `AssertionError: RED: fixture is world-readable
+  (py/overly-permissive-file class, mode 0644)`, probe exit 1
+  (mode 644, world-bits 4).
+- Restore: `git checkout -- tests/test_send_identity.py` (line back to
+  `0o640`); probe GREEN (mode 640, world-bits 0, still != 0600),
+  refusal test OK; `git status --short` clean.
+
+## QA-R3b — raw reuse-ok sink leaks a 45-char token-shaped session; redacted sink does not (H2 live)
+- Sabotage: reuse-ok print in `issue_sender_binding`
+  (`scripts/send_identity.py:168`) back to raw
+  `f"ok {session}: sender binding already issued (reuse {binding_path.name})"`;
+  drove issue→reuse with bearer-shaped-but-legal session `"A"*45`.
+- Check (guard form): assert no `[A-Za-z0-9_-]{40,}` run on reuse
+  stdout/stderr — RED verbatim, exit 1:
+  `AssertionError: RED: bearer-shaped run leaked on reuse stdout:
+  'ok AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA: sender binding
+  already issued (reuse send-id-AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.key)'`.
+  Direct probe likewise showed the 45-char session on stdout verbatim
+  with a bearer-regex HIT — proving the sink is live and the
+  `_session_log`/`_binding_log` helper is what stops it.
+- Restore: `git checkout -- scripts/send_identity.py` (line back to
+  `f"ok {_session_log}: ... (reuse {_binding_log})"`); same guard probe
+  GREEN (`GREEN: reuse path emits no bearer-shaped runs`, exit 0);
+  `test_reuse_path_emits_no_token_material` OK; `git status --short` clean.
+
+## QA-R3c — V28 gate fails without the attestation module (full-battery check)
+- Sabotage: `mv scripts/send_identity.py /tmp/qa-r3c-send_identity.py`
+  (pre-fix shape).
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim, exit 1:
+  `[FAIL] V28/09-send-identity: cannot load scripts/send_identity.py
+  ([Errno 2] No such file or directory: '.../scripts/send_identity.py')`,
+  `[FAIL] V28/09-send-identity: scripts/send_identity.py unreadable (...)`,
+  `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`,
+  `SUMMARY: 35 checks passed, 4 failed.`
+- Restore: moved back byte-identical (`git status --short` clean,
+  `git diff --stat` empty); rerun GREEN verbatim, exit 0:
+  `[PASS] V28 send-identity attestation (09-send-identity S1) green:
+  binding rules + !cat render + 27 corpus tests pass + S0 evidence present`,
+  `SUMMARY: 36 checks passed, 0 failed.`
+
+QA-R3 verdict: no vacuous checks found. The 0o640 fixture still refuses
+(H1), the redaction-routed sink is live and leaks when bypassed (H2),
+and the V28 gate turns RED without the module and GREEN on restore.
