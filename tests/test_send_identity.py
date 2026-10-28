@@ -123,6 +123,11 @@ class BindingNameRuleTests(unittest.TestCase):
             self.assertNotIn("/", fn)
             self.assertNotIn("..", fn)
 
+    def test_binding_filename_rejects_session_with_path_separator(self):
+        for hostile in ("blue/probe@test-rig", "blue-probe@test/rig", "..@x"):
+            with self.assertRaises(ValueError, msg=hostile):
+                SEND_MOD.sender_binding_filename(hostile)
+
     def test_binding_grant_name_scopes_sender_with_suffix(self):
         name = SEND_MOD.sender_binding_grant_name("blue-probe@test-rig")
         self.assertEqual(name, "blue-probe@test-rig/send-identity")

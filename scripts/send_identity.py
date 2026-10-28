@@ -66,8 +66,13 @@ def sender_binding_filename(session: str) -> str:
     The session is embedded verbatim (grant names accept `@`; render dies on
     `.`/`@` in pod/member ids, so exactly one `@` separates member and rig).
     The `.key` suffix reuses the frozen `*.key` path deny, so no seat can
-    read another seat's binding through the permission layer.
+    read another seat's binding through the permission layer. Fail-closed:
+    a session containing `/` or `..` raises (never build a secrets-dir path
+    that escapes it — pod/member ids die on `.`/`@` at render, but `/` is
+    refused here, at the path-construction choke point).
     """
+    if "/" in session or ".." in session:
+        raise ValueError(f"refusing sender-binding filename for session {session!r}")
     return f"send-id-{session}.key"
 
 
