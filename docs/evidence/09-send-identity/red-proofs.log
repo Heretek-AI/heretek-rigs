@@ -414,3 +414,52 @@ foreign-owner/unsafe-open in both modes.
 
 Rework-3 verdict: G2/G3 fixes turn RED under targeted sabotage and
 GREEN on restore; G1/G5 grounded by scratch matrix + suite; G4 stale.
+
+## QA-R4a — reuse-branch mode guard removed (rework-3 G2, PR #128)
+- Sabotage: reuse-branch 0600-regular-file guard in
+  `scripts/send_identity.py` (`os.lstat` + `S_ISREG` + exact `0o600`,
+  `_fail` closed) replaced with unconditional reuse
+  (`pass  # QA-R4 SABOTAGE(a)`).
+- Check: `python3 -m unittest
+  tests.test_send_identity.IssueSenderBindingTests.test_reuse_of_non_0600_binding_file_refuses`
+  — RED verbatim:
+  `AssertionError: 0 == 0`
+  (`Ran 1 test ... FAILED (failures=1)`, exit 1).
+- Blast radius: full `tests.test_send_identity` under sabotage →
+  `Ran 28 tests ... FAILED (failures=1)` — ONLY the reuse-refusal test
+  fails; valid reuse (`test_issue_reuses_matching_grant_and_file`) still
+  passes, proving the guard narrows only the unsafe path.
+- Restore: `git checkout -- scripts/send_identity.py`; `git status --short`
+  clean; rerun `Ran 28 tests ... OK` (exit 0). GREEN.
+
+## QA-R4b — unaligned seed gate restored (rework-3 G3, PR #128)
+- Sabotage: `seat_needs_sender_binding` body (`scripts/seed-rig.py`)
+  replaced with unconditional `return True  # QA-R4 SABOTAGE(b)`
+  (opt-in unbound seats get bindings the renderer configures no entry
+  for — the pre-fix divergence).
+- Check: `python3 -m unittest
+  tests.test_identity_m1.SeatNeedsSenderBindingTests` — RED verbatim:
+  `AssertionError: True is not false`
+  (`Ran 3 tests ... FAILED (failures=2)`, exit 1):
+  `test_unbound_role_needs_no_sender_binding` and
+  `test_opted_in_unbound_role_gets_grant_but_no_sender_binding` fail —
+  proving the gate (not the caller) is what stops unusable bindings.
+- Restore: `git checkout -- scripts/seed-rig.py`; `git status --short`
+  clean; rerun 3/3 OK (exit 0). GREEN.
+
+## QA-R4c — V28 full-battery gate non-vacuous (grant-suffix sabotage)
+- Sabotage: `SENDER_BINDING_GRANT_SUFFIX` in `scripts/send_identity.py`
+  changed `/send-identity` → `/sender-binding  # QA-R4 SABOTAGE(c)`.
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: binding grant name must scope the sender
+  with /send-identity (got 'blue-probe@test-rig/sender-binding')`
+  plus `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`;
+  `SUMMARY: 35 checks passed, 2 failed.` (exit 1).
+- Restore: `git checkout -- scripts/send_identity.py`; `git status --short`
+  clean; rerun `SUMMARY: 36 checks passed, 0 failed.` with
+  `[PASS] V28 send-identity attestation (09-send-identity S1) green:
+  binding rules + !cat render + 28 corpus tests pass + S0 evidence present`
+  (exit 0). GREEN.
+
+Rework-3 QA-R4 verdict: all three sabotage runs turn RED and restore to
+GREEN with `git status --short` clean. No vacuous acceptance check found.
