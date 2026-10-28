@@ -40,6 +40,78 @@ CANARY_ROLE = "engine-systems-eng"
 CANARY_RIG = "game-dev-and-sim-rig"
 CANARY_POD = "engine"
 
+# REQ-B5: the pinned wave-base commit for the scope bound. The test prefers
+# the live git object and falls back to the committed fixture below when the
+# object is unresolvable (shallow/partial clones, worktrees without history).
+CAN_BASE_COMMIT = "a33f3bb"
+CAN_BASE_FIXTURE = REPO_ROOT / "tests/fixtures/can-base-permissions.json"
+
+# Post-#121 reality: the 102-closeout `bash_deny` triple rides every role.
+# It is normalized away before the scope comparison, and asserted byte-exact
+# everywhere so a missing or widened triple fails loudly.
+EXPECTED_FLEET_DENY = ["rig queue list", "rig queue create", "rig send"]
+
+
+def _without_triple(perms):
+    """Return permissions with exactly the fleet-wide deny triple removed.
+
+    Fail-closed: a bash_deny carrying anything beyond the triple is left in
+    place (never silently dropped), so the scope comparison still trips.
+    """
+    cleaned = dict(perms or {})
+    remaining = [
+        d for d in (cleaned.get("bash_deny") or []) if d not in EXPECTED_FLEET_DENY
+    ]
+    if remaining:
+        cleaned["bash_deny"] = remaining
+    else:
+        cleaned.pop("bash_deny", None)
+    return cleaned
+
+
+def _load_fixture_permissions():
+    """Read the committed wave-base permissions fixture (fail-closed)."""
+    doc = json.loads(CAN_BASE_FIXTURE.read_text())
+    if doc.get("base_commit") != CAN_BASE_COMMIT:
+        raise AssertionError(
+            f"fixture {CAN_BASE_FIXTURE} pins {doc.get('base_commit')!r}, "
+            f"need base {CAN_BASE_COMMIT!r}"
+        )
+    perms = doc.get("permissions")
+    if not isinstance(perms, dict) or not perms:
+        raise AssertionError(f"fixture {CAN_BASE_FIXTURE} carries no permissions map")
+    return {name: (p or {}) for name, p in perms.items()}
+
+
+def _load_base_permissions(commit=CAN_BASE_COMMIT):
+    """Return (permissions-by-role, source) for the scope bound.
+
+    Prefers `git show <commit>:fleet/fleet.yaml`; when the object is
+    unresolvable, falls back to the committed fixture. The fixture always
+    represents CAN_BASE_COMMIT, so a non-default commit that resolves from
+    git is returned as-is while an unresolvable one lands on the fixture.
+    """
+    proc = subprocess.run(
+        ["git", "show", f"{commit}:fleet/fleet.yaml"],
+        cwd=str(REPO_ROOT),
+        capture_output=True,
+        text=True,
+    )
+    if proc.returncode == 0:
+        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as tmp:
+            tmp.write(proc.stdout)
+            base_path = tmp.name
+        try:
+            base = load_fleet(base_path)
+        finally:
+            os.unlink(base_path)
+        return (
+            {n: (r.get("permissions") or {}) for n, r in base["roles"].items()},
+            f"git:{commit}",
+        )
+    return _load_fixture_permissions(), "fixture"
+
+
 # The canary delta, byte-exact: one appended clock-read grant plus the #91
 # scoped configure/compile grants, nothing else.
 EXPECTED_CANARY_BASH_ALLOW = [
@@ -140,9 +212,16 @@ class CanaryCatalogPins(unittest.TestCase):
             self.assertFalse(entry.startswith("git commit"))
 
     def test_canary_scope_only(self):
-        """Binding bound: every role except engine-systems-eng keeps
-        byte-identical permissions vs the FIXED wave-base commit a33f3bb
-        (pinned: HEAD drifts as the wave lands commits)."""
+        """Binding bound: no role widens grants beyond the pinned wave-base
+        a33f3bb plus exactly the known deltas (REQ-BC3/REQ-B5).
+
+        Post-#121 reality: every role carries the 102-closeout `bash_deny`
+        triple, so the raw changed-role list is all 51. The bound therefore
+        normalizes that fleet-wide triple away first: after normalization the
+        changed set is exactly the canary plus the M4 remediation roles plus
+        #91's second engine role. Any other role with any other delta fails.
+        The base comes from the live `git show` object when resolvable, else
+        the committed fixture (same assertions either way)."""
         # M4 (#68/#73) remediation scope: runner-verb strips on four locked
         # seats plus the dependency-patcher commit-grant strip. The bound is
         # the canary plus exactly these roles — any other role still fails.
@@ -155,31 +234,86 @@ class CanaryCatalogPins(unittest.TestCase):
         ]
         # #91 wave F (PR #117): cpp-lowlevel-eng gains the gcc/g++ overlay.
         wave_f_changed = ["cpp-lowlevel-eng"]
-        proc = subprocess.run(
-            ["git", "show", "a33f3bb:fleet/fleet.yaml"],
-            cwd=str(REPO_ROOT),
-            capture_output=True,
-            text=True,
+        base_perms, source = _load_base_permissions(CAN_BASE_COMMIT)
+        self.assertEqual(
+            sorted(self.fleet["roles"]),
+            sorted(base_perms),
+            f"role set drifted vs {source}",
         )
-        self.assertEqual(proc.returncode, 0, proc.stderr)
-        with tempfile.NamedTemporaryFile("w", suffix=".yaml", delete=False) as tmp:
-            tmp.write(proc.stdout)
-            base_path = tmp.name
-        try:
-            base = load_fleet(base_path)
-        finally:
-            os.unlink(base_path)
+        # Post-#121 reality: the 102-closeout bash_deny triple rides every
+        # role. It must be present and byte-exact everywhere — a missing or
+        # widened triple fails here, never silently.
+        for name in sorted(self.fleet["roles"]):
+            live_perms = self.fleet["roles"][name].get("permissions") or {}
+            self.assertEqual(
+                list(live_perms.get("bash_deny") or []),
+                EXPECTED_FLEET_DENY,
+                f"{name}: bash_deny must be exactly the 102-closeout triple",
+            )
+        normalized_live = {
+            name: _without_triple(perms)
+            for name, perms in (
+                (n, self.fleet["roles"][n].get("permissions") or {})
+                for n in self.fleet["roles"]
+            )
+        }
         changed = [
             name
-            for name in self.fleet["roles"]
-            if self.fleet["roles"][name].get("permissions")
-            != base["roles"][name].get("permissions")
+            for name in normalized_live
+            if normalized_live[name] != (base_perms.get(name) or {})
         ]
         # Post-delta the changed-role list is exactly the canary plus the
         # M4 remediation roles and #91's second engine role. Any other role
         # in the list fails.
         self.assertEqual(
             sorted(changed), sorted([CANARY_ROLE, *m4_changed, *wave_f_changed])
+        )
+        if source.startswith("git:"):
+            # Fixture freshness: when the base object resolves, the
+            # committed fixture must equal it byte-for-byte (stale fixture
+            # fails here so the fallback never drifts from the base).
+            self.assertEqual(base_perms, _load_fixture_permissions())
+
+    def test_canary_scope_only_fixture_fallback(self):
+        """REQ-B5 fallback proof: with the base object unresolvable, the
+        bound resolves from the committed fixture and asserts the same
+        post-#121 reality (no git object needed)."""
+        base_perms, source = _load_base_permissions(
+            "0000000000000000000000000000000000000000"
+        )
+        self.assertEqual(source, "fixture")
+        for name in sorted(self.fleet["roles"]):
+            live_perms = self.fleet["roles"][name].get("permissions") or {}
+            self.assertEqual(
+                list(live_perms.get("bash_deny") or []),
+                EXPECTED_FLEET_DENY,
+                f"{name}: bash_deny must be exactly the 102-closeout triple",
+            )
+        normalized_live = {
+            name: _without_triple(perms)
+            for name, perms in (
+                (n, self.fleet["roles"][n].get("permissions") or {})
+                for n in self.fleet["roles"]
+            )
+        }
+        changed = [
+            name
+            for name in normalized_live
+            if normalized_live[name] != (base_perms.get(name) or {})
+        ]
+        self.assertEqual(
+            sorted(changed),
+            sorted(
+                [
+                    CANARY_ROLE,
+                    "ai-red-teamer",
+                    "compliance-auditor",
+                    "dependency-patcher",
+                    "sabotage-qa-tester",
+                    "static-analysis-lead",
+                    "cpp-lowlevel-eng",
+                ]
+            ),
         )
 
 
@@ -223,7 +357,8 @@ class CanaryMockProbes(unittest.TestCase):
             )
         )
         pps_json = (
-            tools / "pi-packages/node_modules/@gotgenes/pi-permission-system/package.json"
+            tools
+            / "pi-packages/node_modules/@gotgenes/pi-permission-system/package.json"
         )
         try:
             pps_ver = json.loads(pps_json.read_text()).get("version")

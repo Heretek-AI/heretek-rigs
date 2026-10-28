@@ -1,14 +1,17 @@
-# schemas/contract-schemas.sha256 — contract-schema pin (issue #98, REQ-D98).
+# schemas/contract-schemas.sha256 — contract-schema pin (issue #98, REQ-D98; REQ-B4).
 #
-# Five of the six files are vendored byte-exact from upstream OpenRig:
+# Six of the seven files are vendored byte-exact from upstream OpenRig:
 # `bundle-behaviour`, `bundle-common`, `bundle-configurations`,
-# `bundle-status` and `registry-entry` `.v1.schema.json` come from
-# `package/daemon/docs/reference/schemas/` in the `npm pack @openrig/cli@0.7.2`
-# tarball (sha256 42b4d4980c062f49f99db7e843a2ba96c0066a420cbaace381f435e22699d4c5,
-# the digest in schemas/rigspec-keys.pinned.json); 0.6.13 ships the same
-# bytes. When `rig` is on PATH, verify-rigs V18 `cmp`s them against the
-# installed package's copies. Do not edit them; refresh them only from a
-# newer pinned tarball, together with this pin.
+# `bundle-status`, `registry-entry` and `run-record` `.v1.schema.json` come from
+# `package/daemon/docs/reference/schemas/` in the `npm pack @openrig/cli@0.7.4`
+# tarball (sha256 d11dd8a6fc78f0c4d7afeae462c07c2af0fb9fe460990950be495016734920a1,
+# the digest in schemas/rigspec-keys.pinned.json); the five bundle/registry
+# schemas ship bytes identical to 0.7.2, `run-record` is new in this pin
+# (sha256 b3c7ac64fd9dd51152888c99fdbcadd85cddebebb2d38253864bff054da3fde7,
+# re-verified byte-for-byte from the published tarball). When `rig` is on
+# PATH, verify-rigs V18 `cmp`s them against the installed package's copies.
+# Do not edit them; refresh them only from a newer pinned tarball, together
+# with this pin.
 #
 # `agent-manifest.v1.schema.json` stays heretek-local: upstream ships no
 # agent-manifest schema.
@@ -21,3 +24,4 @@
 7fcf3f6201615f2b00794d43f1d8ee6c27d4535f614be5c0b15db227a95fe69a  bundle-configurations.v1.schema.json
 df2e6be1d69a2b741804ad46edb8557a136afeb098e00a2d3d33237f5198ece5  bundle-status.v1.schema.json
 9693a151398750cb65557f8c106dac76646eed799345cc8c0ce2c62ad1a02be6  registry-entry.v1.schema.json
+b3c7ac64fd9dd51152888c99fdbcadd85cddebebb2d38253864bff054da3fde7  run-record.v1.schema.json

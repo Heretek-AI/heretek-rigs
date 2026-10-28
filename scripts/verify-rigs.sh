@@ -141,19 +141,19 @@ EXPECTED_8_RIGS = [
 
 RIG_KEYS = {"version", "name", "summary", "culture_file", "permission_policy", "managed_blocks", "docs", "startup", "services", "workspace", "pods", "edges", "non_interruptive", "env"}
 POD_KEYS = {"id", "label", "summary", "continuity_policy", "startup", "members", "edges"}
-MEMBER_KEYS = {"id", "label", "agent_ref", "profile", "runtime", "codex_config_profile", "model", "effort", "advisor", "role", "permission_policy", "claude_permissions", "cwd", "restore_policy", "compaction_strategy", "mechanic", "startup", "session_source", "starter_ref", "env", "agent_file", "append_system_prompt_file", "plugin_dirs"}
+MEMBER_KEYS = {"id", "label", "agent_ref", "profile", "runtime", "codex_config_profile", "model", "effort", "advisor", "role", "permission_policy", "claude_permissions", "codex_permissions", "cwd", "restore_policy", "compaction_strategy", "mechanic", "startup", "session_source", "starter_ref", "env", "agent_file", "append_system_prompt_file", "plugin_dirs"}
 EDGE_KEYS = {"kind", "from", "to"}
 EDGE_KINDS = {"delegates_to", "spawned_by", "can_observe", "collaborates_with", "escalates_to"}
 
 # HR-2.1-schema-drift (fail-closed): the RIG/POD/MEMBER/EDGE key sets above are
-# a copy of the pinned @openrig/cli@0.7.2 rigspec-schema.ts export in
+# a copy of the pinned @openrig/cli@0.7.4 rigspec-schema.ts export in
 # schemas/rigspec-keys.pinned.json plus the vendored bytes in
 # schemas/rigspec-schema.pinned.ts. Diff them here so any upstream bump or
 # local drift flips the gate instead of silently desyncing. A sabotage adding,
 # removing, or renaming one pinned key must exit 1. The vendored .ts file must
 # exist: editing both local copies identically without updating the vendored
 # bytes still fails (upstream-hash attestation; refresh from the real
-# @openrig/cli@0.7.2 rigspec-schema.ts per the JSON provenance recipe).
+# @openrig/cli@0.7.4 rigspec-schema.ts per the JSON provenance recipe).
 # HR-2.1-pinned-self-referential: the three-way local-local diff alone passes
 # an identical 3-copy edit. The 4th anchor below (SHA-256 of the vendored
 # bytes, refreshed at generation time into the JSON provenance) fails closed
@@ -165,32 +165,32 @@ try:
     for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
         _pinned_set = set(_pinned_keys.get(_name, []))
         if _live != _pinned_set:
-            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.7.2 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-keys.pinned.json drift: {_name} verifier={sorted(_live)} pinned={sorted(_pinned_set)} (refresh from @openrig/cli@0.7.4 rigspec-schema.ts)")
     _anchored = _pinned_doc.get("provenance", {}).get("vendored_sha256", "")
     if not re.fullmatch(r"[0-9a-f]{64}", str(_anchored or "")):
-        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.7.2 rigspec-schema.ts per provenance recipe)")
+        fail("schemas/rigspec-keys.pinned.json provenance.vendored_sha256 must be 64-hex (run python3 scripts/generate-rigs.py to refresh from vendored bytes; refresh bytes from @openrig/cli@0.7.4 rigspec-schema.ts per provenance recipe)")
     else:
         _actual_ts_hash = hashlib.sha256((root / "schemas/rigspec-schema.pinned.ts").read_bytes()).hexdigest()
         if _actual_ts_hash != _anchored:
-            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.7.2 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts SHA-256 mismatch anchored={_anchored} actual={_actual_ts_hash} (identical 3-copy edit without generator refresh; refresh bytes from @openrig/cli@0.7.4 rigspec-schema.ts)")
     # HR-2.1-pinned-still-local (fail-closed): the vendored_sha256 anchor above
     # is refreshed FROM the local vendored bytes at generation time, so an
     # identical edit of all three local copies followed by a generator refresh
     # still passes. The upstream tarball anchor below is NEVER derived from
     # local bytes — it is recorded by a human running `npm pack
-    # @openrig/cli@0.7.2` on a networked shell host per the provenance recipe,
+    # @openrig/cli@0.7.4` on a networked shell host per the provenance recipe,
     # and the gate fails while it is absent/placeholder so the gap stays
     # visible instead of silently self-consistent.
     _upstream = _pinned_doc.get("provenance", {}).get("upstream_tarball", {})
     _tb_sha = str(_upstream.get("tarball_sha256", "") or "")
     if not re.fullmatch(r"[0-9a-f]{64}", _tb_sha):
-        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.7.2` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
+        fail("schemas/rigspec-keys.pinned.json provenance.upstream_tarball.tarball_sha256 must be the 64-hex SHA-256 of the upstream tarball (run `npm pack @openrig/cli@0.7.4` on a networked shell host, record the tarball SHA-256 per the provenance recipe, then re-run python3 scripts/generate-rigs.py)")
     else:
-        _tgz = root / "schemas/openrig-cli-0.7.2.tgz"
+        _tgz = root / "schemas/openrig-cli-0.7.4.tgz"
         if _tgz.exists():
             _actual_tgz = hashlib.sha256(_tgz.read_bytes()).hexdigest()
             if _actual_tgz != _tb_sha:
-                fail(f"schemas/openrig-cli-0.7.2.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.7.2`)")
+                fail(f"schemas/openrig-cli-0.7.4.tgz SHA-256 mismatch anchored={_tb_sha} actual={_actual_tgz} (re-record from `npm pack @openrig/cli@0.7.4`)")
 except Exception as _e:
     fail(f"schemas/rigspec-keys.pinned.json unreadable for schema-drift check: {_e}")
 try:
@@ -198,11 +198,11 @@ try:
     for _name, _live in (("RIG_KEYS", RIG_KEYS), ("POD_KEYS", POD_KEYS), ("MEMBER_KEYS", MEMBER_KEYS), ("EDGE_KEYS", EDGE_KEYS), ("EDGE_KINDS", EDGE_KINDS)):
         _m = re.search(rf"export const {_name} = \[(.*?)\] as const", _vendored_ts, flags=re.DOTALL)
         if not _m:
-            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.7.2 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts missing export {_name} (refresh from @openrig/cli@0.7.4 rigspec-schema.ts)")
             continue
         _vendored_set = set(re.findall(r'"([^"]+)"', _m.group(1)))
         if _live != _vendored_set:
-            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.7.2 rigspec-schema.ts)")
+            fail(f"schemas/rigspec-schema.pinned.ts drift: {_name} verifier={sorted(_live)} vendored={sorted(_vendored_set)} (refresh from @openrig/cli@0.7.4 rigspec-schema.ts)")
 except Exception as _e:
     fail(f"schemas/rigspec-schema.pinned.ts unreadable for schema-drift check: {_e}")
 
@@ -1700,7 +1700,10 @@ if not _v12_wrapper.is_file():
 elif not os.access(_v12_wrapper, os.X_OK):
     fail("scripts/seat-sandbox.sh must be executable")
 if _shutil12.which("bwrap") is None:
-    fail("tool-existence: bwrap not found on PATH (seat sandbox needs bubblewrap)")
+    if os.environ.get("HERETEK_ALLOW_NO_BWRAP") == "1":
+        print("  [NOTE] V12 tool-existence: bwrap not found on PATH (HERETEK_ALLOW_NO_BWRAP=1 note-mode; seat sandbox still needs bubblewrap on real seats)")
+    else:
+        fail("tool-existence: bwrap not found on PATH (seat sandbox needs bubblewrap)")
 # (b) per-seat settings packages[0]: resolve the committed
 # specs/.../runtime/pi-settings.json against the real tools dir.
 _v12_pps_pkg = "pi-packages/node_modules/@gotgenes/pi-permission-system"
@@ -2434,6 +2437,13 @@ else:
             _f18 = f"{_nm18}.v1.schema.json"
             if not (_up18 / _f18).is_file() or (_up18 / _f18).read_bytes() != (root / "schemas" / _f18).read_bytes():
                 fail(f"V18/#98: schemas/{_f18} differs from the installed CLI's {_up18 / _f18}")
+    # REQ-B4 (overhaul-b M4): the vendored run-record schema must equal the
+    # installed CLI's own copy byte-for-byte (same fail-closed cmp as the
+    # five bundle/registry schemas above; appended, no line above reworded).
+    if _up18.is_dir():
+        _rr18 = "run-record.v1.schema.json"
+        if not (_up18 / _rr18).is_file() or (_up18 / _rr18).read_bytes() != (root / "schemas" / _rr18).read_bytes():
+            fail(f"V18/#98: schemas/{_rr18} differs from the installed CLI's {_up18 / _rr18}")
     for _slug18 in EXPECTED_8_RIGS:
         _bc18 = subprocess.run(
             [_v18_rig, "bundle", "check", str(root / "rigs" / _slug18), "--json"],
@@ -2496,10 +2506,21 @@ print("\n== V19. Canonical Stale-Count Guard (#102) ==")
 # AUDIT_REPORT_FINDINGS, briefs, snapshots, evidence, reports, sprints)
 # is intentionally out of scope and never scanned.
 _v19_before = len(failures)
-# Self-inclusion: this block's own ok() below is part of the final SUMMARY,
-# so the live expectation is passes+1 (checked before ok() runs). A future
-# appended block without a doc refresh then fails here instead of rotting.
-_v19_live = passes + 1
+# REQ-B5 (overhaul-b M5): the doc expectation is the frozen canonical SUMMARY
+# total — V19 freezes the live SUMMARY at 35 and every later gate (V20+) is
+# FAIL-ONLY by convention, so the docs must state 35 whether or not this run
+# is green. Deriving the expectation from live `passes` cascaded any earlier
+# host failure into three bogus doc-drift failures; the canonical total does
+# not move with host state. On a fully green run the live count must still
+# equal the frozen total, so a new ok()-bearing gate that forgot to bump the
+# freeze fails here instead of rotting.
+_v19_canonical = 35
+if not failures:
+    if passes + 1 != _v19_canonical:
+        fail(
+            f"V19/#102: green-run live count is {passes + 1}, not the frozen canonical total {_v19_canonical} (a new ok()-bearing gate must bump the freeze + docs)"
+        )
+_v19_live = _v19_canonical
 for _doc19, _need19 in (
     (root / "AGENTS.md", f"{_v19_live} checks passed"),
     (root / "README.md", f"{_v19_live} checks passed"),

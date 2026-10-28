@@ -1,0 +1,57 @@
+# overhaul-b M4-M5 red-proofs log (agency-qa)
+# Worktree: .lane/trees/overhaul-b, branch feat/overhaul-b (6781e0e + 58f4202), base 264135e
+# Date UTC: 2026-10-28
+# Protocol: red-proof-sabotage 7-step per sabotage (inject -> RED -> git checkout -- restore -> git status clean)
+# Baselines (unmodified tree, all GREEN exit 0):
+# - python3 -m unittest tests.test_schema_contracts -v => Ran 10 tests OK exit 0
+# - python3 scripts/audit_loop.py --self-test => SELF-TEST PASSED exit 0
+# - ./scripts/verify-rigs.sh --check-only => SUMMARY: 35 checks passed, 0 failed exit 0
+# - make verify => SUMMARY: 35 checks passed, 0 failed exit 0 (live-health advisory SKIPs only, no daemon)
+# - make test => Ran 504 tests OK exit 0 (21 test files, discover)
+
+## R1 — codex_permissions dropped from pinned keys => verify gate RED (2026-10-28)
+- Target assertion: scripts/verify-rigs.sh HR-2.1 MEMBER_KEYS == schemas/rigspec-keys.pinned.json MEMBER_KEYS (must contain codex_permissions).
+- Sabotage: removed `      "codex_permissions",` line from schemas/rigspec-keys.pinned.json (via python replace; 1 line).
+- Command: `./scripts/verify-rigs.sh --check-only` => exit 1, `SUMMARY: 32 checks passed, 1 failed`, `[FAIL] schemas/rigspec-keys.pinned.json drift: MEMBER_KEYS verifier=[... 'codex_permissions' ...] pinned=[... without ...]`.
+- Note: `python3 -m unittest tests.test_schema_contracts` stayed OK (10 tests) under this sabotage — expected: the contract suite covers the 7 vendored schema files, NOT the MEMBER_KEYS gate; the verify gate is the fail-closed check for REQ-B4 keys. Not vacuous (gate RED as required).
+- Restore: `git checkout -- schemas/rigspec-keys.pinned.json` => codex_permissions present (grep -c = 1); re-ran verify => `SUMMARY: 35 checks passed, 0 failed` exit 0. `git status --short` clean except docs/evidence/.
+
+## R2 — 1-byte corruption of vendored run-record schema => contract suite RED (2026-10-28)
+- Target assertion: tests/test_schema_contracts.py pin + upstream-shape checks for schemas/run-record.v1.schema.json (sha256 b3c7ac64...).
+- Sabotage: `Run record v1` -> `Run record v2` (1 byte) in schemas/run-record.v1.schema.json; sha became bf41ce85....
+- Command: `python3 -m unittest tests.test_schema_contracts` => exit 1, `Ran 10 tests / FAILED (failures=1)` (schema drift without pin refresh: run-record.v1.schema.json).
+- Restore: `git checkout -- schemas/run-record.v1.schema.json` => sha b3c7ac64... restored; re-ran => `Ran 10 tests OK` exit 0. `git status --short` clean except docs/evidence/.
+
+## R3 — skill bodies vs published 0.7.4 tarball (read-only spot-check, 2026-10-28)
+- Reference: /tmp/bump-verify/openrig-cli-0.7.4.tgz sha256 d11dd8a6fc78f0c4d7afeae462c07c2af0fb9fe460990950be495016734920a1 (matches design doc; /tmp/bump-verify extraction is partial — no skills dir — so used /tmp/opencode/overhaul-b-tarball/package full extraction).
+- `diff <tarball>/.../messaging-the-human/SKILL.md specs/agents/_shared/skills/messaging-the-human/SKILL.md` => IDENTICAL.
+- `diff <tarball>/.../queue-handoff/SKILL.md specs/agents/_shared/skills/queue-handoff/SKILL.md` => IDENTICAL.
+- `diff <tarball>/.../run-record.v1.schema.json schemas/run-record.v1.schema.json` => IDENTICAL.
+- No mutation performed (read-only diffs). Deltas vs 264135e: messaging-the-human +37/-3, queue-handoff +4/-0 (matches implementation report; brief said +9/-1 for queue-handoff — actual +4/-0 recorded).
+
+## R4 — make test runs ALL suites (2026-10-28)
+- 21 files match tests/test_*.py; `grep -c "def test"` sums to exactly 504 methods; `make test` => `Ran 504 tests OK` exit 0. 504 == 504: discover runs every suite, none unwired.
+- Makefile diff vs 264135e is ONLY the test target (2 lines: comment + discover command). No other Makefile changes.
+
+## R5 — canary fixture corruption => canary RED (2026-10-28)
+- Target assertion: tests/test_build_canary.py test_canary_scope_only (+fixture fallback) — base permissions at a33f3bb + 102-closeout triple bound.
+- Sabotage: appended bogus `rig sabotage-probe *` to bash_deny of a11y-specialist in tests/fixtures/can-base-permissions.json.
+- Command: `python3 -m unittest tests.test_build_canary` => exit 1, `Ran 12 tests / FAILED (failures=2)` (git-path cross-check AND fixture-fallback path both fail-closed).
+- Restore: `git checkout -- tests/fixtures/can-base-permissions.json` => 51 roles; re-ran => `Ran 12 tests OK` exit 0. `git status --short` clean except docs/evidence/.
+
+## R6 — V19 old-code cascade triplication (2026-10-28)
+- Sabotage: `_v19_live = _v19_canonical` -> `_v19_live = passes + 1` (old behaviour) in scripts/verify-rigs.sh + early host failure via PATH=/tmp/opencode/no-bwrap-bin (bwrap absent, no HERETEK_ALLOW_NO_BWRAP).
+- Command: `PATH=/tmp/opencode/no-bwrap-bin ./scripts/verify-rigs.sh --check-only` => exit 1, `SUMMARY: 33 checks passed, 4 failed`: 1× V12 bwrap FAIL + 3× V19 doc-drift FAILs (AGENTS.md/README.md/USER_GUIDE.md must state '34 checks passed'). Triplication reproduced — old code cascades.
+- Restore: `git checkout -- scripts/verify-rigs.sh`; re-ran same PATH => `SUMMARY: 34 checks passed, 1 failed`, sole FAIL = V12 bwrap, `[PASS] Stale-count guard (#102) green`. Single-fail only — no cascade. Full PATH re-run => `SUMMARY: 35 checks passed, 0 failed` exit 0. `git status --short` clean except docs/evidence/.
+
+## R7 — V12 note-mode both paths (2026-10-28, no live bwrap removal)
+- Absent-bwrap without var: `PATH=/tmp/opencode/no-bwrap-bin ./scripts/verify-rigs.sh --check-only` => exit 1, sole FAIL `[FAIL] tool-existence: bwrap not found on PATH` (mandatory preserved).
+- Absent-bwrap with var: `HERETEK_ALLOW_NO_BWRAP=1 PATH=/tmp/opencode/no-bwrap-bin ./scripts/verify-rigs.sh --check-only` => exit 0, `SUMMARY: 35 checks passed, 0 failed`, `[NOTE] V12 tool-existence: bwrap not found on PATH (HERETEK_ALLOW_NO_BWRAP=1 note-mode; ...)`.
+- Code-read: scripts/verify-rigs.sh:1703-1706 branch confirmed; no dedicated unit test covers note-mode (only the gate itself) — live probe above is the coverage. bwrap present on host (/usr/bin/bwrap); real removal correctly skipped.
+
+## Confirmations (vs 264135e, 2026-10-28)
+- `git diff 264135e HEAD --name-only -- specs rigs rosters`: 34 files = 8 rigs x (SETUP.md + bundle.yaml + 2 skill SKILL.md) + 2 specs skills. NO rosters changes. SETUP.md diff = 0.7.2->0.7.4 one-liner; bundle.yaml = min_cli/daemon + assembler version/commit + integrity digests; registry/* = resolvedCommit (6781e0e) + packageDigest + assembler 0.7.4/6d9e8e27 + openrigVersion (provenance-only); fleet/skills-lock.json = 0.7.2->0.7.4 source strings only. Leaves = skills/provenance-only, no hand-edits beyond the two skill bodies (generator output).
+- V1-V27: all 27 headers present exactly once, unrenamed (V2&V3, V4&V5 combined headers are pre-existing convention, untouched).
+- SUMMARY frozen: AGENTS.md/README.md/docs/USER_GUIDE.md all state 35; no stale '31 checks passed' in live files (README '64/64' is dated 2026-10-20 audit-evidence prose, outside V19 scope by design).
+- schemas/run-record.v1.schema.json: 315 lines new, sha b3c7ac64... = tarball bytes.
+- No vacuous checks found: every sabotaged check went RED (R1 gate, R2 contract, R5 canary x2 paths, R6 V19 x3, R7-V12 without-var). R1 contract-suite-stays-green is scoping, not vacuity (gate is the REQ-B4 key check).
