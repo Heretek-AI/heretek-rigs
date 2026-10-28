@@ -36,8 +36,13 @@ from typing import Tuple
 
 DEFAULT_MODEL = "opencode-go/muse-spark-1.3-contributor"
 AUDIT_PROMPT_FILE = "PROMPT_ADVERSARIAL_FLEET_AUDIT.md"
-REMEDIATION_PROMPT_FILE = "PROMPT_FLEET_AUDIT_REMEDIATION.md"
-IMPLEMENTATION_PROMPT_FILE = "PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md"
+# Live operator prompt (M7 overhaul-c): single live brief drives the
+# implementation phase and the remediation phase. The pre-#122 spoonfeeder
+# upload and the remediation protocol are archived under archive/ (reference
+# only) and must never be referenced as live inputs — run_self_test enforces
+# this fail-closed.
+REMEDIATION_PROMPT_FILE = "docs/IMPLEMENTATION_PROMPT.md"
+IMPLEMENTATION_PROMPT_FILE = "docs/IMPLEMENTATION_PROMPT.md"
 REPORT_FILE = "AUDIT_REPORT_FINDINGS.md"
 STATUS_NO_FINDINGS = "STATUS: NO_FINDINGS"
 STATUS_FINDINGS_DETECTED = "STATUS: FINDINGS_DETECTED"
@@ -172,7 +177,9 @@ def _scan_report_tables(combined):
             if "regression ledger" in heading_ci:
                 if _REGRESSION_OPEN_RE.search(verdict):
                     ledger += 1
-            elif "claim ledger" in heading_ci or (header_ci and header_ci[0] == "claim"):
+            elif "claim ledger" in heading_ci or (
+                header_ci and header_ci[0] == "claim"
+            ):
                 if not _LEDGER_TOKEN_RE.search(verdict) and not verdict.startswith(
                     _CLAIM_OK_VERDICTS
                 ):
@@ -208,9 +215,7 @@ def evaluate_audit_status(
     # BROKEN/PARTIAL rows with or without numeric claim IDs on the
     # UNSTRIPPED text so fenced-only rows still trip. M6 widens the header
     # to any ATX depth with or without a trailing colon.
-    open_finding_headers = HR_HEADER_RE.findall(combined) + HR_BOLD_RE.findall(
-        combined
-    )
+    open_finding_headers = HR_HEADER_RE.findall(combined) + HR_BOLD_RE.findall(combined)
     if open_finding_headers:
         return (
             STATUS_FINDINGS_DETECTED,
@@ -296,6 +301,12 @@ def run_self_test(repo_root: Path) -> int:
         "fleet/mcp-servers.yaml",
     ]:
         p = repo_root / req
+        if "archive" in p.resolve().parts:
+            print(
+                f"  [FAIL] Archived path referenced as live input: {req}",
+                file=sys.stderr,
+            )
+            return 1
         if not p.exists() or p.stat().st_size < 500:
             print(f"  [FAIL] Missing or stub file: {p}", file=sys.stderr)
             return 1
@@ -417,12 +428,19 @@ def run_self_test(repo_root: Path) -> int:
     ):
         s, reason = evaluate_audit_status(
             "## Claim Ledger\n| Claim | Status | Evidence |\n|---|---|---|\n"
-            + clean_row + "\nSTATUS: NO_FINDINGS\n", "", True,
+            + clean_row
+            + "\nSTATUS: NO_FINDINGS\n",
+            "",
+            True,
         )
-        assert s == STATUS_NO_FINDINGS, f"clean ledger row misread: {clean_row} ({reason})"
+        assert s == STATUS_NO_FINDINGS, (
+            f"clean ledger row misread: {clean_row} ({reason})"
+        )
     s, reason = evaluate_audit_status(
         "## Regression Ledger\n| Finding | Status | Evidence |\n|---|---|---|\n"
-        "| #67 | FIXED | render fails closed |\nSTATUS: NO_FINDINGS\n", "", True,
+        "| #67 | FIXED | render fails closed |\nSTATUS: NO_FINDINGS\n",
+        "",
+        True,
     )
     assert s == STATUS_NO_FINDINGS, f"FIXED regression row misread: {reason}"
 
@@ -465,7 +483,7 @@ def main() -> int:
     parser.add_argument(
         "--run-implementation-first",
         action="store_true",
-        help="Run PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md before starting audit loop",
+        help="Run docs/IMPLEMENTATION_PROMPT.md before starting audit loop",
     )
     parser.add_argument(
         "--self-test",
@@ -544,7 +562,7 @@ def main() -> int:
             invoke_opencode_agent(
                 repo_root,
                 repo_root / REMEDIATION_PROMPT_FILE,
-                f"Remediate every finding in {REPORT_FILE}, re-run `python3 ./scripts/generate-rigs.py` and `./scripts/verify-rigs.sh` until green, and update REMEDIATION_LOG.md.",
+                f"Remediate every finding in {REPORT_FILE}, re-run `python3 ./scripts/generate-rigs.py` and `./scripts/verify-rigs.sh` until green, and append a dated entry to archive/2026-10-28-overhaul/REMEDIATION_LOG.md (archived log, append-only).",
                 args.model,
                 logs_dir / f"iter-{iteration:02d}-remediation.log",
             )
