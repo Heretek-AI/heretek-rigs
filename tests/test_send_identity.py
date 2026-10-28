@@ -197,6 +197,21 @@ class IssueSenderBindingTests(unittest.TestCase):
         adds = [l for l in self.log.read_text().splitlines() if "token add" in l]
         self.assertEqual(len(adds), 1)
 
+    def test_reuse_path_emits_no_token_material(self):
+        # Rework-2 (CodeQL py/clear-text-logging-sensitive-data): the
+        # "already issued" reuse path must emit neither the stored token
+        # bytes nor any bearer-shaped run on stdout/stderr.
+        self.assertEqual(self.issue("blue-x@rig-y")[0], 0)
+        body = self.binding_path("blue-x@rig-y").read_text()
+        self.assertTrue(body)
+        rc, out, err = self.issue("blue-x@rig-y")
+        self.assertEqual(rc, 0)
+        self.assertIn("already issued", out)
+        self.assertNotIn(body, out)
+        self.assertNotIn(body, err)
+        self.assertIsNone(BEARER_RUN_RE.search(out))
+        self.assertIsNone(BEARER_RUN_RE.search(err))
+
     def test_scope_mismatch_heals_via_revoke_and_re_add(self):
         self.assertEqual(self.issue("blue-x@rig-y", rig="rig-y")[0], 0)
         first_body = self.binding_path("blue-x@rig-y").read_text()
@@ -217,7 +232,9 @@ class IssueSenderBindingTests(unittest.TestCase):
     def test_existing_non_0600_store_refuses_pre_mint(self):
         target = self.binding_path("blue-x@rig-y")
         target.write_text("dummy")
-        os.chmod(target, 0o644)
+        # Non-0600 on purpose (pre-mint refusal fixture): 0640 is group-
+        # readable but NOT world-readable (CodeQL py/overly-permissive-file).
+        os.chmod(target, 0o640)
         rc, _, err = self.issue("blue-x@rig-y")
         self.assertNotEqual(rc, 0)
         self.assertIn("0600", err)

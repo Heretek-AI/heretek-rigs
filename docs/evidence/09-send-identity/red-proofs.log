@@ -237,3 +237,58 @@ QA-R2 verdict: no vacuous checks found. The F5 cross-seat fix, the F6
 skip-floor fix, the V28 gate, and the secrets grep all turn RED under
 targeted sabotage and GREEN on restore (old counting-skips form proven
 vacuous-by-comparison, as F6 claimed).
+
+## Rework-2 — CodeQL findings C1…C5 on PR #128 (Refs #9, 2026-10-28)
+Fix under test: scripts/send_identity.py routes every session/binding
+log interpolation through seed-rig `_redact_for_log` (`_session_log` /
+`_binding_log`); tests/test_send_identity.py refusal fixture uses 0o640
+instead of 0o644; new `test_reuse_path_emits_no_token_material`.
+CodeQL cannot run locally — each fix below is red-proven by sabotage
+(RED) + restore (GREEN), and acceptance is the gate battery.
+
+## RP-R2-C1 — 0o644 sabotage is world-readable; 0o640 is not (H1 proven)
+- Sabotage: `os.chmod(target, 0o640)` → `0o644` in
+  `test_existing_non_0600_store_refuses_pre_mint`.
+- Check: scratch probe asserting `stat.S_IMODE & 0o007 == 0` on a 0644
+  fixture — RED verbatim (`AssertionError: RED: fixture is
+  world-readable (py/overly-permissive-file class)`; mode 644,
+  world-bits 4), probe exit 1. The refusal test itself still passed
+  under sabotage (any non-0600 refuses), proving H1's semantics claim:
+  the mask change preserves the test's meaning exactly.
+- Restore: `0o644` → `0o640`; probe GREEN (mode 640, world-bits 0,
+  still != 0600), refusal test OK.
+
+## RP-R2-C2C5 — raw `{session}` sink leaks bearer-shaped ids; redacted does not (H2 proven)
+- Data-flow trace (HEAD code): C2 (mismatch warn), C3 (symlink warn),
+  C4 (missing-file warn), C5 (issued ok) interpolate only `session` /
+  `binding_path.name` (session-derived filename, `/`+`..` refused).
+  Token bytes cannot reach them: the minted token flows
+  `proc.stdout → parse_issued_token → 0600 mkstemp+replace` only; every
+  subprocess/exception detail (`detail`, `{e}`) already flows through
+  redacting `_fail`. So no live token leak — identifier-only sinks,
+  hardened per REQ-S4 via the existing `_redact_for_log` choke point.
+- Sabotage: reuse-path print back to raw
+  `f"ok {session}: ... (reuse {binding_path.name})"`; drove issue→reuse
+  with bearer-shaped-but-legal session `"A"*45` — RED verbatim (stdout
+  `ok AAAA…(45)…: sender binding already issued`, bearer regex hit).
+- Restore: `_session_log`/`_binding_log`; same probe GREEN (stdout
+  `ok …redacted…: sender binding already issued (reuse …redacted….key)`,
+  no 40+ run on stdout/stderr). Byte-identical claim proven:
+  `_redact_for_log(x) == x` for `blue-x@rig-y`,
+  `send-id-blue-x@rig-y.key`, `blue-x@rig-y/send-identity`
+  (`@`/`.` break runs; all < 200 chars).
+
+## RP-R2-H3 — _deny choke point covers attacker fields; no new fix needed
+- Sweep of every print/raise site in scripts/send_identity.py: all
+  exception/subprocess detail already flows through redacting `_fail`
+  (L136/L141/L161/L177/L187/L201/L206) or `_deny` (L317); the L350 raw
+  `{e}` sibling flows into `_deny` → redacted; L362 redacts both
+  sender and claim explicitly. L75/L262/L268 ValueErrors are
+  caller-facing, carry identifiers/static text only — left untouched
+  (minimal diff).
+- Sabotage: `_deny` print back to raw `({reason})`; fed attestation
+  `v1.blue-probe@test-rig.BBBB…(45).nnnn…(16).000…(64)` — RED verbatim
+  (attacker rig field in stderr raw, bearer regex hit).
+- Restore: `({_redact(reason)})`; same probe GREEN (stderr
+  `send-identity: unverified (scope mismatch: attestation rig
+  '…redacted…' != 'test-rig')`, no 40+ run).

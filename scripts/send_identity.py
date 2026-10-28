@@ -120,17 +120,27 @@ def issue_sender_binding(
     binding_name = sender_binding_grant_name(session)
     binding_path = Path(secrets_dir) / sender_binding_filename(session)
     _redact = seed_mod._redact_for_log
+    # CodeQL py/clear-text-logging-sensitive-data (rework-2, Refs #9):
+    # `session` is tainted as secret-bearing, so every log line below
+    # interpolates the redacted seat session / binding filename instead of
+    # the raw values. For real identifiers this is byte-identical (no 40+
+    # bearer-shaped runs, <200 chars); token bytes can never reach these
+    # lines — the minted token flows only to the 0600 store, and every
+    # subprocess/exception detail already goes through `_fail` (redacted).
+    _session_log = _redact(session)
+    _binding_log = _redact(binding_path.name)
 
     def _fail(msg: str) -> int:
         msg = _redact(msg)
         if allow_missing_secrets:
             print(
-                f"warn: {session}: sender binding not issued ({msg}), continuing degraded",
+                f"warn: {_session_log}: sender binding not issued ({msg}), continuing degraded",
                 file=sys.stderr,
             )
             return 0
         print(
-            f"error: {session}: sender binding issuance failed: {msg}", file=sys.stderr
+            f"error: {_session_log}: sender binding issuance failed: {msg}",
+            file=sys.stderr,
         )
         return 2
 
@@ -141,7 +151,7 @@ def issue_sender_binding(
         if binding_name in grants:
             if not seed_mod._grant_scope_matches(grants[binding_name], session, rig):
                 print(
-                    f"warn: {session}: sender binding metadata mismatch (seat/scope); revoking and re-issuing",
+                    f"warn: {_session_log}: sender binding metadata mismatch (seat/scope); revoking and re-issuing",
                     file=sys.stderr,
                 )
             elif binding_path.is_symlink():
@@ -150,17 +160,17 @@ def issue_sender_binding(
                 except OSError as e:
                     return _fail(f"cannot remove symlinked {binding_path.name}: {e}")
                 print(
-                    f"warn: {session}: {binding_path.name} was a symlink; removed, re-issuing",
+                    f"warn: {_session_log}: {_binding_log} was a symlink; removed, re-issuing",
                     file=sys.stderr,
                 )
             elif binding_path.is_file():
                 print(
-                    f"ok {session}: sender binding already issued (reuse {binding_path.name})"
+                    f"ok {_session_log}: sender binding already issued (reuse {_binding_log})"
                 )
                 return 0
             else:
                 print(
-                    f"warn: {session}: binding grant exists but {binding_path.name} is missing; re-issuing",
+                    f"warn: {_session_log}: binding grant exists but {_binding_log} is missing; re-issuing",
                     file=sys.stderr,
                 )
             if not seed_mod._revoke_grant(rig_bin, binding_name):
@@ -198,7 +208,7 @@ def issue_sender_binding(
         if token is None:
             seed_mod._revoke_grant(rig_bin, binding_name)
             print(
-                f"error: {session}: token add printed unparseable output; minted binding grant revoked",
+                f"error: {_session_log}: token add printed unparseable output; minted binding grant revoked",
                 file=sys.stderr,
             )
             return 2
@@ -220,11 +230,11 @@ def issue_sender_binding(
         except OSError as e:
             seed_mod._revoke_grant(rig_bin, binding_name)
             print(
-                f"error: {session}: cannot store sender binding: {_redact(e)}; minted binding grant revoked",
+                f"error: {_session_log}: cannot store sender binding: {_redact(e)}; minted binding grant revoked",
                 file=sys.stderr,
             )
             return 2
-        print(f"ok {session}: sender binding issued ({binding_path.name})")
+        print(f"ok {_session_log}: sender binding issued ({_binding_log})")
         return 0
     return _fail("binding grant state did not converge after retry")
 
