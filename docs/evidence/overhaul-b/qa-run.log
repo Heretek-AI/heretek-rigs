@@ -1,0 +1,10 @@
+# overhaul-b M4-M5 QA run log (agency-qa)
+# Worktree: .lane/trees/overhaul-b, branch feat/overhaul-b
+# Date UTC: 2026-10-28
+# Baseline commands (unmodified tree) — all exit 0:
+# - python3 -m unittest tests.test_schema_contracts -v => Ran 10 tests OK
+# - python3 scripts/audit_loop.py --self-test => SELF-TEST PASSED
+# - ./scripts/verify-rigs.sh --check-only => SUMMARY: 35 checks passed, 0 failed
+# - make verify => SUMMARY: 35 checks passed, 0 failed (live-health advisory SKIPs only; no daemon)
+# - make test => Ran 504 tests in 103.595s OK (21 files x 504 methods, exact match)
+# Sabotage commands + exits: see red-proofs.log R1-R7 (RED exits 1 confirmed each, restores GREEN exit 0, git status clean except docs/evidence/).
