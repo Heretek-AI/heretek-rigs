@@ -5,9 +5,9 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/game-dev-and-sim-rig",
-      "resolvedCommit": "1f45544f5e846fedb9f6f4461949381160f314e4",
+      "resolvedCommit": "8ff71cc3a556a6559310036c16864ba2baf69add",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/1f45544f5e846fedb9f6f4461949381160f314e4/rigs/game-dev-and-sim-rig"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/8ff71cc3a556a6559310036c16864ba2baf69add/rigs/game-dev-and-sim-rig"
     },
     "configurationId": "engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi",
     "packageDigest": {
