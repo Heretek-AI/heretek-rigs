@@ -49,3 +49,91 @@ snapshots — covered by
 tests.test_mission_gates.TestNonDismissibleRecovery
 test_bypassed_guard_restores_b2_dismissal. GREEN: guard enforced, refusal
 raised, redacted log line, row state untouched.
+
+## QA series (acceptance verifier, 2026-10-28, tree @ e5cfa44, worktree feat/77-mission-gates)
+
+Temporary file sabotage only; every entry restored via `git checkout -- <file>`;
+`git status --short` clean after each restore. Verbatim transcripts below.
+
+### QA-a REQ-M2: remove the stalled classification -> B2 fixture silent (RED)
+
+Sabotage: `scripts/reconcile_model.py` diff_row tail
+`return stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id)`
+replaced by `return None  # QA-SABOTAGE(a)`. B2 fixture
+(qitem-20261024023941-8685741b5ce805de, "verdict recorded; Standing by for
+gate", queue in-progress) via scripts/reconcile.py CLI:
+
+RED (sabotaged, exit 0):
+
+```
+reconcile: in sync — 1 rows across 1 tracker(s) agree with queue state.
+```
+
+and diff_row level:
+
+```
+SABOTAGED diff_row -> None
+```
+
+No stalled-awaiting-gate signal — the fixture returns to pre-fix silence
+(exit 0, silent agreement; no diff class names it).
+
+GREEN (restored via `git checkout -- scripts/reconcile_model.py`, exit 1):
+
+```
+reconcile: 1 tracker(s) vs queue state (1 queue rows)
+DIFF [stalled-awaiting-gate] /tmp/opencode/w77a/tracker.md:6 slice B2-parent mission-row qitem qitem-20261024023941-8685741b5ce805de
+  reason:  tracker waits on a gate with no live gate qitem recorded (no gate owner named; the destination seat owns next action)
+  tracker: verdict recorded; Standing by for gate
+  queue:   state=in-progress latest_transition=41 (verdict recorded, findings filed per t41)
+```
+
+### QA-b REQ-M3: allow dismissal-without-change -> MUST succeed (RED)
+
+Sabotage: `scripts/sweep-typed-blocks.py` `check_recovery_dismissal`
+equality branch neutered
+(`if current_snapshot == flagged_snapshot and False:  # QA-SABOTAGE(b)`),
+i.e. the closer runs without the guard. Byte-identical B2 snapshots:
+
+RED (sabotaged):
+
+```
+snapshots byte-identical: True
+SABOTAGED dismissal-without-change: ALLOWED {'dismissal': 'permitted', 'recovery_id': 'recovery-B2-01', 'flagged_qitem': 'qitem-20261024023941-8685741b5ce805de'}
+```
+
+Dismissal succeeds on unchanged row state — the B2 bury-the-stall outcome —
+proving the guard (not incidental shape) is what refuses.
+
+GREEN (restored via `git checkout -- scripts/sweep-typed-blocks.py`):
+
+```
+RESTORED dismissal-without-change: REFUSED
+refusal line: recovery-dismissal-refused: recovery-B2-01 for flagged row qitem-20261024023941-8685741b5ce805de (row state byte-identical to flag time; owner action required, never auto-close)
+row untouched: True
+```
+
+### QA-c V29 charter-marker gate is non-vacuous (RED + GREEN, full battery)
+
+Sabotage: closure-ownership bullet removed from one rendered leaf
+(`rigs/qa-and-verification-gauntlet/.../mission-slice-sop/SKILL.md`).
+Full `./scripts/verify-rigs.sh --check-only`:
+
+RED (sabotaged, exit 1):
+
+```
+  [FAIL] V29/77-mission-gates: leaf rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md lost charter marker '--gate'
+  [FAIL] V29/77-mission-gates: leaf rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md lost charter marker '77-mission-gates'
+  [FAIL] V29/77-mission-gates: leaf rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md lost charter marker 'closes its own row'
+SUMMARY: 35 checks passed, 5 failed.
+```
+
+V29 fails closed on a single missing leaf marker — the gate is not vacuous.
+
+GREEN (restored via `git checkout -- <leaf>`; file byte-identical to HEAD,
+`git status --short` clean; full re-run, exit 0):
+
+```
+  [PASS] V29 mission-gate ownership (77-mission-gates S2) green: stalled diff + charter markers in 9 leaves + refusal guard + 16 corpus tests pass + S0 evidence present
+SUMMARY: 37 checks passed, 0 failed.
+```
