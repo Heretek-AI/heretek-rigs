@@ -171,11 +171,14 @@ class IssueSenderBindingTests(unittest.TestCase):
         return rc, buf_out.getvalue(), buf_err.getvalue()
 
     def test_issue_mints_with_seat_and_rig_scope(self):
-        rc, _, _ = self.issue("blue-x@rig-y")
+        rc, out, err = self.issue("blue-x@rig-y")
         self.assertEqual(rc, 0)
         body = self.binding_path("blue-x@rig-y").read_text()
-        self.assertTrue(body)
-        self.assertIsNone(BEARER_RUN_RE.search(body) and None or None)
+        self.assertRegex(body, r"^fakesendidentitytoken\d{6}$")
+        self.assertNotIn(body, out)
+        self.assertNotIn(body, err)
+        self.assertIsNone(BEARER_RUN_RE.search(out))
+        self.assertIsNone(BEARER_RUN_RE.search(err))
         add_lines = [l for l in self.log.read_text().splitlines() if "token add" in l]
         self.assertEqual(len(add_lines), 1)
         self.assertIn("--seat blue-x@rig-y", add_lines[0])
@@ -245,7 +248,11 @@ class AttestationVerifyTests(unittest.TestCase):
         seen = set()
         att = SEND_MOD.mint_attestation(self.SECRET, self.SENDER, self.RIG)
         res = SEND_MOD.verify_attestation(
-            self.SECRET, att, expected_rig=self.RIG, seen=seen
+            self.SECRET,
+            att,
+            expected_rig=self.RIG,
+            expected_sender=self.SENDER,
+            seen=seen,
         )
         self.assertEqual(res.status, "attested")
         self.assertEqual(res.sender, self.SENDER)
@@ -257,6 +264,7 @@ class AttestationVerifyTests(unittest.TestCase):
             self.SECRET,
             att,
             expected_rig=self.RIG,
+            expected_sender=self.SENDER,
             seen=seen,
             claimed_source="red-actor@other-rig",
         )
@@ -268,13 +276,21 @@ class AttestationVerifyTests(unittest.TestCase):
         seen = set()
         att = SEND_MOD.mint_attestation(self.SECRET, self.SENDER, self.RIG)
         first = SEND_MOD.verify_attestation(
-            self.SECRET, att, expected_rig=self.RIG, seen=seen
+            self.SECRET,
+            att,
+            expected_rig=self.RIG,
+            expected_sender=self.SENDER,
+            seen=seen,
         )
         self.assertEqual(first.status, "attested")
         buf = io.StringIO()
         with contextlib.redirect_stderr(buf):
             second = SEND_MOD.verify_attestation(
-                self.SECRET, att, expected_rig=self.RIG, seen=seen
+                self.SECRET,
+                att,
+                expected_rig=self.RIG,
+                expected_sender=self.SENDER,
+                seen=seen,
             )
         self.assertEqual(second.status, "rejected")
         self.assertIsNone(second.sender)
@@ -284,7 +300,28 @@ class AttestationVerifyTests(unittest.TestCase):
         seen = set()
         att = SEND_MOD.mint_attestation(self.SECRET, self.SENDER, self.RIG)
         res = SEND_MOD.verify_attestation(
-            self.SECRET, att, expected_rig="other-rig", seen=seen
+            self.SECRET,
+            att,
+            expected_rig="other-rig",
+            expected_sender=self.SENDER,
+            seen=seen,
+        )
+        self.assertEqual(res.status, "unverified")
+        self.assertIsNone(res.sender)
+
+    def test_cross_seat_secret_cannot_authenticate_other_sender(self):
+        # F5 hole, red-proven: seat A's secret mints an attestation naming
+        # seat B with a valid MAC under A's secret. When seat A is the
+        # expected sender, verification MUST fail — A's secret authenticates
+        # A only, never B.
+        seen = set()
+        att = SEND_MOD.mint_attestation(self.SECRET, "seat-b@test-rig", self.RIG)
+        res = SEND_MOD.verify_attestation(
+            self.SECRET,
+            att,
+            expected_rig=self.RIG,
+            expected_sender="seat-a@test-rig",
+            seen=seen,
         )
         self.assertEqual(res.status, "unverified")
         self.assertIsNone(res.sender)
@@ -294,7 +331,11 @@ class AttestationVerifyTests(unittest.TestCase):
         att = SEND_MOD.mint_attestation(self.SECRET, self.SENDER, self.RIG)
         tampered = att[:-1] + ("0" if att[-1] != "0" else "1")
         res = SEND_MOD.verify_attestation(
-            self.SECRET, tampered, expected_rig=self.RIG, seen=seen
+            self.SECRET,
+            tampered,
+            expected_rig=self.RIG,
+            expected_sender=self.SENDER,
+            seen=seen,
         )
         self.assertEqual(res.status, "unverified")
         self.assertIsNone(res.sender)
@@ -306,6 +347,7 @@ class AttestationVerifyTests(unittest.TestCase):
             "anotherdummysecret FOR-TEST-ONLY-0002",
             att,
             expected_rig=self.RIG,
+            expected_sender=self.SENDER,
             seen=seen,
         )
         self.assertEqual(res.status, "unverified")
@@ -313,7 +355,11 @@ class AttestationVerifyTests(unittest.TestCase):
 
     def test_missing_attestation_holds_unverified(self):
         res = SEND_MOD.verify_attestation(
-            self.SECRET, None, expected_rig=self.RIG, seen=set()
+            self.SECRET,
+            None,
+            expected_rig=self.RIG,
+            expected_sender=self.SENDER,
+            seen=set(),
         )
         self.assertEqual(res.status, "unverified")
         self.assertIsNone(res.sender)
@@ -322,7 +368,11 @@ class AttestationVerifyTests(unittest.TestCase):
         seen = set()
         for bad in ("", "v1.short", "v9.a.b.c." + "0" * 64, "not-an-attestation"):
             res = SEND_MOD.verify_attestation(
-                self.SECRET, bad, expected_rig=self.RIG, seen=seen
+                self.SECRET,
+                bad,
+                expected_rig=self.RIG,
+                expected_sender=self.SENDER,
+                seen=seen,
             )
             self.assertEqual(res.status, "unverified", bad)
             self.assertIsNone(res.sender, bad)

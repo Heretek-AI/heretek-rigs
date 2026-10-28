@@ -3114,10 +3114,16 @@ _v28_ran = 0
 _v28_m = re.search(r"Ran (\d+) tests", _v28_ut.stderr or "")
 if _v28_m:
     _v28_ran = int(_v28_m.group(1))
+_v28_skipped = 0
+_v28_sk = re.search(r"skipped=(\d+)", _v28_ut.stderr or "")
+if _v28_sk:
+    _v28_skipped = int(_v28_sk.group(1))
 if _v28_ut.returncode != 0:
     fail(f"V28/09-send-identity: tests.test_send_identity failed:\n{_v28_ut.stderr[-800:]}")
-elif _v28_ran < 20:
-    fail(f"V28/09-send-identity: tests.test_send_identity ran only {_v28_ran} tests (need >= 20, non-vacuous floor)")
+elif _v28_skipped:
+    fail(f"V28/09-send-identity: tests.test_send_identity skipped {_v28_skipped} test(s) (skips must not count toward the corpus threshold)")
+elif _v28_ran - _v28_skipped < 20:
+    fail(f"V28/09-send-identity: tests.test_send_identity ran only {_v28_ran - _v28_skipped} executed tests (need >= 20, non-vacuous floor)")
 if len(failures) == _v28_before:
     ok(f"V28 send-identity attestation (09-send-identity S1) green: binding rules + !cat render + {_v28_ran} corpus tests pass + S0 evidence present")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")

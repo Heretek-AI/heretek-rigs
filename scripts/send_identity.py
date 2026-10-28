@@ -76,9 +76,17 @@ def sender_binding_filename(session: str) -> str:
     return f"send-id-{session}.key"
 
 
+_SEED_RIG_MOD = None
+
+
 def _seed_rig_mod():
     """Load scripts/seed-rig.py as a module: single source of truth for the
-    issuance discipline (never duplicated here)."""
+    issuance discipline (never duplicated here). Loaded once and cached —
+    repeated verify/issue calls reuse the module instead of re-executing
+    seed-rig.py each time."""
+    global _SEED_RIG_MOD
+    if _SEED_RIG_MOD is not None:
+        return _SEED_RIG_MOD
     import importlib.util
 
     spec = importlib.util.spec_from_file_location(
@@ -86,6 +94,7 @@ def _seed_rig_mod():
     )
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
+    _SEED_RIG_MOD = mod
     return mod
 
 
@@ -272,6 +281,7 @@ def verify_attestation(
     attestation: str | None,
     *,
     expected_rig: str,
+    expected_sender: str,
     seen: set,
     claimed_source: str | None = None,
 ) -> AttestationResult:
@@ -279,7 +289,10 @@ def verify_attestation(
 
     `binding_secret` is this receiver's copy of the sender's binding secret
     (0600 store, `!cat` render — never inline). `expected_rig` pins the rig
-    scope (cross-rig presentation fails, R3 analogue). `seen` is the
+    scope (cross-rig presentation fails, R3 analogue); `expected_sender`
+    pins the seat scope — an attestation naming any other sender fails even
+    when its MAC verifies under this secret, so one seat's secret can never
+    authenticate another seat's identity. `seen` is the
     caller-owned set of accepted nonces (single-acceptance; daemon-side
     persistence is the #127 upstream gap — a verifier without a set cannot
     run, so `seen=None` fails closed to `unverified`). `claimed_source` is
@@ -315,6 +328,11 @@ def verify_attestation(
         return _deny(
             "unverified",
             f"scope mismatch: attestation rig {rig!r} != {expected_rig!r}",
+        )
+    if sender != expected_sender:
+        return _deny(
+            "unverified",
+            f"sender mismatch: attestation sender {sender!r} != {expected_sender!r}",
         )
     try:
         expected_mac = _attestation_mac(binding_secret, sender, rig, nonce)

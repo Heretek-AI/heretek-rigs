@@ -70,4 +70,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `archive/2026-10-28-overhaul/docs/PROMPT_REVIEW_ARGON.md`, `archive/2026-10-28-overhaul/docs/PROMPT_REVIEW_WEB.md` — prompt-pass decision record (archived 2026-10-28).
 - `AUDIT_REPORT_FINDINGS.md` — audit trail (append, don't rewrite history). `REMEDIATION_LOG.md` archived at `archive/2026-10-28-overhaul/REMEDIATION_LOG.md`.
 - `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` — audit protocol. `PROMPT_FLEET_AUDIT_REMEDIATION.md` archived at `archive/2026-10-28-overhaul/PROMPT_FLEET_AUDIT_REMEDIATION.md`.
-- `openspec/changes/2026-10-28-09-send-identity/` — wave 9 spec: per-seat sender attestation for `rig send` (Refs #9, repo-side only).
+- `openspec/changes/archive/2026-10-28-09-send-identity/` — wave 9 spec: per-seat sender attestation for `rig send` (Refs #9, repo-side only).

@@ -494,15 +494,24 @@ def main() -> None:
     _issue_grants = not (args.dry_run or args.refresh_policy_only)
     _rig_bin = shutil.which("rig") or "rig"
     # 09-send-identity S1 (REQ-S1): sender-binding issuance reuses the
-    # issue_seat_grant discipline via scripts/send_identity.py (lazy import:
-    # single source of truth for filenames/scope, never duplicated here).
-    import importlib.util as _ilu09
+    # issue_seat_grant discipline via scripts/send_identity.py (lazy import
+    # on first need: single source of truth for filenames/scope, never
+    # duplicated here; paths that issue no binding never load the module).
+    _si09_mod = None
 
-    _si09_spec = _ilu09.spec_from_file_location(
-        "send_identity_seed", Path(__file__).resolve().parent / "send_identity.py"
-    )
-    _si09_mod = _ilu09.module_from_spec(_si09_spec)
-    _si09_spec.loader.exec_module(_si09_mod)
+    def _load_si09_mod():
+        nonlocal _si09_mod
+        if _si09_mod is None:
+            import importlib.util as _ilu09
+
+            _si09_spec = _ilu09.spec_from_file_location(
+                "send_identity_seed",
+                Path(__file__).resolve().parent / "send_identity.py",
+            )
+            _si09_mod = _ilu09.module_from_spec(_si09_spec)
+            _si09_spec.loader.exec_module(_si09_mod)
+        return _si09_mod
+
     for s in seats:
         _session74 = f"{s['pod']}-{s['member']}@{s['rig']}"
         _role74 = _roles74.get(s["role"])
@@ -543,7 +552,7 @@ def main() -> None:
                 # 09-send-identity S1: same gate, sender binding alongside
                 # the seat grant (dormant for unbound roles — no role binds
                 # a seat-grant server today — and skipped under opt-out).
-                _sbrc = _si09_mod.issue_sender_binding(
+                _sbrc = _load_si09_mod().issue_sender_binding(
                     _session74,
                     _secrets_dir,
                     rig_bin=_rig_bin,
