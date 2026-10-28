@@ -1,17 +1,17 @@
 {
   "$id": "heretek.rigspec-keys.pinned/v1",
-  "description": "Pinned RigSpec key allowlists exported from @openrig/cli@0.7.2 packages/daemon/src/domain/rigspec-schema.ts. Verifier diffs its hardcoded sets against this file fail-closed; refresh on upstream bump.",
+  "description": "Pinned RigSpec key allowlists exported from @openrig/cli@0.7.4 packages/daemon/src/domain/rigspec-schema.ts. Verifier diffs its hardcoded sets against this file fail-closed; refresh on upstream bump.",
   "provenance": {
-    "package": "@openrig/cli@0.7.2",
-    "commit": "8b180689",
+    "package": "@openrig/cli@0.7.4",
+    "commit": "6d9e8e27",
     "source_file": "packages/daemon/src/domain/rigspec-schema.ts",
     "vendored_source": "schemas/rigspec-schema.pinned.ts",
-    "vendored_sha256": "21f5ca25389d3b556c462ea348f19190ff8413d12a7f43886e3f5f4c05f79172",
+    "vendored_sha256": "1d4bf9a1ee1b8baf13412a943d0d30458c019e122df750d06a6007b14d02e978",
     "upstream_tarball": {
-      "package": "@openrig/cli@0.7.2",
-      "tarball_sha256": "42b4d4980c062f49f99db7e843a2ba96c0066a420cbaace381f435e22699d4c5",
-      "refreshed_at": "2026-10-26T00:00:00Z",
-      "recipe": "On a networked shell host: npm pack @openrig/cli@0.7.2 && sha256sum openrig-cli-0.7.2.tgz; record the 64-hex digest in tarball_sha256 (or place the tarball at schemas/openrig-cli-0.7.2.tgz and re-run python3 scripts/generate-rigs.py to attest it); then diff the extracted rigspec-schema.ts key sets against RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS and update all three local copies together"
+      "package": "@openrig/cli@0.7.4",
+      "tarball_sha256": "d11dd8a6fc78f0c4d7afeae462c07c2af0fb9fe460990950be495016734920a1",
+      "refreshed_at": "2026-10-28T00:00:00Z",
+      "recipe": "On a networked shell host: npm pack @openrig/cli@0.7.4 && sha256sum openrig-cli-0.7.4.tgz; record the 64-hex digest in tarball_sha256 (or place the tarball at schemas/openrig-cli-0.7.4.tgz and re-run python3 scripts/generate-rigs.py to attest it); then diff the extracted rigspec-schema.ts key sets against RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS and update all three local copies together"
     },
     "exported_from": [
       "PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md \u00a74 verified facts (M0-M4 excerpts)",
@@ -19,7 +19,7 @@
       "gemini/openrig_muse_go_architecture.md:154-157",
       "docs/OPENRIG_MUSE_GO_ARCHITECTURE.md:18-19 (rigspec-schema.ts:12-20 runtime enum ground truth)"
     ],
-    "refresh": "npm pack @openrig/cli@0.7.2 && tar -xzf openrig-cli-0.7.2.tgz package/daemon/assets || git -C <openrig-checkout> show 8b180689:packages/daemon/src/domain/rigspec-schema.ts, then diff RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS and update this file + scripts/verify-rigs.sh together"
+    "refresh": "npm pack @openrig/cli@0.7.4 && tar -xzf openrig-cli-0.7.4.tgz package/daemon/assets || git -C <openrig-checkout> show 6d9e8e27:packages/daemon/src/domain/rigspec-schema.ts, then diff RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS and update this file + scripts/verify-rigs.sh together"
   },
   "keys": {
     "RIG_KEYS": [
@@ -60,6 +60,7 @@
       "role",
       "permission_policy",
       "claude_permissions",
+      "codex_permissions",
       "cwd",
       "restore_policy",
       "compaction_strategy",

@@ -1,11 +1,11 @@
-// Pinned RigSpec key allowlists vendored from @openrig/cli@0.7.2
-// packages/daemon/src/domain/rigspec-schema.ts (commit 8b180689).
+// Pinned RigSpec key allowlists vendored from @openrig/cli@0.7.4
+// packages/daemon/src/domain/rigspec-schema.ts (commit 6d9e8e27).
 //
 // Provenance: this file is the vendored upstream bytes that
 // schemas/rigspec-keys.pinned.json and scripts/verify-rigs.sh diff against
 // fail-closed. Refresh recipe (shell host with network):
-//   npm pack @openrig/cli@0.7.2 && tar -xzf openrig-cli-0.7.2.tgz package/daemon/assets \
-//   git -C <openrig-checkout> show 8b180689:packages/daemon/src/domain/rigspec-schema.ts \
+//   npm pack @openrig/cli@0.7.4 && tar -xzf openrig-cli-0.7.4.tgz package/daemon/assets \
+//   git -C <openrig-checkout> show 6d9e8e27:packages/daemon/src/domain/rigspec-schema.ts \
 // then diff RIG_KEYS/POD_KEYS/MEMBER_KEYS/EDGE_KEYS/EDGE_KINDS below against the
 // upstream export and update this file + schemas/rigspec-keys.pinned.json +
 // scripts/verify-rigs.sh together. The verifier fails when this file is absent
@@ -51,6 +51,7 @@ export const MEMBER_KEYS = [
   "role",
   "permission_policy",
   "claude_permissions",
+  "codex_permissions",
   "cwd",
   "restore_policy",
   "compaction_strategy",

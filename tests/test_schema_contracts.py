@@ -28,6 +28,7 @@ SCHEMA_FILES = [
     "bundle-configurations.v1.schema.json",
     "bundle-status.v1.schema.json",
     "registry-entry.v1.schema.json",
+    "run-record.v1.schema.json",
 ]
 
 # Byte-exact copies of @openrig/cli's daemon/docs/reference/schemas/ (#98).
@@ -69,7 +70,7 @@ class SchemaContractTests(unittest.TestCase):
             )
 
     def test_pin_covers_all_contract_schemas(self):
-        """REQ-D98: the pin covers exactly the six contract schemas."""
+        """REQ-D98/REQ-B4: the pin covers exactly the seven contract schemas."""
         names = set()
         for line in PIN_FILE.read_text().splitlines():
             stripped = line.strip()
@@ -110,13 +111,47 @@ class SchemaContractTests(unittest.TestCase):
         )
 
     def test_upstream_schemas_carry_upstream_ids(self):
-        """#98: the five vendored files are upstream's, not local rewrites."""
+        """#98: the six vendored files are upstream's, not local rewrites."""
         for name in UPSTREAM_FILES:
             doc = json.loads((SCHEMA_DIR / name).read_text())
             stem = name.replace(".schema.json", "")
             self.assertEqual(
                 doc.get("$id"), f"https://openrig.dev/schemas/{stem}.json", name
             )
+
+    def test_run_record_schema_is_upstream_shape(self):
+        """REQ-B4: the vendored run-record schema is upstream's bytes, not a stub."""
+        doc = json.loads((SCHEMA_DIR / "run-record.v1.schema.json").read_text())
+        self.assertEqual(
+            doc.get("$id"), "https://openrig.dev/schemas/run-record.v1.json"
+        )
+        self.assertEqual(
+            doc.get("properties", {}).get("schema", {}).get("const"),
+            "openrig.run-record/v1",
+        )
+        for key in (
+            "schema",
+            "id",
+            "subject",
+            "execution",
+            "environment",
+            "evidence",
+            "journey",
+            "outcome",
+            "relations",
+        ):
+            self.assertIn(key, doc.get("required", []))
+
+    @unittest.skipUnless(HAS_JSONSCHEMA, "jsonschema library required")
+    def test_run_record_schema_is_non_vacuous(self):
+        """REQ-B4 red direction: an empty doc MUST fail run-record
+        validation — a stub schema (`errs []`) would pass this and hide
+        the gap."""
+        validator = load_validator("run-record.v1.schema.json")
+        self.assertTrue(
+            list(validator.iter_errors({})),
+            "empty doc passed run-record validation: the schema is vacuous",
+        )
 
     @unittest.skipUnless(HAS_JSONSCHEMA, "jsonschema library required")
     def test_issue_98_mutation_fails(self):

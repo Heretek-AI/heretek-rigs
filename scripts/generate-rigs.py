@@ -58,8 +58,8 @@ import tarfile
 import tempfile
 from pathlib import Path
 
-OPENRIG_VERSION = "0.7.2"
-OPENRIG_COMMIT = "8b180689"
+OPENRIG_VERSION = "0.7.4"
+OPENRIG_COMMIT = "6d9e8e27"
 PI_VERSION = "1.4.0"
 # HR-3.3: fallback placeholder used ONLY when git resolution is impossible
 # (e.g. source tarball without .git); generate_all() resolves the real commit

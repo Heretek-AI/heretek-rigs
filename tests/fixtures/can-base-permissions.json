@@ -1,0 +1,1134 @@
+{
+ "base_commit": "a33f3bb",
+ "note": "Wave-base permissions snapshot for test_build_canary fixture fallback (REQ-B5). Generated from git show a33f3bb:fleet/fleet.yaml on a host where the object resolves; the test prefers the live git object and uses this file only when it is unresolvable. Refresh only from the same base commit.",
+ "permissions": {
+  "a11y-specialist": {
+   "bash_allow": [
+    "npx playwright test tests/a11y*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "tests/a11y/*",
+    "docs/a11y/*",
+    "docs/design-system/*"
+   ]
+  },
+  "ai-red-teamer": {
+   "bash_allow": [
+    "garak*",
+    "pyrit*",
+    "promptfoo*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/security/ai-redteam/*"
+   ]
+  },
+  "analytics-metrics-eng": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "migrations/clickhouse/*",
+    "analytics/*"
+   ]
+  },
+  "android-mobile-spec": {
+   "bash_allow": [
+    "./gradlew testDebugUnitTest*",
+    "./gradlew assembleDebug*",
+    "./gradlew ktlintCheck*",
+    "adb connect 127.0.0.1*",
+    "adb connect localhost*",
+    "adb logcat*",
+    "artemis explore*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "app/src/*",
+    "build.gradle*",
+    "app/build.gradle*",
+    "docs/evidence/android-artemis/*"
+   ]
+  },
+  "api-contract-tester": {
+   "bash_allow": [
+    "npx newman run*",
+    "npx spectral lint*",
+    "schemathesis run*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "tests/api/*",
+    "openapi/*"
+   ]
+  },
+  "appsec-engineer": {
+   "bash_allow": [
+    "semgrep scan*",
+    "trivy fs*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/security/advisories/*"
+   ]
+  },
+  "binary-reverse-eng": {
+   "bash_allow": [
+    "r2 -e cfg.sandbox=true -q*",
+    "rabin2*",
+    "strings*",
+    "tshark -r *",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/protocols/*",
+    "docs/forensics/*"
+   ]
+  },
+  "brand-copy-spec": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "locales/*",
+    "docs/brand/*"
+   ]
+  },
+  "cache-streaming-eng": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "schemas/events/*",
+    "src/cache/*",
+    "deploy/kafka/*"
+   ]
+  },
+  "cloud-platform-eng": {
+   "bash_allow": [
+    "tofu fmt*",
+    "tofu validate*",
+    "tofu plan*",
+    "tflint*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "terraform/*",
+    "infra/*"
+   ]
+  },
+  "cloud-sec-auditor": {
+   "bash_allow": [
+    "checkov -d*",
+    "tfsec*",
+    "gitleaks detect*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/security/cloud/*"
+   ]
+  },
+  "compliance-auditor": {
+   "bash_allow": [
+    "syft dir*",
+    "npx license-checker*",
+    "cargo license*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "sbom/*",
+    "docs/compliance/*"
+   ]
+  },
+  "cpp-lowlevel-eng": {
+   "bash_allow": [
+    "cmake*",
+    "ninja*",
+    "ctest*",
+    "./build.sh*",
+    "clang-tidy*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/*",
+    "include/*",
+    "tests/*",
+    "CMakeLists.txt"
+   ]
+  },
+  "data-pipeline-eng": {
+   "bash_allow": [
+    "dbt run*",
+    "dbt test*",
+    "python3 pipelines/*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "dbt/*",
+    "pipelines/*"
+   ]
+  },
+  "dba-specialist": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "migrations/*",
+    "docs/db/*"
+   ]
+  },
+  "dependency-patcher": {
+   "bash_allow": [
+    "npm update --ignore-scripts*",
+    "npm install --ignore-scripts*",
+    "npm ci --ignore-scripts*",
+    "npm test*",
+    "cargo update*",
+    "cargo test*",
+    "uv lock*",
+    "pytest*",
+    "go get*",
+    "go mod tidy*",
+    "go test*",
+    "git checkout*",
+    "git commit*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "*package-lock.json",
+    "*pnpm-lock.yaml",
+    "package.json",
+    "Cargo.toml",
+    "Cargo.lock",
+    "pyproject.toml",
+    "go.mod",
+    "go.sum"
+   ]
+  },
+  "design-system-eng": {
+   "bash_allow": [
+    "npm run test-storybook*",
+    "npm run build-tokens*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "packages/ui/*",
+    "tokens/*",
+    "src/components/ui/*",
+    "docs/design-system/*"
+   ]
+  },
+  "e2e-browser-qa": {
+   "bash_allow": [
+    "npx playwright test*",
+    "npx playwright show-trace*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "tests/e2e/*",
+    "playwright.config.*"
+   ]
+  },
+  "engine-systems-eng": {
+   "bash_allow": [
+    "cargo bench*",
+    "cargo test engine*",
+    "cmake --build*",
+    "ctest*",
+    "cmake --version*",
+    "clang --version*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/engine/*",
+    "tests/engine/*",
+    "build.sh",
+    "CMakePresets.json",
+    "CMakeLists.txt"
+   ]
+  },
+  "exec-director": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/executive/*"
+   ]
+  },
+  "fe-perf-eng": {
+   "bash_allow": [
+    "npx lighthouse*",
+    "npm run build*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "*.config.js",
+    "*.config.ts",
+    "docs/perf/*"
+   ]
+  },
+  "firmware-sec-analyst": {
+   "bash_allow": [
+    "readelf*",
+    "objdump*",
+    "checksec*",
+    "binwalk*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/security/firmware/*"
+   ]
+  },
+  "game-ai-dev": {
+   "bash_allow": [
+    "cargo test ai*",
+    "npm test ai*",
+    "pytest tests/game/ai*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/game/ai/*",
+    "tests/game/ai/*"
+   ]
+  },
+  "game-systems-dev": {
+   "bash_allow": [
+    "cargo test game*",
+    "npm test game*",
+    "pytest tests/game*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/game/*",
+    "tests/game/*"
+   ]
+  },
+  "git-drift-coord": {
+   "bash_allow": [
+    "git branch*",
+    "git merge-base*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/ops/*"
+   ]
+  },
+  "go-backend-eng": {
+   "bash_allow": [
+    "go build*",
+    "go test*",
+    "golangci-lint*",
+    "go mod*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "cmd/*",
+    "internal/*",
+    "pkg/*",
+    "go.mod",
+    "go.sum"
+   ]
+  },
+  "graphics-shader-eng": {
+   "bash_allow": [
+    "glslangValidator*",
+    "naga*",
+    "spirv-val*",
+    "cargo test rendering*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/shaders/*",
+    "src/rendering/*"
+   ]
+  },
+  "ios-mobile-spec": {
+   "bash_allow": [
+    "swift build*",
+    "swift test*",
+    "swiftlint*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "ios/*",
+    "Sources/*",
+    "Tests/*",
+    "Package.swift"
+   ]
+  },
+  "java-kotlin-eng": {
+   "bash_allow": [
+    "./gradlew test*",
+    "./gradlew check*",
+    "./mvnw test*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/main/*",
+    "src/test/*",
+    "build.gradle*",
+    "pom.xml"
+   ]
+  },
+  "k8s-orchestrator": {
+   "bash_allow": [
+    "helm lint*",
+    "helm template*",
+    "kubeconform*",
+    "kubectl diff*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "deploy/*",
+    "k8s/*"
+   ]
+  },
+  "load-stress-tester": {
+   "bash_allow": [
+    "k6 run*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "tests/load/*",
+    "docs/perf/*"
+   ]
+  },
+  "mlops-serving-eng": {
+   "bash_allow": [
+    "python3 tools/mlops/*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "deploy/mlops/*",
+    "tools/mlops/*"
+   ]
+  },
+  "mobile-web-eng": {
+   "bash_allow": [
+    "npx playwright test tests/mobile*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/styles/*",
+    "src/components/*",
+    "public/*"
+   ]
+  },
+  "observability-eng": {
+   "bash_allow": [
+    "promtool check*",
+    "promtool test*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "deploy/prometheus/*",
+    "deploy/grafana/*",
+    "deploy/otel/*"
+   ]
+  },
+  "physics-sim-eng": {
+   "bash_allow": [
+    "cargo test physics*",
+    "ctest -R physics*",
+    "cargo --version*",
+    "ctest --version*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/engine/physics/*",
+    "tests/engine/physics/*"
+   ]
+  },
+  "product-director": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/product/*",
+    "docs/brief/*"
+   ]
+  },
+  "python-backend-spec": {
+   "bash_allow": [
+    "pytest*",
+    "ruff*",
+    "mypy*",
+    "uv run pytest*",
+    "uv run ruff*",
+    "uv run mypy*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "app/*",
+    "tests/*",
+    "pyproject.toml"
+   ]
+  },
+  "release-qa-officer": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/releases/*"
+   ]
+  },
+  "rust-systems-spec": {
+   "bash_allow": [
+    "cargo build*",
+    "cargo test*",
+    "cargo clippy*",
+    "cargo check*",
+    "cargo audit*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "crates/*",
+    "src/*",
+    "tests/*",
+    "Cargo.toml",
+    "Cargo.lock"
+   ]
+  },
+  "sabotage-qa-tester": {
+   "bash_allow": [
+    "npx stryker run*",
+    "cargo mutants*",
+    "mutmut run*",
+    "npm test*",
+    "pytest*",
+    "cargo test*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "tests/chaos/*",
+    "docs/qa/*"
+   ]
+  },
+  "sre-incident-eng": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/incidents/*",
+    "docs/runbooks/*"
+   ]
+  },
+  "static-analysis-lead": {
+   "bash_allow": [
+    "semgrep --config*",
+    "npx biome check*",
+    "ruff check*",
+    "cargo clippy*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "*.eslintrc.json",
+    "*eslint.config.js",
+    "rules/*",
+    "biome.json",
+    "ruff.toml"
+   ]
+  },
+  "system-architect": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/adr/*",
+    "docs/architecture/*"
+   ]
+  },
+  "tech-artist-pipeline": {
+   "bash_allow": [
+    "gltf-transform*",
+    "node tools/asset-pipeline/*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "assets/*",
+    "tools/asset-pipeline/*"
+   ]
+  },
+  "tech-docs-lead": {
+   "bash_allow": [
+    "markdownlint*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/*",
+    "docs/*.md"
+   ]
+  },
+  "threat-modeler": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/security/threat-models/*"
+   ]
+  },
+  "tpm-scrum-lead": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/sprints/*"
+   ]
+  },
+  "ts-node-fullstack": {
+   "bash_allow": [
+    "npm run build*",
+    "npm test*",
+    "npx tsc*",
+    "npx vitest*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/*",
+    "package.json",
+    "docs/architecture/*"
+   ]
+  },
+  "ui-ux-designer": {
+   "bash_allow": [
+    "npm run build*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/components/*",
+    "src/assets/*",
+    "docs/design-system/*"
+   ]
+  },
+  "ux-research-analyst": {
+   "bash_allow": [
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "docs/research/*",
+    "docs/design-system/*"
+   ]
+  },
+  "vector-rag-spec": {
+   "bash_allow": [
+    "pytest tests/rag*",
+    "rig whoami*",
+    "rig ps*",
+    "rig queue *",
+    "rig send *",
+    "rig capture *",
+    "rig transcript *",
+    "git status*",
+    "git diff --stat*",
+    "git diff --name-only*",
+    "git log --oneline*",
+    "git show --stat*"
+   ],
+   "path_write": [
+    "src/rag/*",
+    "tests/rag/*"
+   ]
+  }
+ }
+}

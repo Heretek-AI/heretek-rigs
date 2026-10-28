@@ -34,8 +34,8 @@ verify: ## Run the self-testing verification gate (schemas, digests, 51-role par
 live-health: ## Warn-first live-fleet health gate (read-only; advisory exit 0, --strict to fail).
 	python3 ./scripts/live-health.py
 
-test: ## Run unit tests for seat rendering and permission configuration.
-	python3 -m unittest tests/test_render_seat.py tests/test_command_effects.py tests/test_sweep_typed_blocks.py tests/test_regen_gate.py tests/test_queue_id_discipline.py tests/test_queue_json_discipline.py tests/test_reconcile.py tests/test_generate_trackers.py tests/test_build_canary.py tests/test_check_envelope.py tests/test_live_health.py tests/test_generate_supplychain.py tests/test_seat_sandbox.py tests/test_schema_contracts.py tests/test_audit_sessions.py -v
+test: ## Run the full unit suite (every tests/test_*.py via unittest discover).
+	python3 -m unittest discover -s tests -p 'test_*.py' -v
 
 bootstrap-seats: ## Provision $OPENRIG_HOME/state/pi/<seat>/agent/ across all rigs.
 	bash ./scripts/bootstrap-pi-seats.sh --all
