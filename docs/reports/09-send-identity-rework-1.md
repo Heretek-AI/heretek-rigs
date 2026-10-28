@@ -35,13 +35,15 @@ No finding was skipped as invalid — all ten held against current code.
 - `make test` → `Ran 531 tests ... OK` (was 530; +1 cross-seat test). Exit 0.
 - `python3 -m unittest tests.test_send_identity -v` → `Ran 26 tests ... OK`. Exit 0.
 - `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`. Exit 0.
-- `python3 scripts/generate-rigs.py --check-idempotent` → refused-on-dirty before commit (by design); re-run after commit below (must be byte-identical).
+- `python3 scripts/generate-rigs.py --check-idempotent` → `idempotence check passed (two consecutive runs byte-identical)`, exit 0 (run post-commit; the expected `resolvedCommit` re-lag dirt was committed as `ac9869e`, working re-lag from the check run itself reverted — known/accepted policy).
 - `grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/09-send-identity-spoof.md docs/evidence/09-send-identity-rotation.md` → no output (exit 1). Clean.
-- `git status`: 7 modified files, zero under `openspec/` (archived spec/tasks byte-identical).
+- `git status`: 8 files in fix commit + 16 registry leaves in provenance commit; zero under `openspec/` (archived spec/tasks byte-identical).
 
 ## Commits
 
-- (this cycle) `fix(09-send-identity): address PR #128 review findings R1 (Refs #9)` — F1…F10 + report.
+- `2aff663` `fix(09-send-identity): address PR #128 review findings R1 (Refs #9)` — F1…F10 + this report.
+- `ac9869e` `chore(09-send-identity): regenerate leaves for provenance (Refs #9)` — registry-only `resolvedCommit`/`canonicalUrl` re-lag, packageDigests untouched (wave precedent `e04a7f8`).
+- (this commit) report finalization with post-commit acceptance state.
 
 ## Self-audit notes
 
