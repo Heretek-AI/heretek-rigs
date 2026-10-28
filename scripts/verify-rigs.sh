@@ -2517,12 +2517,16 @@ _v19_before = len(failures)
 # 09-send-identity S2: V28 is the first ok()-bearing gate since the freeze,
 # so the canonical total moves 35 -> 36 here (and only here — no other V1-V27
 # line changes). The three live-count docs move with it.
-_v19_canonical = 36
+# 77-mission-gates S2: V29 is the second ok()-bearing gate since the freeze,
+# so the canonical total moves 36 -> 37 here (same rule, no other V1–V28
+# line changes). The three live-count docs move with it.
+_v19_canonical = 37
 if not failures:
     # 09-send-identity S2: +1 is V19's own ok() below, +1 is V28 (the first
-    # ok()-bearing gate since the freeze). A second post-freeze ok() gate
-    # must bump this addend alongside the canonical total.
-    if passes + 2 != _v19_canonical:
+    # ok()-bearing gate since the freeze). 77-mission-gates S2: +1 more is
+    # V29 (the second post-freeze ok()-bearing gate). A third post-freeze
+    # ok() gate must bump this addend alongside the canonical total.
+    if passes + 3 != _v19_canonical:
         fail(
             f"V19/#102: green-run live count is {passes + 2}, not the frozen canonical total {_v19_canonical} (a new ok()-bearing gate must bump the freeze + docs)"
         )
@@ -3126,6 +3130,119 @@ elif _v28_ran - _v28_skipped < 20:
     fail(f"V28/09-send-identity: tests.test_send_identity ran only {_v28_ran - _v28_skipped} executed tests (need >= 20, non-vacuous floor)")
 if len(failures) == _v28_before:
     ok(f"V28 send-identity attestation (09-send-identity S1) green: binding rules + !cat render + {_v28_ran} corpus tests pass + S0 evidence present")
+print("\n== V29. Mission-Gate Ownership (77-mission-gates) ==")
+# 77-mission-gates S2 appended alongside — no V1–V28 line renumbered or
+# reworded (the V19 canonical total moves 36 -> 37 here alongside the three
+# live-count docs, per the freeze's own bump rule for a new ok()-bearing
+# gate). Coverage: the stalled-awaiting-gate diff class (shared helper, no
+# parallel mapping), the charter closure-ownership marker in every rendered
+# mission-slice-sop leaf, the non-dismissible recovery guard (fail-closed
+# refusal, redacted log, never done), the S1/S2 corpus
+# (tests/test_mission_gates.py, dummy fixtures only), and the S0 pre-fix
+# evidence file (silence transcript present, zero bearer-shaped strings).
+_v29_before = len(failures)
+_v29_model_src = (root / "scripts/reconcile_model.py").read_text()
+for _marker29 in (
+    "def is_awaiting_gate_prose",
+    "def stalled_awaiting_gate_diff",
+    '"stalled-awaiting-gate"',
+    "no live gate qitem",
+):
+    if _marker29 not in _v29_model_src:
+        fail(f"V29/77-mission-gates: scripts/reconcile_model.py lost marker {_marker29!r}")
+_v29_gen_src = (root / "scripts/generate_trackers.py").read_text()
+if "stalled_awaiting_gate_diff" not in _v29_gen_src:
+    fail("V29/77-mission-gates: scripts/generate_trackers.py lost the shared stalled-awaiting-gate import (no parallel mapping)")
+_v29_sweep_src = (root / "scripts/sweep-typed-blocks.py").read_text()
+for _marker29 in (
+    "def check_recovery_dismissal",
+    "class RecoveryDismissalRefused",
+    "_redact_for_log",
+    "never auto-close",
+):
+    if _marker29 not in _v29_sweep_src:
+        fail(f"V29/77-mission-gates: scripts/sweep-typed-blocks.py lost refusal marker {_marker29!r}")
+_v29_sweep_spec = importlib.util.spec_from_file_location("sweep_recovery_v29", str(root / "scripts/sweep-typed-blocks.py"))
+_v29_sweep_mod = importlib.util.module_from_spec(_v29_sweep_spec)
+try:
+    _v29_sweep_spec.loader.exec_module(_v29_sweep_mod)
+except Exception as _e29:
+    fail(f"V29/77-mission-gates: cannot load scripts/sweep-typed-blocks.py ({_e29})")
+    _v29_sweep_mod = None
+if _v29_sweep_mod is not None:
+    _v29_flag = _v29_sweep_mod.snapshot_row_state({"qitemId": "q", "state": "in-progress"})
+    try:
+        _v29_sweep_mod.check_recovery_dismissal("rec", "q", _v29_flag, _v29_flag)
+        fail("V29/77-mission-gates: identical-snapshot dismissal was ALLOWED (must refuse)")
+    except _v29_sweep_mod.RecoveryDismissalRefused as _ref29:
+        if re.search(r"[A-Za-z0-9_-]{40,}", str(_ref29)):
+            fail("V29/77-mission-gates: refusal log line carries an unredacted bearer-shaped run")
+    except Exception as _e29:
+        fail(f"V29/77-mission-gates: refusal raised the wrong type ({type(_e29).__name__})")
+    _v29_moved = _v29_sweep_mod.snapshot_row_state({"qitemId": "q", "state": "in-progress", "note": "gate owned"})
+    try:
+        _v29_out = _v29_sweep_mod.check_recovery_dismissal("rec", "q", _v29_flag, _v29_moved)
+    except Exception as _e29:
+        fail(f"V29/77-mission-gates: changed-snapshot dismissal was refused ({_e29})")
+        _v29_out = None
+    if _v29_out is not None and _v29_out.get("dismissal") != "permitted":
+        fail(f"V29/77-mission-gates: changed-snapshot dismissal mis-shaped ({_v29_out!r})")
+_v29_leaves = [root / "specs/agents/_shared/skills/mission-slice-sop/SKILL.md"] + sorted((root / "rigs").glob("*/agents/_shared/skills/mission-slice-sop/SKILL.md"))
+if len(_v29_leaves) != 9:
+    fail(f"V29/77-mission-gates: expected 9 rendered mission-slice-sop leaves (specs + 8 rigs), found {len(_v29_leaves)}")
+for _leaf29 in _v29_leaves:
+    try:
+        _lt29 = _leaf29.read_text()
+    except Exception as _e29:
+        fail(f"V29/77-mission-gates: leaf {_leaf29.relative_to(root)} unreadable ({_e29})")
+        continue
+    for _marker29 in ("--gate", "77-mission-gates", "closes its own row"):
+        if _marker29 not in _lt29:
+            fail(f"V29/77-mission-gates: leaf {_leaf29.relative_to(root)} lost charter marker {_marker29!r}")
+_v29_ev = root / "docs/evidence/77-mission-gates-prefix.md"
+try:
+    _v29_ev_text = _v29_ev.read_text()
+except Exception as _e29:
+    fail(f"V29/77-mission-gates: S0 evidence file unreadable ({_e29})")
+    _v29_ev_text = None
+if _v29_ev_text is not None:
+    for _marker29 in ("reconcile exit: 0", "stalled-awaiting-gate signal: ABSENT", "dismissal-without-change: ALLOWED"):
+        if _marker29 not in _v29_ev_text:
+            fail(f"V29/77-mission-gates: S0 evidence must carry the silence line {_marker29!r}")
+    if re.search(r"[A-Za-z0-9_-]{40,}", _v29_ev_text):
+        fail("V29/77-mission-gates: S0 evidence carries an unredacted bearer-shaped run")
+_v29_rp = root / "docs/evidence/77-mission-gates/red-proofs.log"
+try:
+    _v29_rp_text = _v29_rp.read_text()
+except Exception as _e29:
+    fail(f"V29/77-mission-gates: red-proofs.log unreadable ({_e29})")
+    _v29_rp_text = None
+if _v29_rp_text is not None:
+    for _marker29 in ("SABOTAGED -> None", "PATCHED -> stalled-awaiting-gate"):
+        if _marker29 not in _v29_rp_text:
+            fail(f"V29/77-mission-gates: red-proofs.log must carry the S1 RED/GREEN line {_marker29!r}")
+_v29_ut = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests.test_mission_gates"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v29_ran = 0
+_v29_m = re.search(r"Ran (\d+) tests", _v29_ut.stderr or "")
+if _v29_m:
+    _v29_ran = int(_v29_m.group(1))
+_v29_skipped = 0
+_v29_sk = re.search(r"skipped=(\d+)", _v29_ut.stderr or "")
+if _v29_sk:
+    _v29_skipped = int(_v29_sk.group(1))
+if _v29_ut.returncode != 0:
+    fail(f"V29/77-mission-gates: tests.test_mission_gates failed:\n{_v29_ut.stderr[-800:]}")
+elif _v29_skipped:
+    fail(f"V29/77-mission-gates: tests.test_mission_gates skipped {_v29_skipped} test(s) (skips must not count toward the corpus threshold)")
+elif _v29_ran - _v29_skipped < 16:
+    fail(f"V29/77-mission-gates: tests.test_mission_gates ran only {_v29_ran - _v29_skipped} executed tests (need >= 16, non-vacuous floor)")
+if len(failures) == _v29_before:
+    ok(f"V29 mission-gate ownership (77-mission-gates S2) green: stalled diff + charter markers in 9 leaves + refusal guard + {_v29_ran} corpus tests pass + S0 evidence present")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

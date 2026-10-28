@@ -206,6 +206,83 @@ class RigClient:
 
 
 # ---------------------------------------------------------------------------
+# Stuck-recovery dismissal guard (77-mission-gates, REQ-M3)
+# ---------------------------------------------------------------------------
+
+
+class RecoveryDismissalRefused(Exception):
+    """Fail-closed refusal: a stuck-recovery item stays open while the
+    flagged row's state is byte-identical to flag time."""
+
+
+_SEED_RIG_MOD = None
+
+
+def _seed_rig_mod():
+    """Load scripts/seed-rig.py as a module: single source of truth for log
+    redaction (never duplicated here). Loaded once and cached — repeated
+    refusal checks reuse the module instead of re-executing seed-rig.py
+    each time."""
+    global _SEED_RIG_MOD
+    if _SEED_RIG_MOD is not None:
+        return _SEED_RIG_MOD
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "seed_rig_sweep_recovery", Path(__file__).resolve().parent / "seed-rig.py"
+    )
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    _SEED_RIG_MOD = mod
+    return mod
+
+
+def snapshot_row_state(row):
+    """Canonical byte-stable snapshot of a flagged row's state.
+
+    Dicts serialize key-sorted (so key order never compares unequal);
+    anything else is carried under a single `state` key. Both snapshots in
+    a dismissal check must come from THIS function.
+    """
+    if isinstance(row, dict):
+        payload = {key: row.get(key) for key in sorted(row)}
+    else:
+        payload = {"state": str(row)}
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str)
+
+
+def check_recovery_dismissal(
+    recovery_id, flagged_qitem, flagged_snapshot, current_snapshot
+):
+    """Fail-closed guard for stuck-recovery dismissal (issue #77, REQ-M3).
+
+    flagged_snapshot is snapshot_row_state() output captured at flag time;
+    current_snapshot is snapshot_row_state() of the flagged row now. A
+    byte-identical pair means nobody acted on the flagged row since the
+    sweep fired, so closing the recovery item would bury the stall (the
+    B2 outcome): raise RecoveryDismissalRefused with a redacted log line
+    (every interpolated value through seed-rig._redact_for_log) and leave
+    the flagged row and the recovery item untouched. A changed pair means
+    the owner acted (gate created, row advanced, verdict+closure recorded):
+    return a permitted record — the CALLER performs the close. This guard
+    returns data or raises; it performs no rig write and never writes done
+    (the never-done rule stands).
+    """
+    redact = _seed_rig_mod()._redact_for_log
+    if current_snapshot == flagged_snapshot:
+        raise RecoveryDismissalRefused(
+            f"recovery-dismissal-refused: {redact(recovery_id)} for flagged "
+            f"row {redact(flagged_qitem)} (row state byte-identical to flag "
+            f"time; owner action required, never auto-close)"
+        )
+    return {
+        "dismissal": "permitted",
+        "recovery_id": recovery_id,
+        "flagged_qitem": flagged_qitem,
+    }
+
+
+# ---------------------------------------------------------------------------
 # Pure evaluation helpers (unit-tested, no I/O)
 # ---------------------------------------------------------------------------
 

@@ -12,7 +12,7 @@ Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, or `scripts/`, then regenerat
 ```bash
 python3 ./scripts/generate-rigs.py        # no blocking dirt only: sanctioned session strays ignored (issue #43 allowlist), tracked/non-allowlisted dirt refuses (by design)
 HERETEK_RIGS_ALLOW_DIRTY=1 python3 ./scripts/generate-rigs.py   # dev iterations only
-./scripts/verify-rigs.sh --check-only     # expect: 36 checks passed, 0 failed
+./scripts/verify-rigs.sh --check-only     # expect: 37 checks passed, 0 failed
 python3 ./scripts/audit_loop.py --self-test
 ```
 

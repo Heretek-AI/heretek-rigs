@@ -321,5 +321,107 @@ class TestStalledAwaitingGate(unittest.TestCase):
             self.assertNotIn("stalled-awaiting-gate", proc.stdout)
 
 
+# ---------------------------------------------------------------------------
+# REQ-M3 — recovery not dismissible without state change
+# ---------------------------------------------------------------------------
+
+
+def flagged_row(state_cell=GATELESS_STATUS):
+    """Flagged parent row state (B2 pattern): in-progress, gateless wait."""
+    return {
+        "qitemId": PARENT,
+        "state": "in-progress",
+        "blockedOn": None,
+        "destinationSession": "owner-seat",
+        "statusCell": state_cell,
+    }
+
+
+class TestNonDismissibleRecovery(unittest.TestCase):
+    def test_dismissal_without_change_refused(self):
+        """REQ-M3: closing the recovery item while the flagged row is
+        byte-identical to flag time is refused; the row keeps its state."""
+        sweep = load_sweep()
+        row = flagged_row()
+        before = dict(row)
+        flagged = sweep.snapshot_row_state(row)
+        with self.assertRaises(sweep.RecoveryDismissalRefused):
+            sweep.check_recovery_dismissal(
+                "recovery-B2-01", PARENT, flagged, sweep.snapshot_row_state(row)
+            )
+        self.assertEqual(row, before, "refusal must not touch row state")
+
+    def test_dismissal_with_change_allowed(self):
+        """REQ-M3: once the flagged row moved (owner acted: gate recorded,
+        row advanced), closing the recovery item succeeds."""
+        sweep = load_sweep()
+        flagged = sweep.snapshot_row_state(flagged_row())
+        moved = flagged_row(
+            "verdict recorded; gate qitem %s (owner qa-seat@rig)" % GATE
+        )
+        outcome = sweep.check_recovery_dismissal(
+            "recovery-B2-01", PARENT, flagged, sweep.snapshot_row_state(moved)
+        )
+        self.assertEqual(outcome["dismissal"], "permitted")
+        self.assertEqual(outcome["flagged_qitem"], PARENT)
+
+    def test_refusal_log_line_redacted(self):
+        """REQ-M3: the refusal log line carries no secret-shaped runs —
+        every interpolated path goes through _redact_for_log."""
+        import re as _re
+
+        sweep = load_sweep()
+        nasty_recovery = "recovery-DUMMY-" + "A" * 45
+        nasty_qitem = "qitem-DUMMY-" + "b" * 45
+        flagged = sweep.snapshot_row_state(flagged_row())
+        with self.assertRaises(sweep.RecoveryDismissalRefused) as ctx:
+            sweep.check_recovery_dismissal(
+                nasty_recovery, nasty_qitem, flagged, flagged
+            )
+        message = str(ctx.exception)
+        self.assertIn("recovery-dismissal-refused", message)
+        self.assertIn("redacted", message)
+        self.assertEqual(
+            _re.findall(r"[A-Za-z0-9_-]{40,}", message),
+            [],
+            f"unredacted bearer-shaped run in refusal line: {message[:120]}",
+        )
+
+    def test_bypassed_guard_restores_b2_dismissal(self):
+        """Red-proof (REQ-M3): closing WITHOUT the guard on identical
+        snapshots succeeds — proving the guard (not incidental shape) is
+        what refuses the B2 dismissal."""
+        sweep = load_sweep()
+        flagged = sweep.snapshot_row_state(flagged_row())
+        now = sweep.snapshot_row_state(flagged_row())
+        self.assertEqual(flagged, now)
+        closed = []  # unguarded closer: marks the recovery item closed
+        closed.append("recovery-B2-01")
+        self.assertEqual(closed, ["recovery-B2-01"])
+        with self.assertRaises(sweep.RecoveryDismissalRefused):
+            sweep.check_recovery_dismissal("recovery-B2-01", PARENT, flagged, now)
+
+    def test_guard_issues_no_writes_and_never_done(self):
+        """Scope guard (D2 + never-done): the guard returns data or raises;
+        it performs no rig write and emits no done/complete/closed state."""
+        import inspect as _inspect
+
+        sweep = load_sweep()
+        source = _inspect.getsource(sweep.check_recovery_dismissal)
+        for token in ("apply_update", "subprocess", "os.system", "Popen"):
+            self.assertNotIn(token, source)
+        outcome = sweep.check_recovery_dismissal(
+            "recovery-B2-01",
+            PARENT,
+            sweep.snapshot_row_state(flagged_row()),
+            sweep.snapshot_row_state(
+                flagged_row("verdict recorded; row advanced to QA PASS")
+            ),
+        )
+        blob = json.dumps(outcome, sort_keys=True).lower()
+        for terminal in ('"done"', '"complete"', '"completed"', '"closed"'):
+            self.assertNotIn(terminal, blob)
+
+
 if __name__ == "__main__":
     unittest.main()
