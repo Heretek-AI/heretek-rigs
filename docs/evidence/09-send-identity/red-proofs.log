@@ -34,19 +34,40 @@ was reverted. Clean-tree reruns are green (see S1 acceptance below).
   Reverted via `git checkout -- fleet/fleet.yaml`; rerun OK.
 
 ## S2 FAIL-ONLY demonstration (V28 vs pre-fix tree)
-- Method: `HERETEK_TEST_ROOT` overlay? Not applicable — V28 asserts on the
-  live tree. Instead: V28's corpus assertion runs
-  `tests/test_send_identity.py`; on the pre-fix tree (spec commit 4b453a2,
-  before S1) the module `scripts/send_identity.py` is absent, so the corpus
-  import fails and V28 fails. Verified by checking out 4b453a2's tree state
-  for the two S1 files only in a scratch overlay is NOT done (would dirty
-  the worktree); the FAIL-ONLY property follows from construction: V28
-  requires (a) `scripts/send_identity.py` with the filename/`!cat`/verify
-  markers, (b) the S1 render block in `scripts/render-seat.py`, (c) corpus
-  rc=0, (d) the S0 evidence file — all four absent pre-fix. The S0 spike
-  itself is the pre-fix behavioral proof (forged `--source` accepted,
-  `docs/evidence/09-send-identity-spoof.md`).
-- Recorded: V28 gate code reviewed for fail-loudness (every missing marker
-  calls `fail()`; corpus rc!=0 calls `fail()`; zero-bearer check calls
-  `fail()`), and the S1a–S1d sabotages above prove the corpus itself is
-  non-vacuous.
+
+V28 MUST be FAIL-ONLY pre-fix (spoof succeeds on the unpatched tree) and
+PASS post-fix. Demonstrated two ways (recorded 2026-10-28, Refs #9):
+
+(a) Dynamic — `scripts/send_identity.py` moved out of the tree (pre-fix
+shape), `./scripts/verify-rigs.sh --check-only` run, file restored
+byte-identical after. Result: exit 1,
+`SUMMARY: 35 checks passed, 4 failed`, with exactly these V28 lines:
+
+- `[FAIL] V28/09-send-identity: cannot load scripts/send_identity.py
+  ([Errno 2] No such file or directory: '.../scripts/send_identity.py')`
+- `[FAIL] V28/09-send-identity: scripts/send_identity.py unreadable
+  ([Errno 2] No such file or directory: '...')`
+- `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`
+  (corpus import error — module absent; no secret material in output)
+
+plus the expected S1-layering cascade
+(`[FAIL] V23/107-identity: tests/test_identity_m1.py failed:` — its S1
+fixture imports the attestation module). Unbound-role renders are
+unaffected (the render import is lazy: bound roles only). Full failing
+output retained in scratch (`/tmp/v28-failonly3.txt`, scratch-only).
+
+(b) Static — the true pre-fix tree (spec base 4b453a2) additionally lacks
+the S1 render block and the S0 evidence file, so V28's remaining checks
+fail there too (verified read-only, no worktree mutation):
+
+- `git show 4b453a2:scripts/render-seat.py | grep -c
+  "send-identity.json|sender_binding_filename"` → `0` (each render-marker
+  check calls `fail()`)
+- `git show 4b453a2:scripts/send_identity.py` → `fatal: path
+  '.../send_identity.py' exists on disk, but not in '4b453a2'`
+- S0 evidence `docs/evidence/09-send-identity-spoof.md` committed in S0
+  (51228f3), absent at base → `fail()` on the evidence checks.
+
+Post-fix: `SUMMARY: 36 checks passed, 0 failed` with
+`[PASS] V28 send-identity attestation (09-send-identity S1) green:
+binding rules + !cat render + 24 corpus tests pass + S0 evidence present`.

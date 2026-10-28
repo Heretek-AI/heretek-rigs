@@ -5,9 +5,9 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/heretek-omni-fleet",
-      "resolvedCommit": "9228e81b8ddda4747356c503d253e9c4c18f5d59",
+      "resolvedCommit": "d391ca1ae9654c3f956cd262f113b4c78c5f030d",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/9228e81b8ddda4747356c503d253e9c4c18f5d59/rigs/heretek-omni-fleet"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/d391ca1ae9654c3f956cd262f113b4c78c5f030d/rigs/heretek-omni-fleet"
     },
     "configurationId": "command.exec-director=pi,command.system-architect=pi,command.tpm-scrum-lead=pi",
     "packageDigest": {

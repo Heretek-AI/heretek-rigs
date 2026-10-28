@@ -1007,12 +1007,6 @@ def build_seat_files(
     # at a nonexistent secret. Unbound roles render no entry at all.
     import importlib.util as _ilu09
 
-    _si09_spec = _ilu09.spec_from_file_location(
-        "send_identity_render",
-        Path(__file__).resolve().parent / "send_identity.py",
-    )
-    _si09_mod = _ilu09.module_from_spec(_si09_spec)
-    _si09_spec.loader.exec_module(_si09_mod)
     _bound09 = [
         b
         for b in role.get("mcp", []) or []
@@ -1020,6 +1014,18 @@ def build_seat_files(
         and mcp_catalog.get(b.get("server"), {}).get(SEAT_GRANT_FLAG)
     ]
     if _bound09:
+        # Lazy: unbound roles never touch the attestation module (zero
+        # render cost, no hard dependency); bound roles fail closed here
+        # when the module is absent instead of rendering without identity.
+        _si09_spec = _ilu09.spec_from_file_location(
+            "send_identity_render",
+            Path(__file__).resolve().parent / "send_identity.py",
+        )
+        try:
+            _si09_mod = _ilu09.module_from_spec(_si09_spec)
+            _si09_spec.loader.exec_module(_si09_mod)
+        except Exception as _e09:
+            die(f"send-identity module missing (scripts/send_identity.py: {_e09})")
         _sbfn09 = _si09_mod.sender_binding_filename(session)
         if secret_ok(_sbfn09):
             files["send-identity.json"] = {
