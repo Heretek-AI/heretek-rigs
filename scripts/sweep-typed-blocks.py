@@ -312,7 +312,7 @@ def request_recovery_dismissal(
         log_lines.append(
             f"recovery-dismissal-refused: {redact(recovery_id)} for flagged "
             f"row {redact(flagged_qitem)} (flagged row unreadable at close "
-            f"time: {exc}; owner action required, never auto-close)"
+            f"time: {redact(str(exc))}; owner action required, never auto-close)"
         )
         raise RecoveryDismissalRefused(
             f"recovery-dismissal-refused: {redact(recovery_id)} for flagged "

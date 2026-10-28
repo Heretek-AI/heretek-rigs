@@ -553,6 +553,51 @@ class TestProductionRecoveryWiring(unittest.TestCase):
                 log_lines=[],
             )
 
+    def test_close_time_unreadable_log_line_redacted(self):
+        """REQ-M3/REQ-M4: a secret-shaped DataSourceError at close time is
+        redacted in the refusal LOG line; the raised message and refusal
+        semantics are unchanged (raised message carries no exc detail)."""
+        import re as _re
+
+        sweep = load_sweep()
+        row, transitions = stuck_typed_row()
+        client = SweepRecoveryClient(row, transitions)
+        report = sweep.run_sweep(client, cursor={}, log_lines=[])
+        guard = report["recovery_guards"][row["qitemId"]]
+        secret_run = "A" * 45
+
+        def _leaky(qitem_id):
+            raise sweep.DataSourceError(f"daemon blew up, bearer leaked: {secret_run}")
+
+        client.fetch_show = _leaky
+        logs = []
+        with self.assertRaises(sweep.RecoveryDismissalRefused) as ctx:
+            sweep.request_recovery_dismissal(
+                client,
+                "recovery-STUCK-01",
+                row["qitemId"],
+                guard["flagged_snapshot"],
+                log_lines=logs,
+            )
+        raised = str(ctx.exception)
+        self.assertIn("recovery-dismissal-refused", raised)
+        self.assertIn("unreadable at close time", raised)
+        self.assertEqual(
+            _re.findall(r"[A-Za-z0-9_-]{40,}", raised),
+            [],
+            f"unredacted bearer-shaped run in raised message: {raised[:160]}",
+        )
+        refusal_lines = [line for line in logs if "recovery-dismissal-refused" in line]
+        self.assertEqual(len(refusal_lines), 1)
+        logged = refusal_lines[0]
+        self.assertIn("unreadable at close time", logged)
+        self.assertIn("redacted", logged)
+        self.assertEqual(
+            _re.findall(r"[A-Za-z0-9_-]{40,}", logged),
+            [],
+            f"unredacted bearer-shaped run in unreadable-row log line: {logged[:160]}",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

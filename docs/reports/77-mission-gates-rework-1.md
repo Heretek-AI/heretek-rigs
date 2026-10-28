@@ -32,7 +32,7 @@ Nothing under `specs/`, `rigs/`, `rosters/`, `registry/`, `openspec/` hand-edite
 - `python3 -m unittest tests.test_mission_gates_prefix -v`: exit 0 — `Ran 6 tests / OK`.
 - `python3 -m unittest tests.test_sweep_typed_blocks`: exit 0 — `Ran 54 tests / OK` (neighbor suite, run_sweep report change regression check).
 - `python3 scripts/audit_loop.py --self-test`: `SELF-TEST PASSED`.
-- `python3 scripts/generate-rigs.py --check-idempotent`: exit 0, no registry churn (status shows only the 5 intended files).
+- `python3 scripts/generate-rigs.py --check-idempotent`: exit 0; the run temporarily changed provenance fields (`resolvedCommit` + `canonicalUrl`) in 16 registry files, those changes were reverted via `git checkout -- registry/`, and the final tree has no registry diff (status shows only the 5 intended files).
 - `grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/77-mission-gates-prefix.md docs/evidence/77-mission-gates-runbook.md`: no output (exit 1).
 
 ## Self-audit notes

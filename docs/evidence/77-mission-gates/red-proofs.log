@@ -271,3 +271,47 @@ pre-sabotage copy; `git status --short` clean; full re-run, exit 0):
   [PASS] V29 mission-gate ownership (77-mission-gates S2) green: stalled diff + charter markers in 9 leaves + refusal guard + 19 corpus tests pass + S0 evidence present
 SUMMARY: 37 checks passed, 0 failed.
 ```
+
+## R2 REQ-M3/REQ-M4: unreadable-row refusal log line redacts the DataSourceError (rework-2, 2026-10-28, branch fix/77-mission-gates-r2)
+
+Prior state (verified on disk before touching):
+`request_recovery_dismissal` in `scripts/sweep-typed-blocks.py:311-316`
+interpolated the caught `DataSourceError` RAW into the refusal LOG line
+(`f"... unreadable at close time: {exc}; ..."`), while the RAISED
+`RecoveryDismissalRefused` message already omitted `{exc}`. Any
+secret-shaped run inside the daemon error (e.g. a leaked bearer in
+`rig queue show` stderr) landed unredacted in the log — violating the
+wave's secrets rule (every new log path through `_redact_for_log`) and
+the REQ-M4 redaction guarantee the corpus asserts behaviorally.
+
+Fix (minimal, message shape + handling unchanged): the log line now
+interpolates `{redact(str(exc))}` using the `redact` already bound at
+the top of the function (`_seed_rig_mod()._redact_for_log`); the raised
+message is byte-identical to before. Corpus:
+`tests.test_mission_gates.TestProductionRecoveryWiring
+.test_close_time_unreadable_log_line_redacted` drives
+`request_recovery_dismissal` with a `DataSourceError("daemon blew up,
+bearer leaked: " + "A"*45)` and asserts the log line contains
+"unreadable at close time" + "redacted" with zero `[A-Za-z0-9_-]{40,}`
+runs, while the raised message still carries
+"recovery-dismissal-refused" + "unreadable at close time" with zero
+such runs (refusal semantics unchanged).
+
+### R2-a redaction removed -> secret-shaped run leaks into the log line (RED)
+
+Sabotage (working-copy only, pre-fix copy at
+`/tmp/opencode/r2-sweep-fixed.py`): `{redact(str(exc))}` -> `{exc}` in
+the unreadable-row log line (raised message untouched):
+
+```
+AssertionError: 'redacted' not found in 'recovery-dismissal-refused: recovery-STUCK-01 for flagged row qitem-STUCK-01 (flagged row unreadable at close time: daemon blew up, bearer leaked: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA; owner action required, never auto-close)'
+Ran 1 test / FAILED (failures=1)
+```
+
+The raw 45-char bearer-shaped run appears verbatim in the log line —
+the exact leak the fix closes. The raised message (no `{exc}`) stayed
+clean throughout, confirming the leak was log-line-only.
+
+GREEN (restored via `cp /tmp/opencode/r2-sweep-fixed.py
+scripts/sweep-typed-blocks.py`, `cmp` byte-identical): `Ran 20 tests /
+OK` (`tests.test_mission_gates`, incl. the new redaction test).
