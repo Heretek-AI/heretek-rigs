@@ -1,0 +1,84 @@
+# Red-proof log — overhaul-a rework cycle 1 verification
+worktree: .lane/trees/overhaul-a | branch: feat/overhaul-a | base: 0cf3c38 | date: 2026-10-28T02:29:04Z
+
+?? docs/evidence/overhaul-a/rework1-red-proofs.log
+--- tree above (expect clean) ---
+=== BASELINE ===
+$ make verify
+  [PASS] Stale-count guard (#102) green: live docs state the live SUMMARY (35 checks passed), no stale 64/0.6.11/31 strings in live files
+V22/#102 bare queue/send deny green: 51 seats deny the bare triple and allow the disciplined forms (FAIL-ONLY, SUMMARY frozen)
+V23/107-identity M1 green: seat-grant catalog shape + filename helper + 26 corpus tests pass (FAIL-ONLY, SUMMARY frozen)
+V24/107-identity R1 green: rotation step 3 mandates --rig alongside --seat, no rig-less mint (FAIL-ONLY, SUMMARY frozen)
+V25/overhaul-a M1 green: hardened rig relay markers present, 7 enforcement tests pass without bwrap (FAIL-ONLY, SUMMARY frozen)
+V26/overhaul-a M2 green: filter guard + hermetic restore markers present, 7 corpus tests pass (FAIL-ONLY, SUMMARY frozen)
+V27/overhaul-a M3 green: Dockerfile bubblewrap + UniqueKey workflow parse + verify-fleet install (FAIL-ONLY, SUMMARY frozen)
+SUMMARY: 35 checks passed, 0 failed.
+make verify rc=0
+$ ./scripts/verify-rigs.sh --check-only
+  [PASS] Stale-count guard (#102) green: live docs state the live SUMMARY (35 checks passed), no stale 64/0.6.11/31 strings in live files
+V22/#102 bare queue/send deny green: 51 seats deny the bare triple and allow the disciplined forms (FAIL-ONLY, SUMMARY frozen)
+V23/107-identity M1 green: seat-grant catalog shape + filename helper + 26 corpus tests pass (FAIL-ONLY, SUMMARY frozen)
+V24/107-identity R1 green: rotation step 3 mandates --rig alongside --seat, no rig-less mint (FAIL-ONLY, SUMMARY frozen)
+V25/overhaul-a M1 green: hardened rig relay markers present, 7 enforcement tests pass without bwrap (FAIL-ONLY, SUMMARY frozen)
+V26/overhaul-a M2 green: filter guard + hermetic restore markers present, 7 corpus tests pass (FAIL-ONLY, SUMMARY frozen)
+V27/overhaul-a M3 green: Dockerfile bubblewrap + UniqueKey workflow parse + verify-fleet install (FAIL-ONLY, SUMMARY frozen)
+SUMMARY: 35 checks passed, 0 failed.
+check-only rc=0
+$ python3 -m unittest tests.test_seat_sandbox tests.test_generate_supplychain
+Ran 50 tests OK rc=0
+$ python3 scripts/audit_loop.py --self-test
+SELF-TEST PASSED rc=0
+
+=== F1 GREEN (no-filter symlink dies before extraction) ===
+F1 GREEN: Ran 1 test OK (TestVendorSkillFromClone.test_symlink_member_dies_on_no_filter_path, rc=0)
+
+=== F1 (tar no-filter symlink gate, scripts/generate-rigs.py:480-486) ===
+GREEN: test_symlink_member_dies_on_no_filter_path rc=0 (dies 2, pre-validated regular-only)
+SABOTAGE: 'if _no_filter and (' -> 'if False and (' (caller-side check removed)
+RED PROOF:
+----------------------------------------------------------------------
+Ran 1 test in 0.045s
+
+FAILED (failures=1)
+sabotage rc=1 (FAILED, AssertionError: SystemExit not raised => extraction would proceed)
+RESTORE: git checkout -- scripts/generate-rigs.py; byte-identical to pre-sabotage; git status clean for file
+GREEN-AGAIN: rc=0 OK
+
+=== F2 GREEN (TMPDIR=/tmp denied) ===
+F2 GREEN: test_deny_out_of_scope_body_file rc=0 (incl. TMPDIR=/tmp + symlink-to-/tmp subTests deny 'outside scratch and seat workspace')
+F2 GREEN manual: TMPDIR=/tmp + body /tmp/relay-scope-probe-qa.txt -> DENY rc=1 (refusal names reason)
+F2 GREEN manual: HERETEK_JAIL_SCRATCH=/var/tmp + body under /tmp -> DENY rc=1
+F2 GREEN allow-path: body under legit scratch root TMPDIR=/tmp/opencode/f2probe/good -> ALLOW rc=0 FAKE-RIG-RAN (other roots still work)
+
+=== F2 (scratch-root exclusion, scripts/seat-sandbox.sh:116-117) ===
+SABOTAGE: broad-root exclusion replaced with 'pass' (revert of the fix)
+RED PROBE: TMPDIR=/tmp + host-/tmp body -> ALLOW rc=0 FAKE-RIG-RAN (file back in scope, laundering hole re-opened)
+RED UNIT:
+AssertionError: 0 == 0 : FAKE-RIG-RAN queue create --json --verify --body-file /tmp/relay-scope-probe-1407893.txt
+AssertionError: 0 == 0 : FAKE-RIG-RAN queue create --json --verify --body-file /tmp/relay-scope-probe-1407893.txt
+Ran 1 test in 0.163s
+FAILED (failures=2)
+sabotage unit rc=1 (FAILED, failures=2 subTests)
+RESTORE: git checkout -- scripts/seat-sandbox.sh; byte-identical; file clean
+GREEN-AGAIN: TestRigRelayEnforcement 7/7 OK rc=0
+
+=== N1 (hermetic stderr notice, scripts/generate-rigs.py:975-983) ===
+N1 GREEN: stderr notice 'generate-rigs: crew_dir,vendor_dir missing; hermetic mode (snapshot restore, no live clones)' present; rc=0; idempotence byte-identical; leaves restored via git checkout (status clean after)
+N1 behavior unchanged: regen output identical pattern to M1-M3 report (provenance + 2 env-drift skills only)
+
+=== N2 (recursive fixture, tests/test_generate_supplychain.py:279-284 + _restore_shared_skill guard) ===
+GREEN unit: TestHermeticVendorRestore rc=0
+ADVERSARIAL /tmp PROBE (synthetic skill tree with nested/extra.md, no repo writes):
+  shallow top-level-only copy: nested file LOST, hash != lock (pre-N2 gap real: lossy)
+  copytree copy: hash == lock (faithful)
+  nested deletion from snapshot -> _restore_shared_skill died exit=2 tree-hash mismatch (nested deletion CAUGHT)
+  re-copied snapshot -> restore ok, hash == lock (GREEN)
+
+=== REGRESSION: make test ===
+REGRESSION: make test -> Ran 374 tests, FAILED (failures=1); sole failure test_build_canary.CanaryCatalogPins.test_canary_scope_only (PRE-EXISTING, proven on base 07114e3 in M1-M3 report; fleet/fleet.yaml untouched; canary/Makefile/V19 untouched, out of scope)
+
+=== V25 + SUMMARY FROZEN ===
+TestRigRelayEnforcement method count: 7 (F2 broad-root cases folded as subTests, no 8th method; V25 exact-7 floor untouched at verify-rigs.sh:2898)
+SUMMARY: 35 checks passed, 0 failed (V25/V26/V27 all green, FAIL-ONLY, no renumber/reword)
+fleet/fleet.yaml: unmodified
+QA VERDICT: PASS (all baselines green; F1/F2 red-proofs non-vacuous with byte-identical restores; N1/N2 verified; regression = pre-existing canary only)
