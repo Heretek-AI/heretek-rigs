@@ -1,93 +1,108 @@
-# Handoff — next session (2026-10-26, post-PR #119 merge on main)
+# Handoff — next session (2026-10-28, post-PR #126 merge on main)
 
-> Superseded 2026-10-24 handoff archived in git history (`1e2979c`..`41ccec3`).
-> This document reflects the authoritative state of `main` after merging PR #117, PR #118, and PR #119.
+> Superseded 2026-10-26 handoff archived in git history (`2590a87`..`83cbf86`).
+> This document reflects the authoritative state of `main` after merging PR #120 through PR #126.
 
 ---
 
 ## 1. Live State & Environment
 
 - **Repository**: `/home/john/Projects/heretek-rig-workspace/heretek-rigs`
-- **Branch**: `main` @ `41ccec3` (Merge PR #119). Working directory clean (`git status -s` clean; sanctioned `.lane/` stray only).
+- **Branch**: `main` @ `83cbf86` (Merge PR #126). Working directory clean at time of writing.
 - **Core Stack**:
-  - `@openrig/cli@0.7.2` (bumped from 0.6.13 in PR #118)
-  - Pi `1.4.0` (`@earendil-works/pi-coding-agent`, bumped from 1.3.0 in PR #118)
+  - `@openrig/cli@0.7.4` (`6d9e8e27`, bumped from 0.7.2 in PR #122)
+  - Pi `1.4.0` (`@earendil-works/pi-coding-agent`)
   - `@gotgenes/pi-permission-system@41.0.0`
   - Model: `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`
 - **Verification Baseline**:
-  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 35 checks passed, 0 failed** (all V1–V21 gates green).
-  - `make test` → **359 unit tests passed, 0 failed** across 15 test suites.
+  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 35 checks passed, 0 failed** (V1–V27 gates green: V22 bare-queue deny, V23 seat grants, V24 rotation runbook, V25–V27 sandbox/hermetic/docker).
+  - `make test` → **504 unit tests passed, 0 failed** across 21 suites (`unittest discover`; was 359 across 15).
   - `python3 scripts/audit_loop.py --self-test` → **`SELF-TEST PASSED`**.
-  - `python3 scripts/generate-rigs.py --check-idempotent` → **Byte-identical**.
+  - `python3 scripts/generate-rigs.py --check-idempotent` → **byte-identical**.
+  - `openspec/`: 6 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`); active `openspec/changes/` holds only the archive container; 22 stale waves archived with history under `openspec/changes/archive/`.
 
 ---
 
 ## 2. Merged Landings Since Last Handoff
 
-### PR #119 (`41ccec3`, 2026-10-26)
-- **#98 Contract Schemas**: Vendored upstream contract schemas byte-for-byte from `@openrig/cli@0.7.2` (`package/daemon/docs/reference/schemas/`), pinned in `schemas/contract-schemas.sha256`, and cmp'd in V18 against installed CLI copies. Aligned attestation tokens (`not_tested`, `NOT_RUN`). Local `$ref` resolution handles absolute upstream schema IDs.
-- **#102 Claim 6.1 (License-less Skills)**: Added declared license provenance (`skills-lock.json`) for 10 shared skills lacking license files; `generate-rigs.py` pre-validates licenses using safe YAML parsing (`yaml.safe_load`) before deleting generated trees; `verify-rigs.sh` checks declared licenses against standard SPDX identifiers and cross-verifies against frontmatter / source pins.
-- **#96 Live Policy Refresh**: Implemented `scripts/render-seat.py --policy-only` and `scripts/seed-rig.py --refresh-policy-only` to atomically refresh `extensions/pi-permission-system/` and `sandbox.env` (updating bubblewrap write-roots for `path_write` changes) with `config.json` replaced last via same-directory `.tmp` rename (`0600`). Proved seat subprocess isolation against agentDir self-edits (`test_seat_sandbox.py`).
-- **Remediated Review Feedback**: Sourcery #5660213174 (pre-rmtree validation, SPDX checking), CodeRabbit #5660659989 (frontmatter YAML parsing, dry-run seat check, `sandbox.env` in refresh, V18 npm package resolution fallback), and SonarCloud Security/Complexity rules (path containment, complexity < 15).
+### PR #120 (`feat/102-closeout`, Closes #102)
+- **HR-F18**: per-seat `bash_deny` triple (`rig queue list`, bare `rig queue create`, `rig send`) ×51 + appended FAIL-ONLY V22; AGENTS.md bare-deny gate.
+- **HR-2.5**: `rig spec validate` declared canonical for `rig.all-51.yaml`; bundle-8-intentional documented.
+- **Claim 6.1 follow-through**: `writing-skills` dangling ref fixed via vendor/patch + regen; **DAG**: local-only evidence note (no upstream filing).
 
-### PR #118 (`91da43e`, 2026-10-26)
-- **Stack Upgrades**: OpenRig 0.7.2 bump ledger (`docs/openrig/`); Pi 1.4.0 bump ledger (`docs/pi/`).
-- **V21 Gate**: Vendored agent file-set parity gate (105 rig members match `specs/agents/`).
-- **V13 Fix**: Skopeo offline keyword match on full stderr (handles rate-limiting).
-- **Runtime Degraded Auth**: Degraded seats emit `{}` in `auth.json` (avoids pi failing on dangling `!cat`).
-- **Model Endpoint**: `fleet.yaml` `model.base_url` drives `models.json` with pinned endpoint check.
-- **Audit Row Isolation**: `audit_sessions` `FALSE_DELIVERY_CLAIM` evaluated per-row instead of per-file.
-- **Canary Alignment**: Updated `test_build_canary.py` pins to match #91 scoped compiler grants.
+### PR #121 (`feat/107-identity`, Refs #107)
+- **M0 live spike** (isolated scratch env, `rig` 0.7.2): Bearer 200 / bad-token 401 / revoked 401 / `rig_whoami` grant-vs-declared / client-spoof ignored; queue half rc=0 daemon-blocked.
+- **M1**: seed-time per-seat grants (`issue_seat_grant`, 0600 secrets store, `!cat` Bearer render, `--seat --rig` scope), `rig-mcp-http` catalog entry (opt-in, stdio unchanged); V23 gate; 15→25 corpus tests across reworks.
+- **M2**: revoke + re-add rotation runbook, executed live.
+- **M3**: queue-half upstream-blocked note (no code, no filing — unauthorized).
+- **Reworks 1–3 + cycle 4**: F1–F5 review findings (grant gating, metadata check, safe store, rig scope, runbook), CodeQL log redaction (choke-point `_redact_for_log`), runbook rig scope + spec opt-in limit + R3 same-rig refutation (impersonation impossible), V24 runbook-step gate.
 
-### PR #117 (`17f119c`, 2026-10-26)
-- **#91 Scoped Build/Test Path Args**: Added scoped `pytest`, `go build`, `cmake -S . -B build`, and `gcc -c` grants via native-map `commandEffects`, resolving path-argument policing issues code-side. Added gate V20.
+### PR #122 (`overhaul-bump`, Refs only)
+- Host toolchain `@openrig/cli@0.7.4`; ledger `docs/sprints/CLI-0.7.4-BUMP.md` (tarball sha256 `d11dd8a6…` re-verified from published npm by two agents); 8 true-pin files; zero generator-input changes.
+- **Rework 1**: idempotence HOLD-with-deferral (Wave B owns 0.7.4-vendor regen), runnable T2 (`&&`), fail-closed V18 `rig --version` gate.
+
+### PR #123 (`feat/overhaul-a`, 2 reworks)
+- **M0**: fake-rig exfiltration + forged `--source` both LEAK rc=0 pre-fix (verbatim evidence).
+- **M1**: re-derived hardened `rig` relay (fd-passing `O_NOFOLLOW` + `fstat` re-check + `/dev/fd/N` argv rewrite; TOCTOU race proven won pre-fix); `TestRigRelayEnforcement` + TOCTOU class, bwrap-independent; V25.
+- **M2**: `filter=` feature-detect guard, hermetic charter fallback + snapshot/restore with skills-lock verification; V26.
+- **M3**: `bubblewrap` in Dockerfile + verify step, workflow duplicate-`container:` + unclosed-`if` fix; UniqueKey YAML proof; V27.
+- **Rework 1**: tar member-type gate, scratch-root exclusion (`/`, `/tmp`, `/var/tmp`), hermetic notice, recursive fixture. **Rework 2**: mkstemp probes, sys.executable shebang.
+
+### PR #124 (`feat/overhaul-b`)
+- **M4**: `codex_permissions` (upstream MEMBER_KEYS exact match), vendored `run-record.v1.schema.json` (byte-identical, sha `b3c7ac64…`), 6 openrig-core skill files synced via generator + clean regen.
+- **M5**: `make test` → `unittest discover` (21 suites); canary reworked (triple-normalized bound + fixture fallback → GREEN, closing the pre-existing RED); V19 canonical total 35 (old `passes+1` triplication reproduced then removed); V12 `HERETEK_ALLOW_NO_BWRAP=1` note-mode.
+
+### PR #125 (`feat/overhaul-c`)
+- **M6**: 138 stale paths → `archive/2026-10-28-overhaul/` via `git mv` (R100, history preserved); live 102/107/overhaul artifacts spared; HR-8.4 list + docs maps + `.gitignore` updated.
+- **M7**: fresh `docs/IMPLEMENTATION_PROMPT.md` (reconciled plan, current gates — not the stale upload); `audit_loop.py` repointed with fail-closed archive-path guard.
+- **M8**: clean regen (provenance-only), idempotence + verify + `make test` + topology all green.
+
+### PR #126 (`feat/archive-waves`, 1 rework)
+- 36 task boxes checked; 6 changes archived with canonical `openspec/specs/` (19 requirements; `openspec list --specs` green).
+- **Rework 1**: runnable acceptance compounds, **0.7.4 bump ledger restored to live path** (had been swept into the archive; it is live-required), grant-mapping + V18 citation accuracy, fixed-digest contract test (`b3c7ac64…`), at-most-one-container language.
 
 ---
 
-## 3. Current Issue Triage (15 Open Issues)
+## 3. Current Issue Triage (15 Open Issues: 14 old + #127 new)
 
 | Issue | Priority | Title / Scope | State & Next Steps |
 |---|---|---|---|
-| **#102** | P3 | Audit P3 bundle: doc drift, minor gates | **Partially done**. Claim 6.1 (10 skill licenses), 64-vs-68 drift, 0.6.11 prompt pin, V19/V21 gates, and `--out` check are resolved. **Remaining**: HR-F18 (bare `rig queue`/`rig send` policy in seat maps), HR-2.5 (`rig bundle check` on `rig.all-51.yaml`), dangling `superpowers:writing-skills` ref, OpenRig DAG cycle report. |
-| **#107** | P2 | Remediation follow-up bundle (post-#105) | **Partially done**. V13 rate-limit regex, session URL, and stale count closed. **Remaining**: firecrawl standalone boot on networked host; governance limitations (bare-TPM shorthand, `xyz123` human check); explore OpenRig 0.7.2 HTTP bearer-token identity grants (upstream #1860) to address F9. |
-| **#91** | P2 | Scoped build/test path args | **Code done** in PR #117 + PR #118. **Pending**: Live proof on fleet host (`pytest tests/rag`, `go build ./...`, `cmake -S . -B build`, `gcc -c`). |
-| **#12** | P1 | No seat can execute builds | **Blockers #106 and #91 cleared code-side**. **Pending**: Real in-seat runner proof D1–D4 on fleet host, committer path D5–D7 through REQ-BC4 envelope. |
-| **#74** | P1 | Granted tools not provisioned | **Gate done** (V16 + render warning in PR #114). **Pending**: Host-side provisioning of 7 npm packages + `r2`/`rabin2`/`tshark`, or updating matrix docs. |
-| **#66** | Umbrella | Tracking: Oct 23–24 adversarial audit | Umbrella issue. Updated with #96 and #98 completions. Stays open until remaining P1/P2 items close. |
-| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | Live workflow/governance item. Needs gate owner assignment or automated gate reconciler. |
-| **#78** | P2 | Seats pinned to one workspace | Architectural: multi-workspace / mission workspace isolation. |
-| **#80** | P3 | `rig snapshot list <name>` prints `[object Object]` | Upstream CLI bug. Documented local mitigation in place. |
-| **#81** | P2 | Seats park idle right after claiming | OpenRig daemon scheduling behavior. |
-| **#9** | P2 | Operator `rig send` carries no sender identity | Needs upstream envelope/identity standard. |
-| **#11** | P2 | `rig launch` refuses running nodes | Replaced repo-side by `#96` live policy refresh; full seat restart tracked upstream. |
-| **#15** | P2 | Authorization loop lags seat fix cycles | Investigation / auto-unblock rules. |
-| **#16** | P2 | Parallel slice execution: throughput vs collision | Investigation / scheduler policy. |
-| **#17** | P2 | Fleet utilization and slice queue patterns | Investigation / telemetry. |
-| **#18** | P2 | GPU-capable runner for godot/bevy testing | Infrastructure provisioning. |
+| **#127** | P2 | Queue/send identity is daemon-side (NEW, opened 2026-10-28) | Tracks the upstream gap with M0/R3 evidence. **Needs principal authorization to file upstream.** |
+| **#107** | P2 | Remediation follow-up bundle | **MCP half DONE** (#121). Remaining: firecrawl standalone boot on networked host; governance boxes; queue half → #127. |
+| **#91** | P2 | Scoped build/test path args | **Code done** (carried through 0.7.4 + canary rework unchanged). **Pending**: live proof on fleet host. Status comment left 2026-10-28. |
+| **#12** | P1 | No seat can execute builds | **Code blockers cleared**; gates green on main. **Pending**: D1–D4 in-seat proof, D5–D7 committer path. Status comment left. |
+| **#74** | P1 | Granted tools not provisioned | Gate done (V16 + render warning). **Pending**: host-side provisioning or matrix doc update. |
+| **#66** | Umbrella | Tracking: Oct 23–24 adversarial audit | Rollup comment left (#120–#126). Stays open until P1/P2 items close. |
+| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | Untouched. Needs gate owner or automated reconciler. |
+| **#78** | P2 | Seats pinned to one workspace | Untouched. Architectural. |
+| **#80** | P3 | `rig snapshot list <name>` prints `[object Object]` | Untouched (upstream CLI bug, local mitigation in place). |
+| **#81** | P2 | Seats park idle right after claiming | Untouched (daemon behavior). |
+| **#9** | P2 | Operator `rig send` carries no sender identity | Untouched. Candidate next spec (closest cousin of #121). |
+| **#11** | P2 | `rig launch` refuses running nodes | Repo-side replaced by #96 live refresh (shipped PR #119); full restart tracked upstream. |
+| **#15** | P2 | Authorization loop lags seat fix cycles | Untouched (investigation). |
+| **#16** | P2 | Parallel slice execution | Untouched (investigation). |
+| **#17** | P2 | Fleet utilization and slice queue patterns | Untouched (telemetry). |
+| **#18** | P2 | GPU-capable runner for godot/bevy testing | Untouched (infrastructure). |
+| **#102** | — | Audit P3 bundle | **CLOSED** by #120 (2026-10-27). |
 
 ---
 
-## 4. Priority Roadmap for OpenCode
+## 4. Priority Roadmap
 
-### Priority 1: #102 Close-out (Code & Policy)
-1. **HR-F18 (Bare Queue Discipline)**:
-   - Audit seat bash maps in `fleet/fleet.yaml` and `fleet/command-effects/` to check whether bare `rig queue list`, `rig queue create` (without `--json --verify`), and bare `rig send` should be explicitly denied or warned.
-   - If principal approves denying bare forms in seat maps: update `fleet/fleet.yaml`, regenerate via `python3 scripts/generate-rigs.py`, verify 35/35 green.
-2. **HR-2.5 & Upstream Reports**:
-   - Confirm `rig spec validate` covers `rig.all-51.yaml` (already verified by V3/V18).
-   - Document or submit upstream report for DAG cycle checks if authorized.
-3. **Dangling Skill Reference**:
-   - Address `superpowers:writing-skills` ref in `specs/agents/_shared/skills/test-driven-development/writing-good-tests.md` via fleet vendor patch or upstream PR.
+### Priority 1: Next issue wave (needs principal pick + spec)
+- Recommended: **#9** (send identity — closest cousin of the landed bearer-token work).
+- Alternative: #77 (stuck missions) or a fleet-host proof batch if operating on the live host.
+- Every wave needs an approved `openspec/changes/<id>/` spec first (`/grill-spec`), then the standard triad.
 
-### Priority 2: #107 OpenRig 0.7.2 Identity Integration (Upstream #1860)
-- In `@openrig/cli@0.7.2`, `rig mcp serve --http` introduces per-seat bearer-token grants.
-- Evaluate adopting this primitive for MCP communications to close the F9 / `OPENRIG_SESSION_NAME` provenance gap.
+### Priority 2: Fleet Host Proofs (when operating on live host)
+- **#96 live**: `--refresh-policy-only` on a running seat with a tightened rule.
+- **#91 live**: `pytest tests/rag`, `go build ./...`, `cmake -S . -B build` in-seat.
+- **#12 D1–D4**: engine compile + ELAPSED clocking in-seat.
+- **#74**: install missing MCP packages + `r2`/`rabin2`/`tshark`, or update matrix docs.
 
-### Priority 3: Fleet Host Proofs (When Operating on Live Host)
-- **#96 Live Check**: Run `python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only` on a running seat with a tightened rule and verify immediate denial on the next turn.
-- **#91 Live Proof**: Verify `pytest tests/rag`, `go build ./...`, `cmake -S . -B build` execute cleanly in-seat.
-- **#12 D1–D4 Proof**: Execute end-to-end engine compile and ELAPSED clocking in-seat.
-- **#74 Host Provisioning**: Install `playwright-mcp`, `chrome-devtools-mcp`, `r2mcp`, and system packages `r2`/`rabin2`/`tshark`.
+### Priority 3: Upstream (authorization-gated)
+- File the queue-attestation issue against `mvschwarz/openrig` (tracked in #127). **Do not file without explicit principal approval.**
+- #80 snapshot-by-name, #11 full restart: upstream-tracked, local mitigations in place.
 
 ---
 
@@ -103,10 +118,13 @@
 > ```
 
 - **Git Discipline**:
-  - Always branch from `main` (`fix/...`, `feat/...`, `chore/...`).
-  - Never push directly to `main`.
-  - Never `--force` push.
+  - Always branch from `main` (`fix/...`, `feat/...`, `chore/...`, `docs/...`).
+  - Never push directly to `main`. Never `--force`.
   - One closing keyword per issue (`Closes #X, closes #Y`). Use `Refs #Z` for issues that stay open.
-  - When committing generator changes, commit source changes first, then run `python3 scripts/generate-rigs.py` on the clean tree to bake provenance (`resolvedCommit`), and commit the regenerated leaves in a separate chore commit.
+  - Generator changes: source commit → clean regen → leaves chore commit. Never hand-resolve generated leaves (take `main`'s generator, keep the catalog edit, re-run).
+  - Provenance re-lag (1+ commits) is known/accepted; do NOT "fix" registry files.
+  - `verify-rigs.sh` gates are audit-baselined (V1–V27): append new blocks, never renumber/reword.
+  - `openspec archive <id>` requires parser-valid specs (`### Requirement:` + `#### Scenario:`) and completed task boxes; pre-create the canonical spec shell if the capability is new.
 - **Secrets Rule**:
-  - Keys live strictly in `~/.config/heretek-rigs/secrets/` (0700/0600). Never print, log, or commit secret values. Always use dummy keys in scratch/tests.
+  - Keys live strictly in `~/.config/heretek-rigs/secrets/` (0700/0600). Never print, log, or commit secret values. Dummy keys in scratch/tests only. Bearer-shaped strings in evidence must be redacted (`or…XX`) or dummy.
+  - Shell pro tip: quote `gh` bodies via heredoc files — backticks in `-m`/`--body` get eaten by bash.
