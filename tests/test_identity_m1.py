@@ -425,6 +425,22 @@ class RenderSeatGrantTests(unittest.TestCase):
         key_file = self.secrets / "opencode-go.key"
         key_file.write_text("dummy")
         os.chmod(key_file, 0o600)
+        # 09-send-identity S1: bound roles also render send-identity.json, so
+        # the fixture secrets dir carries a sender binding alongside the
+        # grant token (both seed-issued under the same gate).
+        import importlib.util as _ilu09
+
+        _spec09 = _ilu09.spec_from_file_location(
+            "send_identity_fixture_09",
+            Path(__file__).resolve().parent.parent / "scripts/send_identity.py",
+        )
+        _mod09 = _ilu09.module_from_spec(_spec09)
+        _spec09.loader.exec_module(_mod09)
+        binding_file = self.secrets / _mod09.sender_binding_filename(
+            "blue-probe-role@test-rig"
+        )
+        binding_file.write_text("dummybindingsecret FOR-TEST-ONLY-107M1")
+        os.chmod(binding_file, 0o600)
         self.tools = self.root / "tools"
         pps = self.tools / "pi-packages/node_modules/@gotgenes/pi-permission-system"
         pps.mkdir(parents=True)

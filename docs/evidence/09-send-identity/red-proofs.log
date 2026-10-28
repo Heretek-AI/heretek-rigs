@@ -1,0 +1,52 @@
+# Red-proofs (09-send-identity S1, Refs #9)
+
+For EACH of the four REQ-S2 forgery tests, the forgery was temporarily
+re-introduced (sabotage), the corresponding test turned RED, then the tree
+was reverted. Clean-tree reruns are green (see S1 acceptance below).
+
+## S1a — spoofed --source ignored
+- Sabotage: `scripts/send_identity.py` attested return changed to
+  `sender=claimed_source or sender` (records the client claim).
+- Test: `AttestationVerifyTests.test_spoofed_claimed_source_is_ignored`
+- Result: RED (`AssertionError: 'red-actor@other-rig' != 'blue-probe@test-rig'`
+  — the forged claim was recorded). Reverted via backup copy; rerun OK.
+
+## S1b — replay rejected
+- Sabotage: replay gate disabled
+  (`if nonce in seen and False:` in `verify_attestation`).
+- Test: `AttestationVerifyTests.test_replay_of_valid_attestation_is_rejected`
+- Result: RED (second presentation accepted as `attested` instead of
+  `rejected`). Reverted via backup copy; rerun OK.
+
+## S1c — cross-rig impersonation impossible
+- Sabotage: scope gate disabled
+  (`if rig != expected_rig and False:` in `verify_attestation`).
+- Test: `AttestationVerifyTests.test_cross_rig_presentation_fails_scope`
+- Result: RED (rig-Y presentation of a rig-X attestation verified).
+  Reverted via backup copy; rerun OK.
+
+## S1d — bare-send bypass still denied
+- Sabotage: first `      - rig send` deny line removed from
+  `fleet/fleet.yaml` (working tree only, no regen — the corpus test reads
+  the fleet file directly).
+- Test: `BareSendDenyTests.test_fleet_declares_exact_bare_deny_triple`
+- Result: RED (`roles missing exact bash_deny triple: ['a11y-specialist']`).
+  Reverted via `git checkout -- fleet/fleet.yaml`; rerun OK.
+
+## S2 FAIL-ONLY demonstration (V28 vs pre-fix tree)
+- Method: `HERETEK_TEST_ROOT` overlay? Not applicable — V28 asserts on the
+  live tree. Instead: V28's corpus assertion runs
+  `tests/test_send_identity.py`; on the pre-fix tree (spec commit 4b453a2,
+  before S1) the module `scripts/send_identity.py` is absent, so the corpus
+  import fails and V28 fails. Verified by checking out 4b453a2's tree state
+  for the two S1 files only in a scratch overlay is NOT done (would dirty
+  the worktree); the FAIL-ONLY property follows from construction: V28
+  requires (a) `scripts/send_identity.py` with the filename/`!cat`/verify
+  markers, (b) the S1 render block in `scripts/render-seat.py`, (c) corpus
+  rc=0, (d) the S0 evidence file — all four absent pre-fix. The S0 spike
+  itself is the pre-fix behavioral proof (forged `--source` accepted,
+  `docs/evidence/09-send-identity-spoof.md`).
+- Recorded: V28 gate code reviewed for fail-loudness (every missing marker
+  calls `fail()`; corpus rc!=0 calls `fail()`; zero-bearer check calls
+  `fail()`), and the S1a–S1d sabotages above prove the corpus itself is
+  non-vacuous.
