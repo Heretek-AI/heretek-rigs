@@ -1,7 +1,7 @@
 # Handoff — next session (2026-10-28, post-PR #126 merge on main)
 
 > Superseded 2026-10-26 handoff archived in git history (`2590a87`..`83cbf86`).
-> This document reflects the authoritative state of `main` after merging PR #120 through PR #126, plus wave 9 (09-send-identity, merged locally, PR pending).
+> This document reflects the authoritative state of `main` after merging PR #120 through PR #126, plus wave 9 (09-send-identity, merged as PR #128) and wave 4 (77-mission-gates, merged locally, PR pending).
 
 ---
 
@@ -15,11 +15,11 @@
   - `@gotgenes/pi-permission-system@41.0.0`
   - Model: `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`
 - **Verification Baseline**:
-  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 36 checks passed, 0 failed** (V1–V28 gates green: V22 bare-queue deny, V23 seat grants, V24 rotation runbook, V25–V27 sandbox/hermetic/docker, V28 send attestation).
-  - `make test` → **530 unit tests passed, 0 failed** across 22 suites (`unittest discover`; was 504 across 21).
+  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 37 checks passed, 0 failed** (V1–V29 gates green: V22 bare-queue deny, V23 seat grants, V24 rotation runbook, V25–V27 sandbox/hermetic/docker, V28 send attestation, V29 mission gates).
+  - `make test` → **558 unit tests passed, 0 failed** across 24 suites (`unittest discover`; was 530 across 22).
   - `python3 scripts/audit_loop.py --self-test` → **`SELF-TEST PASSED`**.
   - `python3 scripts/generate-rigs.py --check-idempotent` → **byte-identical**.
-  - `openspec/`: 7 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`, `send-identity`); active `openspec/changes/` holds only the archive container; 23 waves archived with history under `openspec/changes/archive/`.
+  - `openspec/`: 8 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`, `send-identity`, `mission-gates`); active `openspec/changes/` holds only the archive container; 24 waves archived with history under `openspec/changes/archive/`.
 
 ---
 
@@ -61,12 +61,20 @@
 - 36 task boxes checked; 6 changes archived with canonical `openspec/specs/` (19 requirements; `openspec list --specs` green).
 - **Rework 1**: runnable acceptance compounds, **0.7.4 bump ledger restored to live path** (had been swept into the archive; it is live-required), grant-mapping + V18 citation accuracy, fixed-digest contract test (`b3c7ac64…`), at-most-one-container language.
 
-### Wave 9 (`feat/09-send-identity`, Refs #9 — merged locally, PR pending)
+### Wave 9 (`feat/09-send-identity`, Refs #9 — merged as PR #128)
+- Post-merge reworks 1–3 (all `VERDICT: PASS`): F1–F10 review fixes incl. real sender-check hole (F5) now bound to `expected_sender`; 5 CodeQL findings (chmod masks, log redaction); rotation/reuse/gate-alignment threads. Final: 532 tests, corpus 27.
 - **S0**: isolated-scratch spike proving forged `--source`/env sender accepted pre-fix (`docs/evidence/09-send-identity-spoof.md`, verbatim, redacted).
 - **S1**: grant-bound sender attestation (`scripts/send_identity.py`, HMAC-SHA256 mint/verify → `attested`/`unverified`/`rejected`, `!cat` render, 0600 stores); `tests/test_send_identity.py` 25 tests covering all four forgery classes; S1a–S1d red-proofs in `docs/evidence/09-send-identity/red-proofs.log`.
 - **S2**: appended **V28** gate (new block only; V19 freeze 35→36 + live-count docs); FAIL-ONLY pre-fix recorded (35 passed, 4 failed with module removed); `make test` 530 OK.
 - **S3**: rotation runbook executed live in scratch (`docs/evidence/09-send-identity-rotation.md`: `--seat` ×7, `--rig` ×8, 0 rig-less); triad complete with `VERDICT: PASS` (`docs/reports/09-send-identity-verification.md`); change archived, `send-identity` promoted (4 requirements).
 - **Out of scope (kept)**: daemon edits, upstream filing (#127 still tracks the gap, no authorization granted), fleet-host live proofs. Issue #9 stays open.
+
+### Wave 4 (`feat/77-mission-gates`, Refs #77 — merged locally, PR pending)
+- **S0**: B2-pattern fixtures proving pre-fix silence (gateless parent unflagged, dismissal-without-change allowed; `docs/evidence/77-mission-gates-prefix.md`).
+- **S1**: charter closure-ownership rule via `fleet/skill-patches/mission-slice-sop.yaml` + clean regen (9 leaves +1) + new `stalled-awaiting-gate` diff class in `reconcile_model.py` (propose-only; live gate exempts).
+- **S2**: sweep recovery non-dismissible without row state change (fail-closed refusal, never `done`) + appended **V29** (V19 freeze 36→37); `make test` 558 OK.
+- **S3**: runbook with `--gate` creation flow exercised on fixtures; triad complete with `VERDICT: PASS` (`docs/reports/77-mission-gates-verification.md`); change archived, `mission-gates` promoted (4 requirements).
+- **Delegated decisions (user)**: scope = 3 checkboxes; NO bot auto-closure ever (safety, not compat); fixtures-only acceptance. Issue #77 stays open until a live mission proves the loop.
 
 ---
 
@@ -80,7 +88,7 @@
 | **#12** | P1 | No seat can execute builds | **Code blockers cleared**; gates green on main. **Pending**: D1–D4 in-seat proof, D5–D7 committer path. Status comment left. |
 | **#74** | P1 | Granted tools not provisioned | Gate done (V16 + render warning). **Pending**: host-side provisioning or matrix doc update. |
 | **#66** | Umbrella | Tracking: Oct 23–24 adversarial audit | Rollup comment left (#120–#126). Stays open until P1/P2 items close. |
-| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | Untouched. Needs gate owner or automated reconciler. |
+| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | **Code landed on main** (wave 4, `VERDICT: PASS`, Refs #77). **Pending**: open the PR, then live-mission proof. |
 | **#78** | P2 | Seats pinned to one workspace | Untouched. Architectural. |
 | **#80** | P3 | `rig snapshot list <name>` prints `[object Object]` | Untouched (upstream CLI bug, local mitigation in place). |
 | **#81** | P2 | Seats park idle right after claiming | Untouched (daemon behavior). |
@@ -97,7 +105,7 @@
 ## 4. Priority Roadmap
 
 ### Priority 1: Next issue wave (needs principal pick + spec)
-- Wave 9 consumed the #9 pick (code on main, PR pending — open it first).
+- Wave 9 landed as PR #128. Wave 4 consumed the #77 pick (code on main, PR pending — open it next).
 - Recommended next: #77 (stuck missions) or a fleet-host proof batch (#91 live, #12 D1–D4) if operating on the live host.
 - Every wave needs an approved `openspec/changes/<id>/` spec first (`/grill-spec`), then the standard triad.
 
@@ -120,7 +128,7 @@
 > Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, `fleet/skill-patches/`, or `scripts/`, then regenerate:
 > ```bash
 > python3 ./scripts/generate-rigs.py
-> ./scripts/verify-rigs.sh --check-only     # Expect: 36 checks passed, 0 failed
+> ./scripts/verify-rigs.sh --check-only     # Expect: 37 checks passed, 0 failed
 > python3 ./scripts/audit_loop.py --self-test
 > ```
 

@@ -71,4 +71,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `AUDIT_REPORT_FINDINGS.md` — audit trail (append, don't rewrite history). `REMEDIATION_LOG.md` archived at `archive/2026-10-28-overhaul/REMEDIATION_LOG.md`.
 - `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` — audit protocol. `PROMPT_FLEET_AUDIT_REMEDIATION.md` archived at `archive/2026-10-28-overhaul/PROMPT_FLEET_AUDIT_REMEDIATION.md`.
 - `openspec/changes/archive/2026-10-28-09-send-identity/` — wave 9 spec: per-seat sender attestation for `rig send` (Refs #9, repo-side only).
-- `openspec/changes/2026-10-28-77-mission-gates/` — wave 4 spec: mission-row gate ownership (Refs #77, detect/classify/propose-only).
+- `openspec/changes/archive/2026-10-28-77-mission-gates/` — wave 4 spec: mission-row gate ownership (Refs #77, detect/classify/propose-only).
