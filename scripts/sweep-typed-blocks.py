@@ -282,6 +282,58 @@ def check_recovery_dismissal(
     }
 
 
+def request_recovery_dismissal(
+    client, recovery_id, flagged_qitem, flagged_snapshot, log_lines=None
+):
+    """Production close-time gate for stuck-recovery dismissal
+    (issue #77, REQ-M3).
+
+    Re-reads the flagged row through the sweep client (`fetch_show`),
+    snapshots its current state with snapshot_row_state(), and invokes
+    check_recovery_dismissal() against the flag-time snapshot retained by
+    run_sweep() in ``report["recovery_guards"]``. Returns the permitted
+    record or raises RecoveryDismissalRefused (fail-closed, redacted log);
+    performs no rig write — the CALLER performs the close.
+
+    Why this is the refusal point (no close hook invented): the sweep's
+    allowlist (check_allowed) deliberately refuses every queue write
+    except the unpark route (update --state in-progress --reopen), and D2
+    forbids any bot close-to-done — so no in-repo close path exists to
+    hook. This gate is the narrowest point the flow supports: any close
+    flow (human or future tooling) must call it before closing, and an
+    unreadable flagged row fails closed (refused, never permitted).
+    """
+    redact = _seed_rig_mod()._redact_for_log
+    if log_lines is None:
+        log_lines = []
+    try:
+        current_row = client.fetch_show(flagged_qitem)
+    except DataSourceError as exc:
+        log_lines.append(
+            f"recovery-dismissal-refused: {redact(recovery_id)} for flagged "
+            f"row {redact(flagged_qitem)} (flagged row unreadable at close "
+            f"time: {exc}; owner action required, never auto-close)"
+        )
+        raise RecoveryDismissalRefused(
+            f"recovery-dismissal-refused: {redact(recovery_id)} for flagged "
+            f"row {redact(flagged_qitem)} (flagged row unreadable at close "
+            f"time; owner action required, never auto-close)"
+        )
+    current_snapshot = snapshot_row_state(current_row)
+    try:
+        outcome = check_recovery_dismissal(
+            recovery_id, flagged_qitem, flagged_snapshot, current_snapshot
+        )
+    except RecoveryDismissalRefused as refused:
+        log_lines.append(str(refused))
+        raise
+    log_lines.append(
+        f"recovery-dismissal-permitted: {redact(recovery_id)} for flagged "
+        f"row {redact(flagged_qitem)} (row state changed since flag time)"
+    )
+    return outcome
+
+
 # ---------------------------------------------------------------------------
 # Pure evaluation helpers (unit-tested, no I/O)
 # ---------------------------------------------------------------------------
@@ -740,6 +792,7 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None, authorized_actors=N
         "would_unpark": [],
         "stay_blocked": [],
         "skipped": [],
+        "recovery_guards": {},
         "cursor": dict(cursor),
     }
 
@@ -855,6 +908,15 @@ def run_sweep(client, cursor, dry_run=False, log_lines=None, authorized_actors=N
             log_lines.append(
                 f"STAY-BLOCKED {qid} ({row.get('blockedOn')}): {verdict['reason']}"
             )
+            # REQ-M3 wiring: the sweep just flagged this row stuck — retain
+            # its flag-time snapshot with the recovery item so the
+            # close-time gate (request_recovery_dismissal) can refuse a
+            # dismissal while the row is unchanged. Read-only retention;
+            # existing unpark/stay-blocked behavior is untouched.
+            report["recovery_guards"][qid] = {
+                "flagged_qitem": qid,
+                "flagged_snapshot": snapshot_row_state(row),
+            }
         if not verdict.get("retry"):
             report["cursor"][qid] = {"row": row_max, "blockers": blocker_max}
     return report

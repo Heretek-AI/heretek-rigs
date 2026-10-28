@@ -29,10 +29,12 @@ When the row genuinely cannot close yet and needs a named owner, the seat
 creates a gate qitem addressed at that owner and records it on the row:
 
 ```
-rig queue create --gate qa-seat --destination qa-seat@rig --note "gate: judge B2-parent close on verdict t41"
+rig queue create --json --verify --gate qa-seat --destination qa-seat@rig --body-file /tmp/gate-note.md
 ```
 
-Then the row Status names the gate, e.g. `verdict recorded; Standing by
+The seat copies the new gate qitem ID from the `--json` result (never
+retyped — bare `rig queue create` output is advisory only and bare create
+is denied in-seat) into the row Status cell. Then the row Status names the gate, e.g. `verdict recorded; Standing by
 for gate --gate qa-seat, gate qitem qitem-20261024024002-abcdef0123456789
 (owner qa-seat@rig)`. A gate qitem with a live owner (non-terminal state +
 destination session) exempts the row from the stalled signal: the gate
@@ -50,8 +52,10 @@ missing gate named) — see the S0 prefix evidence and REQ-M2 corpus. A gate
 whose state went terminal, or a gate reference with no queue entry, does
 NOT exempt: the row still waits gateless.
 
-(The `rig queue create` form above is the seat-run shape against the live
-fleet; it was not executed here — fixtures only, no live daemon.)
+(The `rig queue create --json --verify` form above is the permitted
+in-seat seat-run shape against the live fleet — bare `rig queue create`
+is denied in-seat per V22; it was not executed here — fixtures only, no
+live daemon.)
 
 ## Flow C — stuck-recovery dismissal needs a row state change (REQ-M3)
 
@@ -74,7 +78,12 @@ dismissal-with-change: {'dismissal': 'permitted', ...}
 Guard: `check_recovery_dismissal` in `scripts/sweep-typed-blocks.py`;
 every interpolated log value passes through seed-rig `_redact_for_log`.
 The guard returns data or raises — it performs no write and never emits a
-terminal state.
+terminal state. Production wiring: `run_sweep` retains each flagged
+(stay-blocked) row's flag-time snapshot in `report["recovery_guards"]`,
+and `request_recovery_dismissal` is the close-time gate — it re-reads the
+flagged row via `fetch_show`, invokes the guard, and fails closed on an
+unreadable row. (No queue-close hook exists in-repo by design: the sweep
+allowlist refuses close writes and no bot may close to done — D2.)
 
 ## Quick reference
 

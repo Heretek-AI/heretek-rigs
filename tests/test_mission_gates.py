@@ -423,5 +423,136 @@ class TestNonDismissibleRecovery(unittest.TestCase):
             self.assertNotIn(terminal, blob)
 
 
+class SweepRecoveryClient:
+    """In-memory sweep client with a live fetch_show for the flagged row.
+
+    fetch_show returns the CURRENT row dict (mutable via .row, so the
+    test can advance it the way an owner seat would); every write call
+    is recorded in .updates (must stay empty — the refusal path never
+    writes).
+    """
+
+    def __init__(self, row, transitions):
+        self.row = dict(row)
+        self._transitions = list(transitions)
+        self.updates = []
+
+    def fetch_list(self):
+        return [self.row]
+
+    def fetch_transitions(self, qitem_id):
+        return self._transitions
+
+    def fetch_show(self, qitem_id):
+        if qitem_id != self.row["qitemId"]:
+            raise RuntimeError(f"unknown qitem: {qitem_id}")
+        return dict(self.row)
+
+    def apply_update(self, argv):
+        self.updates.append(list(argv))
+        return {"ok": True}
+
+
+def stuck_typed_row():
+    """A typed-external HELD row the sweep flags stuck (park note plus a
+    non-satisfying watchdog restatement — no satisfaction evidence)."""
+    qid = "qitem-STUCK-01"
+    return {
+        "qitemId": qid,
+        "state": "blocked",
+        "blockedOn": "external:qa-operator-gate-verdict",
+        "destinationSession": "owner-seat",
+    }, [
+        {
+            "transitionId": 1,
+            "qitemId": qid,
+            "state": "blocked",
+            "transitionNote": "SATISFY-WHEN: QA PASS verdict VIA wave-report; "
+            "parked on external:qa-operator-gate-verdict, awaiting verdict",
+            "actorSession": "owner@fleet",
+        },
+        {
+            "transitionId": 2,
+            "qitemId": qid,
+            "state": "blocked",
+            "transitionNote": "watchdog review, blocker stands, awaiting verdict",
+            "actorSession": "owner@fleet",
+        },
+    ]
+
+
+class TestProductionRecoveryWiring(unittest.TestCase):
+    def test_sweep_retains_snapshot_and_close_time_gate_refuses(self):
+        """REQ-M3 production flow (not unit-level): run_sweep flags the
+        stuck row and retains its flag-time snapshot with the recovery
+        item; request_recovery_dismissal refuses the close while the row
+        is byte-identical — issuing no write."""
+        sweep = load_sweep()
+        row, transitions = stuck_typed_row()
+        client = SweepRecoveryClient(row, transitions)
+        logs = []
+        report = sweep.run_sweep(client, cursor={}, log_lines=logs)
+        self.assertIn(row["qitemId"], report["stay_blocked"])
+        guard = report["recovery_guards"][row["qitemId"]]
+        self.assertEqual(guard["flagged_qitem"], row["qitemId"])
+        self.assertEqual(guard["flagged_snapshot"], sweep.snapshot_row_state(row))
+        with self.assertRaises(sweep.RecoveryDismissalRefused) as ctx:
+            sweep.request_recovery_dismissal(
+                client,
+                "recovery-STUCK-01",
+                row["qitemId"],
+                guard["flagged_snapshot"],
+                log_lines=logs,
+            )
+        self.assertIn("recovery-dismissal-refused", str(ctx.exception))
+        self.assertEqual(client.updates, [], "refusal path must issue no write")
+        self.assertTrue(
+            any("recovery-dismissal-refused" in line for line in logs),
+            "refusal must be logged",
+        )
+
+    def test_close_time_gate_permits_once_row_moves(self):
+        """REQ-M3 production flow: after the owner acts on the flagged
+        row, the retained flag-time snapshot differs and the close-time
+        gate permits (still issuing no write itself)."""
+        sweep = load_sweep()
+        row, transitions = stuck_typed_row()
+        client = SweepRecoveryClient(row, transitions)
+        report = sweep.run_sweep(client, cursor={}, log_lines=[])
+        guard = report["recovery_guards"][row["qitemId"]]
+        client.row["statusCell"] = "gate recorded, owner qa-seat@rig acting on verdict"
+        outcome = sweep.request_recovery_dismissal(
+            client,
+            "recovery-STUCK-01",
+            row["qitemId"],
+            guard["flagged_snapshot"],
+            log_lines=[],
+        )
+        self.assertEqual(outcome["dismissal"], "permitted")
+        self.assertEqual(client.updates, [])
+
+    def test_close_time_gate_refuses_when_flagged_row_unreadable(self):
+        """Fail-closed: an unreadable flagged row at close time is
+        refused, never permitted."""
+        sweep = load_sweep()
+        row, transitions = stuck_typed_row()
+        client = SweepRecoveryClient(row, transitions)
+        report = sweep.run_sweep(client, cursor={}, log_lines=[])
+        guard = report["recovery_guards"][row["qitemId"]]
+
+        def _missing(qitem_id):
+            raise sweep.DataSourceError(f"no such qitem: {qitem_id}")
+
+        client.fetch_show = _missing
+        with self.assertRaises(sweep.RecoveryDismissalRefused):
+            sweep.request_recovery_dismissal(
+                client,
+                "recovery-STUCK-01",
+                row["qitemId"],
+                guard["flagged_snapshot"],
+                log_lines=[],
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -137,3 +137,63 @@ GREEN (restored via `git checkout -- <leaf>`; file byte-identical to HEAD,
   [PASS] V29 mission-gate ownership (77-mission-gates S2) green: stalled diff + charter markers in 9 leaves + refusal guard + 16 corpus tests pass + S0 evidence present
 SUMMARY: 37 checks passed, 0 failed.
 ```
+
+## R1 REQ-M3: production-flow wiring (rework-1, 2026-10-28, branch fix/77-mission-gates-r1)
+
+Prior state (verified before touching): check_recovery_dismissal /
+snapshot_row_state / RecoveryDismissalRefused were defined in
+scripts/sweep-typed-blocks.py but invoked NOWHERE in the production sweep
+or any recovery-close path — call sites were tests/test_mission_gates.py
+(unit-level) and the V29 block in scripts/verify-rigs.sh only. Dead code
+in production = REQ-M3 spec-conformance defect ("WHEN something attempts
+to close the recovery item THEN the close is refused" had no production
+caller). No close hook existed: check_allowed refuses every queue write
+except unpark-to-in-progress, and D2 forbids any bot close-to-done.
+
+Wiring applied (minimal, behavior-preserving): run_sweep retains
+report["recovery_guards"][qid] = {flagged_qitem, flagged_snapshot} for
+each evaluated stay-blocked row (read-only retention; unpark/stay-blocked
+paths untouched); new request_recovery_dismissal(client, recovery_id,
+flagged_qitem, flagged_snapshot) re-reads the flagged row via
+client.fetch_show, invokes the guard, logs, returns-or-raises, performs
+no write (unreadable row fails closed). E2E proof: 3 tests in
+TestProductionRecoveryWiring drive run_sweep -> retained snapshot ->
+close-time gate (refused-while-frozen with zero writes,
+permitted-once-moved, refused-when-unreadable).
+
+### R1-a guard neutered -> production-flow dismissal SUCCEEDS (RED)
+
+Sabotage: `if current_snapshot == flagged_snapshot:` -> `... and False:`
+in check_recovery_dismissal (sweep copy restored byte-identical after).
+
+```
+AssertionError: RecoveryDismissalRefused not raised
+Ran 3 tests / FAILED (failures=1)
+```
+
+The e2e refusal test goes RED (identical snapshots permitted through the
+retained-snapshot -> close-time-gate path) — proving the wired production
+flow refuses BECAUSE of the guard, not incidentally.
+
+GREEN (restored, byte-identical copy): Ran 19 tests / OK
+(tests.test_mission_gates, incl. 3 TestProductionRecoveryWiring).
+
+### R1-b retention removed -> close-time gate has no snapshot (RED)
+
+Sabotage: the 5-line `report["recovery_guards"][qid] = {...}` retention
+block removed from run_sweep (restored byte-identical after).
+
+```
+KeyError: 'qitem-STUCK-01'
+Ran 3 tests / FAILED (errors=3)
+```
+
+All 3 e2e tests error — proving run_sweep retention is what feeds the
+close-time gate (no invented hook; the gate consumes exactly what the
+sweep retains).
+
+GREEN (restored, byte-identical copy): Ran 19 tests / OK.
+`git status --short` shows only the four intended files
+(docs runbook + qa, scripts/sweep-typed-blocks.py,
+tests/test_mission_gates.py); sweep file diffed byte-identical to the
+pre-sabotage copy before proceeding.
