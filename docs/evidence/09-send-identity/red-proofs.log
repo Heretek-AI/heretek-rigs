@@ -71,3 +71,101 @@ fail there too (verified read-only, no worktree mutation):
 Post-fix: `SUMMARY: 36 checks passed, 0 failed` with
 `[PASS] V28 send-identity attestation (09-send-identity S1) green:
 binding rules + !cat render + 24 corpus tests pass + S0 evidence present`.
+
+## QA re-verification (acceptance verifier, 2026-10-28, branch feat/09-send-identity @ e04a7f8)
+
+Each sabotage below was applied to the working tree, the check observed RED
+(verbatim output recorded), then reverted (`git checkout -- <file>` or
+byte-identical restore) and the check observed GREEN again with
+`git status --short` clean. Programmer entries above left untouched; these
+are independent QA re-runs. Baseline before sabotage: verify 36/0,
+`make test` Ran 530 OK, corpus 25/25 OK, self-test PASSED, idempotent PASS.
+
+## QA-R1 — V28 gate fails without the attestation module
+- Sabotage: `mv scripts/send_identity.py /tmp/qa-send_identity.R1` (pre-fix shape).
+- Check: `./scripts/verify-rigs.sh --check-only`
+- RED verbatim: `[FAIL] V28/09-send-identity: cannot load
+  scripts/send_identity.py ([Errno 2] No such file or directory: '...')`,
+  `[FAIL] V28/09-send-identity: scripts/send_identity.py unreadable (...)`,
+  `[FAIL] V28/09-send-identity: tests.test_send_identity failed:`,
+  `SUMMARY: 35 checks passed, 4 failed.`, exit 1.
+- Restore: moved back; rerun `SUMMARY: 36 checks passed, 0 failed.`, exit 0;
+  `git status --short` clean.
+
+## QA-R2 — `make test` fails when a corpus assertion is inverted
+- Sabotage: `tests/test_send_identity.py` spoof test expectation changed to
+  `self.assertEqual(res.sender, "red-actor@other-rig")` (forged claim recorded).
+- Check: `make test` — RED verbatim: `Ran 530 tests ... FAILED (failures=1)`,
+  `make: *** [Makefile:38: test] Error 1`, exit 2. Scoped rerun verbatim:
+  `FAIL: test_spoofed_claimed_source_is_ignored ... AssertionError:
+  'blue-probe@test-rig' != 'red-actor@other-rig'`.
+- Restore: `git checkout -- tests/test_send_identity.py`; full `make test`
+  rerun: `Ran 530 tests ... OK`, exit 0; `git status --short` clean.
+
+## QA-R3a — spoofed --source ignored (REQ-S2 class 1)
+- Sabotage: `scripts/send_identity.py` final return changed to
+  `sender=claimed_source or sender` (records the client claim).
+- Check: `AttestationVerifyTests.test_spoofed_claimed_source_is_ignored`
+- RED verbatim: `AssertionError: 'red-actor@other-rig' != 'blue-probe@test-rig'`
+  (forged claim recorded). Restored from backup; full corpus 25/25 OK;
+  `git status --short` clean.
+
+## QA-R3b — replay rejected (REQ-S2 class 2)
+- Sabotage: replay gate disabled (`if nonce in seen and False:`).
+- Check: `AttestationVerifyTests.test_replay_of_valid_attestation_is_rejected`
+- RED verbatim: `AssertionError: 'attested' != 'rejected'` (second presentation
+  accepted). Restored; corpus 25/25 OK; status clean.
+
+## QA-R3c — cross-rig impersonation impossible (REQ-S2 class 3)
+- Sabotage: scope gate disabled (`if rig != expected_rig and False:`).
+- Check: `AttestationVerifyTests.test_cross_rig_presentation_fails_scope`
+- RED verbatim: `AssertionError: 'attested' != 'unverified'` (rig-Y presentation
+  of a rig-X attestation verified). Restored; corpus 25/25 OK; status clean.
+
+## QA-R3d — bare-send bypass still denied (REQ-S2 class 4)
+- Sabotage: first `      - rig send` deny line removed from `fleet/fleet.yaml`
+  (working tree only, no regen).
+- Check: `BareSendDenyTests.test_fleet_declares_exact_bare_deny_triple`
+- RED verbatim: `AssertionError: Lists differ: ['a11y-specialist'] != []`.
+  Restored via `git checkout -- fleet/fleet.yaml`; corpus 25/25 OK; clean.
+
+## QA-R4 — audit_loop self-test executes its vectors
+- Sabotage: `scripts/audit_loop.py:343` expectation flipped to
+  `assert status_lie == STATUS_NO_FINDINGS`.
+- Check: `python3 scripts/audit_loop.py --self-test` — RED verbatim:
+  `AssertionError: Parser failed to catch false NO_FINDINGS with ### HR- header!`,
+  exit 1.
+- Restore: `git checkout -- scripts/audit_loop.py`; rerun `SELF-TEST PASSED`;
+  status clean.
+
+## QA-R5 — --check-idempotent detects nondeterministic generation
+- Sabotage: appended a `time_ns()` tail write to `rosters/heretek-omni-fleet.json`
+  at the end of `generate_all` in `scripts/generate-rigs.py`. Note: the
+  generator's dirty guard fires first on a dirty tree (exit 2, by design); the
+  sabotage run used the documented dev path `HERETEK_RIGS_ALLOW_DIRTY=1`.
+- Check: `python3 scripts/generate-rigs.py --check-idempotent` — RED verbatim:
+  `error: non-idempotent generation (diff keys: [])`, exit 2.
+- Restore: `git checkout -- scripts/generate-rigs.py registry/ rosters/`;
+  rerun `idempotence check passed (two consecutive runs byte-identical)`,
+  exit 0; restamp reverted; status clean. (Post-run registry re-stamp to HEAD
+  is sanctioned provenance-only: 32 `resolvedCommit` lines + `canonicalUrl`
+  embeds, zero other diff lines — verified and reverted.)
+
+## QA-R6 — secrets grep is non-vacuous
+- Sabotage: appended `QA-SABOTAGE-TOKEN orAbCdEfGhIjKlMnOpQrStUvWxYz0123456789AB`
+  (47-char bearer-shaped) to `docs/evidence/09-send-identity-spoof.md`.
+- Check: `grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/09-send-identity-spoof.md
+  docs/evidence/09-send-identity-rotation.md` — RED verbatim: printed the
+  sabotage line, exit 0 (secret found).
+- Restore: `git checkout -- docs/evidence/09-send-identity-spoof.md`; grep exit 1
+  (no output); status clean.
+
+## QA-R7 — V28 requires the S0 evidence file
+- Sabotage: `mv docs/evidence/09-send-identity-spoof.md /tmp/qa-spoof.R7.md`.
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: S0 evidence file unreadable ([Errno 2] No such
+  file or directory: '.../docs/evidence/09-send-identity-spoof.md')`, exit 1.
+- Restore: moved back; rerun `SUMMARY: 36 checks passed, 0 failed.`; clean.
+
+QA verdict: no vacuous checks found. All 7 acceptance checks + all 4 REQ-S2
+forgery classes turn RED under targeted sabotage and GREEN on restore.
