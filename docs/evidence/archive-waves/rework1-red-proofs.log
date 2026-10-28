@@ -1,0 +1,158 @@
+# archive-waves rework cycle 1 — QA red-proof log (agency-qa)
+
+- Stage/wave: archive-waves rework cycle 1 verification (post-rework, commit `5bc17c4`).
+- Worktree: `/home/john/Projects/heretek-rig-workspace/heretek-rigs/.lane/trees/archive-wave`
+  (branch `feat/archive-waves`, tree clean at start, commit `5bc17c4`).
+- Date: 2026-10-28. Verifier: agency-qa (Muse Spark 1.3 Contributor).
+- Method: 7-step red-proof-sabotage per check (inject → RED → `git checkout --`/byte-restore → `git status --short` clean).
+- Disposition: sabotage reverted; never committed. Tree left dirty-with-evidence-only
+  (sole delta vs HEAD is this `docs/evidence/` log directory).
+
+## Baseline (unmodified tree, all GREEN, exit 0)
+
+1. `make verify` → exit 0 (35-check gates green; live-health SKIP lines only:
+   daemon not running, expected without `rig up`).
+2. `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 35 checks passed, 0 failed.`, exit 0.
+3. `python3 ./scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`, exit 0.
+4. `python3 -m unittest tests.test_schema_contracts -v` → `Ran 11 tests … OK`, exit 0
+   (includes new `test_run_record_pins_fixed_074_digest`).
+5. `make test` → `Ran 505 tests … OK`, exit 0 (run because a test file changed).
+
+## F1 — T2 compound, exact acceptance, exit 0 end-to-end
+
+- Fixed acceptance (from `openspec/changes/archive/2026-10-28-102-closeout/tasks.md:25`):
+  `./scripts/verify-rigs.sh --check-only && ! grep -rn 'superpowers:writing-skills' specs/ fleet/`
+- Result: `VERIFY_EXIT=0` (SUMMARY 35/0), grep found zero hits so `! grep` true →
+  `F1-FIXED-COMPOUND-EXIT=0`.
+- Note (carried from rework report): bare `&& grep -rn … (expect 0)` can never exit 0
+  (grep exits 1 on zero matches); the `!` negation is the correct shell idiom for "expect 0".
+
+## F2a — T2 compound, exact acceptance, exit 0 + count 9
+
+- Fixed acceptance (from `openspec/changes/archive/2026-10-28-107-identity/tasks.md:25`):
+  `./scripts/verify-rigs.sh --check-only && grep -c 401 docs/evidence/107-identity/red-proofs.log`
+- Result: verify exit 0, `grep -c` prints `9` → `F2A-FIXED-COMPOUND-EXIT=0`.
+- Plain `&&` suffices here because matches exist (grep exits 0).
+
+## F2b — fixed T0 `ls` acceptance, exit 0; stale path proven absent
+
+- `ls openspec/changes/archive/2026-10-28-107-identity/proposal.md …/design.md …/tasks.md …/specs/identity/spec.md`
+  → lists 4 files, `T0-107-EXIT=0`.
+- Adjacent fix: `ls openspec/changes/archive/2026-10-28-102-closeout/proposal.md …/design.md …/tasks.md …/specs/closeout/spec.md`
+  → lists 4 files, `T0-102-EXIT=0`.
+- Stale pre-archive path confirmed gone: `ls openspec/changes/107-identity/` →
+  `No such file or directory`, exit 2 (proves the fix was required, not cosmetic).
+
+## F3 — ledger live-required + byte-identical; move-back sabotage RED; restored
+
+- Live-required citation: `openspec/specs/bump/spec.md:15` (REQ-BUMP1):
+  "A bump ledger `docs/sprints/CLI-0.7.4-BUMP.md` MUST record the version output,
+  the published tarball sha256 (`d11dd8a6…`), every pin location updated, and the
+  verify result." Scenario (line 18) asserts that live path's contents. This is a
+  live requirement, not a historical mention (the 0.7.2/PI-1.4.0 cites in
+  `docs/TECHNICAL_DOCUMENTATION.md:12` are historical prose, left alone).
+- Live-path refs outside `archive/` hit (bump spec ×2, overhaul-bump proposal/design/
+  tasks/delta-spec, overhaul-c correction note, bump implementation/verification reports).
+- Byte-identical to pre-move: `sha256sum docs/sprints/CLI-0.7.4-BUMP.md` =
+  `git show 87f4f44:archive/2026-10-28-overhaul/docs/sprints/CLI-0.7.4-BUMP.md | sha256sum` =
+  `ba7d3889d8d34f9706f5591ba56d8cb90aa52db5c41a199b13a4decc58b146b4`.
+- `git log --follow -- docs/sprints/CLI-0.7.4-BUMP.md` resolves history
+  (5bc17c4 ← 253413f ← 57d5007).
+- Scenario content counts on restored file: `0.7.4` ×19, tarball sha ×1, `35 checks passed` ×1.
+- SABOTAGE: `git mv docs/sprints/CLI-0.7.4-BUMP.md archive/2026-10-28-overhaul/docs/sprints/CLI-0.7.4-BUMP.md`
+  → `test -f docs/sprints/CLI-0.7.4-BUMP.md` exit 1 (RED: live path gone);
+  `grep -c 0.7.4 docs/sprints/CLI-0.7.4-BUMP.md` → No such file, exit 2 (RED: scenario uncheckable).
+- RESTORE: `git mv archive/…/CLI-0.7.4-BUMP.md docs/sprints/CLI-0.7.4-BUMP.md` →
+  live path exists, sha256 `ba7d3889…` (identical), `git status --short` clean.
+- Keep-list / isolation: `docs/sprints/` now holds ONLY the ledger; the archive sprints dir
+  holds the other 27 stale files (no `CLI-0.7.4-BUMP.md` there); restore is an `R100`
+  single-file rename (`git show --name-status -M HEAD`); `git diff <pre-archive-parent> HEAD`
+  empty for both `docs/sprints/CLI-0.7.4-BUMP.md` and `docs/evidence/rotation.md` (IDENTICAL).
+
+## F4a — grant mapping from rendered seat map; spec-prose sabotage characterized honestly
+
+- Rendered seat map `rigs/cloud-sre-and-data-platform/agents/analytics-metrics-eng/runtime/pi-permission-config.json`:
+  `'rig queue *' -> 'allow'`, `'rig send *' -> 'allow'`,
+  `'rig queue list' -> 'deny'`, `'rig queue create' -> 'deny'`, `'rig send' -> 'deny'`.
+  Proves: `--json` queue forms fall under the `rig queue *` grant, addressed
+  `rig send <session> <message>` under the `rig send *` grant; bare triple denied.
+- Source parity: `fleet/fleet.yaml` lines 648–649 (`- rig queue *`, `- rig send *` in
+  `bash_allow`) with lines 657–660 the exact bare triple
+  (`rig queue list` / `rig queue create` / `rig send` in `bash_deny`).
+- V22 gate (`scripts/verify-rigs.sh:2726-2740` + following block) confirms the semantics:
+  `--json` queue forms + addressed send allow, bare triple denies (FAIL-ONLY, SUMMARY frozen).
+- SABOTAGE (canonical spec `openspec/specs/closeout/spec.md:15`):
+  `` `rig queue *` grant`` → `` `rig queue list *` grant`` (one mapping word).
+  Doc-accuracy assertion `grep -c 'holds the \`rig queue \*\` grant' openspec/specs/closeout/spec.md`
+  → `0`, exit 1 (RED: canonical wording gone, assertion is wording-sensitive).
+- `./scripts/verify-rigs.sh --check-only` with sabotaged spec → exit 0, SUMMARY 35/0.
+  HONEST RECORD: no committed gate covers the REQ-C18 spec prose (V22 reads
+  `fleet/fleet.yaml` + rendered seat maps, never the spec text). Doc-accuracy is therefore
+  verified by inspection (rendered-map + fleet parity above); the underlying behavior IS
+  gate-covered by V22. No coverage invented.
+- RESTORE: `git checkout -- openspec/specs/closeout/spec.md` → canonical wording back
+  (grep count 1), `git status --short` clean.
+
+## F4b — V18 ranges verified against actual blocks; off-by-one sabotage is citation-only
+
+- Measured current bounds (no trust): bundle-check loop opens at line 2447
+  (`for _slug18 in EXPECTED_8_RIGS:`), block closes at 2469 (trailing `)` of the
+  `fail(…)` paren); spec-validate loop opens at 2470 (`for _spec18 in …`), closes at 2482.
+  The cited `:2447-2469` / `:2470-2482` match exactly.
+- SABOTAGE: citation `:2447-2469` → `:2447-2468` (one digit) in
+  `openspec/specs/closeout/spec.md:21`.
+  `./scripts/verify-rigs.sh --check-only` → exit 0, SUMMARY 35/0.
+  HONEST RECORD: citation-only, RED-proof N/A — no committed check asserts citation digits.
+  Range 2469 line content is `)` (fail-paren close); the corrected range still brackets
+  the right code. Recorded as citation accuracy, not gate coverage.
+- RESTORE: `git checkout -- openspec/specs/closeout/spec.md` → `:2447-2469` back,
+  `git status --short` clean.
+
+## F5 — one-byte schema corruption REDs the NEW pin test (+ pin test); restore GREEN
+
+- Fixed digest (test line 132, pin file line 27): `b3c7ac64fd9dd51152888c99fdbcadd85cddebebb2d38253864bff054da3fde7`.
+  Pre-sabotage `sha256sum schemas/run-record.v1.schema.json` = `b3c7ac64…` (match).
+- SABOTAGE: backed up to `/tmp/opencode/rr-backup.json`, flipped one byte at offset 500
+  (`…-Za-z0-9]…` region) → sha `ae387fdc…`.
+  `python3 -m unittest tests.test_schema_contracts` → `Ran 11 tests … FAILED (failures=2)`,
+  exit 1 (RED). Failures are EXACTLY:
+  `FAIL: test_run_record_pins_fixed_074_digest` (the NEW fixed-digest test:
+  `'ae387fdc…' != 'b3c7ac64…': vendored run-record schema drifted from the fixed 0.7.4 identity`)
+  and `FAIL: test_pin_file_matches_disk` (pin-file-vs-disk consistency, expected since
+  disk drifted from the pin). No other test tripped — the check is targeted, not vacuous.
+- RESTORE: `cp /tmp/opencode/rr-backup.json schemas/run-record.v1.schema.json` →
+  sha `b3c7ac64…`, `git diff -- schemas/` empty (byte-identical),
+  `python3 -m unittest tests.test_schema_contracts` → `Ran 11 tests … OK`, exit 0 (GREEN).
+
+## F6 — UniqueKey parse loads, exactly one `container:` block; duplication RED; restored
+
+- GREEN: workflow parsed under a duplicate-key-rejecting loader (same `_UniqueKey27`
+  construction as the V27 gate) → `UNIQUEKEY-PARSE-OK`; `container:` block count = 1;
+  per-job: verify-fleet False, build False, smoke True (line 113, smoke job only).
+- SABOTAGE: inserted a second `    container:` block (image: sabotage-duplicate) into the
+  `build` job (lines 63 + 115) → count 2 → assertion
+  `expected exactly one container: block, found 2` → exit 1 (RED).
+  (A duplicate YAML *key* would likewise trip the UniqueKey loader with `duplicate key`;
+  the V27 gate fails on either shape.)
+- RESTORE: `cp /tmp/opencode/docker-release-backup.yml .github/workflows/docker-release.yml` →
+  `git diff -- .github/` empty (byte-identical), count back to 1, `git status --short` clean.
+
+## Keep-list + restore isolation (post-rework)
+
+- Byte-identical post-rework: `git diff 253413f^ HEAD` empty for
+  `docs/sprints/CLI-0.7.4-BUMP.md` and `docs/evidence/rotation.md`.
+- No live content moved by the ledger restore: exactly one path pair changed
+  (`R100 archive/2026-10-28-overhaul/docs/sprints/CLI-0.7.4-BUMP.md → docs/sprints/CLI-0.7.4-BUMP.md`).
+
+## Vacuous-check verdict
+
+- No vacuous checks found. Every sabotage produced the expected RED except the two
+  honestly-characterized citation/prose cases (F4a spec prose, F4b citation digits),
+  where the RED/GREEN boundary was demonstrated at the correct layer (doc-accuracy
+  assertion REDs; behavior gates correctly do not read prose) and recorded as such
+  rather than claimed as gate coverage.
+
+## Final tree state
+
+- `git status --short` shows nothing modified except `docs/evidence/` (this log;
+  untracked evidence-only delta). All sabotage reverted and verified clean after each step.
