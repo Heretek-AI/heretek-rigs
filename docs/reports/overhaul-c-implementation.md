@@ -35,6 +35,14 @@ files (`PROMPT_ADVERSARIAL_FLEET_AUDIT.md`, `AUDIT_REPORT_FINDINGS.md`,
 `HANDOFF.md`, …), staying `docs/*.md`, and this change's own
 `openspec/changes/overhaul-c/` (untracked, untouched).
 
+> Correction 2026-10-28 (archive rework cycle 1, F3): `docs/sprints/` moved
+> wholesale, but `docs/sprints/CLI-0.7.4-BUMP.md` is a LIVE ledger required at
+> that path by `openspec/specs/bump/spec.md:15` (REQ-BUMP scenario) — not stale
+> bloat. Restored via `git mv
+> archive/2026-10-28-overhaul/docs/sprints/CLI-0.7.4-BUMP.md
+> docs/sprints/CLI-0.7.4-BUMP.md` (rename, history preserved); REQ-C6 keep-list
+> now excludes that ledger. All other `docs/sprints/` entries stay archived.
+
 ## M6 reference updates (surgical, no renumber/reword)
 
 - `scripts/verify-rigs.sh` HR-8.4 (`:1293`): dropped the two moved root prompt
