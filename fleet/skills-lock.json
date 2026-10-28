@@ -157,7 +157,7 @@
     "mission-slice-sop": {
       "source": "npm:@openrig/cli@0.7.4 daemon/assets/plugins/openrig-core/skills",
       "path": "mission-slice-sop",
-      "tree": "sha256:7b89c5e46dd8385b792759086f277ab31f1306c7d24976138e70c94c03f29cb3",
+      "tree": "sha256:93fbe5e9112bb4be64d48c4907fae350d9affc19e097b660b0c301646cb19bbb",
       "license_file": "LICENSE (copied from source root)"
     },
     "modern-python": {

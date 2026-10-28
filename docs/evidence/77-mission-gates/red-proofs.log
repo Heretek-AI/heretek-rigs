@@ -1,0 +1,51 @@
+# Red-proofs — 77-mission-gates (Refs #77)
+
+Each entry: sabotage the check, observe RED (B2 outcome restored), restore,
+observe GREEN. FAIL-ONLY pre-fix proof is the S0 transcript
+(docs/evidence/77-mission-gates-prefix.md); the S2 entry references it.
+
+## S1 REQ-M2: stalled-awaiting-gate classification
+
+RED (sabotage): `scripts/reconcile_model.py` copied to /tmp with the single
+line `if is_awaiting_gate_prose(cell):` replaced by `if False:` (mechanical
+equivalent of removing the classification). B2 fixture
+(qitem-20261024023941-8685741b5ce805de, "verdict recorded; Standing by for
+gate", queue in-progress) through the sabotaged copy:
+
+```
+SABOTAGED -> None
+```
+
+No diff: the fixture returns to silent agreement (reconcile exit 0) and to
+generic silent-OTHER on the emitter path — the exact pre-fix gap.
+
+GREEN (restored): same fixture through the patched module:
+
+```
+PATCHED -> stalled-awaiting-gate
+```
+
+Executable form: tests.test_mission_gates
+TestStalledAwaitingGate.test_sabotage_classifier_removed_returns_to_silent
+(mock-disables is_awaiting_gate_prose -> None; enabled -> stalled diff).
+Corpus: python3 -m unittest tests.test_mission_gates (11 tests, rc=0).
+
+## S2 REQ-M3: recovery dismissal refusal (FAIL-ONLY pre-fix reference)
+
+FAIL-ONLY (unpatched tree, S0 transcript): sweep-typed-blocks.py exposes no
+recovery refusal guard (`check_recovery_dismissal` absent); closing the
+recovery item with flag-time and close-time snapshots byte-identical is
+ALLOWED:
+
+```
+snapshots byte-identical: True
+dismissal-without-change: ALLOWED
+```
+
+Recorded verbatim in docs/evidence/77-mission-gates-prefix.md (S0, tree @
+6fe665f). Post-fix RED direction: bypassing check_recovery_dismissal (or
+calling the closer without the guard) restores ALLOWED on identical
+snapshots — covered by
+tests.test_mission_gates.TestNonDismissibleRecovery
+test_bypassed_guard_restores_b2_dismissal. GREEN: guard enforced, refusal
+raised, redacted log line, row state untouched.

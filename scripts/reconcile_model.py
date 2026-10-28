@@ -15,7 +15,10 @@ Behavior-identical to the former inline implementation in
 scripts/reconcile.py: the G-T1 refactor moved these definitions verbatim.
 The locked tracker enum is STAGED, DISPATCHED, PARKED, QA PASS, PLACED,
 DONE, CLOSED + OTHER(<raw>); the queue terminal signal is entry/last-transition
-state ONLY (note text never terminal). A QA PASS affirmation — in a queue note or
+state ONLY (note text never terminal). Awaiting-gate prose with no live
+gate qitem is the stalled-awaiting-gate diff class (issue #77, REQ-M2):
+gateless waiting fails convergence as stalled, never as silent agreement.
+A QA PASS affirmation — in a queue note or
 a tracker cell — counts only when the text opens with `QA PASS` and carries no
 negator (not/no/never/n't), fail token, or pending token (pending/awaiting/re-run); `placed`/`closed` arms are likewise
 void under negation (`NOT placed` affirms nothing).
@@ -75,6 +78,26 @@ NOTE_ID_RES = (
 NO_QITEM_CELLS = {"", "\u2014", "-", "n/a", "none"}
 QITEM_RE = re.compile(r"qitem-\d{14}-[0-9a-f]+")
 TRACKER_OUT_BASENAME_RE = re.compile(r"dispatch-tracker\.md$", re.IGNORECASE)
+
+# 77-mission-gates (REQ-M2): a Status cell waits on a gate in prose when it
+# names a gate alongside a waiting verb ("standing by for gate", "awaiting
+# gate verdict"). Ordinary waits ("awaiting QA", "blocked on QA gate" with
+# no waiting verb) do NOT match — the waiting verb is required so parked /
+# staged rows are never over-flagged.
+_AWAITING_GATE_RE = re.compile(
+    r"(awaiting|waiting for|standing by for)\b.{0,60}\bgate\b",
+    re.IGNORECASE,
+)
+
+
+def is_awaiting_gate_prose(cell):
+    """True when a tracker Status cell waits on a gate in prose (issue #77).
+
+    Pure predicate for the stalled-awaiting-gate diff class: awaiting-gate
+    prose with NO live gate qitem reference fails convergence as stalled,
+    never as silent agreement.
+    """
+    return bool(_AWAITING_GATE_RE.search(cell or ""))
 
 
 class ReconcileError(Exception):
@@ -450,7 +473,65 @@ def diff_row(row, queue_by_id, transitions_by_id):
                 f"queue-side evidence: {evidence_note or entry.get('state')}"
             ),
         }
-    return None
+    # Tail: delegate gateless-awaiting-gate detection to the shared
+    # classifier (also consumed by generate_trackers.py, REQ-G5).
+    return stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id)
+
+
+def stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id):
+    """Shared stalled-awaiting-gate classifier (issue #77, REQ-M2).
+
+    Returns the stalled diff when the row's Status waits on a gate in prose
+    with NO live gate qitem reference, else None. A --gate qitem with a
+    live owner (non-terminal state + a destination session) exempts the row:
+    the gate owner owns next action. Pure classification — propose-only
+    (REQ-R2), no row state written, never done/complete/closed by this
+    module. Both reconcile.py (via diff_row's tail) and
+    generate_trackers.py (OTHER-arm carve-out, review-only render) consume
+    THIS helper; no command may own a parallel gate mapping (REQ-G5).
+    """
+    cell = row["status"]
+    if not is_awaiting_gate_prose(cell):
+        return None
+    qitem_raw = row["qitem"].strip()
+    if qitem_raw in NO_QITEM_CELLS:
+        return None
+    m = QITEM_RE.search(qitem_raw)
+    qid = m.group(0) if m else qitem_raw
+    entry = queue_by_id.get(qid)
+    if entry is None:
+        queue_evidence = "(no queue entry)"
+    else:
+        trail = transitions_by_id.get(qid, [])
+        _, latest_id, latest = queue_terminal(entry, trail)
+        latest_note = str(latest.get("transitionNote", "")) if latest else ""
+        queue_evidence = (
+            f"state={entry.get('state')} latest_transition={latest_id} ({latest_note})"
+        )
+    gate_refs = [q for q in QITEM_RE.findall(cell) if q != qid]
+    for ref in gate_refs:
+        gate_entry = queue_by_id.get(ref)
+        if gate_entry is None:
+            continue
+        gate_trail = transitions_by_id.get(ref, [])
+        gate_terminal, _, _ = queue_terminal(gate_entry, gate_trail)
+        if not gate_terminal and gate_entry.get("destinationSession"):
+            return None
+    return {
+        "class": "stalled-awaiting-gate",
+        "reason": (
+            "tracker waits on a gate with no live gate qitem recorded "
+            "(no gate owner named; the destination seat owns next action)"
+        ),
+        "tracker": cell,
+        "queue": queue_evidence,
+        "proposal": (
+            f"Close {row['slice']} done with a closure reason once its "
+            f"acceptance evidence is on the row, or create a --gate qitem "
+            f"with a live owner and record it here; standing by with no "
+            f"gate row is stalled, never a false positive"
+        ),
+    }
 
 
 def render_diff(row, diff):

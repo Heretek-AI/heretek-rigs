@@ -245,7 +245,7 @@ integrity:
     agents/_shared/skills/messaging-the-human/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
     agents/_shared/skills/messaging-the-human/SKILL.md: 680ca50b22b0aec280a6c7bb5e118cda1dca991742f42f9a5b74e138448753fe
     agents/_shared/skills/mission-slice-sop/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/mission-slice-sop/SKILL.md: a01e72a526c975a86f0754af206505efbafcbbc3583bea1394c50759dc5a584f
+    agents/_shared/skills/mission-slice-sop/SKILL.md: 27d74caa710628adaf5177744ee14a9f26dedbd55481a0f8601c7f50e7d96a09
     agents/_shared/skills/modern-python/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/modern-python/SKILL.md: ef774b925eb1d1fc12e4f5ddc3f5ad925ecd795315827447228c70cc44c6170c
     agents/_shared/skills/modern-python/agents/openai.yaml: f56c544187af5bd3c76f1cd082619644090ab7b6d8abe77d4d3115d39dced5c1
