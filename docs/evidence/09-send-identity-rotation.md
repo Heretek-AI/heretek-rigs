@@ -68,12 +68,16 @@ while the serve process kept running).
 Failure modes (all fail closed): minting for an existing name refuses
 (`'...' already has a grant; revoke it first...`, non-zero exit) — revoke
 first (step 2); revoking an unknown name refuses (`No grant named ...`) —
-nothing changes; for a grant-bound seat, a missing or unreadable binding
+nothing changes; for a grant-bound seat, a missing binding
 file makes the default `scripts/render-seat.py` render exit with status 2
 (`die(...)` — strict render cannot attest without the secret); with
-`--allow-missing-secrets`, it writes a disabled `send-identity.json` entry
+`--allow-missing-secrets`, a missing file writes a disabled
+`send-identity.json` entry
 (`{"sender": ..., "enabled": false}`) and sends remain UNVERIFIED until the
-file is restored.
+file is restored. An unreadable binding file (permission/ownership error,
+e.g. EACCES) is NOT covered by the flag: `secret_ok()` re-raises it via
+`die(...)`, so the render fails even with `--allow-missing-secrets` —
+fix the file's ownership/mode instead.
 
 ## §2 Executed-live evidence (scratch isolation, redacted)
 
