@@ -241,6 +241,22 @@ class IssueSenderBindingTests(unittest.TestCase):
         grants = json.loads(self.state.read_text())["grants"]
         self.assertNotIn("blue-x@rig-y/send-identity", grants)
 
+    def test_reuse_path_refuses_non_0600_binding(self):
+        # Reuse must apply the same 0600 regular-file gate as pre-mint:
+        # seed once (0600, reuse reports success), chmod to 0640 externally,
+        # re-run -> must FAIL loudly naming the file, not report reuse success.
+        self.assertEqual(self.issue("blue-x@rig-y")[0], 0)
+        rc, out, _ = self.issue("blue-x@rig-y")
+        self.assertEqual(rc, 0)
+        self.assertIn("already issued", out)
+        target = self.binding_path("blue-x@rig-y")
+        os.chmod(target, 0o640)
+        rc, out, err = self.issue("blue-x@rig-y")
+        self.assertNotEqual(rc, 0)
+        self.assertNotIn("already issued", out)
+        self.assertIn(target.name, err)
+        self.assertIn("0600", err)
+
     def test_add_failure_is_fatal_in_strict_mode(self):
         os.environ["FAKE_RIG_FAIL_ADD"] = "1"
         rc, _, err = self.issue("blue-x@rig-y")

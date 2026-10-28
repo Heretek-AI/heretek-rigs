@@ -164,6 +164,17 @@ def issue_sender_binding(
                     file=sys.stderr,
                 )
             elif binding_path.is_file():
+                try:
+                    _reuse_st = os.lstat(binding_path)
+                except OSError as e:
+                    return _fail(f"cannot stat existing {binding_path.name}: {e}")
+                _reuse_mode = stat.S_IMODE(_reuse_st.st_mode)
+                if not stat.S_ISREG(_reuse_st.st_mode) or _reuse_mode != 0o600:
+                    return _fail(
+                        f"refusing to reuse existing {binding_path.name} "
+                        f"(expected 0600 regular file, found {_reuse_mode:04o}); "
+                        f"remove it and re-seed"
+                    )
                 print(
                     f"ok {_session_log}: sender binding already issued (reuse {_binding_log})"
                 )
