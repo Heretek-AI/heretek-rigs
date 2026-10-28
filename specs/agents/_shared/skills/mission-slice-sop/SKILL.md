@@ -119,4 +119,5 @@ is likely a harness suggestion or typed, from where the cursor is and whether th
 - **Starting a slice?** → do you know what it's for and what done looks like? mockups attached (UI slices)? **Are you on the light path?** (You are, unless the mission owner assigned the overlay.)
 - **Finishing a slice?** → does `PROOF.md` say what you actually verified, by effect, including what is NOT covered? `PROGRESS.md` updated? mission `NOTES.md` refreshed? handed off via `rig queue handoff`?
 - **Compacting?** → file your state in mission `NOTES.md`; on restore, read it plus the active slice's `SPEC.md`, `PROGRESS.md`, and `PROOF.md`.
+- **Closing your row (gate ownership)?** → the destination seat closes its own row (`done` + closure reason) once its acceptance evidence is on the row — never leave "standing by for gate" prose on a row with no gate qitem. The only exception is a live `--gate <role>` qitem with a live owner, which owns the next action (77-mission-gates gate-ownership rule).
 - **Starting on a mission?** → read mission `SPEC.md`, `NOTES.md`, and the conventions SSOT.

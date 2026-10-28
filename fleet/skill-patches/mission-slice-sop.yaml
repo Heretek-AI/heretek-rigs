@@ -1,0 +1,21 @@
+# fleet/skill-patches/mission-slice-sop.yaml — fleet-side charter patch (issue #77, 77-mission-gates S1, REQ-M1).
+#
+# The mission B2 incident left a parent row open "standing by for gate" with
+# nobody owning the close: the destination seat finished its evidence but no
+# rule said who closes the row once acceptance evidence is on it. REQ-M1
+# states that rule in the mission-slice-sop skill: the destination seat
+# closes its own row (done + closure reason) once its acceptance evidence is
+# on the row, unless a --gate <role> qitem exists with a live owner (the
+# gate owner then owns next action).
+#
+# `specs/` MUST change only via the generator (AGENTS.md one rule), so the
+# rule rides the generator (scripts/generate-rigs.py load_skill_patches /
+# apply_skill_patch `replacements`): one exact, fail-closed (exactly one
+# hit) append to the moment-of-truth checklist. Provenance-clean and
+# idempotent; the loader stays 68/68 with no DIAG.
+skill: mission-slice-sop
+reason: "state the destination-seat closure-ownership rule with the --gate live-owner exemption (#77 REQ-M1)"
+replacements:
+  - file: SKILL.md
+    old: "- **Compacting?** → file your state in mission `NOTES.md`; on restore, read it plus the active slice's `SPEC.md`, `PROGRESS.md`, and `PROOF.md`."
+    new: "- **Compacting?** → file your state in mission `NOTES.md`; on restore, read it plus the active slice's `SPEC.md`, `PROGRESS.md`, and `PROOF.md`.\n- **Closing your row (gate ownership)?** → the destination seat closes its own row (`done` + closure reason) once its acceptance evidence is on the row — never leave \"standing by for gate\" prose on a row with no gate qitem. The only exception is a live `--gate <role>` qitem with a live owner, which owns the next action (77-mission-gates gate-ownership rule)."

@@ -73,6 +73,7 @@ from reconcile_model import (  # noqa: E402
     recorded_note_ids,
     refuse_out_path,
     run_rig,
+    stalled_awaiting_gate_diff,
     write_out_exclusive,
 )
 
@@ -196,6 +197,21 @@ def build_proposal(tracker, queue_by_id, transitions_by_id):
         arm = tracker_enum_arm(cell)
         entry, trail, evidence = queue_side_of(row, queue_by_id, transitions_by_id)
         if arm.startswith("OTHER("):
+            # 77-mission-gates (REQ-M2) carve-out: awaiting-gate prose IS
+            # passed to the shared stalled classifier so the missing gate is
+            # named explicitly in review. Still always review (never a
+            # paste-ready terminal cell): the class stays outside
+            # PASTE_READY_CLASSES, so the withhold rule holds — status NEVER
+            # guessed, no canonical cell proposed for unknown prose.
+            stalled = stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id)
+            if stalled is not None:
+                blocks.append(
+                    render_proposal(
+                        row, arm, "WITHHELD — TPM judgment required", stalled, True
+                    )
+                )
+                n_review += 1
+                continue
             # Unknown prose: NEVER coerced to a guessed enum, NEVER passed
             # to diff_row (which would propose a canonical cell for a
             # terminal queue). Always a review diff, always non-zero.
