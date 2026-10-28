@@ -97,6 +97,10 @@ No token/key bytes could reach any of them (traced; see H2).
   `docs/evidence/09-send-identity/red-proofs.log`).
 - Report commit (this file): docs(09-send-identity): rework-2 report
   (Refs #9) — see `git log` for its hash.
+- `8bbde89` chore(09-send-identity): regenerate leaves for provenance
+  (Refs #9) — 16 registry files, `resolvedCommit` re-bake only (known,
+  accepted per AGENTS.md); post-regen `verify-rigs.sh --check-only`
+  re-run: 36 passed, 0 failed, V28 PASS.
 
 ## Self-audit (unfinished stated plainly)
 
