@@ -6,7 +6,7 @@ summary: End-to-end web, backend microservice, UI/UX design system, frontend per
 source:
   repository: https://github.com/Heretek-AI/heretek-rigs
   folder: rigs/fullstack-and-web-studio
-  resolvedCommit: 4b453a2c166ab5e9186b495173f25c1381ccbc97
+  resolvedCommit: 9228e81b8ddda4747356c503d253e9c4c18f5d59
   requestedRef: main
 configurations:
 - id: build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi
