@@ -13,6 +13,7 @@ import shutil
 import socket
 import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -139,11 +140,18 @@ class SeatSandboxEscapes(unittest.TestCase):
         d = self._jail_scratch()
         marker = d.parent / "still-running"
         proc = subprocess.Popen(
-            ["bash", str(WRAPPER), "-c",
-             f'echo t > "$TMPDIR/x"; sleep 3; echo late > {marker}'],
+            [
+                "bash",
+                str(WRAPPER),
+                "-c",
+                f'echo t > "$TMPDIR/x"; sleep 3; echo late > {marker}',
+            ],
             cwd=str(self.ws),
-            env={**self.env, "HERETEK_JAIL_SCRATCH": str(d),
-                 "HERETEK_SANDBOX_WRITE": "src/"},
+            env={
+                **self.env,
+                "HERETEK_JAIL_SCRATCH": str(d),
+                "HERETEK_SANDBOX_WRITE": "src/",
+            },
         )
         for _ in range(50):
             if any((p / "x").exists() for p in d.iterdir()):
@@ -157,13 +165,22 @@ class SeatSandboxEscapes(unittest.TestCase):
 
     def test_stdin_passed_through_and_closed_stdin_ok(self):
         proc = subprocess.run(
-            ["bash", str(WRAPPER), "-c", "cat"], input="piped-in\n",
-            cwd=str(self.ws), env=self.env, capture_output=True, text=True, timeout=30,
+            ["bash", str(WRAPPER), "-c", "cat"],
+            input="piped-in\n",
+            cwd=str(self.ws),
+            env=self.env,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         self.assertEqual(proc.stdout, "piped-in\n", proc.stderr)
         proc = subprocess.run(
             ["bash", "-c", f'exec 0<&-; bash "{WRAPPER}" -c "echo RAN"'],
-            cwd=str(self.ws), env=self.env, capture_output=True, text=True, timeout=30,
+            cwd=str(self.ws),
+            env=self.env,
+            capture_output=True,
+            text=True,
+            timeout=30,
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("RAN", proc.stdout)
@@ -239,7 +256,9 @@ class SeatSandboxEscapes(unittest.TestCase):
         self.assertIn("RAN", proc.stdout, proc.stderr)
         self.assertEqual((self.ws / "AGENTS.md").read_text(), "charter\n")
         self.assertFalse((self.ws / ".pi/settings.json").exists())
-        self.assertFalse((self.ws / "src/.git").exists(), "control-path root was created")
+        self.assertFalse(
+            (self.ws / "src/.git").exists(), "control-path root was created"
+        )
 
     def test_control_paths_inside_dir_root_read_only(self):
         (self.ws / "src/AGENTS.md").write_text("orig\n")
@@ -358,18 +377,271 @@ class SeatSandboxEscapes(unittest.TestCase):
         self.assertIn("DAEMON-OK", proc.stdout)
 
     def test_rig_route_does_not_interpret_shell(self):
+        # REQ-A1: `whoami;` is not an allowlisted subcommand, so the hardened
+        # relay denies before exec (no shell ever parses the `;`). The fake
+        # rig must not run and the chained marker must not appear.
         port = self._loopback_server()
         self._fake_rig(port)
         marker = self.outside / "chained"
         proc = self.run_jailed(f"rig whoami; touch {marker}")
+        self.assertNotEqual(proc.returncode, 0, proc.stdout)
+        self.assertNotIn("DAEMON-OK", proc.stdout)
+        self.assertIn("subcommand not allowlisted", proc.stderr)
         self.assertFalse(marker.exists(), "shell chaining escaped the rig route")
-        self.assertIn("'whoami;'", proc.stdout)
 
     def test_env_prefixed_rig_stays_jailed(self):
         port = self._loopback_server()
         self._fake_rig(port)
         proc = self.run_jailed("OPENRIG_SESSION_NAME=other rig whoami")
         self.assertNotIn("DAEMON-OK", proc.stdout)
+
+
+class TestRigRelayEnforcement(unittest.TestCase):
+    """REQ-A1: hardened `rig` relay in scripts/seat-sandbox.sh.
+
+    The relay runs pre-jail (before any bwrap call), so this class carries
+    NO bwrap gate and must pass with bubblewrap absent. A fake `rig` on PATH
+    records execution; every "deny" case asserts the fake never ran (rc != 0
+    with a refusal naming the reason), the "allow" case asserts it did.
+    No real secrets: every body file carries dummy content only.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.ws = root / "ws"
+        (self.ws / "src").mkdir(parents=True)
+        self.outside = root / "outside"
+        self.outside.mkdir()
+        self.store = root / "secret-store"
+        self.store.mkdir(mode=0o700)
+        (self.store / "dummy-body.txt").write_text("dummy-body-content\n")
+        (self.outside / "exfil.txt").write_text("dummy-outside-content\n")
+        (self.ws / "src/body.json").write_text('{"slice": 12}\n')
+        (self.ws / "src/link.json").symlink_to(self.ws / "src/body.json")
+        self.home = root / "home"
+        self.home.mkdir()
+        self.bin = root / "fakebin"
+        self.bin.mkdir()
+        rig = self.bin / "rig"
+        rig.write_text(
+            f"#!{sys.executable}\n"
+            "import sys\n"
+            "print('FAKE-RIG-RAN', ' '.join(sys.argv[1:]))\n"
+        )
+        rig.chmod(rig.stat().st_mode | stat.S_IXUSR)
+        self.env = {
+            "PATH": f"{self.bin}{os.pathsep}/usr/bin{os.pathsep}/bin",
+            "HOME": str(self.home),
+            "HERETEK_SANDBOX_WRITE": "src/",
+            "HERETEK_SECRET_STORE": str(self.store),
+            "OPENRIG_SESSION_NAME": "testseat@testrig",
+        }
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_relay(self, command, **env):
+        merged = {**self.env, **env}
+        return subprocess.run(
+            ["bash", str(WRAPPER), "-c", command],
+            cwd=str(self.ws),
+            env=merged,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+    def assertDenied(self, proc, reason):
+        self.assertNotEqual(proc.returncode, 0, proc.stdout)
+        self.assertNotIn("FAKE-RIG-RAN", proc.stdout)
+        self.assertIn(reason, proc.stderr)
+
+    def test_deny_secret_store_body_file(self):
+        target = self.store / "dummy-body.txt"
+        for flag in (f"--body-file {target}", f"--body-file={target}"):
+            with self.subTest(flag=flag):
+                proc = self.run_relay(f"rig queue create --json --verify {flag}")
+                self.assertDenied(proc, "inside secret store")
+
+    def test_deny_out_of_scope_body_file(self):
+        target = self.outside / "exfil.txt"
+        for flag in (f"--body-file {target}", f"--body-file={target}"):
+            with self.subTest(flag=flag):
+                proc = self.run_relay(f"rig queue create --json --verify {flag}")
+                self.assertDenied(proc, "outside scratch and seat workspace")
+        # F2 rework: a scratch env root resolving to /, /tmp or /var/tmp
+        # must not widen relay scope — the jail masks host /tmp, so a
+        # host-/tmp file would launder bytes the seat could not read.
+        probe_fd, probe_name = tempfile.mkstemp(
+            prefix="relay-scope-probe-", suffix=".txt", dir="/tmp"
+        )
+        with os.fdopen(probe_fd, "w") as fh:
+            fh.write("dummy-probe-content\n")
+        probe = Path(probe_name)
+        self.addCleanup(lambda: probe.unlink(missing_ok=True))
+        link = Path(self.tmp.name) / "tmp-link"
+        link.symlink_to("/tmp")
+        for extra in ({"TMPDIR": "/tmp"}, {"TMPDIR": str(link)}):
+            with self.subTest(extra=extra):
+                proc = self.run_relay(
+                    f"rig queue create --json --verify --body-file {probe}",
+                    **extra,
+                )
+                self.assertDenied(proc, "outside scratch and seat workspace")
+
+    def test_deny_forged_source(self):
+        body = self.ws / "src/body.json"
+        for flag in (
+            "--source evil@otherrig",
+            "--source=evil@otherrig",
+            "-s evil@otherrig",
+            "-s=evil@otherrig",
+        ):
+            with self.subTest(flag=flag):
+                proc = self.run_relay(
+                    f"rig queue create --json --verify {flag} --body-file {body}"
+                )
+                self.assertDenied(proc, "--source must equal")
+
+    def test_deny_non_allowlisted_subcommand(self):
+        for command in ("rig daemon status", "rig exfiltrate --json"):
+            with self.subTest(command=command):
+                proc = self.run_relay(command)
+                self.assertDenied(proc, "subcommand not allowlisted")
+
+    def test_deny_unsafe_note(self):
+        body = self.ws / "src/body.json"
+        # Values are shell-quoted so the note VALUE (not the wrapper shell,
+        # which never evals) carries the newline / shell token into shlex.
+        for note in (
+            "done; rm -rf /",
+            "done\nevil: 1",
+            "done $(whoami)",
+            "done `id`",
+        ):
+            for flag in (f"--note '{note}'", f"--note='{note}'"):
+                with self.subTest(note=note, flag=flag):
+                    proc = self.run_relay(
+                        f"rig queue create --json --verify --body-file {body} {flag}"
+                    )
+                    self.assertDenied(proc, "--note fails restrictive pattern")
+
+    def test_deny_symlink_body_file(self):
+        link = self.ws / "src/link.json"
+        for flag in (f"--body-file {link}", f"--body-file={link}"):
+            with self.subTest(flag=flag):
+                proc = self.run_relay(f"rig queue create --json --verify {flag}")
+                self.assertDenied(proc, "must not be a symlink")
+
+    def test_allow_valid_in_scope_matching_source_valid_note(self):
+        body = self.ws / "src/body.json"
+        for src in ("--source testseat@testrig", "--source=testseat@testrig"):
+            with self.subTest(src=src):
+                proc = self.run_relay(
+                    f"rig queue create --json --verify {src} "
+                    f"--note slice-12-done --body-file {body}"
+                )
+                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertIn("FAKE-RIG-RAN", proc.stdout)
+
+
+class TestRigRelayTOCTOU(unittest.TestCase):
+    """TOCTOU pinning for --body-file (overhaul-a rework 2, F2).
+
+    The relay validates the body path and then execs rig with that same
+    path argument, so a swap winning the validation->exec window would
+    redirect the granted read. The swapping fake rig below wins that race
+    with probability 1: AFTER the relay's validation decision it replaces
+    the validated path with a symlink to a secret file, then reads the
+    granted body argument exactly as rig would (existsSync/statSync/
+    readFileSync on the given path). A pinned relay still serves the
+    validated bytes (the granted argument is /dev/fd/N); an unpinned one
+    leaks the secret. No bwrap gate: the relay runs pre-jail.
+    No real secrets: every "secret" is a dummy file under the test temp dir.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.ws = root / "ws"
+        (self.ws / "src").mkdir(parents=True)
+        self.outside = root / "outside"
+        self.outside.mkdir()
+        (self.outside / "secret.txt").write_text("dummy-secret-content\n")
+        self.store = root / "secret-store"
+        self.store.mkdir(mode=0o700)
+        self.home = root / "home"
+        self.home.mkdir()
+        self.bin = root / "fakebin"
+        self.bin.mkdir()
+        rig = self.bin / "rig"
+        rig.write_text(
+            f"#!{sys.executable}\n"
+            "import os, sys\n"
+            "argv = sys.argv[1:]\n"
+            "body = None\n"
+            "for i, tok in enumerate(argv):\n"
+            "    if tok == '--body-file' and i + 1 < len(argv):\n"
+            "        body = argv[i + 1]\n"
+            "    elif tok.startswith('--body-file='):\n"
+            "        body = tok.partition('=')[2]\n"
+            "print('FAKE-RIG-RAN', ' '.join(argv))\n"
+            "orig = os.environ.get('RELAY_ORIG_BODY', '')\n"
+            "secret = os.environ.get('RELAY_SWAP_SECRET', '')\n"
+            "if orig and secret:\n"
+            "    try:\n"
+            "        os.unlink(orig)\n"
+            "    except OSError:\n"
+            "        pass\n"
+            "    os.symlink(secret, orig)\n"
+            "with open(body, 'rb') as fh:\n"
+            "    print('RIG-READ:' + fh.read().decode())\n"
+        )
+        rig.chmod(rig.stat().st_mode | stat.S_IXUSR)
+        self.env = {
+            "PATH": f"{self.bin}{os.pathsep}/usr/bin{os.pathsep}/bin",
+            "HOME": str(self.home),
+            "HERETEK_SANDBOX_WRITE": "src/",
+            "HERETEK_SECRET_STORE": str(self.store),
+        }
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_relay(self, command, **env):
+        merged = {**self.env, **env}
+        return subprocess.run(
+            ["bash", str(WRAPPER), "-c", command],
+            cwd=str(self.ws),
+            env=merged,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+    def test_swapped_path_cannot_redirect_granted_read(self):
+        for flag_tpl in ("--body-file {p}", "--body-file={p}"):
+            with self.subTest(flag_tpl=flag_tpl):
+                body = self.ws / "src/body.json"
+                # A previous subTest's swap leaves a symlink behind; rebuild
+                # a regular body file (and restore the dummy secret, which a
+                # symlink-following write may have clobbered).
+                if body.is_symlink() or body.exists():
+                    body.unlink()
+                body.write_text('{"slice": 12}\n')
+                secret = self.outside / "secret.txt"
+                secret.write_text("dummy-secret-content\n")
+                proc = self.run_relay(
+                    "rig queue create --json --verify " + flag_tpl.format(p=body),
+                    RELAY_ORIG_BODY=str(body),
+                    RELAY_SWAP_SECRET=str(secret),
+                )
+                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertIn("FAKE-RIG-RAN", proc.stdout)
+                self.assertIn("/dev/fd/", proc.stdout)
+                self.assertIn('RIG-READ:{"slice": 12}', proc.stdout)
+                self.assertNotIn("dummy-secret-content", proc.stdout)
 
 
 if __name__ == "__main__":

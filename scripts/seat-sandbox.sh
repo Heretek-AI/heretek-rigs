@@ -35,15 +35,146 @@ cmd=$2; cwd=$(pwd -P)
 # a shlex word list, never through a shell: no expansion, globbing, chaining
 # or redirection can ride along. Anything else (`FOO=1 rig`, `./rig`,
 # `command rig`) stays jailed and simply cannot reach the daemon.
+# REQ-A1 (overhaul-a M1): before exec, the relay enforces the allowlist and
+# flag rules below and denies fail-closed (exit 126, reason on stderr):
+# argv[1] in {whoami, ps, queue, send, capture, transcript}; --source/-s
+# (space and `=` forms) equal to non-empty $OPENRIG_SESSION_NAME; --note
+# (both forms) matching ^[A-Za-z0-9][A-Za-z0-9 _.,:/@+-]{0,200}$ with no
+# newlines or shell tokens; --body-file (both forms) realpath-contained
+# (existing regular non-symlink file, <= 256KiB, never inside
+# $HERETEK_SECRET_STORE, no credential suffix/name, inside the seat workspace
+# or the configured scratch dirs, clear of protected segments). Scope note:
+# write-roots always resolve under the workspace, and in-jail the whole
+# workspace is readable, so workspace containment plus the store/credential/
+# protected-segment denials is the laundering boundary; bare /tmp and
+# /var/tmp are deliberately NOT in scope (the jail masks host /tmp, so
+# relaying a host-/tmp file would launder bytes the seat could not read).
 if [[ "$cmd" =~ ^[[:space:]]*rig([[:space:]]|$) ]]; then
   exec python3 -I -c '
-import os, shlex, sys
+import os, re, shlex, stat, sys
 try:
     argv = shlex.split(sys.argv[1])
 except ValueError as e:
-    sys.exit(f"seat-sandbox: cannot parse rig command: {e}")
+    sys.exit("seat-sandbox: cannot parse rig command: " + str(e))
 if not argv or argv[0] != "rig":
     sys.exit("seat-sandbox: not a bare rig command")
+_ALLOW = ("whoami", "ps", "queue", "send", "capture", "transcript")
+if len(argv) < 2 or argv[1] not in _ALLOW:
+    sys.exit("seat-sandbox: rig relay denied: subcommand not allowlisted: " + (argv[1] if len(argv) > 1 else "(missing)"))
+srcs = []
+notes = []
+bodies = []
+body_locs = []
+i = 2
+while i < len(argv):
+    tok = argv[i]
+    if tok == "--source" or tok == "-s" or tok == "--note" or tok == "--body-file":
+        if i + 1 >= len(argv):
+            sys.exit("seat-sandbox: rig relay denied: flag without value: " + tok)
+        if tok == "--source" or tok == "-s":
+            srcs.append(argv[i + 1])
+        elif tok == "--note":
+            notes.append(argv[i + 1])
+        else:
+            bodies.append(argv[i + 1])
+            body_locs.append((i + 1, None))
+        i += 2
+        continue
+    if tok.startswith("--source=") or tok.startswith("--note=") or tok.startswith("--body-file="):
+        key, _, val = tok.partition("=")
+        if key == "--source":
+            srcs.append(val)
+        elif key == "--note":
+            notes.append(val)
+        else:
+            bodies.append(val)
+            body_locs.append((i, "--body-file="))
+        i += 1
+        continue
+    if tok.startswith("-s="):
+        srcs.append(tok[3:])
+        i += 1
+        continue
+    if tok.startswith("-s") and not tok.startswith("--"):
+        srcs.append(tok[2:])
+        i += 1
+        continue
+    i += 1
+session = os.environ.get("OPENRIG_SESSION_NAME", "")
+for v in srcs:
+    if not session or not v or v != session:
+        sys.exit("seat-sandbox: rig relay denied: --source must equal non-empty $OPENRIG_SESSION_NAME")
+_NOTE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 _.,:/@+-]{0,200}$")
+for v in notes:
+    if "\n" in v or "\r" in v or not _NOTE.match(v):
+        sys.exit("seat-sandbox: rig relay denied: --note fails restrictive pattern")
+store = os.environ.get("HERETEK_SECRET_STORE", "")
+store_real = os.path.realpath(store) if store else ""
+if bodies and not store_real:
+    sys.exit("seat-sandbox: rig relay denied: --body-file needs HERETEK_SECRET_STORE set (fail closed)")
+scratch = []
+for _e in (os.environ.get("TMPDIR", ""), os.environ.get("HERETEK_JAIL_SCRATCH", "")):
+    if _e:
+        _r = os.path.realpath(_e)
+        if _r in ("/", "/tmp", "/var/tmp"):
+            continue
+        scratch.append(_r)
+_CRED_SUFFIX = (".key", ".pem", ".p12", ".pfx", ".jks", ".keytab", ".env", ".token", ".secret", ".asc", ".gpg", ".age")
+_CRED_NAME = (".netrc", ".npmrc", ".pypirc", "credentials", "secrets", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa")
+_PROTECTED = (".git", ".pi", ".agents", "AGENTS.md")
+def _under(_p, _b):
+    return _p == _b or _p.startswith(_b + os.sep)
+for v, (_bi, _bp) in zip(bodies, body_locs):
+    if os.path.islink(v):
+        sys.exit("seat-sandbox: rig relay denied: --body-file must not be a symlink: " + v)
+    real = os.path.realpath(v)
+    try:
+        _vs = os.stat(real)
+    except OSError:
+        sys.exit("seat-sandbox: rig relay denied: --body-file not a regular file: " + v)
+    if not stat.S_ISREG(_vs.st_mode):
+        sys.exit("seat-sandbox: rig relay denied: --body-file not a regular file: " + v)
+    if _vs.st_size > 262144:
+        sys.exit("seat-sandbox: rig relay denied: --body-file over 256KiB: " + v)
+    if _under(real, store_real):
+        sys.exit("seat-sandbox: rig relay denied: --body-file inside secret store: " + v)
+    _base = os.path.basename(real).lower()
+    if _base in _CRED_NAME or _base.endswith(_CRED_SUFFIX) or "credential" in _base or "secret" in _base:
+        sys.exit("seat-sandbox: rig relay denied: --body-file looks like a credential: " + v)
+    _cwd = os.path.realpath(os.getcwd())
+    _home = None
+    for _r in [_cwd] + scratch:
+        if _under(real, _r):
+            _home = _r
+            break
+    if _home is None:
+        sys.exit("seat-sandbox: rig relay denied: --body-file outside scratch and seat workspace: " + v)
+    _rel = real[len(_home):].lstrip(os.sep)
+    if any(_seg in _PROTECTED for _seg in _rel.split(os.sep)):
+        sys.exit("seat-sandbox: rig relay denied: --body-file touches a protected segment: " + v)
+    # TOCTOU pin: the checks above run on the path, but rig is executed later
+    # with that same path argument. Open the validated file WITHOUT following
+    # a final-component symlink, verify the open file is still the validated
+    # one (dev/ino), still regular and within the size cap, and hand rig the
+    # open descriptor instead of the path — a swap winning the
+    # validation->exec window then redirects nothing. rig reads --body-file
+    # with existsSync/statSync/readFileSync and no basename/extension/shape
+    # validation, so /dev/fd/N resolves to the pinned file; a rig that ever
+    # rejects /dev/fd paths fails the allow-path loudly (non-zero exit).
+    try:
+        _fd = os.open(v, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        sys.exit("seat-sandbox: rig relay denied: --body-file changed during validation (will not follow): " + v)
+    _fs = os.fstat(_fd)
+    if not stat.S_ISREG(_fs.st_mode) or (_fs.st_dev, _fs.st_ino) != (_vs.st_dev, _vs.st_ino) or _fs.st_size > 262144:
+        os.close(_fd)
+        sys.exit("seat-sandbox: rig relay denied: --body-file changed during validation: " + v)
+    os.set_inheritable(_fd, True)
+    _fdarg = "/dev/fd/%d" % _fd
+    if _bp is None:
+        argv[_bi] = _fdarg
+    else:
+        argv[_bi] = _bp + _fdarg
 os.execvp("rig", argv)
 ' "$cmd"
 fi

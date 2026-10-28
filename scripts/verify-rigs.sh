@@ -2860,6 +2860,135 @@ if _v24_text is not None:
             fail("V24/107-identity: runbook step 3 must not carry a rig-less mint form (omitting --rig revokes-and-replaces on next seed)")
 if len(failures) == _v24_before:
     print("V24/107-identity R1 green: rotation step 3 mandates --rig alongside --seat, no rig-less mint (FAIL-ONLY, SUMMARY frozen)")
+
+print("\n== V25. Hardened rig Relay in seat-sandbox.sh (overhaul-a M1) ==")
+# overhaul-a M1 appended alongside — no V1-V24 line renumbered or
+# reworded. This block is FAIL-ONLY (no ok()): V19 freezes the live SUMMARY
+# at 35, so this gate fails loudly without moving the count (same convention
+# as V20-V24). Coverage: the relay enforces the argv[1] allowlist plus the
+# --source/--note/--body-file rules before exec, and the bwrap-independent
+# enforcement corpus passes (relay runs pre-jail).
+_v25_before = len(failures)
+_v25_src = (root / "scripts/seat-sandbox.sh").read_text()
+for _marker25 in (
+    '"whoami", "ps", "queue", "send", "capture", "transcript"',
+    "--source must equal",
+    "--note fails restrictive pattern",
+    "--body-file inside secret store",
+    "outside scratch and seat workspace",
+    "must not be a symlink",
+):
+    if _marker25 not in _v25_src:
+        fail(f"V25/overhaul-a: scripts/seat-sandbox.sh lost relay marker {_marker25!r}")
+if "os.execvp(\"rig\", argv)" not in _v25_src:
+    fail("V25/overhaul-a: scripts/seat-sandbox.sh must still exec rig from the word list (no shell)")
+_v25_ut = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests.test_seat_sandbox.TestRigRelayEnforcement"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v25_ran = 0
+_v25_m = re.search(r"Ran (\d+) tests", _v25_ut.stderr or "")
+if _v25_m:
+    _v25_ran = int(_v25_m.group(1))
+if _v25_ut.returncode != 0:
+    fail(f"V25/overhaul-a: tests/test_seat_sandbox.py TestRigRelayEnforcement failed:\n{_v25_ut.stderr[-800:]}")
+elif _v25_ran != 7:
+    fail(f"V25/overhaul-a: TestRigRelayEnforcement ran {_v25_ran} tests (need exactly 7: 6 deny + 1 allow, non-vacuous floor)")
+if len(failures) == _v25_before:
+    print(f"V25/overhaul-a M1 green: hardened rig relay markers present, {_v25_ran} enforcement tests pass without bwrap (FAIL-ONLY, SUMMARY frozen)")
+
+print("\n== V26. Hermetic Regen + tar filter Guard (overhaul-a M2) ==")
+# overhaul-a M2 appended alongside — FAIL-ONLY like V25 (the V19 count stays
+# put). Coverage: the filter feature-detect guard plus the hermetic
+# snapshot/restore paths exist in scripts/generate-rigs.py, and the
+# guard/fallback/restore corpus passes (the non-filter branch is proved by a
+# stubbed-tar unit test, not an interpreter downgrade).
+_v26_before = len(failures)
+_v26_src = (root / "scripts/generate-rigs.py").read_text()
+for _marker26 in (
+    "def _tar_supports_filter",
+    "def _safe_tar_extract",
+    "def _snapshot_for_hermetic",
+    "def _restore_shared_skill",
+    'filter="data"',
+    "fleet/charters",
+    "hermetic regen",
+):
+    if _marker26 not in _v26_src:
+        fail(f"V26/overhaul-a: scripts/generate-rigs.py lost hermetic marker {_marker26!r}")
+_v26_ut = subprocess.run(
+    [sys.executable, "-m", "unittest",
+     "tests.test_generate_supplychain.TestTarFilterGuard",
+     "tests.test_generate_supplychain.TestHermeticCharterFallback",
+     "tests.test_generate_supplychain.TestHermeticVendorRestore"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v26_ran = 0
+_v26_m = re.search(r"Ran (\d+) tests", _v26_ut.stderr or "")
+if _v26_m:
+    _v26_ran = int(_v26_m.group(1))
+if _v26_ut.returncode != 0:
+    fail(f"V26/overhaul-a: hermetic/filter corpus failed:\n{_v26_ut.stderr[-800:]}")
+elif _v26_ran < 7:
+    fail(f"V26/overhaul-a: hermetic/filter corpus ran only {_v26_ran} tests (need >= 7, non-vacuous floor)")
+if len(failures) == _v26_before:
+    print(f"V26/overhaul-a M2 green: filter guard + hermetic restore markers present, {_v26_ran} corpus tests pass (FAIL-ONLY, SUMMARY frozen)")
+
+print("\n== V27. Docker Pipeline bubblewrap + Workflow Keys (overhaul-a M3) ==")
+# overhaul-a M3 appended alongside — FAIL-ONLY like V25/V26 (the V19 count
+# stays put). Coverage: bubblewrap in the slim apt list plus a bwrap
+# --version verify step, exactly one `container:` block in the smoke job
+# under a duplicate-key-rejecting YAML parse, and a bubblewrap install step
+# in verify-fleet. (No image build: multi-arch push needs registry creds +
+# network; static validation is the spec proof.)
+_v27_before = len(failures)
+_v27_df = (root / "docker/Dockerfile").read_text()
+if "bubblewrap" not in _v27_df:
+    fail("V27/overhaul-a: docker/Dockerfile must install bubblewrap")
+if "bwrap --version" not in _v27_df:
+    fail("V27/overhaul-a: docker/Dockerfile verify step must assert bwrap --version")
+try:
+    import yaml as _yaml27
+except Exception as _e27:
+    fail(f"V27/overhaul-a: pyyaml unavailable for workflow parse ({_e27})")
+    _yaml27 = None
+if _yaml27 is not None:
+    class _UniqueKey27(_yaml27.SafeLoader):
+        pass
+
+    def _no_dup27(_loader27, _node27, _deep27=False):
+        _mapping27 = {}
+        for _k27, _v27 in _node27.value:
+            _key27 = _loader27.construct_object(_k27, deep=True)
+            if _key27 in _mapping27:
+                raise ValueError(f"duplicate key {_key27!r}")
+            _mapping27[_key27] = _loader27.construct_object(_v27, deep=True)
+        return _mapping27
+
+    _UniqueKey27.add_constructor(
+        _yaml27.resolver.BaseResolver.DEFAULT_MAPPING_TAG, _no_dup27
+    )
+    try:
+        _wf27 = _yaml27.load(
+            (root / ".github/workflows/docker-release.yml").read_text(),
+            Loader=_UniqueKey27,
+        )
+    except Exception as _e27:
+        fail(f"V27/overhaul-a: workflow YAML fails UniqueKey parse ({_e27})")
+        _wf27 = None
+    if _wf27 is not None:
+        _smoke27 = (_wf27.get("jobs") or {}).get("smoke") or {}
+        if not isinstance(_smoke27.get("container"), dict):
+            fail("V27/overhaul-a: smoke job must carry exactly one container: block")
+        _vf27_steps = [str((_s27 or {}).get("run", "")) for _s27 in (_wf27.get("jobs") or {}).get("verify-fleet", {}).get("steps", []) if isinstance(_s27, dict)]
+        if not any("bubblewrap" in _s27 for _s27 in _vf27_steps):
+            fail("V27/overhaul-a: verify-fleet job must install bubblewrap")
+if len(failures) == _v27_before:
+    print("V27/overhaul-a M3 green: Dockerfile bubblewrap + UniqueKey workflow parse + verify-fleet install (FAIL-ONLY, SUMMARY frozen)")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

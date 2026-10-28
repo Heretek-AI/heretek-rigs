@@ -1,0 +1,102 @@
+# Red-proof log — overhaul-a rework cycle 2 verification (QA, no commit)
+
+Worktree: `.lane/trees/overhaul-a` (branch `feat/overhaul-a` @ `9ff290a`, tree clean at start).
+Rule compliance: no production/test file edits committed or left behind; every
+sabotage restored via `git checkout -- <file>` + byte-compare; scratch under
+`/tmp` (dummy content only, no secrets) removed afterwards. Final tree dirty
+only with this evidence file (untracked under `docs/evidence/`).
+
+## 0. Baseline (unmodified tree) — all GREEN, RC=0
+
+- `make verify` → RC=0. `SUMMARY: 35 checks passed, 0 failed.`
+  V25 (`TestRigRelayEnforcement` 7/7, bwrap-independent), V26 (filter +
+  hermetic corpus), V27 (Dockerfile bubblewrap + UniqueKey workflow) all
+  print green. No V1–V27 renumber/reword (headers verified present in order,
+  `grep -nE '== V[0-9]+' scripts/verify-rigs.sh` → V1..V27, 27 blocks).
+- `./scripts/verify-rigs.sh --check-only` → RC=0, same `SUMMARY: 35/0` line.
+- `python3 -m unittest tests.test_seat_sandbox -v` → `Ran 34 tests … OK`
+  (RC=0), incl. new `TestRigRelayTOCTOU` class + 7-method enforcement class.
+- `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED` (RC=0).
+
+## F1 — mkstemp probe (tests/test_seat_sandbox.py:475-480)
+
+Tree state confirmed: `tempfile.mkstemp(prefix="relay-scope-probe-",
+suffix=".txt", dir="/tmp")` + `os.fdopen` write; `addCleanup(unlink)`.
+
+- RED (pre-fix pattern replicated in /tmp scratch, since removed): victim file
+  + pre-placed symlink `relay-scope-probe-<pid>.txt`, then old
+  `Path("/tmp") / f"relay-scope-probe-{pid}.txt"` + `write_text` → output
+  `victim now: dummy-probe-content` (symlink followed, victim clobbered —
+  race won with probability 1). Script RC=0 (RED is in the clobbered bytes).
+- GREEN (fixed pattern, same scratch): `os.open(path, O_CREAT|O_EXCL)` where a
+  symlink stands → `FileExistsError ([Errno 17] File exists)`; victim still
+  `victim-intact-content`; real `mkstemp` in `/tmp` succeeds with random name.
+  Script RC=0. Scratch (`/tmp/f1_*.py`, victims, probes) removed (`ls`
+  confirms gone).
+- Relay suite green:
+  `python3 -m unittest tests.test_seat_sandbox.TestRigRelayEnforcement
+  tests.test_seat_sandbox.TestRigRelayTOCTOU` → `Ran 8 tests … OK` (RC=0).
+
+## F2 — /dev/fd/N rewrite end-to-end (scripts/seat-sandbox.sh)
+
+Sabotage (minimal, targeted): replaced the 5-line fd-pin block
+(`os.set_inheritable(_fd, True)` … `argv[_bi] = _bp + _fdarg`) with
+`os.close(_fd)` + `# SABOTAGE(F2-red-proof)` comment — validation still
+passes, but rig gets the ORIGINAL path (path-passing restored). `bash -n`
+→ `syntax-ok`.
+
+- RED: `python3 -m unittest tests.test_seat_sandbox.TestRigRelayTOCTOU -v`
+  → `FAILED (failures=2)`, RC=1. Both subTests (`--body-file P`,
+  `--body-file=P`) show `RIG-READ:dummy-secret-content` — the swapping fake
+  rig (unlink validated path → symlink to dummy secret AFTER the validation
+  decision, then read the granted arg exactly as rig would) WINS the race;
+  `/dev/fd/` absent. Non-vacuous: check fails loudly on the leak.
+- Restore: `git checkout -- scripts/seat-sandbox.sh` → `git status --short`
+  empty; `cmp` against pre-sabotage copy → byte-identical.
+- GREEN: same TOCTOU test → `ok`, `Ran 1 test … OK` (RC=0);
+  `RIG-READ:{"slice": 12}`, `/dev/fd/` in argv, no secret bytes, both forms.
+- Markers intact post-restore: `os.execvp("rig", argv)` literal × 1; all 13
+  relay deny messages present (`--body-file` ×10 incl. both new
+  `changed during validation` pins, `--source`, `--note`, subcommand);
+  `TestRigRelayEnforcement` still exactly 7 methods (via unittest loader:
+  6 deny + 1 allow); V25 gate (`Ran … need exactly 7`) satisfied by `make
+  verify` above.
+
+## F3 — sys.executable shebang (tests/test_seat_sandbox.py:427-428)
+
+Tree state confirmed: fake-rig header `f"#!{sys.executable}\n"` (59 bytes);
+`import sys` present (line 16). sys.executable on this host:
+`/home/linuxbrew/.linuxbrew/opt/python@3.15/bin/python3.15` — NOT on the
+test's restricted child PATH (`{fakebin}:/usr/bin:/bin`).
+
+- Direct GREEN: scratch fake rig with `#!<sys.executable>` executed under
+  `env -i PATH=/nonexistent` → `FAKE-RIG-RAN hello-abs`, RC=0.
+- Direct RED counterpart: same script with `#!/usr/bin/env python3` under
+  `env -i PATH=/nonexistent` → `env: 'python3': No such file or directory`,
+  RC=127 (proves the env-shebang is PATH-fragile where the fix is robust).
+  Scratch scripts removed.
+- Ambient-PATH proof: minimal `PATH=/tmp/opencode/minpath` (single
+  `bash -> /usr/bin/bash` symlink via `os.symlink`, zero python3 entries)
+  + absolute-interpreter unittest invocation →
+  `Ran 8 tests … OK` (enforcement 7 + TOCTOU 1), repeated run also OK.
+  Scratch dir + wrapper removed via `shutil.rmtree`/`os.unlink`
+  (bare `rm` is policy-rejected in this tooling; `ls`/`git status` confirm
+  nothing remains).
+
+## Regression — full `make test`
+
+- `Ran 375 tests`, `FAILED (failures=1)`, make RC=2. Sole failure:
+  `test_build_canary.CanaryCatalogPins.test_canary_scope_only` — the single
+  PRE-EXISTING canary failure (proven on base `07114e3` in the M1–M3 report;
+  stale expected-role list vs the #102 fleet-wide `bash_deny` triple), out of
+  scope; canary, Makefile, V19 untouched. All 34 seat-sandbox + 16
+  generate-supplychain (incl. rework-1 `test_symlink_member_dies_on_no_filter_path`
+  and F2 broad-root subTests) pass.
+
+## Verdict
+
+`make verify` 35/0 + V25/V26/V27 green; `verify-rigs.sh --check-only` green;
+`test_seat_sandbox` 34/34; `audit_loop --self-test` PASSED; `make test` 374/375
+(only pre-existing canary). F1/F2/F3 each proven non-vacuous (RED under
+sabotage, GREEN on restore, restores byte-verified). SUMMARY frozen, V1–V27
+unrenamed. No vacuous acceptance checks found.

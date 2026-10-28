@@ -91,15 +91,15 @@ ENV HERETEK_HOME=/opt/heretek/heretek-rigs \
 RUN set -eux; \
     apt-get update; \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-      ca-certificates curl git jq make procps python3 python3-pip python3-venv \
-      ripgrep tini tmux xz-utils; \
+      bubblewrap ca-certificates curl git jq make procps python3 python3-pip \
+      python3-venv ripgrep tini tmux xz-utils; \
     rm -rf /var/lib/apt/lists/*; \
     pip install --no-cache-dir --break-system-packages pyyaml jsonschema
 COPY --from=builder /usr/local /usr/local
 COPY --from=builder /opt/heretek/tools /opt/heretek/tools
 RUN set -eux; \
     node --version; npm --version; uv --version; \
-    rig --version; pi --version; \
+    rig --version; pi --version; bwrap --version; \
     test -d /opt/heretek/tools/pi-packages/node_modules/@gotgenes/pi-permission-system
 RUN set -eux; \
     groupadd --gid 1000 heretek; \
