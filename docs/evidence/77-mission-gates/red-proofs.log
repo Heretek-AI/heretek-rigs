@@ -315,3 +315,53 @@ clean throughout, confirming the leak was log-line-only.
 GREEN (restored via `cp /tmp/opencode/r2-sweep-fixed.py
 scripts/sweep-typed-blocks.py`, `cmp` byte-identical): `Ran 20 tests /
 OK` (`tests.test_mission_gates`, incl. the new redaction test).
+
+## QA-R6 acceptance-verifier red-proofs (wave 4 rework cycle 2, 2026-10-28, branch fix/77-mission-gates-r2 tip 131ec04)
+
+Verifier-independent re-proof on the committed r2 tree. Temporary
+working-copy sabotage only; each restore proven with `cmp`
+byte-identical plus `sha256sum` match and clean `git status --short`.
+Priors above untouched (append-only).
+
+### QA-R6a redaction reverted -> new corpus test RED, restore GREEN
+
+Sabotage (pre-sabotage copy at `/tmp/opencode/qa-r6-fixed.py`,
+sha256 `d739edcbb13eb0ad23ad9694177a0d50931cd847c6351dcc89102f8a7c3eefc2`):
+`{redact(str(exc))}` -> `{exc}` in the unreadable-row log line
+(`scripts/sweep-typed-blocks.py:315`, raised message untouched):
+
+```
+AssertionError: 'redacted' not found in 'recovery-dismissal-refused: recovery-STUCK-01 for flagged row qitem-STUCK-01 (flagged row unreadable at close time: daemon blew up, bearer leaked: AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA; owner action required, never auto-close)'
+Ran 1 test in 0.263s
+FAILED (failures=1)
+```
+
+Exit 1. The raw 45-char bearer-shaped run appears verbatim in the log
+line — the exact leak the r2 fix closes; the check is not vacuous.
+
+GREEN (restored via `cp /tmp/opencode/qa-r6-fixed.py
+scripts/sweep-typed-blocks.py`, `cmp` byte-identical, sha256
+`d739edcbb13eb0ad23ad9694177a0d50931cd847c6351dcc89102f8a7c3eefc2`):
+`Ran 20 tests / OK` (`tests.test_mission_gates`, incl.
+`test_close_time_unreadable_log_line_redacted`).
+
+### QA-R6b V29 refusal-marker removed -> full verify RED, restore GREEN
+
+Sabotage (pre-sabotage copy at `/tmp/opencode/qa-r6b-fixed.py`):
+`class RecoveryDismissalRefused` -> `class
+RecoveryDismissalREFUSED_REMOVED` in `scripts/sweep-typed-blocks.py`
+(refusal-marker block at `scripts/verify-rigs.sh:3157-3164`):
+
+```
+[FAIL] V29/77-mission-gates: scripts/sweep-typed-blocks.py lost refusal marker 'class RecoveryDismissalRefused'
+```
+
+Exit 1 (fail-closed, no SUMMARY). V29 keys on the marker strings — the
+gate is not vacuous.
+
+GREEN (restored via `cp /tmp/opencode/qa-r6b-fixed.py
+scripts/sweep-typed-blocks.py`, `cmp` byte-identical):
+`[PASS] V29 mission-gate ownership (77-mission-gates S2) green:
+stalled diff + charter markers in 9 leaves + refusal guard + 20 corpus
+tests pass + S0 evidence present` and `SUMMARY: 37 checks passed, 0
+failed`, exit 0. `git status --short` clean after each restore.
