@@ -67,6 +67,6 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `README.md` — entry point + verified quickstart. `docs/USER_GUIDE.md` — operator manual (§11 Docker).
 - `docs/TECHNICAL_DOCUMENTATION.md` — architecture reference (authoritative over older briefs).
 - `docs/OPENRIG_MUSE_GO_ARCHITECTURE.md`, `docs/OSINT_ECOSYSTEM_REPORT.md` — planning snapshots.
-- `docs/PROMPT_REVIEW_ARGON.md`, `docs/PROMPT_REVIEW_WEB.md` — prompt-pass decision record.
-- `AUDIT_REPORT_FINDINGS.md`, `REMEDIATION_LOG.md` — audit trail (append, don't rewrite history).
-- `PROMPT_ADVERSARIAL_FLEET_AUDIT.md`, `PROMPT_FLEET_AUDIT_REMEDIATION.md` — audit/remediation protocols.
+- `archive/2026-10-28-overhaul/docs/PROMPT_REVIEW_ARGON.md`, `archive/2026-10-28-overhaul/docs/PROMPT_REVIEW_WEB.md` — prompt-pass decision record (archived 2026-10-28).
+- `AUDIT_REPORT_FINDINGS.md` — audit trail (append, don't rewrite history). `REMEDIATION_LOG.md` archived at `archive/2026-10-28-overhaul/REMEDIATION_LOG.md`.
+- `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` — audit protocol. `PROMPT_FLEET_AUDIT_REMEDIATION.md` archived at `archive/2026-10-28-overhaul/PROMPT_FLEET_AUDIT_REMEDIATION.md`.

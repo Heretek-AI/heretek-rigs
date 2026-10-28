@@ -1,4 +1,7 @@
 .scratch/
+.opencode/
+.lane/
+st2p-proposal-package-lock.json
 node_modules/
 .env
 .env.*

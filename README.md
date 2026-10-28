@@ -15,7 +15,7 @@ catalog and enforced at runtime by Pi's permission system.
 8/8 `bundle check` clean, 162/162 `agent validate`, 8/8 `preflight ready`, 25/25 JSON
 schemas, digest recomputes match, 64/64 vendored skills match lock + upstream,
 12/12 sabotage targets caught, seeded seats refuse out-of-scope writes/reads/secret
-access. See `AUDIT_REPORT_FINDINGS.md` and `REMEDIATION_LOG.md`.
+access. See `AUDIT_REPORT_FINDINGS.md` and `archive/2026-10-28-overhaul/REMEDIATION_LOG.md`.
 
 ## Docs
 
@@ -84,4 +84,4 @@ rig queue list --destination exec-exec-director@executive-and-architecture --jso
 - **Never commit secrets** — seats reference `$HERETEK_SECRETS` via `!cat` only.
 - **Seed before `up`/`expand`/`add`** — unseeded seats have no permission config.
 - **Sidecars via `make sidecars-up`** — never raw `docker compose` (mobile/devsec guard).
-- Full rule set: `PROMPT_FLEET_AUDIT_REMEDIATION.md` §2.
+- Full rule set: `archive/2026-10-28-overhaul/PROMPT_FLEET_AUDIT_REMEDIATION.md` §2.

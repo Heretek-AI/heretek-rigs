@@ -1290,7 +1290,7 @@ for rel in ["fleet/fleet.yaml", "fleet/mcp-servers.yaml", "scripts/audit_loop.py
     txt = (root / rel).read_text()
     if re.search(r"PLACEHOLDER|TODO|FIXME|\{\{|TBD", txt):
         fail(f"{rel} contains unresolved placeholder")
-for rel in ["docs/OSINT_ECOSYSTEM_REPORT.md", "docs/OPENRIG_MUSE_GO_ARCHITECTURE.md", "PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md", "PROMPT_ADVERSARIAL_FLEET_AUDIT.md", "PROMPT_FLEET_AUDIT_REMEDIATION.md"]:
+for rel in ["docs/OSINT_ECOSYSTEM_REPORT.md", "docs/OPENRIG_MUSE_GO_ARCHITECTURE.md", "PROMPT_ADVERSARIAL_FLEET_AUDIT.md"]:
     txt = (root / rel).read_text()
     # HR-1.4 allowlist: Claim 1.4's intentional stub-token enumeration is
     # documented prose (not an unresolved template); strip that single

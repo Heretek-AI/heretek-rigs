@@ -1,0 +1,93 @@
+# overhaul-c M6–M8 QA red-proofs log
+
+- Stage/wave: overhaul-c M6-M8 (moves + prompt + regen). Worktree: `.lane/trees/overhaul-c`, branch `feat/overhaul-c`.
+- Base: `b5b5b2b`. Commits: `253413f feat(overhaul-c)` + `04137c9 chore regen`. Tree clean at start.
+- QA: Agency QA Verifier (Muse Spark 1.3 Contributor). Date: 2026-10-28.
+- Skill: `red-proof-sabotage` 7-step protocol loaded; sabotage reverted after each; never committed.
+
+## Baseline (unmodified tree, all exit 0)
+
+1. `make verify` → `SUMMARY: 35 checks passed, 0 failed.` + V22/V23/V24/V25/V26/V27 green lines. EXIT 0.
+   (Live-seat audit tail shows expected `[SKIP] … Daemon not running` lines; exit still 0.)
+2. `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 35 checks passed, 0 failed.` EXIT 0.
+3. `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.`
+   Output references the NEW path: `[PASS] Found docs/IMPLEMENTATION_PROMPT.md (5217 bytes)` (x2: presence + execution-read). EXIT 0.
+4. `make test` → `Ran 504 tests … OK`. EXIT 0. (Wave-B canary fix confirmed passing here; 0 failures.)
+5. `make topology OUT=/tmp/topology-qa` → `topology: all referential-integrity checks passed (51 roles)`,
+   `graph.json (238 nodes, 1069 edges)`, SVGs rendered. EXIT 0.
+
+## M6 keep-list byte-identical (spot-check vs base b5b5b2b)
+
+- `git diff b5b5b2b HEAD -- docs/evidence/107-identity-rotation.md openspec/changes/107-identity/proposal.md docs/reports/overhaul-b-verification.md PROMPT_ADVERSARIAL_FLEET_AUDIT.md openspec/changes/102-closeout docs/evidence/102-closeout-m1.md` → EMPTY (exit 0). Byte-identical.
+- `sha256sum docs/evidence/107-identity-rotation.md` → `e922084db951beae6c94ccfb3dce48d308ca0da2ec0e257d77b1f5ef6a2a73c2` (matches before/after sabotage-restore).
+- Stale-absence sweep (`test ! -e && test ! -L`): GONE ×12 — `claude`, `gemini`, `REMEDIATION_LOG.md`,
+  `HANDOFF_CLAUDE_AUDIT.md`, `PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md`, `PROMPT_FLEET_AUDIT_REMEDIATION.md`,
+  `docs/sprints`, `docs/architecture`, `docs/ops`, `docs/perf`, `docs/PROMPT_FACTORY_MISSION_AUDIT.md`,
+  `st2p-proposal-package-lock.json`. Zero survivors.
+
+## M6 history follows (git log --follow, 3 moved files)
+
+- `git log --follow --oneline -- archive/2026-10-28-overhaul/REMEDIATION_LOG.md` → `253413f … c20dddc … 3f1a35d …` EXIT 0.
+- `git log --follow --oneline -- archive/2026-10-28-overhaul/openspec/changes/checker-batch-d/proposal.md` → `253413f … b9008b4 …` EXIT 0.
+- `git log --follow --oneline -- archive/2026-10-28-overhaul/PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md` → `253413f … c32a73e …` EXIT 0.
+
+## M6 exclusions (no live-wave content moved)
+
+- `openspec/changes/{102-closeout,107-identity}` intact (4 entries each: design.md, proposal.md, specs, tasks.md);
+  `openspec/changes/overhaul-{a,b,bump,c}` all present.
+- `docs/reports/`: 25 keep files matching `*102-closeout*|*107-identity*|*overhaul-*` (incl. `overhaul-c-implementation.md`).
+- `docs/evidence/`: 12 keep entries incl. `102-closeout*`, `107-identity*` (incl. `107-identity-rotation.md`, 8485 bytes, in place), `overhaul-*`.
+- `docs/evidence/run-records.json` → ABSENT as designed (`test ! -e` passes; V13 reads it only when harness claims exist; not created).
+
+## M7 prompt freshness
+
+- `docs/IMPLEMENTATION_PROMPT.md` (5217 bytes) is the fresh reconciled brief: pins `@openrig/cli@0.7.4`,
+  cites `35 checks passed` SUMMARY, V22–V27 FAIL-ONLY gates, wave triad discipline; header explicitly
+  supersedes (not copies) the archived pre-#122 spoonfeeder upload. NOT the stale upload.
+- `scripts/audit_loop.py`: `IMPLEMENTATION_PROMPT_FILE = "docs/IMPLEMENTATION_PROMPT.md"` (:45),
+  `REMEDIATION_PROMPT_FILE = "docs/IMPLEMENTATION_PROMPT.md"` (:44); only 3 sanctioned `archive` lines
+  (comment, self-test guard :304, archived-log message :565).
+- Root `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` untouched (in keep-identical diff above).
+
+## M8 regen no-op proof
+
+- `git diff b5b5b2b HEAD --stat -- specs rigs rosters` → EMPTY (0 lines). M7 has no generator inputs: zero leaf churn.
+- `git diff b5b5b2b HEAD --stat -- registry` → 16 files, 24+/24-; sample diff shows ONLY `resolvedCommit`
+  (+ `canonicalUrl` commit pin) re-pointing `6781e0e… → 253413f…`. Provenance-only.
+- `grep -c DIRTY` over the registry diff → 0. Zero DIRTY.
+- Idempotence: `python3 ./scripts/generate-rigs.py --check-idempotent` → `idempotence check passed (two consecutive runs byte-identical)` EXIT 0.
+  HONEST RE-LAG NOTE: the check itself dirtied the tree (registry `resolvedCommit` re-lagged `253413f… → 04137c9…`,
+  16 files). Restored via `git checkout -- registry/`; `git status --short` clean afterward. No re-lag chased.
+
+## RED-PROOF SABOTAGES (each: RED → restore → GREEN)
+
+### S1 — M6 keep-integrity (git mv, not delete)
+- Inject: `git mv docs/evidence/107-identity-rotation.md archive/2026-10-28-overhaul/docs/evidence/107-identity-rotation.md`
+- Check: `./scripts/verify-rigs.sh --check-only`
+- RED: `[FAIL] V24/107-identity: rotation runbook unreadable (…No such file…)` → EXIT 1.
+  (V24 is the keep-integrity gate for rotation.md; task brief's "V22 rotation.md" label corrected — rotation.md is V24-gated.)
+- Restore: `git mv … docs/evidence/107-identity-rotation.md` (rename-restore; `git checkout` cannot unstage a rename).
+  `git status --short` clean; sha256 `e92208…` matches; verify re-run → `SUMMARY: 35 checks passed, 0 failed.` EXIT 0.
+
+### S2 — M7 prompt path (point const at archived file)
+- Inject: `sed -i` `IMPLEMENTATION_PROMPT_FILE` → `"archive/2026-10-28-overhaul/PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md"`
+- Check: `python3 scripts/audit_loop.py --self-test`
+- RED: `[FAIL] Archived path referenced as live input: archive/2026-10-28-overhaul/PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md` → EXIT 1 (names `archive/`).
+- Restore: `git checkout -- scripts/audit_loop.py`. `git status --short` clean; self-test → `SELF-TEST PASSED` EXIT 0.
+
+### S3 — HR-8.4 stale-list entry (T2 "re-add a moved filename")
+- Inject: appended `"PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md"` to the HR-8.4 scan list (`scripts/verify-rigs.sh:1293`).
+- Check: `./scripts/verify-rigs.sh --check-only`
+- RED: `FileNotFoundError: …/PROMPT_SPOONFEEDER_OPENCODE_IMPLEMENTATION.md` → EXIT 1 (fail-closed: stale list entry crashes the gate, cannot pass silently).
+- Restore: `git checkout -- scripts/verify-rigs.sh`. `git status --short` clean; verify re-run → `SUMMARY: 35 checks passed, 0 failed.` EXIT 0.
+
+## Vacuous-check verdict
+
+- No vacuous checks. Every sabotaged gate failed loudly (exits 1) and every restore returned to green.
+  V24, the audit_loop archive-guard, and HR-8.4 list hygiene are all proven fail-closed, not green-by-default.
+
+## Final state
+
+- `git status --short` shows ONLY untracked evidence: `docs/evidence/overhaul-c/` (this log). Nothing modified.
+- Sabotage debris: none (all three restores confirmed clean; /tmp backup of audit_loop.py is outside the repo).
+- Never committed. Left dirty-with-evidence-only as instructed.
