@@ -469,6 +469,21 @@ class TestRigRelayEnforcement(unittest.TestCase):
             with self.subTest(flag=flag):
                 proc = self.run_relay(f"rig queue create --json --verify {flag}")
                 self.assertDenied(proc, "outside scratch and seat workspace")
+        # F2 rework: a scratch env root resolving to /, /tmp or /var/tmp
+        # must not widen relay scope — the jail masks host /tmp, so a
+        # host-/tmp file would launder bytes the seat could not read.
+        probe = Path("/tmp") / f"relay-scope-probe-{os.getpid()}.txt"
+        probe.write_text("dummy-probe-content\n")
+        self.addCleanup(lambda: probe.unlink(missing_ok=True))
+        link = Path(self.tmp.name) / "tmp-link"
+        link.symlink_to("/tmp")
+        for extra in ({"TMPDIR": "/tmp"}, {"TMPDIR": str(link)}):
+            with self.subTest(extra=extra):
+                proc = self.run_relay(
+                    f"rig queue create --json --verify --body-file {probe}",
+                    **extra,
+                )
+                self.assertDenied(proc, "outside scratch and seat workspace")
 
     def test_deny_forged_source(self):
         body = self.ws / "src/body.json"

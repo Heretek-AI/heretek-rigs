@@ -323,10 +323,12 @@ def _tar_supports_filter() -> bool:
 def _safe_tar_extract(tf, member, path) -> None:
     """Extract one tar member with the verified-safe policy on every Python.
 
-    Callers pre-validate member names (no absolute paths, no `..` segments),
-    so the guarded fallback (plain extract on old Pythons without `filter=`)
-    adds no traversal surface; on modern Pythons the explicit "data" filter
-    also rejects links-out-of-dir and special files.
+    Callers pre-validate member names (no absolute paths, no `..` segments)
+    and — on interpreters without `filter=` support — reject non-regular
+    members (symlink, hardlink, device, FIFO) before extraction, so the
+    guarded fallback (plain extract on old Pythons without `filter=`)
+    restores only regular files and dirs; on modern Pythons the explicit
+    "data" filter also rejects links-out-of-dir and special files.
     """
     if _tar_supports_filter():
         tf.extract(member, path=path, filter="data")
@@ -469,10 +471,18 @@ def vendor_skill_from_clone(
                 # is `git archive` of the pinned commit — not attacker
                 # bytes — but extraction must not trust member names.
                 members = tf.getmembers()
+                _no_filter = not _tar_supports_filter()
                 for _m in members:
                     if _m.name.startswith(("/", "\\")) or ".." in Path(_m.name).parts:
                         die(
                             f"{src_label}: refusing tar member escaping the vendor dir: {_m.name!r}"
+                        )
+                    if _no_filter and (
+                        _m.issym() or _m.islnk() or _m.isdev() or _m.isfifo()
+                    ):
+                        die(
+                            f"{src_label}: refusing non-regular tar member "
+                            f"on the no-filter fallback: {_m.name!r}"
                         )
                 for _m in members:
                     # Explicit "data" filter (#105 review): also rejects
@@ -480,7 +490,8 @@ def vendor_skill_from_clone(
                     # relying on the interpreter's default policy. The
                     # feature-detect guard keeps old Pythons (no `filter=`
                     # before 3.11.4) on a verified-safe plain extract —
-                    # member names are pre-validated above.
+                    # member names are pre-validated above (and non-regular
+                    # members rejected above when `filter=` is unavailable).
                     _safe_tar_extract(tf, _m, tmp)
         except SystemExit:
             raise
@@ -961,6 +972,15 @@ def generate_all(
     _snap_dir = None
     _snap_lock: dict = {}
     if not crew_dir.is_dir() or not vendor_dir.is_dir():
+        _missing = ",".join(
+            _name
+            for _name, _p in (("crew_dir", crew_dir), ("vendor_dir", vendor_dir))
+            if not _p.is_dir()
+        )
+        print(
+            f"generate-rigs: {_missing} missing; hermetic mode (snapshot restore, no live clones)",
+            file=sys.stderr,
+        )
         _snap_dir, _snap_lock = _snapshot_for_hermetic(root)
     HERETEK_RIGS_COMMIT = commit or resolve_heretek_commit(root, allow_synthetic)
     # #97 (fail-closed): listing/harness attestation grounds in real run

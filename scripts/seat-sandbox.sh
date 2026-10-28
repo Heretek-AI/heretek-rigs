@@ -112,7 +112,10 @@ if bodies and not store_real:
 scratch = []
 for _e in (os.environ.get("TMPDIR", ""), os.environ.get("HERETEK_JAIL_SCRATCH", "")):
     if _e:
-        scratch.append(os.path.realpath(_e))
+        _r = os.path.realpath(_e)
+        if _r in ("/", "/tmp", "/var/tmp"):
+            continue
+        scratch.append(_r)
 _CRED_SUFFIX = (".key", ".pem", ".p12", ".pfx", ".jks", ".keytab", ".env", ".token", ".secret", ".asc", ".gpg", ".age")
 _CRED_NAME = (".netrc", ".npmrc", ".pypirc", "credentials", "secrets", "id_rsa", "id_ed25519", "id_ecdsa", "id_dsa")
 _PROTECTED = (".git", ".pi", ".agents", "AGENTS.md")

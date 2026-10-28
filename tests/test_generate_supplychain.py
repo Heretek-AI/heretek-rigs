@@ -13,6 +13,7 @@ vendor clones. Covers:
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -129,6 +130,33 @@ class TestVendorSkillFromClone(unittest.TestCase):
                 "skills/no-such-skill",
                 Path(tmp.name) / "out" / "no-such-skill",
             )
+        self.assertEqual(cm.exception.code, 2)
+
+    def test_symlink_member_dies_on_no_filter_path(self):
+        # F1 rework: on old Pythons (no TarFile.extract(filter=)) the
+        # plain-extract fallback must never restore a symlink member —
+        # git archive preserves symlinks, so the caller must reject
+        # non-regular members before extraction.
+        tmp, clone, head = make_skill_repo()
+        self.addCleanup(tmp.cleanup)
+        (clone / "skills/demo-skill/real.txt").write_text("real\n")
+        (clone / "skills/demo-skill/link.txt").symlink_to("real.txt")
+        git("add", ".", cwd=clone)
+        git("commit", "-qm", "add symlink", cwd=clone)
+        head2 = git("rev-parse", "HEAD", cwd=clone).stdout.strip()
+        orig = GEN._tar_supports_filter
+        GEN._tar_supports_filter = lambda: False
+        try:
+            with self.assertRaises(SystemExit) as cm:
+                GEN.vendor_skill_from_clone(
+                    "demo",
+                    clone,
+                    head2[:7],
+                    "skills/demo-skill",
+                    Path(tmp.name) / "out" / "demo-skill",
+                )
+        finally:
+            GEN._tar_supports_filter = orig
         self.assertEqual(cm.exception.code, 2)
 
 
@@ -278,10 +306,8 @@ class TestHermeticVendorRestore(unittest.TestCase):
         lock_entry = {"tree": GEN.tree_hash(live)}
         snap = Path(self.tmp_root()) / "snap"
         good = snap / "agents" / "_shared" / "skills" / sid
-        good.mkdir(parents=True)
-        for f in live.iterdir():
-            if f.is_file():
-                (good / f.name).write_bytes(f.read_bytes())
+        good.parent.mkdir(parents=True)
+        shutil.copytree(live, good, symlinks=False)
         dst = Path(self.tmp_root()) / "dst" / sid
         dst.parent.mkdir(parents=True, exist_ok=True)
         GEN._restore_shared_skill(sid, dst, snap, lock_entry)
