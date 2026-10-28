@@ -119,6 +119,20 @@ class SchemaContractTests(unittest.TestCase):
                 doc.get("$id"), f"https://openrig.dev/schemas/{stem}.json", name
             )
 
+    def test_run_record_pins_fixed_074_digest(self):
+        """REQ-B4: the vendored run-record schema is byte-identical to the
+        fixed published 0.7.4 identity (sha256 b3c7ac64...), not merely
+        consistent with the locally refreshable pin file (which an
+        attacker could refresh alongside the schema)."""
+        actual = hashlib.sha256(
+            (SCHEMA_DIR / "run-record.v1.schema.json").read_bytes()
+        ).hexdigest()
+        self.assertEqual(
+            actual,
+            "b3c7ac64fd9dd51152888c99fdbcadd85cddebebb2d38253864bff054da3fde7",
+            "vendored run-record schema drifted from the fixed 0.7.4 identity",
+        )
+
     def test_run_record_schema_is_upstream_shape(self):
         """REQ-B4: the vendored run-record schema is upstream's bytes, not a stub."""
         doc = json.loads((SCHEMA_DIR / "run-record.v1.schema.json").read_text())

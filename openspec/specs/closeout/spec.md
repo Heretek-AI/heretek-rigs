@@ -12,13 +12,13 @@ New coverage MUST be new appended blocks (or new scripts), never renumber/reword
 - When `make verify` runs after this change, V1–V21 pass unrenamed and SUMMARY stays frozen.
 
 ### Requirement: REQ-C18 — bare queue/send deny in seat maps
-Seat bash maps rendered from `fleet/fleet.yaml` MUST deny bare `rig queue list`, bare `rig queue create` without `--json --verify`, and bare `rig send`. The `--json --verify` forms MUST continue to allow where the seat holds the `rig queue *` / `rig send *` grant. `AGENTS.md` MUST carry a one-line operator gate stating bare forms are denied in-seat (extending the existing `--json --verify` discipline). A new appended verify block MUST assert the deny (no renumber of V1–V21).
+Seat bash maps rendered from `fleet/fleet.yaml` MUST deny bare `rig queue list`, bare `rig queue create` without `--json --verify`, and bare `rig send`. The `--json` queue forms (`rig queue list --json`, `rig queue create --json --verify`) MUST continue to allow where the seat holds the `rig queue *` grant, and addressed `rig send <session> <message>` MUST continue to allow where the seat holds the `rig send *` grant. `AGENTS.md` MUST carry a one-line operator gate stating bare forms are denied in-seat (extending the existing `--json --verify` discipline). A new appended verify block MUST assert the deny (no renumber of V1–V21).
 
 #### Scenario: bare forms deny, disciplined forms allow
 - When the seat-map gate runs after implementation, bare `rig queue list`, bare `rig queue create` without `--json --verify`, and bare `rig send` are denied in-seat while `--json --verify` forms allow, with red-proofs recorded in both directions.
 
 ### Requirement: REQ-C25 — all-51 canonical statement
-Docs MUST state `rig spec validate` (V18 `scripts/verify-rigs.sh:2442-2454`) is canonical for `rigs/heretek-omni-fleet/rig.all-51.yaml`, and `rig bundle check` covering only the 8 `rig.yaml` files (`:2419-2428`) is intentional. No code change in this requirement.
+Docs MUST state `rig spec validate` (V18 `scripts/verify-rigs.sh:2470-2482`) is canonical for `rigs/heretek-omni-fleet/rig.all-51.yaml`, and `rig bundle check` covering only the 8 `rig.yaml` files (`:2447-2469`) is intentional. No code change in this requirement.
 
 #### Scenario: canonical statement present
 - When the docs are grepped after implementation, the canonical statement exists and V18 passes on `rig.all-51.yaml`.

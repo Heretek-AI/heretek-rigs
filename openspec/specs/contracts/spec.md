@@ -12,7 +12,7 @@ New coverage MUST be new appended blocks (or new scripts), never renumber/reword
 - When `make verify` runs after this change, V1–V27 pass unrenamed and SUMMARY stays frozen.
 
 ### Requirement: REQ-B4 — 0.7.4 contract sync
-`schemas/rigspec-keys.pinned.json` and the verify MEMBER_KEYS gate MUST include `codex_permissions` immediately after `claude_permissions`. `schemas/run-record.v1.schema.json` MUST be vendored byte-identical to the published 0.7.4 tarball file (sha256 `b3c7ac64fd9dd51152888c99fdbcadd85cddebebb2d38253864bff054da3fde7`) with a `contract-schemas.sha256` entry, covered by the contract suite. `messaging-the-human` + `queue-handoff` SKILL.md MUST be synced from the published tarball through the generator path (never hand-edited leaves), followed by a full clean-tree regen.
+`schemas/rigspec-keys.pinned.json` and the verify MEMBER_KEYS gate MUST include `codex_permissions` immediately after `claude_permissions`. `schemas/run-record.v1.schema.json` MUST be vendored byte-identical to the published 0.7.4 tarball file (sha256 `b3c7ac64fd9dd51152888c99fdbcadd85cddebebb2d38253864bff054da3fde7`) with a `contract-schemas.sha256` entry, covered by the contract suite including a fixed-digest pin test asserting the vendored bytes hash to that digest (not merely pin-file-vs-disk consistency). `messaging-the-human` + `queue-handoff` SKILL.md MUST be synced from the published tarball through the generator path (never hand-edited leaves), followed by a full clean-tree regen.
 
 #### Scenario: contracts green
 - When the contract suite + regen + idempotence run, all pass with digests self-consistent and no DIRTY stamps.

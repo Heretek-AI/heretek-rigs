@@ -21,7 +21,7 @@ The `rig` relay in `scripts/seat-sandbox.sh` MUST validate before exec: `argv[1]
 - When idempotence runs with nonexistent crew/vendor dirs it prints the byte-identical pass line with exit 0.
 
 ### Requirement: REQ-A3 — Docker pipeline fixed
-`docker/Dockerfile` MUST install `bubblewrap` in the build image and assert `bwrap --version` in its verify step; `.github/workflows/docker-release.yml` MUST parse under a duplicate-key-rejecting YAML loader with exactly one `container:` block per job, and its verify-fleet job MUST install `bubblewrap`.
+`docker/Dockerfile` MUST install `bubblewrap` in the build image and assert `bwrap --version` in its verify step; `.github/workflows/docker-release.yml` MUST parse under a duplicate-key-rejecting YAML loader with at most one `container:` block per job (today only the smoke job defines one; verify-fleet and build define none), and its verify-fleet job MUST install `bubblewrap`.
 
 #### Scenario: pipeline validates
 - When the workflow file is parsed with duplicate-key rejection it loads with no error, and `bubblewrap` is greppable in both the Dockerfile and the verify-fleet job.
