@@ -72,3 +72,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `PROMPT_ADVERSARIAL_FLEET_AUDIT.md` — audit protocol. `PROMPT_FLEET_AUDIT_REMEDIATION.md` archived at `archive/2026-10-28-overhaul/PROMPT_FLEET_AUDIT_REMEDIATION.md`.
 - `openspec/changes/archive/2026-10-28-09-send-identity/` — wave 9 spec: per-seat sender attestation for `rig send` (Refs #9, repo-side only).
 - `openspec/changes/archive/2026-10-28-77-mission-gates/` — wave 4 spec: mission-row gate ownership (Refs #77, detect/classify/propose-only).
+- `openspec/changes/2026-10-28-81-seat-idle/` — wave 81 spec: seat idle-park after claim + daemon source label (Refs #81, fixtures-only, propose-only).
