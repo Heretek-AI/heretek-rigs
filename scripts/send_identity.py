@@ -164,6 +164,23 @@ def issue_sender_binding(
                     file=sys.stderr,
                 )
             elif binding_path.is_file():
+                # Rework-3 (Refs #9): reuse accepts the existing file ONLY
+                # as a 0600 regular file (same rule as the pre-mint guard
+                # below). A non-0600 or special file is reported, never
+                # reused — fail closed via _fail, grant left intact.
+                try:
+                    _reuse_st = os.lstat(binding_path)
+                except OSError:
+                    _reuse_st = None
+                if (
+                    _reuse_st is None
+                    or not stat.S_ISREG(_reuse_st.st_mode)
+                    or stat.S_IMODE(_reuse_st.st_mode) != 0o600
+                ):
+                    return _fail(
+                        f"existing {_binding_log} is not a 0600 regular file; "
+                        "remove it and re-seed"
+                    )
                 print(
                     f"ok {_session_log}: sender binding already issued (reuse {_binding_log})"
                 )

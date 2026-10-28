@@ -355,3 +355,62 @@ secrets grep exit 1 (no output).
 QA-R3 verdict: no vacuous checks found. The 0o640 fixture still refuses
 (H1), the redaction-routed sink is live and leaks when bypassed (H2),
 and the V28 gate turns RED without the module and GREEN on restore.
+
+## Rework-3 — PR #128 review threads G1…G5 (Refs #9, 2026-10-28, branch fix/09-send-identity-r3)
+G1 is a docs-only correction (no code path changed — grounded by the
+scratch matrix below, not a sabotage cycle). G4 was verified STALE on
+disk (expected_sender already required + enforced + tested since
+rework-1) and skipped with evidence. G5's 0o400 fixture is validated by
+the suite itself (refusal keys on exact `!= 0o600`). G2/G3 sabotage
+cycles (temporary, fully reverted):
+
+G1 scratch matrix (dummy keys, /tmp/opencode/g1-scratch, 2026-10-28):
+missing+degraded rc=0 disabled entry; missing+strict rc=2;
+0640+degraded rc=2 (`...key is mode 640; run: chmod 600 ...`);
+0640+strict rc=2. Only true absence degrades — `secret_ok`
+(`scripts/render-seat.py:780-816`) dies on wrong-mode/symlink/
+foreign-owner/unsafe-open in both modes.
+
+## RP-R3-G2 — reuse branch validates 0600 regular file (review thread G2)
+- Sabotage: removed the rework-3 lstat/S_ISREG/0600 guard from the
+  `elif binding_path.is_file()` reuse branch
+  (`scripts/send_identity.py:167-186` removed, unconditional reuse).
+- Check: `python3 -m unittest
+  tests.test_send_identity.IssueSenderBindingTests.test_reuse_of_non_0600_binding_file_refuses`
+  — RED verbatim: `AssertionError: 0 == 0`
+  (`Ran 1 test ... FAILED (failures=1)`): a 0400 binding file was wrongly
+  reported "already issued" with rc 0.
+- Restore: guard re-applied; same test GREEN (`Ran 1 test ... OK`);
+  full `IssueSenderBindingTests` 9/9 OK.
+
+## RP-R3-G3 — sender-binding gate matches the render gate (outside-diff thread G3)
+- Sabotage: `seat_needs_sender_binding` body (`scripts/seed-rig.py:186`)
+  replaced with unconditional `return True` (opt-in unbound seats get
+  bindings the renderer configures no entry for).
+- Check: `python3 -m unittest
+  tests.test_identity_m1.SeatNeedsSenderBindingTests` — RED verbatim:
+  `AssertionError: True is not false`
+  (`Ran 3 tests ... FAILED (failures=2)`):
+  `test_unbound_role_needs_no_sender_binding` and
+  `test_opted_in_unbound_role_gets_grant_but_no_sender_binding` fail —
+  proving the gate (not the caller) is what stops unusable bindings.
+- Restore: body back to
+  `seat_needs_grant(role, mcp_catalog, opt_in=False)`; 3/3 OK;
+  `SeatNeedsGrantTests` unaffected (opt-in seat-grant gate intact).
+
+## RP-R3-G5 — 0400 refusal fixture (CodeQL alert 99, no local re-scan)
+- CodeQL cannot run locally. Substitute validation: (1) the refusal
+  guards key on exact `!= 0o600` (`scripts/send_identity.py:178`
+  reuse, `:201` pre-mint), so 0400 provably refuses — and the suite
+  proves it: `test_existing_non_0600_store_refuses_pre_mint` (0400)
+  plus the new `test_reuse_of_non_0600_binding_file_refuses` (0400)
+  both GREEN; (2) 0400 carries no group/other bits
+  (`S_IMODE & 0o077 == 0`), clearing the py/overly-permissive-file
+  class the 0640 mask tripped; (3) `grep` sweep of
+  `tests/test_send_identity.py` shows no remaining group/other-bit
+  file masks (only 0600 files, 0700 dirs). The 0o644 fixtures in
+  `tests/test_identity_m1.py:271-282` belong to wave-107 seat-grant
+  tests (pre-existing, not part of alert 99) — left untouched.
+
+Rework-3 verdict: G2/G3 fixes turn RED under targeted sabotage and
+GREEN on restore; G1/G5 grounded by scratch matrix + suite; G4 stale.

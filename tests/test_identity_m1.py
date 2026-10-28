@@ -375,6 +375,31 @@ class SeatNeedsGrantTests(unittest.TestCase):
         self.assertFalse(SEED_MOD.seat_needs_grant(role, self.CATALOG, opt_in=False))
 
 
+class SeatNeedsSenderBindingTests(unittest.TestCase):
+    # Seed/render alignment (09-send-identity rework-3, Refs #9): the sender
+    # binding gate MUST match the renderer gate (`_bound09` in
+    # render-seat.py: role binds a `seat_grant` catalog server) with NO
+    # opt-in escape — otherwise an opted-in but unbound seat receives a
+    # binding the renderer configures no entry for (unusable binding).
+    CATALOG = SeatNeedsGrantTests.CATALOG
+
+    def test_bound_role_needs_sender_binding(self):
+        role = {"mcp": [{"server": "rig-mcp-http"}, {"server": "memory"}]}
+        self.assertTrue(SEED_MOD.seat_needs_sender_binding(role, self.CATALOG))
+
+    def test_unbound_role_needs_no_sender_binding(self):
+        role = {"mcp": [{"server": "memory"}]}
+        self.assertFalse(SEED_MOD.seat_needs_sender_binding(role, self.CATALOG))
+        self.assertFalse(SEED_MOD.seat_needs_sender_binding({"mcp": []}, self.CATALOG))
+        self.assertFalse(SEED_MOD.seat_needs_sender_binding({}, self.CATALOG))
+        self.assertFalse(SEED_MOD.seat_needs_sender_binding(None, self.CATALOG))
+
+    def test_opted_in_unbound_role_gets_grant_but_no_sender_binding(self):
+        role = {"mcp": [{"server": "memory"}]}
+        self.assertTrue(SEED_MOD.seat_needs_grant(role, self.CATALOG, opt_in=True))
+        self.assertFalse(SEED_MOD.seat_needs_sender_binding(role, self.CATALOG))
+
+
 def _write_probe_fleet(tmpdir):
     fleet = {
         "model": {

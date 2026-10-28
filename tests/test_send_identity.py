@@ -212,6 +212,22 @@ class IssueSenderBindingTests(unittest.TestCase):
         self.assertIsNone(BEARER_RUN_RE.search(out))
         self.assertIsNone(BEARER_RUN_RE.search(err))
 
+    def test_reuse_of_non_0600_binding_file_refuses(self):
+        # Rework-3 (Refs #9): the reuse branch accepts an existing binding
+        # file only as a 0600 regular file. Owner-only 0400 keeps the
+        # refusal semantics with no group/other bits set.
+        self.assertEqual(self.issue("blue-x@rig-y")[0], 0)
+        first_body = self.binding_path("blue-x@rig-y").read_text()
+        os.chmod(self.binding_path("blue-x@rig-y"), 0o400)
+        rc, out, err = self.issue("blue-x@rig-y")
+        self.assertNotEqual(rc, 0)
+        self.assertNotIn("already issued", out)
+        self.assertIn("0600", err)
+        self.assertIsNone(BEARER_RUN_RE.search(err))
+        self.assertEqual(self.binding_path("blue-x@rig-y").read_text(), first_body)
+        adds = [l for l in self.log.read_text().splitlines() if "token add" in l]
+        self.assertEqual(len(adds), 1)
+
     def test_scope_mismatch_heals_via_revoke_and_re_add(self):
         self.assertEqual(self.issue("blue-x@rig-y", rig="rig-y")[0], 0)
         first_body = self.binding_path("blue-x@rig-y").read_text()
@@ -232,9 +248,11 @@ class IssueSenderBindingTests(unittest.TestCase):
     def test_existing_non_0600_store_refuses_pre_mint(self):
         target = self.binding_path("blue-x@rig-y")
         target.write_text("dummy")
-        # Non-0600 on purpose (pre-mint refusal fixture): 0640 is group-
-        # readable but NOT world-readable (CodeQL py/overly-permissive-file).
-        os.chmod(target, 0o640)
+        # Non-0600 on purpose (pre-mint refusal fixture): 0400 is
+        # owner-read-only — no group/other bits, so it stays outside the
+        # CodeQL py/overly-permissive-file class — while the issuance guard
+        # keys on exact 0600 and still refuses it.
+        os.chmod(target, 0o400)
         rc, _, err = self.issue("blue-x@rig-y")
         self.assertNotEqual(rc, 0)
         self.assertIn("0600", err)

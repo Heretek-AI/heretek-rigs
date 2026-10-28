@@ -183,6 +183,21 @@ def seat_needs_grant(role, mcp_catalog, opt_in: bool = False) -> bool:
     return bool(opt_in)
 
 
+def seat_needs_sender_binding(role, mcp_catalog) -> bool:
+    """True when the renderer configures this seat for attestation (09-send-identity).
+
+    Mirrors the render gate in render-seat.py (`_bound09`: the role binds a
+    catalog server carrying `seat_grant: true`) — deliberately WITHOUT the
+    HERETEK_SEAT_GRANT_OPT_IN escape. An opted-in but otherwise unbound seat
+    keeps its seat grant yet must receive no sender binding: the renderer
+    emits no `send-identity.json` entry for it, so the binding would be
+    unusable. Equivalent to `seat_needs_grant(role, mcp_catalog,
+    opt_in=False)`; kept as a named helper so the seed call site reads as
+    the render gate, not the grant gate.
+    """
+    return seat_needs_grant(role, mcp_catalog, opt_in=False)
+
+
 # 107-identity rework-2 (CodeQL py/clear-text-logging-sensitive-data):
 # failure output from `rig mcp token` subprocess calls (detail) and
 # rig-subprocess exception strings are tainted as secret-bearing, so every
@@ -549,18 +564,27 @@ def main() -> None:
                 )
                 if _grc != 0:
                     sys.exit(_grc)
-                # 09-send-identity S1: same gate, sender binding alongside
-                # the seat grant (dormant for unbound roles — no role binds
-                # a seat-grant server today — and skipped under opt-out).
-                _sbrc = _load_si09_mod().issue_sender_binding(
-                    _session74,
-                    _secrets_dir,
-                    rig_bin=_rig_bin,
-                    allow_missing_secrets=args.allow_missing_secrets,
-                    rig=s["rig"],
-                )
-                if _sbrc != 0:
-                    sys.exit(_sbrc)
+                # 09-send-identity S1 (rework-3): sender binding issues ONLY
+                # for seats the renderer configures for attestation
+                # (`seat_needs_sender_binding`: bound role, no opt-in) — an
+                # opted-in but otherwise unbound seat keeps its seat grant
+                # above yet gets no binding, since render emits no
+                # send-identity.json entry for it (unusable binding).
+                if _role74 is not None and seat_needs_sender_binding(_role74, _mcp74):
+                    _sbrc = _load_si09_mod().issue_sender_binding(
+                        _session74,
+                        _secrets_dir,
+                        rig_bin=_rig_bin,
+                        allow_missing_secrets=args.allow_missing_secrets,
+                        rig=s["rig"],
+                    )
+                    if _sbrc != 0:
+                        sys.exit(_sbrc)
+                else:
+                    print(
+                        f"ok {_session74}: no send-identity binding, "
+                        "renderer configures no attestation (no binding issued)"
+                    )
         cmd = [
             sys.executable,
             str(render_script),

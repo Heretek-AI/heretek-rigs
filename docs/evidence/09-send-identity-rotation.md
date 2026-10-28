@@ -68,12 +68,19 @@ while the serve process kept running).
 Failure modes (all fail closed): minting for an existing name refuses
 (`'...' already has a grant; revoke it first...`, non-zero exit) — revoke
 first (step 2); revoking an unknown name refuses (`No grant named ...`) —
-nothing changes; for a grant-bound seat, a missing or unreadable binding
-file makes the default `scripts/render-seat.py` render exit with status 2
-(`die(...)` — strict render cannot attest without the secret); with
-`--allow-missing-secrets`, it writes a disabled `send-identity.json` entry
-(`{"sender": ..., "enabled": false}`) and sends remain UNVERIFIED until the
-file is restored.
+nothing changes; for a grant-bound seat, a missing binding file makes the
+default `scripts/render-seat.py` render exit with status 2 (`die(...)` —
+strict render cannot attest without the secret); with
+`--allow-missing-secrets`, a missing file instead writes a disabled
+`send-identity.json` entry (`{"sender": ..., "enabled": false}`) and sends
+remain UNVERIFIED until the file is restored. An unreadable or unsafe
+binding file is NOT covered by that degrade path: `secret_ok` in
+`scripts/render-seat.py` dies with status 2 in both modes on a wrong-mode
+file (anything but 0600), a symlink, a foreign-owner file, or an unsafe
+open (`O_NOFOLLOW` refusal) — only true absence degrades, never an
+untrusted file. Proven live in scratch: missing+degraded renders the
+disabled entry (rc=0) while a 0640 binding file dies (rc=2) with and
+without `--allow-missing-secrets`.
 
 ## §2 Executed-live evidence (scratch isolation, redacted)
 
