@@ -169,3 +169,71 @@ are independent QA re-runs. Baseline before sabotage: verify 36/0,
 
 QA verdict: no vacuous checks found. All 7 acceptance checks + all 4 REQ-S2
 forgery classes turn RED under targeted sabotage and GREEN on restore.
+
+## QA-R2 series — r1 re-verification (acceptance verifier, 2026-10-28, branch fix/09-send-identity-r1 @ 1915d5b)
+Prior QA-R1…QA-R7 entries above left untouched. All sabotage temporary and
+fully reverted; `git status --short` clean after each cycle (verified via
+`git diff --stat` empty on the sabotaged paths + green rerun).
+
+## QA-R2a — F5 fix is non-vacuous (expected_sender check removed)
+- Sabotage: deleted the `if sender != expected_sender` block from
+  `verify_attestation` in `scripts/send_identity.py` (the F5 fix).
+- Check: `python3 -m unittest
+  tests.test_send_identity.AttestationVerifyTests.test_cross_seat_secret_cannot_authenticate_other_sender`
+  — RED verbatim:
+  `AssertionError: 'attested' != 'unverified'`
+  (`Ran 1 test ... FAILED (failures=1)`, exit 1). A seat-A secret minting a
+  seat-B attestation verifies `attested` — the cross-seat hole is real.
+- Restore: byte-restore of `scripts/send_identity.py` (`git diff --stat`
+  empty); full corpus `Ran 26 tests ... OK`, exit 0; clean.
+
+## QA-R2b — F6 V28 skip-floor is non-vacuous (injected skip)
+- Sabotage 1 (fixed code under test): added
+  `@unittest.skip("QA-R2b sabotage: injected skip")` to
+  `test_valid_fresh_attestation_records_attested_sender` in
+  `tests/test_send_identity.py`. Corpus alone stays green-but-skipped:
+  `Ran 26 tests ... OK (skipped=1)`, exit 0 — the exact shape the old V28
+  miscounted.
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: tests.test_send_identity skipped 1 test(s)
+  (skips must not count toward the corpus threshold)`,
+  `SUMMARY: 35 checks passed, 1 failed.`, exit 1.
+- Vacuity proof of the OLD form: with the skip still injected, V28's skip
+  branch temporarily reverted to the pre-F6 counting form
+  (`elif _v28_ran < 20:`) → GREEN verbatim:
+  `[PASS] V28 send-identity attestation (09-send-identity S1) green:
+  binding rules + !cat render + 26 corpus tests pass + S0 evidence present`,
+  `SUMMARY: 36 checks passed, 0 failed.`, exit 0. The old code counted the
+  skip toward the floor — the F6 hole was real, the fix closes it.
+- Restore: `scripts/verify-rigs.sh` + `tests/test_send_identity.py`
+  byte-restored (`git diff --stat` empty on both); rerun V28 PASS,
+  `SUMMARY: 36 checks passed, 0 failed.`, exit 0; clean.
+
+## QA-R2c — V28 gate fails without the attestation module (battery check 1)
+- Sabotage: `mv scripts/send_identity.py /tmp/r1-si.hidden.py` (module gone).
+- Check: `./scripts/verify-rigs.sh --check-only` — RED verbatim:
+  `[FAIL] V28/09-send-identity: cannot load scripts/send_identity.py
+  ([Errno 2] No such file or directory: '.../scripts/send_identity.py')`
+  plus unreadable-file + corpus-failed FAILs,
+  `SUMMARY: 35 checks passed, 4 failed.`, exit 1.
+- Restore: moved back (`git status --short` empty on the path); rerun
+  `SUMMARY: 36 checks passed, 0 failed.`, exit 0 (one rerun needed a retry
+  past the 120s tool window under load; second run 36/0 exit 0); clean.
+
+## QA-R2d — secrets grep is non-vacuous (battery check 6)
+- Sabotage: appended `QA-R2D-SABOTAGE
+  orAbCdEfGhIjKlMnOpQrStUvWxYz0123456789AB` (47-char bearer-shaped) to
+  `docs/evidence/09-send-identity-rotation.md`.
+- Check: `grep -rE '[A-Za-z0-9_-]{40,}'
+  docs/evidence/09-send-identity-spoof.md
+  docs/evidence/09-send-identity-rotation.md` — RED verbatim: printed the
+  sabotage line
+  (`docs/evidence/09-send-identity-rotation.md:QA-R2D-SABOTAGE
+  orAbCdEf...`), exit 0 (secret found).
+- Restore: `git checkout -- docs/evidence/09-send-identity-rotation.md`;
+  grep exit 1 (no output); status clean.
+
+QA-R2 verdict: no vacuous checks found. The F5 cross-seat fix, the F6
+skip-floor fix, the V28 gate, and the secrets grep all turn RED under
+targeted sabotage and GREEN on restore (old counting-skips form proven
+vacuous-by-comparison, as F6 claimed).
