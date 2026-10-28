@@ -51,7 +51,7 @@ cmd=$2; cwd=$(pwd -P)
 # relaying a host-/tmp file would launder bytes the seat could not read).
 if [[ "$cmd" =~ ^[[:space:]]*rig([[:space:]]|$) ]]; then
   exec python3 -I -c '
-import os, re, shlex, sys
+import os, re, shlex, stat, sys
 try:
     argv = shlex.split(sys.argv[1])
 except ValueError as e:
@@ -64,6 +64,7 @@ if len(argv) < 2 or argv[1] not in _ALLOW:
 srcs = []
 notes = []
 bodies = []
+body_locs = []
 i = 2
 while i < len(argv):
     tok = argv[i]
@@ -76,6 +77,7 @@ while i < len(argv):
             notes.append(argv[i + 1])
         else:
             bodies.append(argv[i + 1])
+            body_locs.append((i + 1, None))
         i += 2
         continue
     if tok.startswith("--source=") or tok.startswith("--note=") or tok.startswith("--body-file="):
@@ -86,6 +88,7 @@ while i < len(argv):
             notes.append(val)
         else:
             bodies.append(val)
+            body_locs.append((i, "--body-file="))
         i += 1
         continue
     if tok.startswith("-s="):
@@ -121,17 +124,17 @@ _CRED_NAME = (".netrc", ".npmrc", ".pypirc", "credentials", "secrets", "id_rsa",
 _PROTECTED = (".git", ".pi", ".agents", "AGENTS.md")
 def _under(_p, _b):
     return _p == _b or _p.startswith(_b + os.sep)
-for v in bodies:
+for v, (_bi, _bp) in zip(bodies, body_locs):
     if os.path.islink(v):
         sys.exit("seat-sandbox: rig relay denied: --body-file must not be a symlink: " + v)
     real = os.path.realpath(v)
-    if not os.path.isfile(real):
-        sys.exit("seat-sandbox: rig relay denied: --body-file not a regular file: " + v)
     try:
-        _size = os.path.getsize(real)
+        _vs = os.stat(real)
     except OSError:
-        sys.exit("seat-sandbox: rig relay denied: --body-file unreadable: " + v)
-    if _size > 262144:
+        sys.exit("seat-sandbox: rig relay denied: --body-file not a regular file: " + v)
+    if not stat.S_ISREG(_vs.st_mode):
+        sys.exit("seat-sandbox: rig relay denied: --body-file not a regular file: " + v)
+    if _vs.st_size > 262144:
         sys.exit("seat-sandbox: rig relay denied: --body-file over 256KiB: " + v)
     if _under(real, store_real):
         sys.exit("seat-sandbox: rig relay denied: --body-file inside secret store: " + v)
@@ -149,6 +152,29 @@ for v in bodies:
     _rel = real[len(_home):].lstrip(os.sep)
     if any(_seg in _PROTECTED for _seg in _rel.split(os.sep)):
         sys.exit("seat-sandbox: rig relay denied: --body-file touches a protected segment: " + v)
+    # TOCTOU pin: the checks above run on the path, but rig is executed later
+    # with that same path argument. Open the validated file WITHOUT following
+    # a final-component symlink, verify the open file is still the validated
+    # one (dev/ino), still regular and within the size cap, and hand rig the
+    # open descriptor instead of the path — a swap winning the
+    # validation->exec window then redirects nothing. rig reads --body-file
+    # with existsSync/statSync/readFileSync and no basename/extension/shape
+    # validation, so /dev/fd/N resolves to the pinned file; a rig that ever
+    # rejects /dev/fd paths fails the allow-path loudly (non-zero exit).
+    try:
+        _fd = os.open(v, os.O_RDONLY | os.O_NOFOLLOW)
+    except OSError:
+        sys.exit("seat-sandbox: rig relay denied: --body-file changed during validation (will not follow): " + v)
+    _fs = os.fstat(_fd)
+    if not stat.S_ISREG(_fs.st_mode) or (_fs.st_dev, _fs.st_ino) != (_vs.st_dev, _vs.st_ino) or _fs.st_size > 262144:
+        os.close(_fd)
+        sys.exit("seat-sandbox: rig relay denied: --body-file changed during validation: " + v)
+    os.set_inheritable(_fd, True)
+    _fdarg = "/dev/fd/%d" % _fd
+    if _bp is None:
+        argv[_bi] = _fdarg
+    else:
+        argv[_bi] = _bp + _fdarg
 os.execvp("rig", argv)
 ' "$cmd"
 fi

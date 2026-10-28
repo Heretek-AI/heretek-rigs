@@ -13,6 +13,7 @@ import shutil
 import socket
 import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import unittest
@@ -424,7 +425,7 @@ class TestRigRelayEnforcement(unittest.TestCase):
         self.bin.mkdir()
         rig = self.bin / "rig"
         rig.write_text(
-            "#!/usr/bin/env python3\n"
+            f"#!{sys.executable}\n"
             "import sys\n"
             "print('FAKE-RIG-RAN', ' '.join(sys.argv[1:]))\n"
         )
@@ -472,8 +473,12 @@ class TestRigRelayEnforcement(unittest.TestCase):
         # F2 rework: a scratch env root resolving to /, /tmp or /var/tmp
         # must not widen relay scope — the jail masks host /tmp, so a
         # host-/tmp file would launder bytes the seat could not read.
-        probe = Path("/tmp") / f"relay-scope-probe-{os.getpid()}.txt"
-        probe.write_text("dummy-probe-content\n")
+        probe_fd, probe_name = tempfile.mkstemp(
+            prefix="relay-scope-probe-", suffix=".txt", dir="/tmp"
+        )
+        with os.fdopen(probe_fd, "w") as fh:
+            fh.write("dummy-probe-content\n")
+        probe = Path(probe_name)
         self.addCleanup(lambda: probe.unlink(missing_ok=True))
         link = Path(self.tmp.name) / "tmp-link"
         link.symlink_to("/tmp")
@@ -539,6 +544,104 @@ class TestRigRelayEnforcement(unittest.TestCase):
                 )
                 self.assertEqual(proc.returncode, 0, proc.stderr)
                 self.assertIn("FAKE-RIG-RAN", proc.stdout)
+
+
+class TestRigRelayTOCTOU(unittest.TestCase):
+    """TOCTOU pinning for --body-file (overhaul-a rework 2, F2).
+
+    The relay validates the body path and then execs rig with that same
+    path argument, so a swap winning the validation->exec window would
+    redirect the granted read. The swapping fake rig below wins that race
+    with probability 1: AFTER the relay's validation decision it replaces
+    the validated path with a symlink to a secret file, then reads the
+    granted body argument exactly as rig would (existsSync/statSync/
+    readFileSync on the given path). A pinned relay still serves the
+    validated bytes (the granted argument is /dev/fd/N); an unpinned one
+    leaks the secret. No bwrap gate: the relay runs pre-jail.
+    No real secrets: every "secret" is a dummy file under the test temp dir.
+    """
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        root = Path(self.tmp.name)
+        self.ws = root / "ws"
+        (self.ws / "src").mkdir(parents=True)
+        self.outside = root / "outside"
+        self.outside.mkdir()
+        (self.outside / "secret.txt").write_text("dummy-secret-content\n")
+        self.store = root / "secret-store"
+        self.store.mkdir(mode=0o700)
+        self.home = root / "home"
+        self.home.mkdir()
+        self.bin = root / "fakebin"
+        self.bin.mkdir()
+        rig = self.bin / "rig"
+        rig.write_text(
+            f"#!{sys.executable}\n"
+            "import os, sys\n"
+            "argv = sys.argv[1:]\n"
+            "body = None\n"
+            "for i, tok in enumerate(argv):\n"
+            "    if tok == '--body-file' and i + 1 < len(argv):\n"
+            "        body = argv[i + 1]\n"
+            "    elif tok.startswith('--body-file='):\n"
+            "        body = tok.partition('=')[2]\n"
+            "print('FAKE-RIG-RAN', ' '.join(argv))\n"
+            "orig = os.environ.get('RELAY_ORIG_BODY', '')\n"
+            "secret = os.environ.get('RELAY_SWAP_SECRET', '')\n"
+            "if orig and secret:\n"
+            "    try:\n"
+            "        os.unlink(orig)\n"
+            "    except OSError:\n"
+            "        pass\n"
+            "    os.symlink(secret, orig)\n"
+            "with open(body, 'rb') as fh:\n"
+            "    print('RIG-READ:' + fh.read().decode())\n"
+        )
+        rig.chmod(rig.stat().st_mode | stat.S_IXUSR)
+        self.env = {
+            "PATH": f"{self.bin}{os.pathsep}/usr/bin{os.pathsep}/bin",
+            "HOME": str(self.home),
+            "HERETEK_SANDBOX_WRITE": "src/",
+            "HERETEK_SECRET_STORE": str(self.store),
+        }
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def run_relay(self, command, **env):
+        merged = {**self.env, **env}
+        return subprocess.run(
+            ["bash", str(WRAPPER), "-c", command],
+            cwd=str(self.ws),
+            env=merged,
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+
+    def test_swapped_path_cannot_redirect_granted_read(self):
+        for flag_tpl in ("--body-file {p}", "--body-file={p}"):
+            with self.subTest(flag_tpl=flag_tpl):
+                body = self.ws / "src/body.json"
+                # A previous subTest's swap leaves a symlink behind; rebuild
+                # a regular body file (and restore the dummy secret, which a
+                # symlink-following write may have clobbered).
+                if body.is_symlink() or body.exists():
+                    body.unlink()
+                body.write_text('{"slice": 12}\n')
+                secret = self.outside / "secret.txt"
+                secret.write_text("dummy-secret-content\n")
+                proc = self.run_relay(
+                    "rig queue create --json --verify " + flag_tpl.format(p=body),
+                    RELAY_ORIG_BODY=str(body),
+                    RELAY_SWAP_SECRET=str(secret),
+                )
+                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertIn("FAKE-RIG-RAN", proc.stdout)
+                self.assertIn("/dev/fd/", proc.stdout)
+                self.assertIn('RIG-READ:{"slice": 12}', proc.stdout)
+                self.assertNotIn("dummy-secret-content", proc.stdout)
 
 
 if __name__ == "__main__":
