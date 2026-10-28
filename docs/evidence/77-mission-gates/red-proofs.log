@@ -197,3 +197,77 @@ GREEN (restored, byte-identical copy): Ran 19 tests / OK.
 (docs runbook + qa, scripts/sweep-typed-blocks.py,
 tests/test_mission_gates.py); sweep file diffed byte-identical to the
 pre-sabotage copy before proceeding.
+
+## QA-R5 series (acceptance verifier, rework cycle 1, 2026-10-28, tree @ 94ec266, worktree .lane/trees/77-mission-gates-r1)
+
+Temporary sabotage only; every entry restored via `git checkout -- <file>`
+with byte-identity proven by `cmp` against a pre-sabotage copy; `git status
+--short` clean after each restore. Priors untouched (lines 1-199 above).
+
+### QA-R5a REQ-M3 production wiring: neuter the newly wired guard CALL (not the guard) -> dismissal MUST succeed (RED)
+
+Sabotage: `scripts/sweep-typed-blocks.py` `request_recovery_dismissal`
+guard invocation neutered — the `try: outcome = check_recovery_dismissal(
+...) except RecoveryDismissalRefused ... raise` block replaced by a direct
+`outcome = {"dismissal": "permitted", ...}` return (`check_recovery_dismissal`
+itself untouched). Independent behavioral drive (scratch `/tmp/opencode/
+qa-r1-wiring.py`, NOT the rework's own tests): real `run_sweep(client,
+cursor={}, log_lines=logs)` on the `stuck_typed_row` fixture -> retained
+`report["recovery_guards"]["qitem-STUCK-01"]` -> `request_recovery_dismissal`
+with the retained flag-time snapshot on the byte-identical row:
+
+RED (sabotaged, exit 0):
+
+```
+retained: ['flagged_qitem', 'flagged_snapshot'] | qid match: True | snapshot==flag-time: True
+UNCHANGED-DISMISSAL: PERMITTED (BAD)
+writes during refusal: []
+CHANGED-DISMISSAL: permitted | writes: []
+```
+
+Unchanged-row dismissal sails through the production flow — the B2
+bury-the-stall outcome — proving the close-time gate refuses BECAUSE of the
+wired guard call, not incidentally.
+
+GREEN (restored via `git checkout -- scripts/sweep-typed-blocks.py`,
+`cmp` byte-identical to pre-sabotage copy, exit 0):
+
+```
+retained: ['flagged_qitem', 'flagged_snapshot'] | qid match: True | snapshot==flag-time: True
+UNCHANGED-DISMISSAL: REFUSED (GOOD): recovery-dismissal-refused: recovery-QA-01 for flagged row qitem-STUCK-01 (row state byte-identical to flag time; owner action required, never auto-close)
+writes during refusal: []
+CHANGED-DISMISSAL: permitted | writes: []
+```
+
+### QA-R5b full-battery check: V29 charter-marker gate is non-vacuous on the rework tip (RED + GREEN)
+
+Sabotage: closure-ownership bullet line removed from one rendered leaf
+(`rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md`).
+Full `./scripts/verify-rigs.sh --check-only`:
+
+RED (sabotaged, exit 1):
+
+```
+  [FAIL] qa-and-verification-gauntlet: bundle.yaml integrity.files mismatch with disk
+  [FAIL] qa-and-verification-gauntlet: packageDigest mismatch
+  [FAIL] V29/77-mission-gates: leaf rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md lost charter marker '--gate'
+  [FAIL] V29/77-mission-gates: leaf rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md lost charter marker '77-mission-gates'
+  [FAIL] V29/77-mission-gates: leaf rigs/qa-and-verification-gauntlet/agents/_shared/skills/mission-slice-sop/SKILL.md lost charter marker 'closes its own row'
+SUMMARY: 35 checks passed, 5 failed.
+```
+
+(Adjacent observation, same run: sabotaging only the bullet TITLE in the
+`specs/` source leaf — leaving the `closes its own row` body text — does
+NOT trip V29; it trips the shared-skill tree-hash lock instead: `[FAIL]
+shared skill mission-slice-sop: tree-hash mismatch ...`, `SUMMARY: 34
+checks passed, 1 failed`, exit 1. Both layers fail closed; V29 keys on the
+three marker strings, the hash lock keys on bytes. Source leaf restored
+before proceeding.)
+
+GREEN (restored via `git checkout -- <leaf>`; `cmp` byte-identical to
+pre-sabotage copy; `git status --short` clean; full re-run, exit 0):
+
+```
+  [PASS] V29 mission-gate ownership (77-mission-gates S2) green: stalled diff + charter markers in 9 leaves + refusal guard + 19 corpus tests pass + S0 evidence present
+SUMMARY: 37 checks passed, 0 failed.
+```
