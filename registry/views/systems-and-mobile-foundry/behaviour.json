@@ -5,27 +5,27 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/systems-and-mobile-foundry",
-      "resolvedCommit": "47e71aa8d0a14388398b3bd5fd33969a06228a06",
+      "resolvedCommit": "6781e0e18f19abcc9f2596a61ddca82f3d9d6ad7",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/47e71aa8d0a14388398b3bd5fd33969a06228a06/rigs/systems-and-mobile-foundry"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/6781e0e18f19abcc9f2596a61ddca82f3d9d6ad7/rigs/systems-and-mobile-foundry"
     },
     "configurationId": "mobile.android-mobile-spec=pi,mobile.ios-mobile-spec=pi,systems.cpp-lowlevel-eng=pi,systems.rust-systems-spec=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "d9d62c9962d3dd6d29e12ae51606ad622d1529a06f557e132f1373a308c66b73",
+      "value": "c57ad458e9fb8b8e214c4cba517de466b5bfb90b3ea63168642c8c1c492a27a9",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {
-      "openrigVersion": "0.7.2",
-      "commit": "8b180689"
+      "openrigVersion": "0.7.4",
+      "commit": "6d9e8e27"
     },
     "generator": {
-      "openrigVersion": "0.7.2",
-      "commit": "8b180689"
+      "openrigVersion": "0.7.4",
+      "commit": "6d9e8e27"
     },
     "compatibility": {
-      "minDaemonVersion": "0.7.2",
-      "minCliVersion": "0.7.2"
+      "minDaemonVersion": "0.7.4",
+      "minCliVersion": "0.7.4"
     },
     "statedProvenance": {
       "notes": "Heretek-Rigs systems-and-mobile-foundry v1.0.0"

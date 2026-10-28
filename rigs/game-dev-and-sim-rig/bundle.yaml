@@ -5,15 +5,15 @@ created_at: '2026-10-18T00:00:00.000Z'
 rig_spec: rig.yaml
 culture_file: CULTURE.md
 compatibility:
-  min_cli_version: 0.7.2
-  min_daemon_version: 0.7.2
+  min_cli_version: 0.7.4
+  min_daemon_version: 0.7.4
 preconditions:
 - name: Seed isolated Pi seat directories (auth.json, settings.json, mcp.json, AGENTS.md, pi-permission-system)
   commands:
   - python3 ./scripts/seed-rig.py rigs/game-dev-and-sim-rig/rig.yaml
 assembler:
-  openrigVersion: 0.7.2
-  commit: 8b180689
+  openrigVersion: 0.7.4
+  commit: 6d9e8e27
 configuration:
   id: engine.engine-systems-eng=pi,engine.graphics-shader-eng=pi,engine.physics-sim-eng=pi,gameplay.game-ai-dev=pi,gameplay.game-systems-dev=pi,gameplay.tech-artist-pipeline=pi
   preset: recommended
@@ -89,7 +89,7 @@ integrity:
   files:
     CULTURE.md: a5cecee6aa3ac417a2a0c7e66e875943bbf4981c04d2dd072761eedd49d212d5
     README.md: a70aefe8cdb5bb25855cbb096e9b720cd0288ef186b13efe666b1d3be2ba5012
-    SETUP.md: 91bfc8c991079ebec9b0c5c0487e292147d5b94d714a4a34c057da85c30ce98b
+    SETUP.md: 2afaaae8b9102a6f61ce27e629d562c65c0ea1ccf12f116fe3d1509e35b1ebbb
     agents/_shared/agent.yaml: 6d39cfaf9075c348900031cd2fcd7bad7ad942922c0f006bd6477ea179d5dfab
     agents/_shared/skills/address-sanitizer/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
     agents/_shared/skills/address-sanitizer/SKILL.md: eb9ea8210fa55d50477fbe52993a704e320c88739c10d619864b6ce377ebce25
@@ -232,7 +232,7 @@ integrity:
     agents/_shared/skills/libfuzzer/agents/openai.yaml: 0edbd68f53abc679b392ac26315d4b3fb0647119a27babeba05b59120f806cb7
     agents/_shared/skills/libfuzzer/assets/trail-of-bits-mark.svg: 4bf74c789b38dcf6ad762c136b6832363d27ae19fbaa9a18ec18d66ecce6ca05
     agents/_shared/skills/messaging-the-human/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/messaging-the-human/SKILL.md: e94095e61cec0d32d96fb8c60df008d0c3ac3bd2fa789a5eb625f46f35945456
+    agents/_shared/skills/messaging-the-human/SKILL.md: 680ca50b22b0aec280a6c7bb5e118cda1dca991742f42f9a5b74e138448753fe
     agents/_shared/skills/mission-slice-sop/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
     agents/_shared/skills/mission-slice-sop/SKILL.md: a01e72a526c975a86f0754af206505efbafcbbc3583bea1394c50759dc5a584f
     agents/_shared/skills/modern-python/LICENSE: 7abe19ec9bb73b36141b999b861d24ad855e808bafe0f81e84cce28556f6c297
@@ -307,7 +307,7 @@ integrity:
     agents/_shared/skills/property-based-testing/references/refactoring.md: 6eb5c206f575704791f089608bb06e41d6eed91b9d3c7fb27912f969aed07a18
     agents/_shared/skills/property-based-testing/references/reviewing.md: 110b08118a1e7b1a2566def6e9d2a0bf43fc2deefce857d2ce3b4382b07bc774
     agents/_shared/skills/queue-handoff/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/queue-handoff/SKILL.md: fcfa420a49a09be4fd51ccc6ca89c00847a59484a7bcab205c8eec83837cdc0d
+    agents/_shared/skills/queue-handoff/SKILL.md: 84a07fc427d20cdf42f19ffa9893d41a517a99b635a559de8b329427e9b3bd9f
     agents/_shared/skills/react-best-practices/AGENTS.md: fc93e7421177bbf869cce892bc60a6c83a4517d974bc3bf65c4e2c1e58a6ccf6
     agents/_shared/skills/react-best-practices/README.md: 9eafb2123d3b8b2aef41fba0db2648a3f4f49996f8c7c8bb2c86263befd8b48a
     agents/_shared/skills/react-best-practices/SKILL.md: 7abbd5496192757b9fb235858bc140a6ae867a3aa2c67393a6b354ea3ac7db0b

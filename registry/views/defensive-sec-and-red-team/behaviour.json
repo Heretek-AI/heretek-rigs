@@ -5,27 +5,27 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/defensive-sec-and-red-team",
-      "resolvedCommit": "47e71aa8d0a14388398b3bd5fd33969a06228a06",
+      "resolvedCommit": "6781e0e18f19abcc9f2596a61ddca82f3d9d6ad7",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/47e71aa8d0a14388398b3bd5fd33969a06228a06/rigs/defensive-sec-and-red-team"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/6781e0e18f19abcc9f2596a61ddca82f3d9d6ad7/rigs/defensive-sec-and-red-team"
     },
     "configurationId": "blue.appsec-engineer=pi,blue.cloud-sec-auditor=pi,blue.compliance-auditor=pi,blue.threat-modeler=pi,red.ai-red-teamer=pi,red.binary-reverse-eng=pi,red.firmware-sec-analyst=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "fd26a91a959ee56a6faf6b9239442ee6bb9f2a15f2cbb8df352ec95416a0b52c",
+      "value": "c9f129604e3093901ff751174843e1b810905bc5783bf0dea0437f14d487e4df",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {
-      "openrigVersion": "0.7.2",
-      "commit": "8b180689"
+      "openrigVersion": "0.7.4",
+      "commit": "6d9e8e27"
     },
     "generator": {
-      "openrigVersion": "0.7.2",
-      "commit": "8b180689"
+      "openrigVersion": "0.7.4",
+      "commit": "6d9e8e27"
     },
     "compatibility": {
-      "minDaemonVersion": "0.7.2",
-      "minCliVersion": "0.7.2"
+      "minDaemonVersion": "0.7.4",
+      "minCliVersion": "0.7.4"
     },
     "statedProvenance": {
       "notes": "Heretek-Rigs defensive-sec-and-red-team v1.0.0"
