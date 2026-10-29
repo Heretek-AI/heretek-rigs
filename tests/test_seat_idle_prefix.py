@@ -232,6 +232,19 @@ class TestPrefixEvidenceFrozen(unittest.TestCase):
         self.assertIn("daemon source rule: ABSENT", text)
         self.assertIn("recorded source: operator", text)
 
+    def test_evidence_records_daemon_handoff_invocation_result(self):
+        """The S0 transcript captures the dummy daemon-origin handoff
+        invocation result (FAIL-ONLY: no validator present, so the
+        operator label passes through with no relabel) — not marker
+        absence alone."""
+        text = EVIDENCE.read_text(encoding="utf-8")
+        self.assertIn("validate_handoff_source present: False", text)
+        self.assertIn(
+            "handoff invocation result: recorded source operator "
+            "(rule ABSENT, no relabel)",
+            text,
+        )
+
     def test_evidence_has_no_secret_shaped_strings(self):
         """Mirrors the S0 grep acceptance: no 40+ bearer-shaped runs."""
         text = EVIDENCE.read_text(encoding="utf-8")

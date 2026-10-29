@@ -114,6 +114,38 @@ _NON_WORK_NOTE_RES = (
     re.compile(r"watchdog", re.IGNORECASE),
 )
 
+# 81-seat-idle rework-1 (F4): positive first-work-action markers. A trail
+# note that mixes a known non-work event with genuine work evidence (e.g.
+# "claimed; verdict recorded, findings filed") counts as work — only a
+# note with non-work events and NO work action is excluded, so mixed
+# notes stay eligible as work evidence. Tokens grounded in the S0/S1
+# corpus vocabulary (verdict filed, QA PASS, PLACED/DONE).
+_WORK_ACTION_RE = re.compile(
+    r"\b(verdict|filed|files|QA PASS|PLACED|DONE)\b", re.IGNORECASE
+)
+
+# 81-seat-idle rework-1 (F2): wake/release prose. A post-park note counts
+# as wake evidence only when it names a wake or release event (woken,
+# release, resumed, unparked). A watchdog heartbeat or any other note
+# lacking wake/release prose is not wake evidence — wake_ts stays unset.
+_WAKE_NOTE_RE = re.compile(
+    r"\b(wake|woken|woke|released?|resumed?|unparked?)\b", re.IGNORECASE
+)
+
+
+def _is_non_work_only(note):
+    """True when a trail note carries only known non-work events (issue #81).
+
+    A mixed note (non-work event alongside work evidence) is NOT
+    non-work-only — it counts as a first work action. A note with no
+    known non-work event is work by the standing conservative rule
+    (unfamiliar notes keep the row quiet). Shared by
+    trail_has_work_action and attribute_idle_latency (rework-1 F4).
+    """
+    if not any(rx.search(note) for rx in _NON_WORK_NOTE_RES):
+        return False
+    return not bool(_WORK_ACTION_RE.search(note))
+
 
 def is_idle_park_prose(cell):
     """True when prose shows parked-at-prompt while holding an open
@@ -597,15 +629,18 @@ def trail_has_work_action(trail):
     """True when the queue trail records a first work action (issue #81).
 
     Only the known non-work classes (claim, handoff receipt,
-    parked/watchdog arbitration) are excluded; any other non-empty note
-    counts as work, so an unfamiliar note keeps the row quiet (fail-closed
-    against over-flagging, never against silence).
+    parked/watchdog arbitration) are excluded — and only when the note
+    carries no work action alongside them; a mixed note (non-work event
+    plus work evidence) counts as work, so mixed notes stay eligible as
+    work evidence (rework-1 F4). Any other non-empty note counts as work,
+    so an unfamiliar note keeps the row quiet (fail-closed against
+    over-flagging, never against silence).
     """
     for transition in trail or []:
         note = str((transition or {}).get("transitionNote") or "").strip()
         if not note:
             continue
-        if any(rx.search(note) for rx in _NON_WORK_NOTE_RES):
+        if _is_non_work_only(note):
             continue
         return True
     return False
@@ -628,7 +663,9 @@ def attribute_idle_latency(trail):
     Pure report field (inputs for #15/#17): claim_ts is the first claim
     note, park_ts the first idle-park-prose note, work_ts the first work
     note (None when no work action exists), wake_ts the first post-park
-    note that is not idle-park prose (None while still parked). Seconds
+    wake/release note (None while still parked: a watchdog heartbeat or
+    any other post-park note without wake/release prose is not wake
+    evidence). Seconds
     deltas are floats; park_to_wake_s is None while the seat is still
     parked. Report only — never writes tracker or queue state.
     """
@@ -644,10 +681,14 @@ def attribute_idle_latency(trail):
             parked_seen = True
             continue
         if parked_seen and wake_ts is None and not is_idle_park_prose(note):
-            wake_ts = ts or None
+            # Rework-1 F2: only a wake/release note counts as wake
+            # evidence — a watchdog heartbeat or other note lacking
+            # wake/release prose leaves wake_ts unset (still parked).
+            if _WAKE_NOTE_RE.search(note):
+                wake_ts = ts or None
         if work_ts is None:
             stripped = note.strip()
-            if stripped and not any(rx.search(note) for rx in _NON_WORK_NOTE_RES):
+            if stripped and not _is_non_work_only(note):
                 work_ts = ts or None
     claim_s = _parse_ts(claim_ts)
     park_s = _parse_ts(park_ts)
@@ -767,6 +808,17 @@ def render_diff(row, diff):
     attribution = diff.get("attribution")
     if isinstance(attribution, dict) and attribution.get("note"):
         lines.append(f"  attribution: {attribution['note']}")
+    # 81-seat-idle rework-1 (F3): the stalled-idle-park diff routes for
+    # human review — never a paste-ready cell. Render its review-routing
+    # proposal as SUGGESTED (not paste-ready): no PROPOSED-CELL marker
+    # and no "converged" queue-note suggestion (the row has not
+    # converged). Every other diff class keeps the existing output below.
+    if diff.get("class") == "stalled-idle-park":
+        lines += [
+            "  NEEDS-HUMAN-REVIEW: TPM decide; owner owns next action.",
+            f"  SUGGESTED (not paste-ready): {diff['proposal']}",
+        ]
+        return "\n".join(lines)
     lines += [
         "  PROPOSED Status cell:",
         f"    {diff['proposal']}",

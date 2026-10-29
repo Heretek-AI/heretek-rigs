@@ -20,8 +20,8 @@ open obligation` (t13, +31s). No work action anywhere in the trail (no
 verdict, no file, no QA prose); the seat holds 1 open obligation.
 
 Latency spread fixture: claim 2026-10-23T21:33:29.000Z, handoff +8s, park
-2026-10-23T21:34:00.000Z (+31s), wake 2026-10-23T21:34:53.000Z (+53s, +22s
-park-to-wake), work_ts null (no work action recorded).
+2026-10-23T21:34:00.000Z (+31s), wake 2026-10-23T21:34:53.000Z (+84s from
+claim, +53s park-to-wake), work_ts null (no work action recorded).
 
 Daemon handoff fixture: stuck-sweep recovery item
 `qitem-recovery-3b06228ed0da95e8` of daemon origin (`daemon:stuck-sweep`)
@@ -78,6 +78,14 @@ DAEMON_SOURCE present: False
 ```
 daemon source rule: ABSENT
 recorded source: operator
+```
+
+Dummy daemon-origin handoff invocation on the unpatched tree (no
+validator exists, so the operator label passes through untouched):
+
+```
+validate_handoff_source present: False
+handoff invocation result: recorded source operator (rule ABSENT, no relabel)
 ```
 
 `scripts/send_identity.py` carries no daemon-source rule on the unpatched
