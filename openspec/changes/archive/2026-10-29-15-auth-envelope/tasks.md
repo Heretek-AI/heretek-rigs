@@ -17,10 +17,10 @@ Nothing under `openspec/` changes after this spec except the end-of-wave archive
 
 ## S0 — #15-pattern fixtures + pre-fix silence proof
 
-- [ ] S0.1 Scratch fixtures (repo `tests/` fixtures + `/tmp` scratch only): authorized premise (one-liner scope) vs
+- [x] S0.1 Scratch fixtures (repo `tests/` fixtures + `/tmp` scratch only): authorized premise (one-liner scope) vs
   live drifted diff (multi-file); premise-age spread fixture (premise/verify/landing timestamps); no-envelope baseline.
-- [ ] S0.2 Preserve verbatim transcripts at `docs/evidence/15-auth-envelope-prefix.md` (redacted/dummies only).
-- [ ] S0.3 Prove non-vacuous: reconciler exits without the drift signal AND no envelope validates on the unpatched tree;
+- [x] S0.2 Preserve verbatim transcripts at `docs/evidence/15-auth-envelope-prefix.md` (redacted/dummies only).
+- [x] S0.3 Prove non-vacuous: reconciler exits without the drift signal AND no envelope validates on the unpatched tree;
   `grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/15-auth-envelope-prefix.md` MUST print nothing.
 
 Acceptance (S0):
@@ -33,10 +33,10 @@ grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/15-auth-envelope-prefix.md; test $? 
 
 ## S1 — premise-drift classification + premise-age attribution
 
-- [ ] S1.1 `reconcile_model.py` new premise-drift diff class (stalled signal, propose-only; clean premises stay quiet)
+- [x] S1.1 `reconcile_model.py` new premise-drift diff class (stalled signal, propose-only; clean premises stay quiet)
   with premise-age attribution (report-only field, inputs for #17). Corpus fixtures in the reconcile test style, dummy data only.
-- [ ] S1.2 Attribution is report-only: premise age at landing computed from fixture timestamps; no tracker/queue writes.
-- [ ] S1.3 `tests/test_auth_envelope.py` covering REQ-E1 (clean-validates path) / REQ-E2 scenarios (flagged + quiet + attribution).
+- [x] S1.2 Attribution is report-only: premise age at landing computed from fixture timestamps; no tracker/queue writes.
+- [x] S1.3 `tests/test_auth_envelope.py` covering REQ-E1 (clean-validates path) / REQ-E2 scenarios (flagged + quiet + attribution).
 
 Acceptance (S1):
 
@@ -52,13 +52,13 @@ One entry per check; add pinning tests wherever a probe outruns the suite (wave-
 
 ## S2 — envelope mint/validate + non-dismissible recovery + V31
 
-- [ ] S2.1 Envelope mint/validate: `diff-hash` + scope paths + mandatory expiry + single-use nonce (HMAC-bound,
+- [x] S2.1 Envelope mint/validate: `diff-hash` + scope paths + mandatory expiry + single-use nonce (HMAC-bound,
   0600 stores, redacted logs; wave-9 nonce discipline reused where it fits). Drift/scope-breach/expiry/replay ⇒
   fail-closed refusal, redacted log; row untouched. Envelopes never self-execute, never auto-commit.
-- [ ] S2.2 Landing recovery requires row state change for dismissal (fail-closed refusal, redacted log; never `done`,
+- [x] S2.2 Landing recovery requires row state change for dismissal (fail-closed refusal, redacted log; never `done`,
   never committed).
-- [ ] S2.3 Append V31 block `== V31. Pre-Authorization Envelopes (15-auth-envelope) ==` (new block only; SUMMARY 38 → 39).
-- [ ] S2.4 V31 asserts: drift diff class present, envelope validation present with nonce/expiry/scope checks, corpus rc=0
+- [x] S2.3 Append V31 block `== V31. Pre-Authorization Envelopes (15-auth-envelope) ==` (new block only; SUMMARY 38 → 39).
+- [x] S2.4 V31 asserts: drift diff class present, envelope validation present with nonce/expiry/scope checks, corpus rc=0
   with floor ≥16, S0 evidence present with silence transcript and zero secret-shaped strings. FAIL-ONLY run against
   pre-fix tree recorded in red-proofs.log.
 
@@ -75,12 +75,12 @@ S1d replay a consumed nonce / present an expired envelope → refused (RED each)
 
 ## S3 — runbook, docs, wave closeout
 
-- [ ] S3.1 `docs/evidence/15-auth-envelope-runbook.md`: envelope issuance flow + landing validation flow + drift-triage
+- [x] S3.1 `docs/evidence/15-auth-envelope-runbook.md`: envelope issuance flow + landing validation flow + drift-triage
   flow, exercised against fixtures in scratch (record premise-age samples as #17 inputs).
-- [ ] S3.2 AGENTS.md docs-map line for this change (docs-map-only; no rule-text changes).
-- [ ] S3.3 Implementation report `docs/reports/15-auth-envelope-implementation.md`; QA red-proofs committed;
+- [x] S3.2 AGENTS.md docs-map line for this change (docs-map-only; no rule-text changes).
+- [x] S3.3 Implementation report `docs/reports/15-auth-envelope-implementation.md`; QA red-proofs committed;
   drift-guard `docs/reports/15-auth-envelope-verification.md` ending `VERDICT: PASS`.
-- [ ] S3.4 Leave `openspec/changes/2026-10-29-15-auth-envelope/` unarchived until merge; archive only after triad passes.
+- [x] S3.4 Leave `openspec/changes/2026-10-29-15-auth-envelope/` unarchived until merge; archive only after triad passes.
 
 Acceptance (S3):
 
@@ -92,6 +92,6 @@ grep -c -- 'premise age' docs/evidence/15-auth-envelope-runbook.md            # 
 
 ## Wave closeout (coordinator)
 
-- [ ] Triad complete with `VERDICT: PASS` read from disk (never trusted from summary).
-- [ ] `git merge --ff-only` into `main`, `make check` green, worktree pruned, change archived.
-- [ ] PR with `Refs #15` (issue stays open for the live-fleet proof).
+- [x] Triad complete with `VERDICT: PASS` read from disk (never trusted from summary).
+- [x] `git merge --ff-only` into `main`, `make check` green, worktree pruned, change archived.
+- [x] PR with `Refs #15` (issue stays open for the live-fleet proof).
