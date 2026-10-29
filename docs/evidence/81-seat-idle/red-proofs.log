@@ -110,3 +110,68 @@ Executable form: the S1d sabotage test in tests.test_seat_idle
 (TestDaemonSource: bypassed -> operator collision; restored ->
 daemon:stuck-sweep) and the genuine-operator-relay test (wave-9
 attested/rejected preserved).
+
+## QA re-verification (2026-10-29, worktree .lane/trees/81-seat-idle, HEAD 9461324 clean)
+
+Independent live-sabotage re-runs by the QA verifier. Each: inject minimal
+defect into the real file, run the acceptance check, observe RED (non-zero
+exit / test failure) for the right reason, `git checkout -- <file>`,
+confirm `git status --short` clean, re-run for GREEN. No vacuous checks
+found; every check below failed under sabotage and passed on restore.
+
+### QA-S1a: idle-park classification removed -> silent (RED)
+
+Sabotage: `scripts/reconcile_model.py`, one line injected at the top of
+`stalled_idle_park_diff` body: `return None  # QA SABOTAGE S1a`.
+Check: `python3 -m unittest
+tests.test_seat_idle.TestStalledIdlePark.test_mission_a_pattern_flagged_stalled`.
+RED: `FAILED (failures=1)`, exit 1, `AssertionError: unexpectedly None` —
+the Mission-A fixture (claim + "Handoff received" + parked-at-prompt
+watchdog, 1 open obligation, no work action) returns to silent, the exact
+pre-fix gap. Reverted via `git checkout -- scripts/reconcile_model.py`
+(status clean); full corpus `tests.test_seat_idle` GREEN (24 OK).
+
+### QA-S1b/S1c: scope guards quiet both ways (non-vacuous quiet)
+
+Under the SAME S1a sabotage above, ran
+`test_obligation_free_idle_stays_quiet` +
+`test_live_gate_waiting_stays_quiet`: both OK (exit 0) while the flagged
+test RED — legitimate idle and live-gate waiting stay quiet with AND
+without the classification. Post-restore full corpus GREEN (24 OK, includes
+`test_obligation_free_quiet_both_ways`,
+`test_live_gate_quiet_both_ways`).
+
+### QA-S1d: operator label allowed for daemon origin -> collision (RED)
+
+Sabotage: `scripts/send_identity.py`, early
+`return {"source": presented, ...}` injected at the top of the daemon arm
+of `validate_handoff_source` (mechanical equivalent of persisting the
+presented operator label). Check: `python3 -m unittest
+tests.test_seat_idle.TestDaemonSource`. RED: `FAILED (failures=3)`, exit 1,
+diff `- operator / + daemon:stuck-sweep` — the daemon handoff is recorded
+as an operator relay, restoring the #81/#9 collision. Reverted via
+`git checkout -- scripts/send_identity.py` (status clean); TestDaemonSource
+GREEN (5 OK); genuine-operator-relay handling untouched.
+
+### QA-S2: dismissal guard neutered -> silent permit (RED)
+
+Sabotage: `scripts/sweep-typed-blocks.py`, `check_recovery_dismissal`
+refusal arm `if current_snapshot == flagged_snapshot:` replaced with
+`if False:  # QA SABOTAGE S2`. Check: `python3 -m unittest
+tests.test_seat_idle.TestIdleParkNonDismissibleRecovery.test_dismissal_without_change_refused`.
+RED: `FAILED (failures=1)`, exit 1,
+`AssertionError: RecoveryDismissalRefused not raised` — unchanged-row
+dismissal would be permitted, burying the stall. Reverted via `git checkout
+-- scripts/sweep-typed-blocks.py` (status clean);
+TestIdleParkNonDismissibleRecovery GREEN (4 OK).
+
+### QA-V30: gate marker removed -> verify RED (RED)
+
+Sabotage: `scripts/reconcile_model.py`, `def attribute_idle_latency`
+renamed to `def attribute_idle_latency_QA_SABOTAGE` (one V30-pinned
+marker). Check: `./scripts/verify-rigs.sh --check-only`. RED: exit 1,
+`[FAIL] V30/81-seat-idle: ...`, `SUMMARY: 37 checks passed, 1 failed`.
+Reverted via `git checkout -- scripts/reconcile_model.py` (status clean);
+re-run GREEN: `SUMMARY: 38 checks passed, 0 failed`, V30 PASS.
+
+Post-sabotage state: `git status --short` clean (no sabotage residue).
