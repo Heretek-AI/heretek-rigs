@@ -31,7 +31,7 @@ for arg in "$@"; do
 done
 
 RUNNER=(python3)
-if ! python3 -c "import yaml, jsonschema" >/dev/null 2>&1; then
+if ! python3 -c "import yaml, jsonschema, referencing" >/dev/null 2>&1; then
   if command -v uv >/dev/null 2>&1; then
     RUNNER=(uv run --quiet --with pyyaml --with jsonschema python3)
   fi

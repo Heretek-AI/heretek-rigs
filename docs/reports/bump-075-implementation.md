@@ -144,3 +144,68 @@
   `openspec/specs/bump/spec.md`; 9 insertions, 1 deletion).
   `openspec validate` on a change-id: N/A (no new/changed change-id).
   `make test`: skipped (docs/spec-only, reason above). No commit (coordinator commits).
+
+## Rework-2 (2026-10-29-bump-075 REWORK-2, branch fix/bump-075-r2 @ 51757e4): unblock PR #135 CI — missing direct `referencing` dependency
+
+- **Symptom (verified):** PR #135 CI job "Host verification gate"
+  (`.github/workflows/docker-release.yml:54`) fails at
+  `./scripts/verify-rigs.sh --check-only` with
+  `ModuleNotFoundError: No module named 'referencing'`. The script imports it
+  directly at `scripts/verify-rigs.sh:51`
+  (`from referencing import Registry, Resource`), but the workflow installed
+  only `pip install --quiet pyyaml jsonschema`
+  (`.github/workflows/docker-release.yml:53`, pre-fix).
+- **Root cause (verified, runner-image drift — NOT a Wave-1 regression):**
+  `referencing` arrived only transitively via `jsonschema`. On current
+  `ubuntu-24.04` runner images a pre-installed `jsonschema` satisfies the pip
+  requirement, so `pip install` is a no-op and never pulls `referencing`,
+  and the heredoc import fails. Local environment confirms the packaging
+  side is unchanged: installed `jsonschema` is 4.26.0 and installed
+  `referencing` is 0.37.0 (`pip show`, `importlib.metadata.version`).
+  `git diff main...HEAD -- scripts/verify-rigs.sh` on this branch is V13/V18
+  pin strings only (`0.7.4` → `0.7.5`, three hunks) — no dependency-shape
+  change from Wave-1.
+- **Main-also-fails evidence (verified via `gh`, not coordinator hearsay):**
+  `gh run list --workflow docker-release.yml --branch main --limit 7` shows 7
+  consecutive `failure` runs on unmodified main (incl. #124/#125/#126/#128/
+  #131/#132/#133 merges). `gh run view 40822422518 --log-failed` (main merge
+  of PR #133) shows the identical failure:
+  `Run ./scripts/verify-rigs.sh --check-only` →
+  `ModuleNotFoundError: No module named 'referencing'`.
+- **Fix (2 lines, bare names matching existing style, no pins invented):**
+  1. `.github/workflows/docker-release.yml:53`:
+     `pip install --quiet pyyaml jsonschema` →
+     `pip install --quiet pyyaml jsonschema referencing`
+     (direct dependency declared directly — the one-line fix).
+  2. `scripts/verify-rigs.sh:34` guard:
+     `python3 -c "import yaml, jsonschema"` →
+     `python3 -c "import yaml, jsonschema, referencing"`
+     (one-word change; a missing dep now fails with the friendly guard path
+     instead of a heredoc traceback). Guard is the pre-heredoc `RUNNER`
+     preamble (lines 33-38); no V-gate text altered — confirmed zero `V[0-9]`
+     matches below line 40 other than header comments (lines 5-15 are the
+     `#`-comment docstring), and `git diff` shows exactly these 2 lines.
+- **Validation (real outputs, inside worktree `.lane/trees/bump-075-r2`):**
+  `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+  0 failed`, rc=0; `python3 -c "import yaml, jsonschema, referencing"` →
+  rc=0; direct-import proof via
+  `python3 -c "import importlib.metadata;
+  print(importlib.metadata.version('referencing'))"` → `0.37.0`;
+  `git status --short` → only the 2 intended files
+  (`.github/workflows/docker-release.yml`, `scripts/verify-rigs.sh`) plus
+  this report addendum; `git diff --stat` → 2 files, 2 insertions,
+  2 deletions. `make test`: SKIPPED — change is one CI pip-line plus one
+  guard word (docs/CI-only, no generator/runtime/catalog code touched);
+  host suite baseline green at 634/0 per coordinator, unaffected.
+- **Deviations / notes (explicit):**
+  (a) The coordinator's suggested probe
+  `python3 -c "import referencing; print(referencing.__version__)"` FAILS
+  locally with `AttributeError: module 'referencing' has no attribute
+  '__version__'` (rc=1) — the module exposes no `__version__`; version proven
+  via `importlib.metadata` instead (0.37.0). The direct `from referencing
+  import Registry, Resource` import itself resolves (rc=0, gate green).
+  (b) The `uv` fallback on `scripts/verify-rigs.sh:36`
+  (`uv run --quiet --with pyyaml --with jsonschema python3`) was deliberately
+  left untouched per the minimal-diff constraint (one-word guard change
+  only); it does not cover `referencing` if system python lacks it — flagged
+  here as a known residual, not fixed. No commit/push/merge (per instructions).
