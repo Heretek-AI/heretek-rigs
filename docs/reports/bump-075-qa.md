@@ -46,5 +46,5 @@
 - Proposal acceptance 3 (verify 39/0, idempotent rc=0, self-test PASSED, make test at least 634 with 0 failed): PASS (checks 1–4 plus Probes A, B, E, F).
 - Proposal acceptance 4 (`openspec validate` rc=0): PASS (check 5 plus Probe D, with noted boundary).
 - Proposal acceptance 5 (red-proof pin-0.7.4 goes RED, restore goes GREEN): PASS (Probe A; extended to 8 probes).
-- Plan Wave-1 acceptance (compound 39/0 plus 634 or more plus ledger two-agent sha plus `rig --version` 0.7.5 plus validate rc=0 plus hash-mismatch RED to GREEN): PASS on all conjuncts.
+- Plan Wave-1 acceptance (compound 39/0 plus 634 or more plus ledger two-agent sha plus `rig --version` 0.7.5 plus validate rc=0 plus pin-string-mismatch RED to GREEN): PASS on all conjuncts. (Probe A proves V18 pin-string `0.7.4`→RED/restore→GREEN; fetched-tarball-digest vs expected-digest comparison is evidenced by the ledger's two independent fetches plus 0.7.4 control re-fetch, not by digest-corruption sabotage — see red-proofs.log Probes A/C.)
 - AGENTS.md surgical scope (15 lines or fewer): PASS (3 lines).

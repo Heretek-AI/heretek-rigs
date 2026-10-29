@@ -20,6 +20,12 @@ This guide walks you through installing prerequisites, provisioning zero-leak se
 
 Install the exact pinned versions of the OpenRig CLI (`@openrig/cli@0.7.5`) and Pi Coding Agent (`@earendil-works/pi-coding-agent@1.4.0`) globally:
 
+> **⚠ Existing operators — snapshot before upgrading:** 0.7.5 applies one-way
+> daemon DB migration 126 (`escalation_target_refs`). Before installing, snapshot
+> existing daemon state (`rig down <rig> --snapshot`) and confirm you can restore
+> it — never run 0.7.5 against the pre-upgrade snapshot without a restore path.
+> Rollback procedure: `docs/sprints/CLI-0.7.5-BUMP.md` §6 Rollback.
+
 ```bash
 npm install -g @openrig/cli@0.7.5 @earendil-works/pi-coding-agent@1.4.0
 rig --version   # Expect: 0.7.5 (b57c4da3)

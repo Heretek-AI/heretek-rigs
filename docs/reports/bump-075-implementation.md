@@ -97,3 +97,50 @@
   any new file (Bearer-shaped values never handled — scratch tarball hashes only).
 - No `Closes` used anywhere (bump ledger, no issue); no upstream filing; no
   commit made (awaiting coordinator).
+
+## Rework-1 (2026-10-29, branch fix/bump-075-r1 @ b584cae, role agency-programmer)
+
+- **Method:** review findings treated as untrusted; each verified against current
+  worktree code before any edit. Docs/spec-only fixes — `make test` skipped with
+  reason (no code/tests touched; full suite green at 634/0 per QA baseline).
+- **F1 (QA line 49 overclaim): VALID → FIXED by wording correction**
+  (`docs/reports/bump-075-qa.md:49`). Verified: red-proofs.log Probe A sabotages
+  the V18 pin-string (`"0.7.5"`→`"0.7.4"`), not the fetched-tarball digest vs
+  `22d67c2c…`. No gate compares fetched-tarball digest vs expected digest (V18
+  asserts `rig --version`; Probe C covers the ledger sha claim via grep), so
+  digest-corruption sabotage would prove nothing new — correction, not new
+  evidence, is the minimal honest fix. Claim now reads "pin-string-mismatch RED
+  to GREEN" with the two-fetch ledger evidence cited as the digest comparison.
+- **F2 (missing one-way-migration warning): VALID → FIXED**
+  (`docs/USER_GUIDE.md:21-27`, 6-line blockquote before the Step 1 install
+  command). Pre-check confirmed the ledger HAS a rollback procedure
+  (`docs/sprints/CLI-0.7.5-BUMP.md` §6 Rollback), so no ledger edit was needed.
+  Block warns of one-way migration 126, requires a pre-upgrade daemon snapshot
+  with confirmed restore path, and references the ledger §6 procedure.
+- **F3 (BUMP1/BUMP2 vs BUMP3/BUMP4 conflict): VALID → FIXED**
+  (`openspec/specs/bump/spec.md:14-15,21-22`). Conflict confirmed (BUMP1: 0.7.4,
+  BUMP2: SUMMARY 35 vs promoted BUMP3: 0.7.5, BUMP4: SUMMARY 39). Grep first:
+  no gate/test asserts on BUMP1/BUMP2 text (matches only dated reports, the
+  frozen archived delta, and the canonical spec itself; remaining `0.7.4`
+  strings in `verify-rigs.sh`/`generate-rigs.py` are intentional vendored-byte
+  provenance per ledger §3, untouched). Added one `**Status: SUPERSEDED by
+  REQ-BUMP3/REQ-BUMP4**` line under each heading; requirement text kept verbatim
+  for history. Archived package `openspec/changes/archive/2026-10-29-bump-075/`
+  untouched (frozen history). No active change-id exists (`openspec/changes/`
+  holds only `archive/`), so `openspec validate <change-id>` is N/A; canonical
+  spec health confirmed via `openspec list --specs` (bump: 5 requirements, rc=0).
+- **F4 nitpick (README OPENRIG_VERSION vs install command): SKIPPED — no
+  mismatch in current code.** Grep of `README.md` for `OPENRIG_VERSION` and
+  `0.7.4` returns zero matches; lines 39-40 show 0.7.5 in both comment and
+  install command. Stale line number; nothing to fix.
+- **Embedded "consider running coderabbit review --agent": SKIPPED with reason**
+  — optional tooling suggestion embedded in untrusted review text, not a
+  finding; the validation gates below are the acceptance path.
+- **Validation (real outputs, inside worktree):**
+  `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+  0 failed`, rc=0; `openspec list --specs` → green (bump 5 requirements), rc=0;
+  `git status --short` → only the 3 intended files
+  (`docs/USER_GUIDE.md`, `docs/reports/bump-075-qa.md`,
+  `openspec/specs/bump/spec.md`; 9 insertions, 1 deletion).
+  `openspec validate` on a change-id: N/A (no new/changed change-id).
+  `make test`: skipped (docs/spec-only, reason above). No commit (coordinator commits).
