@@ -1,6 +1,6 @@
 # Heretek-Rigs Operations & Verification Makefile
 #
-# Target Framework: OpenRig v0.7.4 (CLI binary: `rig`)
+# Target Framework: OpenRig v0.7.5 (CLI binary: `rig`)
 # Primary Harness:  Pi Coding Agent v1.4.0 (`pi --mode rpc --no-approve`)
 # Enforcement:      @gotgenes/pi-permission-system@41.0.0 ("*..*": "deny" guard)
 # Primary Model:    opencode-go/muse-spark-1.3-contributor:high (OpenCode Go)
