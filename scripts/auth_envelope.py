@@ -43,8 +43,9 @@ _HMAC_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 _EXPIRES_RE = re.compile(r"^[0-9]{1,19}$")
 # Mint-side scope jailbreak tail (mirrors the check-envelope discipline:
 # absolute, parent-traversal, whitespace, glob, option-shaped, refspec,
-# non-ASCII, and percent-encoded entries never bind a premise).
-_SCOPE_BAD_RE = re.compile(r"(^/|^\-|\.\.|[\s*?\[\]{}!:\\]|%|[^\x00-\x7f])")
+# non-ASCII, comma (CSV separator), and percent-encoded entries never
+# bind a premise).
+_SCOPE_BAD_RE = re.compile(r"(^/|^\-|\.\.|[\s*?\[\]{}!:\\,]|%|[^\x00-\x7f])")
 
 
 def _scope_csv(scope_paths):
@@ -168,10 +169,27 @@ def _scope_covers(scope_csv, landing_paths):
     A scope entry covers its exact path and, when it names a directory
     (trailing `/`), everything beneath it. Mirrors the premise-side rule
     in reconcile_model._scope_covers (same semantics, envelope spelling).
+
+    Fail-closed shape checks run before any prefix comparison: non-string
+    paths and paths that are empty, absolute, or carry empty / "." / ".."
+    segments can neither be bound by a minted scope (mint rejects them)
+    nor smuggle prefix coverage (e.g. `src/extra/../outside`), so each is
+    reported uncovered in string-safe form (never raising TypeError on
+    join downstream).
     """
     scope_paths = [part for part in scope_csv.split(",") if part]
     uncovered = []
     for path in landing_paths:
+        if not isinstance(path, str):
+            uncovered.append(str(path))
+            continue
+        if not path or path.startswith("/"):
+            uncovered.append(path)
+            continue
+        core = path.rstrip("/")
+        if not core or any(seg in ("", ".", "..") for seg in core.split("/")):
+            uncovered.append(path)
+            continue
         covered = False
         for entry in scope_paths:
             if entry.endswith("/"):

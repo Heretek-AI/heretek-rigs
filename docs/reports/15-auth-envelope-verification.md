@@ -8,7 +8,9 @@ Every claim below was verified against current disk state; nothing was
 trusted from reports. No source file was modified by this audit; the only
 write is this report. All sabotage probes were temporary file edits with
 `/tmp` backups, byte-identical restores confirmed by `diff -q`, and
-GREEN re-runs before proceeding.
+GREEN re-runs before proceeding. The `--check-idempotent` run's registry
+provenance side-effect was likewise reverted (`git checkout -- registry`)
+with `git status --short` confirming only this report remained (see §9).
 
 ## 1. Spec traceability (REQ-E1…E4 → code → test → evidence)
 
@@ -59,7 +61,8 @@ post-freeze `ok()` gate, same as waves 9/4/81. No V1–V30 line renumbered
 or reworded (removed lines are only the two V19-bump lines). 39 `[PASS]`
 lines, zero `FAIL`. `AGENTS.md:76` docs-map line present (count 38→39
 rode with S2 as freeze mechanics); `README.md` / `docs/USER_GUIDE.md`
-counts move with it; `HANDOFF.md` untouched (prior-session file).
+counts move with it; `HANDOFF.md` operating-discipline expect-count updated
+38→39 by the r1 rework (F3; the post-PR #132 snapshot counts in §1 stay intact).
 
 ## 4. Never-self-execute / never-auto-commit
 

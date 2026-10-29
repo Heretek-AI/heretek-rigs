@@ -874,9 +874,17 @@ def _scope_covers(scope_paths, landing_paths):
 
     A scope entry covers its exact path and, when it names a directory
     (trailing `/`), everything beneath it. Anything else is a breach.
+    Fail-closed before any prefix comparison: a landing path carrying a
+    `..` segment (e.g. `src/extra/../outside`) can share a scope
+    directory prefix while resolving outside it, so each such path is
+    reported uncovered (mirrors the envelope-side rule in
+    auth_envelope._scope_covers).
     """
     uncovered = []
     for path in landing_paths:
+        if isinstance(path, str) and ".." in path.split("/"):
+            uncovered.append(path)
+            continue
         covered = False
         for entry in scope_paths:
             if entry.endswith("/"):
@@ -964,7 +972,22 @@ def stalled_premise_drift_diff(row, queue_by_id, transitions_by_id):
     queue_evidence = (
         f"state={entry.get('state')} latest_transition={latest_id} ({latest_note})"
     )
-    landing = _parse_landing(latest_note)
+    # Bind the newest recognized landing record anywhere in the trail
+    # (a clean landing followed by a non-landing note still binds it):
+    # scan newest-to-oldest and take the first transitionNote that
+    # _parse_landing recognizes, instead of parsing only latest_note.
+    landing = None
+    ordered = sorted(
+        trail if isinstance(trail, list) else [],
+        key=lambda t: t.get("transitionId", -1) if isinstance(t, dict) else -1,
+        reverse=True,
+    )
+    for item in ordered:
+        note = item.get("transitionNote") if isinstance(item, dict) else ""
+        candidate = _parse_landing(str(note or ""))
+        if candidate is not None:
+            landing = candidate
+            break
     attribution = attribute_premise_age(
         premise["premise_ts"],
         premise["verify_ts"],

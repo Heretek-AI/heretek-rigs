@@ -309,6 +309,96 @@ class TestPremiseDriftClassification(unittest.TestCase):
         self.assertEqual(diff["class"], "stalled-premise-drift")
         self.assertIn("fleet/fleet.yaml", diff["reason"])
 
+    def test_premise_scope_rejects_dotdot_traversal(self):
+        """Pinning (r1-F7): a landing path with a .. segment never counts
+        as scope-covered, even when it shares the scope directory prefix
+        (prefix checks alone would bind it inside the scope it escapes)."""
+        model = load_model()
+        uncovered = model._scope_covers(
+            ["src/extra/"], ["src/extra/../fleet/fleet.yaml"]
+        )
+        self.assertEqual(uncovered, ["src/extra/../fleet/fleet.yaml"])
+        self.assertEqual(
+            model._scope_covers(["src/extra/"], ["src/extra/eleven.c"]), []
+        )
+
+    def test_landing_found_when_followed_by_non_landing_note(self):
+        """Pinning (r1-F8): the classifier scans the trail newest-to-oldest
+        and binds the first recognized landing — a clean landing followed
+        by a non-landing note stays quiet (the landing is still found)."""
+        model = load_model()
+        row = {
+            "file": "t.md",
+            "line": 1,
+            "slice": "S02",
+            "qitem": PARENT,
+            "status": PREMISE_STATUS,
+        }
+        queue_by_id = {PARENT: {"qitemId": PARENT, "state": "in-progress"}}
+        trans = {
+            PARENT: [
+                {
+                    "transitionId": 61,
+                    "state": "in-progress",
+                    "transitionNote": "claimed",
+                },
+                {
+                    "transitionId": 62,
+                    "state": "in-progress",
+                    "transitionNote": landing_note(
+                        diff_hash=PREMISE_HASH, paths="src/include/hash.h"
+                    ),
+                    "ts": LANDING_TS,
+                },
+                {
+                    "transitionId": 63,
+                    "state": "in-progress",
+                    "transitionNote": "owner comment: waiting on TPM ruling",
+                    "ts": LANDING_TS,
+                },
+            ]
+        }
+        self.assertIsNone(model.stalled_premise_drift_diff(row, queue_by_id, trans))
+
+    def test_drifted_landing_still_flagged_when_followed_by_note(self):
+        """Pinning (r1-F8, other direction): a drifted landing followed by
+        a non-landing note still routes for human review with the drift
+        reason (the scan finds the earlier landing, it does not go silent)."""
+        model = load_model()
+        row = {
+            "file": "t.md",
+            "line": 1,
+            "slice": "S02",
+            "qitem": PARENT,
+            "status": PREMISE_STATUS,
+        }
+        queue_by_id = {PARENT: {"qitemId": PARENT, "state": "in-progress"}}
+        trans = {
+            PARENT: [
+                {
+                    "transitionId": 61,
+                    "state": "in-progress",
+                    "transitionNote": "claimed",
+                },
+                {
+                    "transitionId": 62,
+                    "state": "in-progress",
+                    "transitionNote": landing_note(),
+                    "ts": LANDING_TS,
+                },
+                {
+                    "transitionId": 63,
+                    "state": "in-progress",
+                    "transitionNote": "owner comment: waiting on TPM ruling",
+                    "ts": LANDING_TS,
+                },
+            ]
+        }
+        diff = model.stalled_premise_drift_diff(row, queue_by_id, trans)
+        self.assertIsNotNone(diff)
+        self.assertEqual(diff["class"], "stalled-premise-drift")
+        self.assertIn("drifted", diff["reason"])
+
     def test_attribution_is_report_only(self):
         """REQ-E2: attribution computes from fixture timestamps, writes nothing."""
         model = load_model()
@@ -504,6 +594,48 @@ class TestEnvelopeMintValidate(unittest.TestCase):
         self.assertEqual(second.status, "refused")
         self.assertIn("replay", (second.reason or "").lower())
 
+    def test_mint_rejects_comma_in_scope_entry(self):
+        """Pinning (r1-F5): a comma inside one scope entry never mints.
+
+        Scope travels as comma-joined CSV inside the envelope; minting an
+        entry containing a comma would let validate split it into several
+        scopes. Fail closed at mint time instead.
+        """
+        env = load_envelope()
+        with self.assertRaises(ValueError):
+            env.mint_envelope(
+                SECRET,
+                PREMISE_HASH,
+                ["src/include/hash.h,src/extra/eleven.c"],
+                expires_at=1780000000,
+                nonce="comma-nonce-00000009",
+            )
+
+    def test_scope_covers_rejects_suspicious_landing_paths(self):
+        """Pinning (r1-F6): non-string, empty, absolute, and dot-segment
+        landing paths never count as covered; uncovered stays join-safe
+        (no TypeError) and canonical coverage is preserved."""
+        env = load_envelope()
+        scope_csv = "src/extra/"
+        suspicious = [
+            None,
+            123,
+            "",
+            "/abs/path.c",
+            "src/extra/../fleet/fleet.yaml",
+            "src/./eleven.c",
+            "src//eleven.c",
+            "..",
+        ]
+        uncovered = env._scope_covers(scope_csv, suspicious)
+        for path in suspicious:
+            self.assertIn(str(path), uncovered)
+        self.assertEqual(env._scope_covers(scope_csv, ["src/extra/eleven.c"]), [])
+        self.assertEqual(
+            env._scope_covers(scope_csv, ["fleet/fleet.yaml"]),
+            ["fleet/fleet.yaml"],
+        )
+
     def test_bad_mac_refused(self):
         """Pinning: an envelope MAC'd under another secret never authorizes."""
         env = load_envelope()
@@ -524,6 +656,36 @@ class TestEnvelopeMintValidate(unittest.TestCase):
             seen=seen,
         )
         self.assertEqual(result.status, "refused")
+
+    def test_tampered_expiry_and_hash_refused_for_mac(self):
+        """Pinning (r1-F9, alongside bad-MAC): re-signing-free tampering
+        with the expiry or the diff hash is refused for a MAC-related
+        reason and never consumes the nonce."""
+        env = load_envelope()
+        seen = set()
+        envelope = env.mint_envelope(
+            SECRET,
+            PREMISE_HASH,
+            ["src/include/hash.h"],
+            expires_at=1780000000,
+            nonce="tamper-nonce-00000010",
+        )
+        parts = envelope.split(".")
+        self.assertEqual(len(parts), 6)
+        tampered_expiry = ".".join(parts[:3] + ["1880000000"] + parts[4:])
+        tampered_hash = ".".join([parts[0], LANDING_HASH] + parts[2:])
+        for tampered in (tampered_expiry, tampered_hash):
+            result = env.validate_envelope(
+                SECRET,
+                tampered,
+                PREMISE_HASH,
+                ["src/include/hash.h"],
+                now=1779999999,
+                seen=seen,
+            )
+            self.assertEqual(result.status, "refused")
+            self.assertIn("mac", (result.reason or "").lower())
+        self.assertEqual(seen, set())
 
     def test_missing_replay_set_fails_closed(self):
         """Pinning: a verifier without a seen-set cannot run (fail closed)."""

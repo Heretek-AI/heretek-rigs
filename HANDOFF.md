@@ -136,7 +136,7 @@
 > Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, `fleet/skill-patches/`, or `scripts/`, then regenerate:
 > ```bash
 > python3 ./scripts/generate-rigs.py
-> ./scripts/verify-rigs.sh --check-only     # Expect: 38 checks passed, 0 failed
+> ./scripts/verify-rigs.sh --check-only     # Expect: 39 checks passed, 0 failed
 > python3 ./scripts/audit_loop.py --self-test
 > ```
 
