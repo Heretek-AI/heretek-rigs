@@ -103,3 +103,51 @@ Process note (transparency, not a wave defect): my first `verify-rigs.sh` run (r
 - Never committed; never printed secrets.
 
 VERDICT: PASS
+
+## Rework-2 re-audit (2026-10-29, branch fix/bump-075-r2 @ fbca5ed, role agency-drift-guard)
+
+- **Role:** independent adversarial auditor; fixed no code; committed nothing. Prior verdicts above re-issued, not copied: every claim below re-verified against current worktree files with commands I ran myself.
+- **Start state:** `git status --short` clean (empty output before any audit command). Revs seen: `51757e4` (rework-1 VERDICT) → `be9d72e` (rework fix) → `fbca5ed` (QA re-verification) = HEAD.
+- **Rework delta (`git diff 51757e4 HEAD --stat`):** exactly 4 files, 87 insertions, 2 deletions — `.github/workflows/docker-release.yml` (1 line), `scripts/verify-rigs.sh` (1 line), `docs/reports/bump-075-implementation.md` (+65), `docs/reports/bump-075-qa.md` (+20). Functional delta is exactly 2 lines (one word each); docs diffs are pure append (zero `-` lines outside the two replaced lines; both hunks anchored at file tails `@@ -144,3 +144,68 @@` / `@@ -59,3 +59,23 @@`). No hunk beyond the 2 functional lines + docs appendices exists — minimality HOLDS.
+
+### Hunk-by-hunk audit (full `git diff 51757e4 HEAD` read from disk)
+
+- **H1 — workflow pip line (`docker-release.yml:53`):** `pip install --quiet pyyaml jsonschema` → `pip install --quiet pyyaml jsonschema referencing`. Single-line hunk (`@@ -50,7 +50,7 @@` context is the only hunk in the file); `git diff -U0` confirms no other step touched. Full-file judgment: all other steps byte-identical (checkout SHA pin, all `run:` bodies, matrix, permissions, concurrency, env blocks unchanged — verified by the single-hunk diff, not by summary). YAML-schema risk: NONE — `yaml.safe_load` parses OK, `jobs` keys intact (`verify-fleet/build/smoke`), verify-fleet step count 6, V27 UniqueKey parse green inside the 39/0 run (see R-row below). The added bare name `referencing` matches the line's existing unpinned style; no pin invented — correct minimal form for a CI install line tracking the runner image, not a lockfile.
+- **H2 — guard preamble (`scripts/verify-rigs.sh:34`):** `import yaml, jsonschema` → `import yaml, jsonschema, referencing`. Single-line hunk (`@@ -31,7 +31,7 @@`); the `uv` fallback line 36 and every V-gate block below line 40 are byte-untouched. Append-only V-gates HOLDS — zero gate text touched (no `V[0-9]` line in the diff; SUMMARY frozen at 39, confirmed by re-run).
+- **H3/H4 — report appendices:** implementation.md +65 and qa.md +20, both tail-appended sections, zero deletions. Content verified accurate against the tree (pip line 53, guard line 34, uv line 36 all re-grepped by me — line numbers and quoted strings match; the `referencing`-has-no-`__version__` deviation note is correct, `importlib.metadata` path verified by me at 0.37.0).
+
+### Discipline verdicts
+
+- **One Rule:** PASS — `git diff 51757e4 HEAD --name-only -- specs/ rigs/ rosters/ registry/` empty; `fleet/ schemas/ generate-rigs.py` empty (sole `scripts/` touch is the guard preamble, not the generator).
+- **Frozen-archive integrity:** PASS — `git diff 51757e4 HEAD --name-only -- archive/` empty; `openspec/` empty (no active change-id touched, archived package untouched).
+- **Secrets / no-local-paths hygiene on added lines:** PASS — added-line scan for `ghp_|gho_|sk-ant-|AKIA|Bearer|/home/|/Users/|secrets/|.key|.pat|password|token` returns zero hits. Appendix worktree references are repo-relative (`.lane/trees/bump-075-r2`), never machine-absolute.
+- **`Refs`-only discipline:** PASS — no `Closes #`/`Fixes #`/`Resolves #` in the delta (bump ledger wave; nothing to close).
+
+### Re-ran myself (exit codes observed, not quoted)
+
+| # | Command | Observed result | rc |
+|---|---|---|---|
+| R1 | `./scripts/verify-rigs.sh --check-only` (serial) | `SUMMARY: 39 checks passed, 0 failed` (V27 M3 green line present) | 0 |
+| R2 | `git diff 51757e4 HEAD --stat` | 4 files, 87 insertions, 2 deletions | 0 |
+| R3 | `python3 -c "yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | YAML OK, 3 jobs, 6 verify-fleet steps | 0 |
+| R4 | Added-line secret/local-path scan | zero hits | — |
+
+### Own sabotage probe (DG-R2, RED→GREEN, restore proof — distinct from QA's R2-6/R2-7 emulation and all prior V13/V18 pin probes)
+
+- **Why not sabotage the pip line in-tree:** judged VACUOUS and therefore not run in-tree — no local gate asserts on the pip line's word list (V27 checks bubblewrap presence + UniqueKey parse only), so deleting `referencing` from the tree stays GREEN locally and proves nothing about the bare-runner CI failure mode. Demonstrated without tree edit: a `/tmp` COPY with `referencing` removed still parses (`COPY YAML OK`), confirming content-sabotage of that scalar is locally undetectable by design. The meaningful local probe of the touched file is its YAML/parse gate instead.
+- **DG-R2 — V27 workflow-keys gate (topical to the touched file):** byte backup of `.github/workflows/docker-release.yml` (sha256 `81154eb6…0eac3690` both copies) → sabotage: duplicate `verify-fleet:` job key → verify RED `[FAIL] V27/overhaul-a: workflow YAML fails UniqueKey parse (duplicate key 'verify-fleet')`, `SUMMARY: 39 checks passed, 1 failed`, rc=1 → `git checkout -- .github/workflows/docker-release.yml` + `cmp` vs backup → **BYTE-IDENTICAL** (backups removed) → verify GREEN `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- Post-probe: `git status --short` clean, `git stash list` empty. The workflow edit blunts no gate.
+
+### Addressed questions
+
+- **(a) uv-fallback line left without `--with referencing`: SAFE — agree, with evidence.** `importlib.metadata.requires('jsonschema')` on the pinned host (jsonschema 4.26.0) lists `referencing>=0.28.4` as an unconditional hard dependency (no `extra ==` marker, unlike the format extras); `pip show jsonschema` Requires line concurs. The CI failure mode was a satisfied-requirement no-op (pre-installed jsonschema → pip fetches nothing transitive), which cannot occur in `uv run`'s fresh ephemeral env. Empirically proven: `uv run --no-project --with pyyaml --with jsonschema python3 -c "import referencing"` → `referencing resolves OK`, rc=0 (`Installed 6 packages`). The new guard (`import yaml, jsonschema, referencing`) correctly routes a referencing-less system python into that uv path, which provably heals it. Extending the uv line would be harmless but is not owed; minimal-diff constraint correctly wins.
+- **(b) V8-staged-workflow observation: CONFIRMED pre-existing, out of scope, does NOT affect clean-checkout CI.** I staged the fixed workflow blob and ran `manifest-closure.py --staged` → 20 undeclared (`pip`, `./scripts/verify-rigs.sh`, `python3`, shell words, `make`, `sudo`, `bwrap`, `bash`), rc=1; then staged the pre-fix `51757e4` blob → identical 20 undeclared, rc=1. The failure is byte-for-byte the allowlist's pre-existing scope (only node/npm/pnpm/yarn/git/cargo/echo/rig listed; `pip`/`bash`/`make` never were) and is word-identical with and without the `referencing` fix — the fix contributes zero findings. Clean-checkout CI is unaffected: `git checkout` stages nothing, `--staged` short-circuits to `no staged manifests; zero undeclared`, rc=0, and the committed-tree verify leg is 39/0 (R1). Arguing otherwise would require claiming CI lints staged blobs, which it does not. A staged-workflow allowlist gap is a legitimate future-work note for the manifest-closure owner, not a rework-2 finding. All staging undone; worktree restored byte-identical (`cmp` clean) before this report was written.
+
+### Skips (explicit)
+
+- `make test` not re-run by this auditor: delta is one CI pip-line word + one guard-import word + docs appendices (no generator/runtime/catalog/V-gate/test code touched); full suite green at 634/0 per QA baseline and the directly affected gate re-ran green (R1). Skipped with reason.
+- `openspec validate <change-id>`: N/A — no active change-id (`openspec/changes/` holds only `archive/`); canonical-spec health unchanged since rework-1 (R2-equivalent covered by QA's `openspec list --specs` green).
+- `gh`-side re-verification of PR #135 / main-failure logs: not re-fetched; the implementation appendix's `gh` citations are corroborated by the locally proven packaging mechanism (transitive-only arrival + pip no-op), and CI-behavior claims are the coordinator's merge-time concern, not this delta's correctness gate.
+- Never committed; never printed secrets.
+
+VERDICT: PASS
