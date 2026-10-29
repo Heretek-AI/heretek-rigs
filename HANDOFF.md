@@ -1,25 +1,25 @@
-# Handoff — next session (2026-10-28, post-PR #131 merge on main)
+# Handoff — next session (2026-10-28, post-PR #132 merge on main)
 
 > Superseded 2026-10-26 handoff archived in git history (`2590a87`..`83cbf86`).
-> This document reflects the authoritative state of `main` after merging PR #120 through PR #131 (including wave 9 = PR #128 and wave 4 = PR #131).
+> This document reflects the authoritative state of `main` after merging PR #120 through PR #132 (including wave 9 = PR #128, wave 4 = PR #131, and wave 81 = PR #132).
 
 ---
 
 ## 1. Live State & Environment
 
-- **Repository**: `/home/john/Projects/heretek-rig-workspace/heretek-rigs`
-- **Branch**: `main` @ `80c5450` (Merge PR #131). Working directory clean at time of writing.
+- **Repository**: `Heretek-AI/heretek-rigs` (local checkout at `heretek-rig-workspace/heretek-rigs`)
+- **Branch**: `main` @ `9e7e14b` (Merge PR #132). Working directory clean at time of writing.
 - **Core Stack**:
   - `@openrig/cli@0.7.4` (`6d9e8e27`, bumped from 0.7.2 in PR #122)
   - Pi `1.4.0` (`@earendil-works/pi-coding-agent`)
   - `@gotgenes/pi-permission-system@41.0.0`
   - Model: `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`
 - **Verification Baseline**:
-  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 37 checks passed, 0 failed** (V1–V29 gates green: V22 bare-queue deny, V23 seat grants, V24 rotation runbook, V25–V27 sandbox/hermetic/docker, V28 send attestation, V29 mission gates).
-  - `make test` → **562 unit tests passed, 0 failed** across 24 suites (`unittest discover`; was 558 across 24).
+  - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 38 checks passed, 0 failed** (V1–V29 gates green: V22 bare-queue deny, V23 seat grants, V24 rotation runbook, V25–V27 sandbox/hermetic/docker, V28 send attestation, V29 mission gates, V30 seat idle-park).
+  - `make test` → **599 unit tests passed, 0 failed** across 24 suites (`unittest discover`; was 562 across 24 at PR #131).
   - `python3 scripts/audit_loop.py --self-test` → **`SELF-TEST PASSED`**.
   - `python3 scripts/generate-rigs.py --check-idempotent` → **byte-identical**.
-  - `openspec/`: 8 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`, `send-identity`, `mission-gates`); active `openspec/changes/` holds only the archive container; 8 waves archived with history under `openspec/changes/archive/`.
+  - `openspec/`: 9 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`, `send-identity`, `mission-gates`, `seat-idle`); active `openspec/changes/` holds only the archive container; 9 waves archived with history under `openspec/changes/archive/`.
 
 ---
 
@@ -76,6 +76,14 @@
 - **S3**: runbook with `--gate` creation flow exercised on fixtures; triad complete with `VERDICT: PASS` (`docs/reports/77-mission-gates-verification.md`); change archived, `mission-gates` promoted (4 requirements).
 - **Delegated decisions (user)**: scope = 3 checkboxes; NO bot auto-closure ever (safety, not compat); fixtures-only acceptance. Issue #77 stays open until a live mission proves the loop.
 
+### Wave 81 (`feat/81-seat-idle`, Refs #81 — merged as PR #132, 1 rework)
+- **S0**: #81-pattern fixtures (claim-then-park with open obligation, park-to-wake spread, operator-labeled daemon handoff) proving pre-fix silence (`docs/evidence/81-seat-idle-prefix.md`, incl. dummy daemon-origin invocation result).
+- **S1**: charter claim+first-action-is-one-turn rule via `fleet/skill-patches/queue-handoff.yaml` + clean regen (9 leaves) + new `stalled-idle-park` diff class with report-only park-to-wake attribution + daemon source validation (`daemon:stuck-sweep`, wave-9 genuine-operator handling unchanged).
+- **S2**: idle-park recovery non-dismissible without row state change + non-spoofable daemon source + appended **V30** (V19 freeze 37→38); `make test` 595 OK at merge.
+- **S3**: triage runbook exercised on fixtures; triad complete with `VERDICT: PASS` (`docs/reports/81-seat-idle-verification.md`); change archived, `seat-idle` promoted (4 requirements).
+- **Rework 1**: F1–F5 PR review findings (daemon-invocation evidence pin, wake_ts release-gate, review-only render, mixed-note work eligibility, corrected wake arithmetic) + 3 anti-vacuity pinning tests; `VERDICT: PASS` re-issued, 599 tests. Stale `wake +53s` prose in `81-seat-idle-implementation.md:18` knowingly left (frozen record, disclosed in merge report).
+- **Delegated decisions (user)**: scope = the issue's 3 checkboxes; fixtures-only + propose-only; never `Closes #81`. Issue #81 stays open until a live fleet proves the loop.
+
 ---
 
 ## 3. Current Issue Triage (15 Open Issues: 14 old + #127 new)
@@ -91,7 +99,7 @@
 | **#77** | P2 | Mission parent rows stuck 'standing by for gate' | **Merged as PR #131** (wave 4, `VERDICT: PASS`, Refs #77). **Pending**: live-mission proof only. |
 | **#78** | P2 | Seats pinned to one workspace | Untouched. Architectural. |
 | **#80** | P3 | `rig snapshot list <name>` prints `[object Object]` | Untouched (upstream CLI bug, local mitigation in place). |
-| **#81** | P2 | Seats park idle right after claiming | Untouched (daemon behavior). |
+| **#81** | P2 | Seats park idle right after claiming | **Merged as PR #132** (wave 81, `VERDICT: PASS` re-issued after rework-1, Refs #81). **Pending**: live-fleet proof only. |
 | **#9** | P2 | Operator `rig send` carries no sender identity | **Merged as PR #128** (wave 9, `VERDICT: PASS`, Refs #9). **Pending**: fleet-host live proof only. |
 | **#11** | P2 | `rig launch` refuses running nodes | Repo-side replaced by #96 live refresh (shipped PR #119); full restart tracked upstream. |
 | **#15** | P2 | Authorization loop lags seat fix cycles | Untouched (investigation). |
@@ -105,7 +113,7 @@
 ## 4. Priority Roadmap
 
 ### Priority 1: Next issue wave (needs principal pick + spec)
-- Wave 9 landed as PR #128. Wave 4 landed as PR #131 (reworks 1–2, both `VERDICT: PASS`). Both #77 and #9 are merged; remaining work is live-mission/fleet-host proof.
+- Wave 9 landed as PR #128. Wave 4 landed as PR #131 (reworks 1–2, both `VERDICT: PASS`). Wave 81 landed as PR #132 (rework-1, `VERDICT: PASS` re-issued). #77, #9 and #81 are merged; remaining work is live-mission/fleet-host proof.
 - Recommended next: a fleet-host proof batch (#91 live, #12 D1–D4) if operating on the live host, or pick a fresh issue.
 - Every wave needs an approved `openspec/changes/<id>/` spec first (`/grill-spec`), then the standard triad.
 
@@ -128,7 +136,7 @@
 > Edit `fleet/fleet.yaml`, `fleet/mcp-servers.yaml`, `fleet/skill-patches/`, or `scripts/`, then regenerate:
 > ```bash
 > python3 ./scripts/generate-rigs.py
-> ./scripts/verify-rigs.sh --check-only     # Expect: 37 checks passed, 0 failed
+> ./scripts/verify-rigs.sh --check-only     # Expect: 38 checks passed, 0 failed
 > python3 ./scripts/audit_loop.py --self-test
 > ```
 
