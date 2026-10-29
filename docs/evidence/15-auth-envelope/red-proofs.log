@@ -138,3 +138,92 @@ change set.
 - Secret-shaped grep over the S0 evidence + runbook: no 40+ runs
   (exit 1). Long test identifiers in this log stay under the 40-run
   floor (dots split dotted paths; the longest bare name is 35 runs).
+
+## QA re-verification (2026-10-29, worktree committed @ 01286d2, Refs #15)
+
+Independent QA pass over the committed tree. Every sabotage below was a
+temporary tracked-file edit, reverted with `git checkout -- <file>`
+(the tree is committed, so checkout restores); `git status --short`
+empty after every restore. No sabotage touched tests/ or evidence/.
+
+### QA-S1a: drift classification removed -> silent (RED) -> flagged (GREEN)
+
+Sabotage: scripts/reconcile_model.py:565
+`return stalled_premise_drift_diff(row, queue_by_id, transitions_by_id)`
+-> `return None  # QA-SABOTAGE S1a: drift classification removed`
+Check: `python3 -m unittest tests.test_auth_envelope`
+RED: EXIT 1, `FAILED (failures=2)` —
+test_drifted_premise_flagged_stalled +
+test_reconcile_end_to_end_flags_drift fail with
+`AssertionError: 0 != 1 : reconcile: in sync — 1 rows across 1
+tracker(s) agree with queue state.` (pre-fix silence restored).
+Restore: `git checkout -- scripts/reconcile_model.py`
+GREEN: `Ran 21 tests OK`, EXIT 0. `git status --short` empty.
+
+### QA-S1b: forced over-flag -> quiet tests catch it (RED) -> quiet (GREEN)
+
+Sabotage: scripts/reconcile_model.py:994
+`if not drifted and not uncovered:` -> `if False:  # QA-SABOTAGE S1b`
+Check: the 3 quiet tests (clean_premise_stays_quiet,
+reconcile_end_to_end_clean_quiet, row_without_premise_stays_quiet)
+RED: EXIT 1, `FAILED (failures=2)` — both clean-quiet tests fail
+(classifier flags the faithful landing); no-premise still passes via
+its earlier return (expected: untouched path). Proves the quiet
+assertions are non-vacuous (they catch over-flagging).
+Restore: `git checkout -- scripts/reconcile_model.py`
+GREEN: full corpus `Ran 21 tests OK`, EXIT 0. `git status --short` empty.
+
+### QA-S1c: validation bypass -> drift authorized (RED) -> refused (GREEN)
+
+Sabotage: scripts/auth_envelope.py validate_envelope entry forced to
+`return EnvelopeResult(status="authorized", reason="QA-SABOTAGE S1c")`
+Check: `python3 -m unittest tests.test_auth_envelope.TestEnvelopeMintValidate`
+RED: EXIT 1, `FAILED (failures=9)` of 11 (every refusal test fails;
+clean-validates + no-executor scan still pass — right reason).
+Restore: `git checkout -- scripts/auth_envelope.py`
+GREEN: `Ran 21 tests OK`, EXIT 0. `git status --short` empty.
+
+### QA-S1d-replay: replay guard removed -> replay authorized (RED)
+
+Sabotage: scripts/auth_envelope.py `if nonce in seen:`
+-> `if False and nonce in seen:  # QA-SABOTAGE S1d-replay`
+Check: `...test_replayed_nonce_refused`
+RED: EXIT 1, `FAILED (failures=1)` (consumed nonce re-authorizes).
+Restore: `git checkout -- scripts/auth_envelope.py`
+GREEN: single test OK, EXIT 0.
+
+### QA-S1d-expiry: expiry guard removed -> expired authorized (RED)
+
+Sabotage: scripts/auth_envelope.py `if int(now) >= int(expires):`
+-> `if False:  # QA-SABOTAGE S1d-expiry`
+Check: `...test_expired_envelope_refused`
+RED: EXIT 1, `FAILED (failures=1)` (past-window envelope authorizes).
+Restore: `git checkout -- scripts/auth_envelope.py`
+GREEN: full corpus `Ran 21 tests OK`, EXIT 0. `git status --short` empty.
+
+### QA-S2-dismissal: identical-snapshot close permitted (RED) -> refused (GREEN)
+
+Sabotage: scripts/sweep-typed-blocks.py check_recovery_dismissal
+`if current_snapshot == flagged_snapshot:` -> `if False:  # QA-SABOTAGE`
+Check: `...test_recovery_needs_row_state_change`
+RED: EXIT 1, `FAILED (failures=1)` —
+`AssertionError: RecoveryDismissalRefused not raised` (silent burial
+restored: unchanged row could be closed).
+Restore: `git checkout -- scripts/sweep-typed-blocks.py`
+GREEN: full corpus `Ran 21 tests OK`, EXIT 0. `git status --short` empty.
+
+### QA-V31-gate: bypassed validator fails the gate itself (RED) -> PASS (GREEN)
+
+Sabotage: same S1c bypass (`QA-SABOTAGE V31-gate`).
+Check: `./scripts/verify-rigs.sh --check-only`
+RED: EXIT 1, `SUMMARY: 38 checks passed, 5 failed.` with
+`[FAIL] V31/15-auth-envelope: drifted landing was AUTHORIZED (must refuse)`,
+`[FAIL] ... scope-breaching landing was AUTHORIZED (must refuse)`,
+`[FAIL] ... expired envelope was AUTHORIZED (must refuse)`,
+`[FAIL] ... replayed nonce was AUTHORIZED (must refuse)`,
+`[FAIL] ... tests.test_auth_envelope failed: ... FAILED (failures=9)`.
+The gate's live-behavior checks (not just markers) catch the bypass.
+Restore: `git checkout -- scripts/auth_envelope.py`
+GREEN: `[PASS] V31 pre-authorization envelopes ... 21 corpus tests pass`,
+`SUMMARY: 39 checks passed, 0 failed.`, EXIT 0.
+`git status --short` empty. No vacuous check found (7/7 probes RED).
