@@ -227,3 +227,85 @@ Restore: `git checkout -- scripts/auth_envelope.py`
 GREEN: `[PASS] V31 pre-authorization envelopes ... 21 corpus tests pass`,
 `SUMMARY: 39 checks passed, 0 failed.`, EXIT 0.
 `git status --short` empty. No vacuous check found (7/7 probes RED).
+
+### QA-R1 (2026-10-29, rework-1 verification, branch feat/15-auth-envelope @ 697543d)
+
+Baseline (unmodified tree @ 697543d, sequential runs): `python3 -m unittest
+tests.test_auth_envelope tests.test_auth_envelope_prefix` -> Ran 35 tests OK,
+EXIT 0. `./scripts/verify-rigs.sh --check-only` -> SUMMARY: 39 checks passed,
+0 failed, V31 PASS listed, EXIT 0. `make test` -> Ran 634 tests OK, 0 failures,
+EXIT 0. `python3 scripts/generate-rigs.py --check-idempotent` -> byte-identical,
+EXIT 0 (rewrote the known resolvedCommit re-lag stamp across registry/ files;
+reverted via `git checkout -- registry`, `git status --short` clean).
+`python3 scripts/audit_loop.py --self-test` -> SELF-TEST PASSED, EXIT 0.
+NOTE: one parallel `./scripts/verify-rigs.sh` + `generate-rigs.py` run raced
+and verify died with `KeyError: 'exec-director'` mid-regen; sequential re-run
+is green (EXIT 0, 39/0). Do not run verify concurrently with the generator.
+
+Pre-sabotage pins: `sha256 scripts/auth_envelope.py` =
+595600474e09a5631b10a8b6766383b2acf938f2855440a85e9b216d832f1e13
+(matches r1-fixes report); `sha256 scripts/reconcile_model.py` =
+d371f1e1fc29001ed04181ffc7795f96890c704cd9de35c13342a10938fb7458
+(matches r1-fixes report). Backups in /tmp/opencode/qa-r1/ only; no
+test/evidence files touched by any probe below.
+
+### QA-R1-F5: comma re-allowed in mint scope (RED) -> rejected (GREEN)
+
+Sabotage: removed `,` from `_SCOPE_BAD_RE` in scripts/auth_envelope.py.
+Check: `python3 -m unittest
+tests.test_auth_envelope.TestEnvelopeMintValidate.test_mint_rejects_comma_in_scope_entry`
+RED: EXIT 1, `FAILED (failures=1)`, `AssertionError: ValueError not raised`
+(mint succeeds on `["src/include/hash.h,src/extra/eleven.c"]` -> validate would
+split one entry into two scopes; the mint/validate asymmetry is back).
+Restore: `cp /tmp/opencode/qa-r1/auth_envelope.py.bak scripts/auth_envelope.py`
+GREEN: sha256 59560047... byte-identical, single test OK, EXIT 0.
+
+### QA-R1-F6: envelope shape checks removed (RED) -> fail-closed (GREEN)
+
+Sabotage: removed the fail-closed shape block (non-string/empty/absolute/
+empty-segment/./.. rejection) from `auth_envelope._scope_covers`.
+Check: `...test_scope_covers_rejects_suspicious_landing_paths`
+RED: EXIT 1, `FAILED (errors=1)`,
+`AttributeError: 'NoneType' object has no attribute 'startswith'`
+(non-string landing path crashes validate instead of refusing fail-closed;
+the traversal `src/extra/../fleet/fleet.yaml` would again share the
+`src/extra/` prefix and count as covered).
+Restore: backup copy back.
+GREEN: sha256 59560047... byte-identical, single test OK, EXIT 0.
+
+### QA-R1-F8: trail scan reverted to latest-note-only (RED) -> newest-to-oldest (GREEN)
+
+Sabotage: replaced the newest-to-oldest landing scan in
+`stalled_premise_drift_diff` with `landing = _parse_landing(latest_note)`.
+Check: `...test_landing_found_when_followed_by_non_landing_note
+...test_drifted_landing_still_flagged_when_followed_by_note`
+RED: EXIT 1, `FAILED (failures=2)`: clean landing + trailing
+`owner comment: waiting on TPM ruling` stalls with "no matching landing";
+drifted landing + same trailer loses "drifted" from the reason (reads as
+"no matching landing record" instead).
+Restore: `cp /tmp/opencode/qa-r1/reconcile_model.py.bak scripts/reconcile_model.py`
+GREEN: sha256 d371f1e1... byte-identical, both tests OK, EXIT 0.
+
+### QA-R1-F7: premise-side `..` guard removed (RED) -> uncovered (GREEN)
+
+Sabotage: removed the `..`-segment guard from `reconcile_model._scope_covers`.
+Check: `...test_premise_scope_rejects_dotdot_traversal`
+RED: EXIT 1, `FAILED (failures=1)` (`src/extra/../fleet/fleet.yaml` counts as
+covered by scope `src/extra/` again).
+Restore: backup copy back.
+GREEN: sha256 d371f1e1... byte-identical (full-corpus GREEN re-confirmed below).
+
+### QA-R1-F9: MAC comparison disabled (RED) -> refused (GREEN)
+
+Sabotage: `if not hmac.compare_digest(...)` -> `if False and not ...` in
+scripts/auth_envelope.py.
+Check: `...test_tampered_expiry_and_hash_refused_for_mac
+...test_bad_mac_refused`
+RED: EXIT 1, `FAILED (failures=2)` (re-signing-free expiry/hash tamper
+authorizes; bad-MAC pin authorizes).
+Restore: backup copy back.
+GREEN: sha256 59560047... byte-identical (full-corpus GREEN re-confirmed below).
+
+Post-restore: full corpus `Ran 35 tests OK`, EXIT 0; `git status --short` empty
+except this log append (evidence-only dirt). No vacuous check found (5/5 QA-R1
+probes RED for the incident-restoring reason, GREEN on byte-identical restore).
