@@ -553,11 +553,16 @@ def diff_row(row, queue_by_id, transitions_by_id):
     # Tail: delegate gateless-awaiting-gate detection to the shared
     # classifier (also consumed by generate_trackers.py, REQ-G5), then the
     # 81-seat-idle claim-then-park classifier (same sharing rule: no
-    # parallel idle-park mapping anywhere).
+    # parallel idle-park mapping anywhere), then the 15-auth-envelope
+    # premise-drift classifier (same sharing rule: no parallel premise
+    # mapping anywhere).
     stalled = stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id)
     if stalled is not None:
         return stalled
-    return stalled_idle_park_diff(row, queue_by_id, transitions_by_id)
+    stalled = stalled_idle_park_diff(row, queue_by_id, transitions_by_id)
+    if stalled is not None:
+        return stalled
+    return stalled_premise_drift_diff(row, queue_by_id, transitions_by_id)
 
 
 def stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id):
@@ -791,6 +796,256 @@ def stalled_idle_park_diff(row, queue_by_id, transitions_by_id):
     }
 
 
+# 15-auth-envelope (REQ-E2): the authorized premise vs the live landing.
+#
+# A row carrying an authorized premise (TPM-verified diff hash + scope
+# paths + premise/verify timestamps in the tracker Status cell) whose
+# landing diff (latest queue-note landing record) drifted from that
+# premise — or which carries an open authorization with no matching
+# landing record at all — fails convergence as stalled, never as silent
+# agreement. Clean premises (landing hash identical, landing file-set
+# inside scope) stay quiet; rows declaring no premise never match.
+# Pure classification + report-only premise-age attribution (inputs for
+# #17) — propose-only (REQ-R2), no row state written, never
+# done/complete/closed by this module.
+_PREMISE_RE = re.compile(
+    r"authorized premise\s+([0-9a-fA-F]{8,64})\s+scope\s+([^;]+)",
+    re.IGNORECASE,
+)
+_PREMISE_AT_RE = re.compile(r"premise at\s+([^\s;]+)", re.IGNORECASE)
+_VERIFY_AT_RE = re.compile(r"verified at\s+([^\s;]+)", re.IGNORECASE)
+_LANDING_RE = re.compile(
+    r"landing diff\s+([0-9a-fA-F]{8,64})\s+paths\s+([^\s;]+)"
+    r"(?:\s+at\s+([^\s;]+))?",
+    re.IGNORECASE,
+)
+
+
+def _premise_scope_paths(raw):
+    """Split a premise scope list on commas/whitespace; drop empties."""
+    return [part for part in re.split(r"[,\s]+", (raw or "").strip()) if part]
+
+
+def _parse_premise(cell):
+    """Extract the authorized premise from a tracker Status cell.
+
+    Returns {"diff_hash", "scope", "premise_ts", "verify_ts"} or None
+    when the cell declares no premise (rows without an authorization
+    never match the drift class).
+    """
+    match = _PREMISE_RE.search(cell or "")
+    if match is None:
+        return None
+    scope = _premise_scope_paths(match.group(2))
+    if not scope:
+        return None
+    premise_ts = _PREMISE_AT_RE.search(cell or "")
+    verify_ts = _VERIFY_AT_RE.search(cell or "")
+    return {
+        "diff_hash": match.group(1).lower(),
+        "scope": scope,
+        "premise_ts": premise_ts.group(1) if premise_ts else None,
+        "verify_ts": verify_ts.group(1) if verify_ts else None,
+    }
+
+
+def _parse_landing(note):
+    """Extract the landing record from a queue trail note.
+
+    Returns {"diff_hash", "paths", "landing_ts"} or None when the note
+    carries no landing record (an open authorization with no matching
+    envelope/landing record yet).
+    """
+    match = _LANDING_RE.search(note or "")
+    if match is None:
+        return None
+    paths = _premise_scope_paths(match.group(2))
+    if not paths:
+        return None
+    return {
+        "diff_hash": match.group(1).lower(),
+        "paths": paths,
+        "landing_ts": match.group(3),
+    }
+
+
+def _scope_covers(scope_paths, landing_paths):
+    """Landing paths NOT covered by the premise scope (empty when covered).
+
+    A scope entry covers its exact path and, when it names a directory
+    (trailing `/`), everything beneath it. Anything else is a breach.
+    Fail-closed before any prefix comparison: a landing path carrying a
+    `..` segment (e.g. `src/extra/../outside`) can share a scope
+    directory prefix while resolving outside it, so each such path is
+    reported uncovered (mirrors the envelope-side rule in
+    auth_envelope._scope_covers).
+    """
+    uncovered = []
+    for path in landing_paths:
+        if isinstance(path, str) and ".." in path.split("/"):
+            uncovered.append(path)
+            continue
+        covered = False
+        for entry in scope_paths:
+            if entry.endswith("/"):
+                if path == entry.rstrip("/") or path.startswith(entry):
+                    covered = True
+                    break
+            elif path == entry:
+                covered = True
+                break
+        if not covered:
+            uncovered.append(path)
+    return uncovered
+
+
+def attribute_premise_age(premise_ts, verify_ts, landing_ts):
+    """Report premise age at landing (issue #15, inputs for #17).
+
+    Pure report field: premise age (landing minus premise) and
+    verify-to-landing spread in seconds, plus a one-line note. Report
+    only — never writes tracker or queue state, never advances rows.
+    Unparseable timestamps yield None ages (still flagged by the
+    classifier; the age is unknown, not zero).
+    """
+    premise_s = _parse_ts(premise_ts)
+    verify_s = _parse_ts(verify_ts)
+    landing_s = _parse_ts(landing_ts)
+    if premise_s is not None and landing_s is not None:
+        premise_age_s = landing_s - premise_s
+    else:
+        premise_age_s = None
+    if verify_s is not None and landing_s is not None:
+        verify_to_landing_s = landing_s - verify_s
+    else:
+        verify_to_landing_s = None
+    if premise_age_s is None:
+        note = (
+            "premise age unknown at landing "
+            f"(premise {premise_ts} -> landing {landing_ts})"
+        )
+    else:
+        note = (
+            f"premise age {premise_age_s}s at landing "
+            f"(premise {premise_ts} -> landing {landing_ts})"
+        )
+    return {
+        "premise_ts": premise_ts,
+        "verify_ts": verify_ts,
+        "landing_ts": landing_ts,
+        "premise_age_s": premise_age_s,
+        "verify_to_landing_s": verify_to_landing_s,
+        "note": note,
+    }
+
+
+def stalled_premise_drift_diff(row, queue_by_id, transitions_by_id):
+    """Shared premise-drift classifier (issue #15, REQ-E2).
+
+    Returns the stalled diff when the row's landing diff drifted from its
+    authorized premise (hash mismatch or scope breach), or when the row
+    carries an open authorization with no matching landing record — with
+    premise-age attribution attached. Clean premises and rows declaring
+    no premise return None (stay quiet). Pure classification —
+    propose-only (REQ-R2), no row state written, never done/complete/
+    closed by this module. Both reconcile.py (via diff_row's tail) and
+    generate_trackers.py (OTHER-arm carve-out, review-only render)
+    consume THIS helper; no command may own a parallel premise mapping.
+    """
+    cell = row["status"]
+    premise = _parse_premise(cell)
+    if premise is None:
+        return None
+    qitem_raw = row["qitem"].strip()
+    if qitem_raw in NO_QITEM_CELLS:
+        return None
+    m = QITEM_RE.search(qitem_raw)
+    qid = m.group(0) if m else qitem_raw
+    entry = queue_by_id.get(qid)
+    if entry is None:
+        return None
+    trail = transitions_by_id.get(qid, [])
+    terminal, latest_id, latest = queue_terminal(entry, trail)
+    if terminal:
+        return None
+    latest_note = str((latest or {}).get("transitionNote") or "")
+    queue_evidence = (
+        f"state={entry.get('state')} latest_transition={latest_id} ({latest_note})"
+    )
+    # Bind the newest recognized landing record anywhere in the trail
+    # (a clean landing followed by a non-landing note still binds it):
+    # scan newest-to-oldest and take the first transitionNote that
+    # _parse_landing recognizes, instead of parsing only latest_note.
+    landing = None
+    ordered = sorted(
+        trail if isinstance(trail, list) else [],
+        key=lambda t: t.get("transitionId", -1) if isinstance(t, dict) else -1,
+        reverse=True,
+    )
+    for item in ordered:
+        note = item.get("transitionNote") if isinstance(item, dict) else ""
+        candidate = _parse_landing(str(note or ""))
+        if candidate is not None:
+            landing = candidate
+            break
+    attribution = attribute_premise_age(
+        premise["premise_ts"],
+        premise["verify_ts"],
+        landing["landing_ts"] if landing else None,
+    )
+    if landing is None:
+        return {
+            "class": "stalled-premise-drift",
+            "reason": (
+                "row carries an open authorization with no matching landing "
+                "record (no landing diff on the queue trail to bind the "
+                f"premise {premise['diff_hash']} to)"
+            ),
+            "tracker": cell,
+            "queue": queue_evidence,
+            "proposal": (
+                f"Route {row['slice']} for human review: the authorized "
+                f"premise names diff {premise['diff_hash']} scope "
+                f"{', '.join(premise['scope'])} but no landing record binds "
+                f"it ({attribution['note']}); the owner owns next action "
+                f"(fresh premise, narrowed scope, or explicit hold)"
+            ),
+            "attribution": attribution,
+        }
+    uncovered = _scope_covers(premise["scope"], landing["paths"])
+    drifted = landing["diff_hash"] != premise["diff_hash"]
+    if not drifted and not uncovered:
+        return None
+    if drifted and uncovered:
+        reason = (
+            f"landing diff {landing['diff_hash']} drifted from authorized "
+            f"premise {premise['diff_hash']} and reaches outside scope: "
+            f"{', '.join(uncovered)}"
+        )
+    elif drifted:
+        reason = (
+            f"landing diff {landing['diff_hash']} drifted from authorized "
+            f"premise {premise['diff_hash']}"
+        )
+    else:
+        reason = (
+            "landing file-set breaches the authorized scope "
+            f"(premise {premise['diff_hash']}): {', '.join(uncovered)}"
+        )
+    return {
+        "class": "stalled-premise-drift",
+        "reason": reason,
+        "tracker": cell,
+        "queue": queue_evidence,
+        "proposal": (
+            f"Route {row['slice']} for human review: {reason} "
+            f"({attribution['note']}); the owner owns next action "
+            f"(fresh premise, narrowed scope, or explicit hold)"
+        ),
+        "attribution": attribution,
+    }
+
+
 def render_diff(row, diff):
     header = (
         f"DIFF [{diff['class']}] {row['file']}:{row['line']} "
@@ -808,12 +1063,13 @@ def render_diff(row, diff):
     attribution = diff.get("attribution")
     if isinstance(attribution, dict) and attribution.get("note"):
         lines.append(f"  attribution: {attribution['note']}")
-    # 81-seat-idle rework-1 (F3): the stalled-idle-park diff routes for
-    # human review — never a paste-ready cell. Render its review-routing
-    # proposal as SUGGESTED (not paste-ready): no PROPOSED-CELL marker
+    # 81-seat-idle rework-1 (F3) + 15-auth-envelope (REQ-E2): the
+    # stalled-idle-park and stalled-premise-drift diffs route for human
+    # review — never a paste-ready cell. Render their review-routing
+    # proposals as SUGGESTED (not paste-ready): no PROPOSED-CELL marker
     # and no "converged" queue-note suggestion (the row has not
     # converged). Every other diff class keeps the existing output below.
-    if diff.get("class") == "stalled-idle-park":
+    if diff.get("class") in ("stalled-idle-park", "stalled-premise-drift"):
         lines += [
             "  NEEDS-HUMAN-REVIEW: TPM decide; owner owns next action.",
             f"  SUGGESTED (not paste-ready): {diff['proposal']}",

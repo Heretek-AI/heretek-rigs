@@ -75,6 +75,7 @@ from reconcile_model import (  # noqa: E402
     run_rig,
     stalled_awaiting_gate_diff,
     stalled_idle_park_diff,
+    stalled_premise_drift_diff,
     write_out_exclusive,
 )
 
@@ -224,6 +225,27 @@ def build_proposal(tracker, queue_by_id, transitions_by_id):
                 blocks.append(
                     render_proposal(
                         row, arm, "WITHHELD — TPM judgment required", idle_park, True
+                    )
+                )
+                n_review += 1
+                continue
+            # 15-auth-envelope (REQ-E2) carve-out: premise prose IS
+            # passed to the shared premise-drift classifier so the drifted
+            # landing is named explicitly in review. Still always review
+            # (never a paste-ready terminal cell): the class stays outside
+            # PASTE_READY_CLASSES, so the withhold rule holds — status NEVER
+            # guessed, no canonical cell proposed for drifted premises.
+            premise_drift = stalled_premise_drift_diff(
+                row, queue_by_id, transitions_by_id
+            )
+            if premise_drift is not None:
+                blocks.append(
+                    render_proposal(
+                        row,
+                        arm,
+                        "WITHHELD — TPM judgment required",
+                        premise_drift,
+                        True,
                     )
                 )
                 n_review += 1
