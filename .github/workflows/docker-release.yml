@@ -42,7 +42,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: heretek-ai/heretek-rigs # ghcr.io requires lowercase repository names
 
 jobs:
   verify-fleet:
@@ -111,7 +111,7 @@ jobs:
       matrix:
         target: [slim, full]
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
+      image: ghcr.io/heretek-ai/heretek-rigs:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}

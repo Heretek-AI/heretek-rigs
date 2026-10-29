@@ -311,3 +311,50 @@
   instructions.
 - **Deviations / notes (explicit):** none — reorder only, no new steps, no
   pins, no V-gate edits. No commit/push/merge (per instructions).
+
+## Rework-5 (2026-10-29-bump-075 REWORK-5, branch fix/bump-075-r5 @ 1f23bf2): unblock PR #135 CI — lowercase ghcr.io image name
+
+- **Mandate note:** the plan's 3-cycle rework budget was spent, but the user
+  explicitly authorized continued fixes until PR #135 CI passes — this
+  Rework-5 proceeds under that standing mandate.
+- **Symptom:** PR #135 CI "Host verification gate" now PASSES (1m24s). New
+  failure: Build slim/full fail with `invalid tag
+  "ghcr.io/Heretek-AI/heretek-rigs:latest": repository name must be
+  lowercase`. Fourth latent environmental layer (build never ran before
+  because verify-fleet gates it and verify never passed on these runners
+  until this wave fixed it). Pre-existing, NOT a Wave-1 regression (our wave
+  never touched image naming).
+- **Code facts (verified in-tree before editing):**
+  `.github/workflows/docker-release.yml:45`
+  (`IMAGE_NAME: ${{ github.repository }}` = `Heretek-AI/heretek-rigs`,
+  uppercase, consumed by build tags lines 91-92 and attest subject-name line
+  100) and `:114`
+  (`image: ghcr.io/${{ github.repository }}:sha-...`); repo-wide grep for
+  `IMAGE_NAME|github.repository` hits only the workflow file plus generated
+  skill-reference docs (no gates); `scripts/`, `Makefile`, `tests/`,
+  `docker/` contain no assertion on IMAGE_NAME values;
+  `scripts/verify-rigs.sh:3028-3036` (V27 asserts only bubblewrap-string +
+  UniqueKey parse + smoke `container`-is-dict — type-based, unaffected by the
+  image string). A GITHUB_ENV-lowercasing step CANNOT fix line 114
+  (`container.image` resolves before steps run), so lowercase literals are
+  the correct minimal fix.
+- **Fix (2 literals, zero logic change):**
+  `.github/workflows/docker-release.yml:45` →
+  `IMAGE_NAME: heretek-ai/heretek-rigs # ghcr.io requires lowercase
+  repository names` (keeps the file's trailing-comment style); `:114` →
+  `image: ghcr.io/heretek-ai/heretek-rigs:sha-${{ github.sha }}${{
+  matrix.target == 'full' && '-full' || '' }}` (same tag template, only the
+  repository path lowercased). Nothing else touched.
+- **Validation (real outputs, inside worktree `.lane/trees/bump-075-r5`):**
+  `python3 -c "import yaml; d=yaml.safe_load(open('.github/workflows/docker-release.yml')); print(d['env']['IMAGE_NAME']); print(d['jobs']['smoke']['container']['image'])"` →
+  `heretek-ai/heretek-rigs` /
+  `ghcr.io/heretek-ai/heretek-rigs:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}`
+  (both lowercase); UniqueKey-style safe_load re-parse → rc=0, smoke
+  container is dict True; `./scripts/verify-rigs.sh --check-only` →
+  `SUMMARY: 39 checks passed, 0 failed`, rc=0; `git status --short` → only
+  the workflow file plus this report addendum; `git diff --stat` → 1 file, 2
+  insertions, 2 deletions. `make test`: SKIPPED — workflow-literal-only
+  change (no generator/runtime/catalog/V-gate code touched); 634/0 baseline
+  stands per instructions.
+- **Deviations / notes (explicit):** none — two literals only, no V-gate
+  edits, no pins. No commit/push/merge (per instructions).
