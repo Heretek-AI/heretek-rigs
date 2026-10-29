@@ -264,3 +264,57 @@ VERDICT: PASS
 - Never committed; never printed secrets.
 
 VERDICT: PASS
+
+## Rework-5 re-audit (2026-10-29, branch fix/bump-075-r5 @ 7497adc, role agency-drift-guard)
+
+- **Role:** independent adversarial auditor; fixed no code; committed nothing. Prior verdicts above re-issued, not copied: every claim below re-verified against current worktree files with commands I ran myself.
+- **Start state:** `git status --short` clean (empty output before any audit command, rc=0). Revs seen: `1f23bf2` (rework-4 drift-guard VERDICT) → `314e5a5` (rework fix) → `7497adc` (QA re-verification) = HEAD.
+- **Mandate note:** plan's 3-cycle rework budget was spent, but the user explicitly authorized continued fixes until PR #135 CI passes — this Rework-5 proceeds under that standing mandate (same basis recorded in the implementation appendix).
+- **Rework delta (`git diff 1f23bf2 HEAD --stat`):** exactly 3 files, 67 insertions, 2 deletions — `.github/workflows/docker-release.yml` (2+/2-, two literal lines), `docs/reports/bump-075-implementation.md` (+47), `docs/reports/bump-075-qa.md` (+18). Fix commit alone (`1f23bf2..314e5a5`): workflow + implementation appendix; the third file is the QA re-verification appendix (committed as `7497adc`). No hunk beyond the 2 literal lines + docs appendices exists — minimality HOLDS.
+- **Docs-appendix purity:** `git diff 1f23bf2 HEAD -- docs/ | grep '^-' | grep -v '^---'` returns zero content-deletion lines — pure append. Both hunks are tail-anchored sections. No dated-record rewrite, no history edit.
+
+### Hunk-by-hunk audit (full `git diff 1f23bf2 HEAD` read from disk, `-U0` confirmed exactly 2 changed lines)
+
+- **H1 — env IMAGE_NAME (`docker-release.yml:45`):** `IMAGE_NAME: ${{ github.repository }}` → `IMAGE_NAME: heretek-ai/heretek-rigs # ghcr.io requires lowercase repository names`. Keeps the file's trailing-comment style. This is the load-bearing fix for the build tags (lines 91-92) and the attest `subject-name` (line 100), which both consume `${{ env.IMAGE_NAME }}` — one literal heals all three consumers. Verified: OLD `:45` used the `${{ github.repository }}` template (no literal `Heretek-AI` in file; uppercase enters via runtime resolution — the `Heretek-AI` org casing corroborated via remote URL — matching CI's `repository name must be lowercase` error); NEW literal has `any(c.isupper())` False, proven programmatically.
+- **H2 — smoke container image (`docker-release.yml:114`):** `image: ghcr.io/${{ github.repository }}:sha-...` → `image: ghcr.io/heretek-ai/heretek-rigs:sha-...`. Same tag template, only the repository path lowercased. This literal CANNOT be fixed via `env.IMAGE_NAME` or a `GITHUB_ENV` lowercasing step — `container.image` resolves before steps run — so a second hardcoded literal is the correct minimal form, not scope creep. Verified: no other `github.repository` occurrence remains in the file (`grep` over OLD showed `:45` + `:114` only; NEW shows zero).
+- **H3/H4 — report appendices:** implementation.md +47 and qa.md +18, tail-appended, zero deletions. Content verified accurate against the tree (OLD `:45`/`:114` template strings, NEW literals, `verify-rigs.sh:3028-3036` V27 cite, YAML re-parse — all re-checked by me; QA's nuance that the OLD file contains no literal `Heretek-AI` string is honest and correct).
+
+### Discipline verdicts
+
+- **One Rule:** PASS — `git diff 1f23bf2 HEAD --name-only -- specs/ rigs/ rosters/ registry/ fleet/ schemas/ scripts/generate-rigs.py` empty; `scripts/` diff is 0 lines (no generator/runtime/catalog/V-gate code touched).
+- **Frozen-archive integrity:** PASS — `git diff 1f23bf2 HEAD --name-only -- archive/ openspec/` empty (no active change-id touched, archived package untouched).
+- **Zero V-gate text:** HOLDS — `git diff 1f23bf2 HEAD -- .github/ scripts/ | grep -E 'V[0-9]'` returns zero hits. A naive docs-inclusive grep returns 2 prose mentions of `V27` inside the appendices (implementation cite + QA table row) — these are report prose, NOT gate-code edits. `SUMMARY` frozen at 39, confirmed by re-run.
+- **Secrets / no-local-paths hygiene on added lines:** PASS — added-line scan for `ghp_|gho_|sk-ant-|AKIA|Bearer|/home/|/Users/|secrets/|.key|.pat|password|token` returns zero hits. Appendix worktree references are repo-relative (`.lane/trees/bump-075-r5`), never machine-absolute.
+- **`Refs`-only discipline:** PASS — no `Closes #`/`Fixes #`/`Resolves #` in the delta (bump ledger wave; nothing to close).
+
+### Workflow judgment (all steps/jobs preserved; fork caveat; attest binding)
+
+- **Steps/jobs preserved:** YES, proven by YAML-parsed comparison of OLD (`git show 1f23bf2:`) vs NEW tree — jobs `build/smoke/verify-fleet` identical, step counts 6/6/5 identical, `needs` chain (`build→verify-fleet`, `smoke→build`) identical, all `if: github.event_name != 'pull_request'` conditionals intact (`:75` login, `:87` push flag, `:98` attest, `:107` smoke job). `-U0` diff shows exactly the 2 literal lines; zero step bodies touched. YAML-schema risk: NONE — `safe_load` parses OK.
+- **Hardcode safety + fork caveat (explicit):** the hardcode is SAFE for this repo's CI because every registry-mutating or registry-reading consumer is gated on non-PR events — `push: ${{ github.event_name != 'pull_request' }}` (`:87`), attest `if` (`:98`), smoke-job `if` (`:107`), login `if` (`:75`). PR CI (including PR #135 and any fork PR) therefore exercises only `verify-fleet` + a no-push `build`, neither of which resolves the literal against a foreign namespace with write effects. **Fork caveat (real, stated plainly):** a fork that pushes to its own `main` would now build+push to `heretek-ai/heretek-rigs` (upstream namespace → permission denied on push) and its `smoke` job would pull the upstream image, not its own. Upstream `docker-release.yml` files commonly hardcode the canonical repo path for exactly the lowercase reason, but a fork must parameterize or revert these two literals to run its own release pipeline. For THIS repo's mandate (unblock PR #135 CI on `Heretek-AI/heretek-rigs`), the hardcode is the correct minimal fix; the fork cost is documented here, not hidden.
+- **Attest subject-name/digest binding:** AGREE it cannot break, with reason. The attest step (`:97-102`) binds `subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}` to `subject-digest: ${{ steps.push.outputs.digest }}`. The digest expression is untouched; only the subject *string* is renamed — and it is renamed to exactly the tag prefix the `build` step pushes (`:91-92` use the same `${{ env.IMAGE_NAME }}`), so subject and pushed artifact remain mutually consistent. Previously the subject-name would have resolved to the uppercase (registry-invalid) name; the rename strictly improves binding validity. No key, identity, or digest-plumbing change exists in the diff.
+
+### Re-ran myself (exit codes observed, not quoted)
+
+| # | Command (inside worktree) | Observed result | rc |
+|---|---|---|---|
+| R1 | `./scripts/verify-rigs.sh --check-only` (pre-probe) | `SUMMARY: 39 checks passed, 0 failed` | 0 |
+| R2 | `./scripts/verify-rigs.sh --check-only` (post-probe-restore) | `SUMMARY: 39 checks passed, 0 failed` | 0 |
+| R3 | `git diff 1f23bf2 HEAD --stat` | 3 files, 67 insertions, 2 deletions | 0 |
+| R4 | YAML-parsed OLD-vs-NEW structure (`git show 1f23bf2:` vs tree) | jobs equal, steps 6/6/5 both, needs/ifs intact | 0 |
+| R5 | Lowercase assert on NEW literals (`any(c.isupper())`) | both False → `LOWERCASE-ASSERT: GREEN` | 0 |
+| R6 | Added-line secret/local-path scan + Refs-only scan + functional V-gate scan | zero hits all three | — |
+| R7 | Protected-path diff (`specs/ rigs/ rosters/ registry/ fleet/ schemas/ archive/ openspec/ scripts/`) | empty | 0 |
+
+### Own sabotage probe (DG-R5, RED→GREEN, restore proof — distinct from QA's R5-1..R5-5, which never sabotaged the tree; QA's R5-4 was read-only `git show | grep`)
+
+- **DG-R5 — fix-property inversion (topical to the touched literals):** byte backup of `.github/workflows/docker-release.yml` (sha256 `aa78791b…12cf4` both copies) → sabotage both literals `heretek-ai` → `Heretek-AI` (in-tree `sed`, reproducing the CI failure casing) → lowercase-assert RED (`AssertionError: LOWERCASE-ASSERT: RED (uppercase present)`, `IMAGE_NAME upper=True`, `smoke upper=True`), rc=1 → `git checkout -- .github/workflows/docker-release.yml` + `cmp` vs backup → **BYTE-IDENTICAL** (sha256 `aa78791b…12cf4` both, backup removed) → lowercase-assert GREEN (`heretek-ai/heretek-rigs`), rc=0, plus verify GREEN 39/0 (R2).
+- **Honesty note:** local `verify-rigs.sh` is case-insensitive by design (no gate validates ghcr naming — V27 asserts bubblewrap-string + UniqueKey parse + smoke-container-is-dict only), so the RED is demonstrated by the property assert, not by verify. This is non-vacuous: it proves the exact fixed property (lowercase literals) fails loudly when inverted and holds when restored, rather than asserting on an unrelated gate. Post-probe: `git status --short` clean, `git stash list` empty, `git diff 1f23bf2 HEAD --stat` unchanged (3 files, 67/2).
+
+### Skips (explicit)
+
+- `make test` not re-run by this auditor: delta is two workflow image-name literals + docs appendices (no generator/runtime/catalog/V-gate/test code touched — `scripts/` diff 0 lines); full suite green at 634/0 per QA baseline and the directly affected gate re-ran green 39/0 twice (R1/R2). Skipped with reason.
+- `openspec validate <change-id>`: N/A — no active change-id (`openspec/changes/` holds only `archive/`); canonical-spec health unchanged since rework-1.
+- `gh`-side re-verification of PR #135 CI logs: not re-fetched; the lowercase mechanism is proven locally (R5 + DG-R5 RED→GREEN) and CI-behavior claims are the coordinator's merge-time concern, not this delta's correctness gate.
+- Never committed; never printed secrets.
+
+VERDICT: PASS
