@@ -100,3 +100,24 @@
 - **Residue check:** `/tmp` probe copies removed; `git status --short` clean after probes except this qa appendix (uncommitted by qa). No tree edits made during floor/sabotage proofs (stub-injection + `/tmp` copies only).
 - **Test scope:** full `make test` skipped — change is one CI pip-line specifier plus a preamble-only floor check (no generator/runtime/catalog/V-gate code touched; R3-3 re-ran the directly affected gate green 39/0).
 - **Skips and failures:** none beyond the stated `make test` skip. No baseline failure.
+
+## Rework-4 QA re-verification (2026-10-29 UTC, branch fix/bump-075-r4 @ 728662c, role agency-qa)
+
+- **Pre-state:** `git status --short` clean at start, HEAD `728662c`. Fix claims treated as untrusted; each verified against worktree files. Nothing committed by qa.
+- **Diff scope (EXACT, 2 files):** `git diff bea4d16 HEAD --stat` = 2 files, 49 insertions, 1 deletion (`.github/workflows/docker-release.yml` 1+/1- moved block, `docs/reports/bump-075-implementation.md` +48 docs-only appendix). No `docs/reports/bump-075-qa.md` change in the fix commit (this appendix is the only qa addition, uncommitted). Every hunk inspected: (1) workflow verify-fleet job: `sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap && bwrap --version` line moved from AFTER the `guard-profiles` block to BEFORE `./scripts/verify-rigs.sh --check-only` (directly after the pip-install step) — pure reorder, zero new steps, zero new content; (2) implementation-report Rework-4 section (docs-only). Zero functional content added — `git diff bea4d16 HEAD -- scripts/ | wc -l` = 0 (no generator/runtime/catalog/V-gate code touched).
+- **Note on scope wording:** task brief expected "report appendix docs-only" without naming the file; the fix's docs-only appendix landed in `docs/reports/bump-075-implementation.md` (+48), not `bump-075-qa.md`. Still docs-only; no scope violation.
+
+| # | Check (inside worktree) | Real output | rc | Result |
+|---|---|---|---|---|
+| R4-1 | Workflow YAML parses: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | parses OK; jobs `['verify-fleet', 'build', 'smoke']`, verify-fleet 6 steps | 0 | PASS |
+| R4-2 | Tree step order (YAML-parsed run-step index): apt-get/bubblewrap idx vs verify idx | `apt-get-idx=2 verify-idx=3` → FIXED: apt-get precedes verify (full order: checkout / pip-install / apt-get-bubblewrap / verify / audit-self-test / guard-profiles) | 0 | PASS |
+| R4-3 | `./scripts/verify-rigs.sh --check-only` | `SUMMARY: 39 checks passed, 0 failed` | 0 | PASS |
+| R4-4 | V27 UniqueKey + bubblewrap-string assertion in the green run: `grep -iE "V27\|bubblewrap\|bwrap\|UniqueKey"` | `== V27. Docker Pipeline bubblewrap + Workflow Keys ==` + `V27/overhaul-a M3 green: Dockerfile bubblewrap + UniqueKey workflow parse + verify-fleet install` | 0 | PASS |
+| R4-5 | Host bwrap present (the thing fresh CI runners lacked) | `/usr/bin/bwrap`, `bubblewrap 0.13.1` | 0 | PASS |
+| R4-6 | Negative proof, OLD order in /tmp COPY (tree untouched): `git show bea4d16:...docker-release.yml > /tmp/bump075-r4-old-workflow.yml`, `grep -n` + YAML-parse idx | OLD copy: line 54 `verify-rigs.sh --check-only` precedes line 60 apt-get-bubblewrap; parsed idx `verify-idx=2 apt-get-idx=5` → BUG documented | — | PASS |
+| R4-7 | Fixed-order confirmation: `diff /tmp/...old... .github/workflows/docker-release.yml` + tree `grep -n` | diff shows only the moved block (`53a54` / `60d60`); tree: line 54 apt-get precedes line 55 verify | 1 (diff, expected) | PASS |
+| R4-8 | Fail-closed cite (read-only): `sed -n '1707,1711p' scripts/verify-rigs.sh` + `grep HERETEK_ALLOW_NO_BWRAP workflow` | `which("bwrap") is None` → note-mode only when `HERETEK_ALLOW_NO_BWRAP=1`, else `fail("tool-existence: bwrap not found on PATH...")`; workflow sets no `HERETEK_ALLOW_NO_BWRAP` (absent, correct — CI verifies-for-real) | — | PASS |
+
+- **Residue check:** `/tmp/bump075-r4-old-workflow.yml` removed (`ls /tmp/bump075-r4*` → No such file); `git status --short` shows only this qa appendix (uncommitted by qa). No tree edits during negative proof (/tmp copy + grep/diff only).
+- **Test scope:** full `make test` skipped — change is a workflow step reorder plus docs (no generator/runtime/catalog/V-gate code touched; R4-3 re-ran the directly affected gate green 39/0).
+- **Skips and failures:** none beyond the stated `make test` skip. No baseline failure.
