@@ -139,3 +139,12 @@
 - **Residue check:** no `/tmp` scratch files created (pipe-only negative proof: `git show | grep`, `git show | python3`); `git status --short` shows only this qa appendix (uncommitted by qa). No tree edits during necessity proof.
 - **Test scope:** full `make test` skipped — change is two workflow image-name literals plus docs (no generator/runtime/catalog/V-gate code touched; R5-3 re-ran the directly affected gate green 39/0).
 - **Skips and failures:** none beyond the stated `make test` skip. No baseline failure. Nuance reported honestly: OLD file contains no literal `Heretek-AI` string — uppercase enters via `${{ github.repository }}` runtime resolution, not file text.
+
+
+## Rework-6 QA re-verification (2026-10-29 UTC, branch feat/bump-075, role agency-qa)
+
+- **Diff scope (3 code files + docs):** `.dockerignore` (unignore `.git/` and `docs/evidence/`), `docker/Dockerfile` (add `safe.directory`), `tests/test_generate_supplychain.py` (dynamicize `test_live_interpreter_takes_filter_branch`).
+- **Tests verified:**
+  - `python -m unittest tests.test_generate_supplychain.TestTarFilterGuard tests.test_generate_supplychain.TestHermeticCharterFallback tests.test_generate_supplychain.TestHermeticVendorRestore`: 7 tests run, 0 failures, rc=0.
+  - `.dockerignore` inspection: `.git` and `docs/evidence` present in build context; runtime transcripts, caches, untracked working trees remain ignored.
+  - Dockerfile inspection: `git config --global --add safe.directory /opt/heretek/heretek-rigs` present before verification command.
