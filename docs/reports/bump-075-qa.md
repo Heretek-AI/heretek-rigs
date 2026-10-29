@@ -121,3 +121,21 @@
 - **Residue check:** `/tmp/bump075-r4-old-workflow.yml` removed (`ls /tmp/bump075-r4*` → No such file); `git status --short` shows only this qa appendix (uncommitted by qa). No tree edits during negative proof (/tmp copy + grep/diff only).
 - **Test scope:** full `make test` skipped — change is a workflow step reorder plus docs (no generator/runtime/catalog/V-gate code touched; R4-3 re-ran the directly affected gate green 39/0).
 - **Skips and failures:** none beyond the stated `make test` skip. No baseline failure.
+
+## Rework-5 QA re-verification (2026-10-29 UTC, branch fix/bump-075-r5 @ 314e5a5, role agency-qa)
+
+- **Pre-state:** `git status --short` clean at start, HEAD `314e5a5`, branch `fix/bump-075-r5`. Fix claims treated as untrusted; each verified against worktree files. Nothing committed by qa.
+- **Diff scope (EXACT, 2 files):** `git diff 1f23bf2 HEAD --stat` = 2 files, 49 insertions, 2 deletions (`.github/workflows/docker-release.yml` 2+/2- = exactly 2 changed workflow lines, `docs/reports/bump-075-implementation.md` +47 docs-only appendix). No `docs/reports/bump-075-qa.md` change in the fix commit (this appendix is the only qa addition, uncommitted). Every hunk inspected: (1) `:45` `IMAGE_NAME: ${{ github.repository }}` → `IMAGE_NAME: heretek-ai/heretek-rigs # ghcr.io requires lowercase repository names` (keeps the file's trailing-comment style); (2) `:114` smoke `image: ghcr.io/${{ github.repository }}:sha-...` → `image: ghcr.io/heretek-ai/heretek-rigs:sha-...` (same tag template, only the repository path lowercased). Zero other content — `git diff 1f23bf2 HEAD -- scripts/ | wc -l` = 0 (no generator/runtime/catalog/V-gate code touched).
+- **Note on scope wording:** task brief expected the docs-only appendix in `bump-075-qa.md`; the fix's docs-only appendix landed in `docs/reports/bump-075-implementation.md` (+47), not `bump-075-qa.md`. Still docs-only; no scope violation (same pattern as R4).
+
+| # | Check (inside worktree) | Real output | rc | Result |
+|---|---|---|---|---|
+| R5-1 | Workflow YAML parses: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | parses OK; `env.IMAGE_NAME` + `jobs.smoke.container.image` readable | 0 | PASS |
+| R5-2 | Lowercase assert, programmatic: `any(c.isupper() ...)` on both strings | `IMAGE_NAME='heretek-ai/heretek-rigs'` uppercase=False; smoke=`ghcr.io/heretek-ai/heretek-rigs:sha-...` uppercase=False → `LOWERCASE-ASSERT: PASS` | 0 | PASS |
+| R5-3 | `./scripts/verify-rigs.sh --check-only` | `SUMMARY: 39 checks passed, 0 failed` (V27 in run) | 0 | PASS |
+| R5-4 | Lowercase-necessity, OLD strings (read-only, tree untouched): `git show 1f23bf2:...docker-release.yml \| grep -n "github.repository"` | OLD `:45` + `:114` both use `${{ github.repository }}` template (no literal `Heretek-AI` in file); resolves at runtime to `Heretek-AI/heretek-rigs` — proven via `git config --get remote.origin.url` = `https://github.com/Heretek-AI/heretek-rigs` (uppercase org) → resolved tag `ghcr.io/Heretek-AI/heretek-rigs:latest` has uppercase=True, matching CI error `repository name must be lowercase` (Docker rule); NEW literals have uppercase=False | 0 | PASS |
+| R5-5 | Fix-commit provenance: `git rev-parse --short HEAD` + `git status --short` post-checks | `314e5a5`, status clean (verify run left no dirt) | 0 | PASS |
+
+- **Residue check:** no `/tmp` scratch files created (pipe-only negative proof: `git show | grep`, `git show | python3`); `git status --short` shows only this qa appendix (uncommitted by qa). No tree edits during necessity proof.
+- **Test scope:** full `make test` skipped — change is two workflow image-name literals plus docs (no generator/runtime/catalog/V-gate code touched; R5-3 re-ran the directly affected gate green 39/0).
+- **Skips and failures:** none beyond the stated `make test` skip. No baseline failure. Nuance reported honestly: OLD file contains no literal `Heretek-AI` string — uppercase enters via `${{ github.repository }}` runtime resolution, not file text.
