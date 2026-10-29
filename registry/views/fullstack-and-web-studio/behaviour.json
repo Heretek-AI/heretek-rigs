@@ -5,14 +5,14 @@
     "source": {
       "repository": "https://github.com/Heretek-AI/heretek-rigs",
       "folder": "rigs/fullstack-and-web-studio",
-      "resolvedCommit": "b17d83d61ff05e8f3dfb4b8ccc9e7a503c8f6b0c",
+      "resolvedCommit": "DIRTY-8dec2edef44f82007e803950d6fbc290fae2d08a",
       "requestedRef": "main",
-      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/b17d83d61ff05e8f3dfb4b8ccc9e7a503c8f6b0c/rigs/fullstack-and-web-studio"
+      "canonicalUrl": "https://github.com/Heretek-AI/heretek-rigs/tree/DIRTY-8dec2edef44f82007e803950d6fbc290fae2d08a/rigs/fullstack-and-web-studio"
     },
     "configurationId": "build.go-backend-eng=pi,build.java-kotlin-eng=pi,build.python-backend-spec=pi,build.ts-node-fullstack=pi,design.a11y-specialist=pi,design.brand-copy-spec=pi,design.design-system-eng=pi,design.fe-perf-eng=pi,design.mobile-web-eng=pi,design.ui-ux-designer=pi,design.ux-research-analyst=pi",
     "packageDigest": {
       "algorithm": "sha256",
-      "value": "ea0bf4095ea382c5bb37548dcdf1f9b021ab2b4acdbb84d8e1d9d4b07f62781d",
+      "value": "ef0825134d096ed98f07320a2b67a4c9b62856c81e9f68414747b3892b2dc9f5",
       "coverage": "openrig.package-digest/v1"
     },
     "assembler": {

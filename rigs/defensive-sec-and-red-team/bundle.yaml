@@ -318,7 +318,7 @@ integrity:
     agents/_shared/skills/property-based-testing/references/refactoring.md: 6eb5c206f575704791f089608bb06e41d6eed91b9d3c7fb27912f969aed07a18
     agents/_shared/skills/property-based-testing/references/reviewing.md: 110b08118a1e7b1a2566def6e9d2a0bf43fc2deefce857d2ce3b4382b07bc774
     agents/_shared/skills/queue-handoff/LICENSE: 9ba9bf171f337262f0c9e3616f9e49463b199c109de7268b9b0f995c2c1ac743
-    agents/_shared/skills/queue-handoff/SKILL.md: 84a07fc427d20cdf42f19ffa9893d41a517a99b635a559de8b329427e9b3bd9f
+    agents/_shared/skills/queue-handoff/SKILL.md: c864b850967ea477ac0ad9805144fc10b5059bd93c7a12ebded84bde3a8af5ec
     agents/_shared/skills/react-best-practices/AGENTS.md: fc93e7421177bbf869cce892bc60a6c83a4517d974bc3bf65c4e2c1e58a6ccf6
     agents/_shared/skills/react-best-practices/README.md: 9eafb2123d3b8b2aef41fba0db2648a3f4f49996f8c7c8bb2c86263befd8b48a
     agents/_shared/skills/react-best-practices/SKILL.md: 7abbd5496192757b9fb235858bc140a6ae867a3aa2c67393a6b354ea3ac7db0b

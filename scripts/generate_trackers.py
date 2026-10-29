@@ -74,6 +74,7 @@ from reconcile_model import (  # noqa: E402
     refuse_out_path,
     run_rig,
     stalled_awaiting_gate_diff,
+    stalled_idle_park_diff,
     write_out_exclusive,
 )
 
@@ -208,6 +209,21 @@ def build_proposal(tracker, queue_by_id, transitions_by_id):
                 blocks.append(
                     render_proposal(
                         row, arm, "WITHHELD — TPM judgment required", stalled, True
+                    )
+                )
+                n_review += 1
+                continue
+            # 81-seat-idle (REQ-I2) carve-out: claim-then-park prose IS
+            # passed to the shared idle-park classifier so the parked
+            # obligation is named explicitly in review. Still always review
+            # (never a paste-ready terminal cell): the class stays outside
+            # PASTE_READY_CLASSES, so the withhold rule holds — status NEVER
+            # guessed, no canonical cell proposed for unknown prose.
+            idle_park = stalled_idle_park_diff(row, queue_by_id, transitions_by_id)
+            if idle_park is not None:
+                blocks.append(
+                    render_proposal(
+                        row, arm, "WITHHELD — TPM judgment required", idle_park, True
                     )
                 )
                 n_review += 1

@@ -218,7 +218,7 @@
     "queue-handoff": {
       "source": "npm:@openrig/cli@0.7.4 daemon/assets/plugins/openrig-core/skills",
       "path": "queue-handoff",
-      "tree": "sha256:759e66dc5ab6c18cbd9bc72a53ff16dbf0f99e3529867532b43ca34c25feb8c7",
+      "tree": "sha256:97a07a0e57bd70cce39ff93c70f6f90ed76ce578f758272898e36b6b96e8ba88",
       "license_file": "LICENSE (copied from source root)"
     },
     "react-best-practices": {

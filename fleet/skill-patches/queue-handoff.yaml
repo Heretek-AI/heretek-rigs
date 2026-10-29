@@ -1,0 +1,21 @@
+# fleet/skill-patches/queue-handoff.yaml — fleet-side charter patch (issue #81, 81-seat-idle S1, REQ-I1).
+#
+# The Mission-A incident left a seat parked idle at the prompt right after
+# claiming: the claim landed, "Handoff received" was logged, then the
+# parked-owner-consumer watchdog line fired while holding 1 open obligation
+# with no work action anywhere. REQ-I1 states the rule in the queue-handoff
+# skill: claiming a qitem and the first work action are one turn — a seat
+# holding an open obligation MUST NOT end its turn immediately after the
+# claim with no work action recorded.
+#
+# `specs/` MUST change only via the generator (AGENTS.md one rule), so the
+# rule rides the generator (scripts/generate-rigs.py load_skill_patches /
+# apply_skill_patch `replacements`): one exact, fail-closed (exactly one
+# hit) append to the hot-potato terminal-turn-rule. Provenance-clean and
+# idempotent; the loader stays 68/68 with no DIAG.
+skill: queue-handoff
+reason: "state the claim+first-action-is-one-turn rule with the open-obligation no-park guard (#81 REQ-I1)"
+replacements:
+  - file: SKILL.md
+    old: "Active work ends by passing the ball to a named next owner or to the\nhuman. The qitem state machine enforces this:"
+    new: "Active work ends by passing the ball to a named next owner or to the\nhuman. The qitem state machine enforces this:\n\n**Claiming is not finishing — claim+first-action is one turn.** Claiming a qitem and the first work action are one turn: a seat holding an open obligation MUST NOT end its turn immediately after the claim with no work action recorded — no park-at-prompt after claim. The first act after claiming is the first work action, not a parked prompt (81-seat-idle claim rule)."

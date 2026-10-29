@@ -1,0 +1,112 @@
+# Red-proofs — 81-seat-idle (Refs #81)
+
+Each entry: sabotage the check, observe RED (#81 outcome restored), restore,
+observe GREEN. FAIL-ONLY pre-fix proof is the S0 transcript
+(docs/evidence/81-seat-idle-prefix.md); the S2 section references it.
+
+## FAIL-ONLY pre-fix run (S2.3, pre-fix tree)
+
+HEAD (pre-change) `scripts/reconcile_model.py` has no idle-park classifier
+(`hasattr stalled_idle_park_diff: False`) and no attribution field; the
+Mission-A fixture (qitem-20261023213329-7ad896bfc962330d, claimed + "Handoff
+received" + parked-at-prompt watchdog holding 1 open obligation, no work
+action) through `diff_row` on the pre-fix tree:
+
+```
+PREFIX -> None
+```
+
+No diff: the fixture reconciles silent (reconcile exit 0) and no daemon
+source rule exists in pre-fix `scripts/send_identity.py`
+(`validate_handoff_source` absent, `daemon:stuck-sweep` absent) — the exact
+pre-fix gap. Post-fix run of the same fixture through the patched module:
+
+```
+PATCHED -> stalled-idle-park
+```
+
+Executable form: tests.test_seat_idle_prefix (frozen S0 transcript pins)
+plus tests.test_seat_idle (S1 corpus asserting the classification).
+
+## S1 REQ-I2: stalled-idle-park classification
+
+RED (sabotage): `scripts/reconcile_model.py` copied to /tmp with an early
+`return None` injected at the top of `stalled_idle_park_diff` (mechanical
+equivalent of removing the classification). Mission-A fixture through the
+sabotaged copy:
+
+```
+SABOTAGED -> None
+```
+
+No diff: the fixture returns to silent agreement (reconcile exit 0) — the
+exact pre-fix gap.
+
+GREEN (restored): same fixture through the patched module:
+
+```
+PATCHED -> stalled-idle-park
+```
+
+Executable form: the S1a sabotage test in tests.test_seat_idle
+(TestStalledIdlePark: classifier disabled -> None; enabled -> stalled diff).
+
+## S1b: obligation-free idle quiet both ways (REQ-I2 scope guard)
+
+Patched classifier on the obligation-free-idle fixture ("parked
+(arbitrated: idle at prompt); queue exhausted", NO open obligation) and the
+same fixture through the sabotaged (classification-removed) copy:
+
+```
+PATCHED -> None
+SABOTAGED -> None
+```
+
+Quiet either way: the guard never over-flags legitimate idle.
+
+Executable form: tests.test_seat_idle
+TestStalledIdlePark.test_obligation_free_quiet_both_ways.
+
+## S1c: live-gate waiting quiet both ways (REQ-I2 scope guard)
+
+Patched classifier on the live-gate-waiting fixture (standing by for gate
+with a live gate qitem owned by qa-seat@rig, no open obligation) and the
+same fixture through the sabotaged copy:
+
+```
+PATCHED -> None
+SABOTAGED -> None
+```
+
+Quiet either way: live-gate waiting is not an idle park.
+
+Executable form: tests.test_seat_idle
+TestStalledIdlePark.test_live_gate_quiet_both_ways.
+
+## S1 REQ-I3: distinct daemon source, never operator
+
+RED (sabotage): a bypassed validator that persists whatever source is
+presented (mechanical equivalent of allowing the operator label for daemon
+origin). Daemon-origin handoff labeled `From: operator` through the
+bypassed validator:
+
+```
+SABOTAGED -> {'source': 'operator', 'action': 'persisted', ...}
+```
+
+The #81/#9 collision is restored: the daemon handoff is recorded as an
+operator relay.
+
+GREEN (restored): same handoff through the patched
+`validate_handoff_source`, plus a genuine operator relay proving wave-9
+handling is untouched:
+
+```
+PATCHED -> {'source': 'daemon:stuck-sweep', 'action': 'relabeled', ...}
+PATCHED operator relay -> {'source': 'operator', 'action': 'persisted', ...}
+```
+
+Executable form: the S1d sabotage test in tests.test_seat_idle
+(TestDaemonSource: bypassed -> operator collision; restored ->
+daemon:stuck-sweep) and the genuine-operator-relay test (wave-9
+attested/rejected preserved).

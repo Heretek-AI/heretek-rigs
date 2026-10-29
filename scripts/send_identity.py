@@ -287,6 +287,70 @@ def mint_attestation(
     return f"{ATTESTATION_VERSION}.{sender_session}.{rig}.{nonce}.{mac}"
 
 
+# 81-seat-idle (REQ-I3): distinct source for daemon-originated handoffs.
+#
+# Daemon-generated recovery handoffs (stuck-sweep watchdog wakes) MUST carry
+# the daemon source below and MUST NOT present as `From: operator`: the
+# operator label collides with the wave-9 trust model, where operator
+# relays arrive through send-authenticated.sh with a human-ref. A daemon
+# handoff presenting as `operator` is relabeled to the daemon source with a
+# redacted log line (relabel preserves the recovery context; the operator
+# label never persists for daemon origin). Genuine operator relays (origin
+# `operator`) keep the operator source and wave-9 attestation handling is
+# unchanged. Unknown origins fail closed (raise) — the caller must establish
+# origin before presenting a source.
+DAEMON_SOURCE = "daemon:stuck-sweep"
+
+
+def validate_handoff_source(origin, presented_from):
+    """Normalize the presented source of a recovery handoff (issue #81).
+
+    Returns {"source", "action", "presented_from"} where action is
+    `relabeled` (daemon origin presented as operator — or as any other
+    non-daemon source — normalized to DAEMON_SOURCE with a redacted log
+    line) or `persisted` (daemon source honestly labeled, or genuine
+    operator origin keeping `operator`). The returned source is the ONLY
+    source the receiver may record: a daemon handoff is never recorded as
+    an operator relay. Every log line goes through seed-rig's
+    `_redact_for_log` (single choke point, never duplicated); secret-shaped
+    runs can never reach the logs.
+    """
+    seed_mod = _seed_rig_mod()
+    _redact = seed_mod._redact_for_log
+    presented = str(presented_from or "")
+    origin_text = str(origin or "")
+    if not origin_text:
+        raise ValueError("validate_handoff_source needs an established origin")
+    if origin_text == DAEMON_SOURCE or origin_text.startswith("daemon:"):
+        if presented != DAEMON_SOURCE:
+            print(
+                f"daemon-source-relabeled: {_redact(origin_text)} presented as "
+                f"{_redact(presented)} relabeled to {DAEMON_SOURCE} "
+                f"(operator label never persists for daemon origin; redacted)",
+                file=sys.stderr,
+            )
+            return {
+                "source": DAEMON_SOURCE,
+                "action": "relabeled",
+                "presented_from": presented,
+            }
+        return {
+            "source": DAEMON_SOURCE,
+            "action": "persisted",
+            "presented_from": presented,
+        }
+    if origin_text == "operator" and presented == "operator":
+        return {
+            "source": "operator",
+            "action": "persisted",
+            "presented_from": presented,
+        }
+    raise ValueError(
+        f"validate_handoff_source refused origin {origin_text!r} "
+        f"presenting as {presented!r}"
+    )
+
+
 @dataclass(frozen=True)
 class AttestationResult:
     """Receiver-side verdict. `status` is one of:

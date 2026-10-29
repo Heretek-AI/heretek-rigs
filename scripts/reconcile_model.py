@@ -89,6 +89,51 @@ _AWAITING_GATE_RE = re.compile(
     re.IGNORECASE,
 )
 
+# 81-seat-idle (REQ-I2): a seat is parked-at-prompt while holding an open
+# obligation when the prose carries an idle-at-prompt arbitration marker
+# alongside a nonzero open-obligation count (the Mission-A watchdog line:
+# "You are parked (arbitrated: idle at prompt) while holding 1 open
+# obligation"; a tracker cell may state the count bare: "1 open
+# obligation"). Both halves are required — obligation-free idle ("queue
+# exhausted", "waiting for the baton") and zero-obligation parks never
+# match, so legitimate idle stays quiet.
+_IDLE_AT_PROMPT_RE = re.compile(r"idle at prompt", re.IGNORECASE)
+_OPEN_OBLIGATION_RE = re.compile(r"(\d+)\s+open obligations?", re.IGNORECASE)
+
+# 81-seat-idle (REQ-I2): trail notes that are NOT first-work-action evidence.
+# A claim ("claimed"), a handoff receipt ("Handoff received — pulling the
+# queue item"), and any parked/watchdog arbitration line are motion without
+# work. A work action is any other non-empty note (verdict recorded, files
+# filed, QA prose) — conservative: only the known non-work classes are
+# excluded, so an unfamiliar note counts as work and keeps the row quiet.
+_NON_WORK_NOTE_RES = (
+    re.compile(r"\bclaimed\b", re.IGNORECASE),
+    re.compile(r"handoff received", re.IGNORECASE),
+    re.compile(r"idle at prompt", re.IGNORECASE),
+    re.compile(r"\bparked\b", re.IGNORECASE),
+    re.compile(r"watchdog", re.IGNORECASE),
+)
+
+
+def is_idle_park_prose(cell):
+    """True when prose shows parked-at-prompt while holding an open
+    obligation (issue #81, REQ-I2).
+
+    Pure predicate for the stalled-idle-park diff class: claim-then-park
+    with no work action fails convergence as stalled, never as silent
+    agreement. Obligation-free idle never matches.
+    """
+    text = cell or ""
+    if not _IDLE_AT_PROMPT_RE.search(text):
+        return False
+    match = _OPEN_OBLIGATION_RE.search(text)
+    if match is None:
+        return False
+    try:
+        return int(match.group(1)) >= 1
+    except (ValueError, IndexError):
+        return False
+
 
 def is_awaiting_gate_prose(cell):
     """True when a tracker Status cell waits on a gate in prose (issue #77).
@@ -474,8 +519,13 @@ def diff_row(row, queue_by_id, transitions_by_id):
             ),
         }
     # Tail: delegate gateless-awaiting-gate detection to the shared
-    # classifier (also consumed by generate_trackers.py, REQ-G5).
-    return stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id)
+    # classifier (also consumed by generate_trackers.py, REQ-G5), then the
+    # 81-seat-idle claim-then-park classifier (same sharing rule: no
+    # parallel idle-park mapping anywhere).
+    stalled = stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id)
+    if stalled is not None:
+        return stalled
+    return stalled_idle_park_diff(row, queue_by_id, transitions_by_id)
 
 
 def stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id):
@@ -534,22 +584,195 @@ def stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id):
     }
 
 
+def trail_has_claim(trail):
+    """True when the queue trail records a claim (issue #81, REQ-I2)."""
+    for transition in trail or []:
+        note = str((transition or {}).get("transitionNote") or "")
+        if _NON_WORK_NOTE_RES[0].search(note):
+            return True
+    return False
+
+
+def trail_has_work_action(trail):
+    """True when the queue trail records a first work action (issue #81).
+
+    Only the known non-work classes (claim, handoff receipt,
+    parked/watchdog arbitration) are excluded; any other non-empty note
+    counts as work, so an unfamiliar note keeps the row quiet (fail-closed
+    against over-flagging, never against silence).
+    """
+    for transition in trail or []:
+        note = str((transition or {}).get("transitionNote") or "").strip()
+        if not note:
+            continue
+        if any(rx.search(note) for rx in _NON_WORK_NOTE_RES):
+            continue
+        return True
+    return False
+
+
+def _parse_ts(value):
+    """Parse an ISO-8601 Z timestamp to epoch seconds; None when unparseable."""
+    import datetime as _datetime
+
+    try:
+        text = str(value or "").strip().replace("Z", "+00:00")
+        return _datetime.datetime.fromisoformat(text).timestamp()
+    except (ValueError, TypeError, OverflowError):
+        return None
+
+
+def attribute_idle_latency(trail):
+    """Report park-to-wake vs work latency for an idle-park row (issue #81).
+
+    Pure report field (inputs for #15/#17): claim_ts is the first claim
+    note, park_ts the first idle-park-prose note, work_ts the first work
+    note (None when no work action exists), wake_ts the first post-park
+    note that is not idle-park prose (None while still parked). Seconds
+    deltas are floats; park_to_wake_s is None while the seat is still
+    parked. Report only — never writes tracker or queue state.
+    """
+    claim_ts = park_ts = work_ts = wake_ts = None
+    parked_seen = False
+    for transition in trail or []:
+        note = str((transition or {}).get("transitionNote") or "")
+        ts = str((transition or {}).get("ts") or "")
+        if claim_ts is None and _NON_WORK_NOTE_RES[0].search(note):
+            claim_ts = ts or None
+        if not parked_seen and is_idle_park_prose(note):
+            park_ts = ts or None
+            parked_seen = True
+            continue
+        if parked_seen and wake_ts is None and not is_idle_park_prose(note):
+            wake_ts = ts or None
+        if work_ts is None:
+            stripped = note.strip()
+            if stripped and not any(rx.search(note) for rx in _NON_WORK_NOTE_RES):
+                work_ts = ts or None
+    claim_s = _parse_ts(claim_ts)
+    park_s = _parse_ts(park_ts)
+    wake_s = _parse_ts(wake_ts)
+    work_s_ts = _parse_ts(work_ts)
+    if claim_s is not None and park_s is not None:
+        claim_to_park_s = park_s - claim_s
+    else:
+        claim_to_park_s = None
+    if park_s is not None and wake_s is not None:
+        park_to_wake_s = wake_s - park_s
+    else:
+        park_to_wake_s = None
+    if claim_s is not None and work_s_ts is not None:
+        work_s = work_s_ts - claim_s
+    else:
+        work_s = 0
+    if park_to_wake_s is None:
+        note = (
+            "park-to-wake vs work: seat still parked (wake pending); "
+            f"claim-to-park {claim_to_park_s}s, work share {work_s}s"
+        )
+    else:
+        note = (
+            "park-to-wake vs work: park-to-wake "
+            f"{park_to_wake_s}s vs work {work_s}s "
+            f"(claim-to-park {claim_to_park_s}s)"
+        )
+    return {
+        "claim_ts": claim_ts,
+        "park_ts": park_ts,
+        "wake_ts": wake_ts,
+        "work_ts": work_ts,
+        "claim_to_park_s": claim_to_park_s,
+        "park_to_wake_s": park_to_wake_s,
+        "work_s": work_s,
+        "note": note,
+    }
+
+
+def stalled_idle_park_diff(row, queue_by_id, transitions_by_id):
+    """Shared stalled-idle-park classifier (issue #81, REQ-I2).
+
+    Returns the stalled diff when the row is claim-then-park: a claim is
+    recorded, no work action exists in the trail, and the tracker cell or
+    the latest queue note shows parked-at-prompt while holding an open
+    obligation — with park-to-wake vs work attribution attached. Obligation-
+    free idle and live-gate waiting return None (stay quiet). Pure
+    classification — propose-only (REQ-R2), no row state written, never
+    done/complete/closed by this module. Both reconcile.py (via diff_row's
+    tail) and generate_trackers.py (OTHER-arm carve-out, review-only
+    render) consume THIS helper; no command may own a parallel idle-park
+    mapping (REQ-G5).
+    """
+    cell = row["status"]
+    qitem_raw = row["qitem"].strip()
+    if qitem_raw in NO_QITEM_CELLS:
+        return None
+    m = QITEM_RE.search(qitem_raw)
+    qid = m.group(0) if m else qitem_raw
+    entry = queue_by_id.get(qid)
+    if entry is None:
+        return None
+    trail = transitions_by_id.get(qid, [])
+    terminal, latest_id, latest = queue_terminal(entry, trail)
+    if terminal:
+        return None
+    if not trail_has_claim(trail):
+        return None
+    if trail_has_work_action(trail):
+        return None
+    # The obligation state is read from the tracker cell (the row's
+    # declared state): parked-at-prompt while holding an open obligation.
+    # The queue trail proves claim and worklessness; the cell proves the
+    # park is obligation-bearing. Obligation-free idle and live-gate
+    # waiting cells never satisfy this and stay quiet.
+    if not is_idle_park_prose(cell):
+        return None
+    parked_evidence = cell
+    latest_note = str((latest or {}).get("transitionNote") or "")
+    queue_evidence = (
+        f"state={entry.get('state')} latest_transition={latest_id} ({latest_note})"
+    )
+    attribution = attribute_idle_latency(trail)
+    return {
+        "class": "stalled-idle-park",
+        "reason": (
+            "seat claimed then parked idle at prompt while holding an open "
+            f"obligation with no work action recorded (parked: {parked_evidence})"
+        ),
+        "tracker": cell,
+        "queue": queue_evidence,
+        "proposal": (
+            f"Route {row['slice']} for human review: the owner claimed and "
+            f"parked without a first work action ({attribution['note']}); "
+            f"the owner owns next action (first work action or handoff), "
+            f"never a parked prompt while holding the obligation"
+        ),
+        "attribution": attribution,
+    }
+
+
 def render_diff(row, diff):
     header = (
         f"DIFF [{diff['class']}] {row['file']}:{row['line']} "
         f"slice {row['slice']} qitem {row['qitem'].strip()}"
     )
-    return "\n".join(
-        [
-            header,
-            f"  reason:  {diff['reason']}",
-            f"  tracker: {diff['tracker']}",
-            f"  queue:   {diff['queue']}",
-            "  PROPOSED Status cell:",
-            f"    {diff['proposal']}",
-            f"PROPOSED-CELL:::{diff['proposal']}",
-            f"  SUGGESTED queue-note append on {row['qitem'].strip()}: "
-            f"Tracker row {row['slice']} converged: {diff['tracker']} -> "
-            f"{diff['proposal']}",
-        ]
-    )
+    lines = [
+        header,
+        f"  reason:  {diff['reason']}",
+        f"  tracker: {diff['tracker']}",
+        f"  queue:   {diff['queue']}",
+    ]
+    # 81-seat-idle (REQ-I2): the idle-park diff carries its park-to-wake
+    # vs work attribution as report lines (propose-only inputs for
+    # #15/#17, never state writes).
+    attribution = diff.get("attribution")
+    if isinstance(attribution, dict) and attribution.get("note"):
+        lines.append(f"  attribution: {attribution['note']}")
+    lines += [
+        "  PROPOSED Status cell:",
+        f"    {diff['proposal']}",
+        f"PROPOSED-CELL:::{diff['proposal']}",
+        f"  SUGGESTED queue-note append on {row['qitem'].strip()}: "
+        f"Tracker row {row['slice']} converged: {diff['tracker']} -> "
+        f"{diff['proposal']}",
+    ]
+    return "\n".join(lines)
