@@ -263,3 +263,51 @@
   V-gate code touched); 634/0 baseline stands per instructions.
 - **Deviations / notes (explicit):** none — no other files touched, no exact
   pins introduced, no V-gate edits. No commit/push/merge (per instructions).
+
+## Rework-4 (2026-10-29-bump-075 REWORK-4, branch fix/bump-075-r4 @ bea4d16): unblock PR #135 CI — bubblewrap install before verify-fleet gate
+
+- **Mandate note:** the plan's 3-cycle rework budget was spent, but the user
+  explicitly authorized continued fixes until PR #135 CI passes — this
+  Rework-4 proceeds under that mandate.
+- **Symptom:** PR #135 CI "Host verification gate" reaches
+  `SUMMARY: 38 checks passed, 1 failed` with
+  `[FAIL] tool-existence: bwrap not found on PATH`. All V22–V27 green — the
+  jsonschema layers are fixed; this is the next latent environmental layer.
+- **Code facts (verified in-tree before editing):**
+  `scripts/verify-rigs.sh:1707-1711`
+  (`if _shutil12.which("bwrap") is None:` → note-mode only when
+  `HERETEK_ALLOW_NO_BWRAP=1`, else
+  `fail("tool-existence: bwrap not found on PATH ...")` — fail-closed);
+  `scripts/verify-rigs.sh:3032-3034`
+  (`_vf27_steps = [...get("run","")...verify-fleet...steps...]` +
+  `if not any("bubblewrap" in _s27 for _s27 in _vf27_steps)` — V27 asserts
+  only that SOME verify-fleet step contains "bubblewrap", order-independent)
+  plus the UniqueKey YAML parse at :3017-3026.
+- **Mechanism:** `.github/workflows/docker-release.yml` installed bubblewrap
+  via apt-get in a step AFTER `./scripts/verify-rigs.sh --check-only`, while
+  fresh runners have no system bwrap → verify always fails. Pre-existing
+  workflow ordering drift, NOT a Wave-1 regression (our wave never touched
+  bwrap/tool-existence).
+- **Fix (pure reorder, zero new content):**
+  `.github/workflows/docker-release.yml` verify-fleet job: moved the
+  `sudo apt-get update && sudo apt-get install -y --no-install-recommends
+  bubblewrap && bwrap --version` step to BEFORE the
+  `./scripts/verify-rigs.sh --check-only` step (directly after the pip-install
+  step). Deliberately did NOT use `HERETEK_ALLOW_NO_BWRAP=1` note-mode in CI
+  (that would weaken the gate; CI can apt-get, so verify-for-real is
+  correct). Nothing else touched.
+- **Validation (real outputs, inside worktree `.lane/trees/bump-075-r4`):**
+  `python3 -c "import yaml; ..."` →
+  `['uses', 'pip install --quiet pyyaml "jsonschema>=4.18" referencing',
+  'sudo apt-get update && sudo apt-get install -y --no-install-', './scripts/verify-rigs.sh --check-only',
+  'python3 ./scripts/audit_loop.py --self-test', 'if make guard-profiles ...']`
+  (apt-get before verify, proven); host bwrap present:
+  `/usr/bin/bwrap`, `bubblewrap 0.13.1`;
+  `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+  0 failed`, rc=0; `git status --short` → only the workflow file plus this
+  report addendum; `git diff --stat` → 1 file, 1 insertion, 1 deletion
+  (moved block). `make test`: SKIPPED — workflow-order-only change (no
+  generator/runtime/catalog/V-gate code touched); 634/0 baseline stands per
+  instructions.
+- **Deviations / notes (explicit):** none — reorder only, no new steps, no
+  pins, no V-gate edits. No commit/push/merge (per instructions).
