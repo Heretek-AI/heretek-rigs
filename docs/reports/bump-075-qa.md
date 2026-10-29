@@ -59,3 +59,23 @@
 - **Spot-checks (real outputs, inside worktree):** `./scripts/verify-rigs.sh --check-only` gives `SUMMARY: 39 checks passed, 0 failed`, rc=0; `openspec list --specs` green including `bump requirements 5`, rc=0.
 - **Sabotage re-proof (Probe R1, V13 Dockerfile pin):** `ARG OPENRIG_VERSION=0.7.5` to `0.7.4` gives `[FAIL] V13/#100`, `SUMMARY: 38 checks passed, 1 failed`, rc=1 (RED); `git checkout -- docker/Dockerfile` plus `cmp` vs byte backup gives BYTE-IDENTICAL, then `SUMMARY: 39 checks passed, 0 failed`, rc=0 (GREEN). Full record appended to `docs/evidence/bump-075/red-proofs.log` as Probe R1.
 - **Skips and failures:** none. No baseline failure. Final `git status --short` shows only the two evidence/report files appended here; nothing committed.
+
+## Rework-2 QA re-verification (2026-10-29 UTC, branch fix/bump-075-r2 @ be9d72e, role agency-qa)
+
+- **Pre-state:** `git status --short` clean at start, HEAD `be9d72e`. Fix claims treated as untrusted; each verified against worktree files. Nothing committed by qa.
+- **Diff scope (EXACT, 3 files):** `git diff 51757e4 HEAD --stat` = 3 files, 67 insertions, 2 deletions (`.github/workflows/docker-release.yml` 2 +/-, `scripts/verify-rigs.sh` 2 +/-, `docs/reports/bump-075-implementation.md` +65 docs-only). `git diff 51757e4 HEAD --name-only` confirms exactly those three. Functional delta is 2 lines: pip line gains `referencing`, guard import gains `referencing`. Report addendum is docs-only (65 insertions, 0 deletions).
+
+| # | Check (inside worktree) | Real output | rc | Result |
+|---|---|---|---|---|
+| R2-1 | Workflow YAML parses: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | `YAML OK` | 0 | PASS |
+| R2-2 | Pip line covers all three: `grep -n "pip install" .github/workflows/docker-release.yml` | line 53: `pip install --quiet pyyaml jsonschema referencing` | 0 | PASS |
+| R2-3 | No other workflow steps touched (`git diff 51757e4 HEAD -- .github/workflows/docker-release.yml`) | single-line hunk at line 53 only; checkout/step/run lines otherwise identical | — | PASS |
+| R2-4 | `./scripts/verify-rigs.sh --check-only` | `SUMMARY: 39 checks passed, 0 failed` | 0 | PASS |
+| R2-5 | `python3 -c "import yaml, jsonschema, referencing"` | imports OK (yaml 6.0.3, jsonschema 4.26.0, referencing present) | 0 | PASS |
+| R2-6 | Guard-improvement probe (CI-broken emulation, tree untouched): `python3 -c "import sys; sys.modules['referencing']=None; import yaml, jsonschema, referencing"` | `ModuleNotFoundError: No module named 'referencing.exceptions'; 'referencing' is not a package` (ImportError subclass) | 1 | PASS (guard expression now fails when referencing is unimportable) |
+| R2-7 | Old-guard control: `python3 -c "import yaml, jsonschema"` under the same broken condition | would still print PASS — confirms the old 2-module guard could not catch the CI failure mode | 0 | PASS (control, documents the gap the fix closes) |
+| R2-8 | uv-fallback line unchanged: `grep -n "uv run" scripts/verify-rigs.sh` | line 36: `RUNNER=(uv run --quiet --with pyyaml --with jsonschema python3)`, untouched by `git diff 51757e4 HEAD -- scripts/verify-rigs.sh` (single-line hunk at line 34 only) | — | PASS |
+
+- **uv-fallback safety judgment (one line):** SAFE to leave unchanged — `uv run --with` resolves transitive deps into a fresh env, so pinning `jsonschema` pulls `referencing` automatically, unlike the broken system-pip no-op path where a pre-installed `jsonschema` skipped the transitive fetch.
+- **Test scope:** full `make test` skipped — change is one CI pip-line word plus one guard-import word plus docs (no generator/runtime/catalog/V-gate code touched; R2-4 re-ran the directly affected gate green). Directly-related guard test files: none exist — `tests/test_verify*.py` glob finds nothing and `grep "verify-rigs|import yaml, jsonschema" tests/` returns only two incidental comments (`test_bare_queue_send_deny.py:10`, `test_regen_gate.py:190`), no functional guard-behavior tests to run; stated here instead of run.
+- **Skips and failures:** none beyond the stated `make test` skip. No baseline failure. Final tree uncommitted by qa (appendix only).
