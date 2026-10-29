@@ -2520,13 +2520,18 @@ _v19_before = len(failures)
 # 77-mission-gates S2: V29 is the second ok()-bearing gate since the freeze,
 # so the canonical total moves 36 -> 37 here (same rule, no other V1–V28
 # line changes). The three live-count docs move with it.
-_v19_canonical = 37
+# 81-seat-idle S2: V30 is the third ok()-bearing gate since the freeze,
+# so the canonical total moves 37 -> 38 here (same rule, no other V1–V29
+# line changes). The three live-count docs move with it.
+_v19_canonical = 38
 if not failures:
     # 09-send-identity S2: +1 is V19's own ok() below, +1 is V28 (the first
     # ok()-bearing gate since the freeze). 77-mission-gates S2: +1 more is
-    # V29 (the second post-freeze ok()-bearing gate). A third post-freeze
-    # ok() gate must bump this addend alongside the canonical total.
-    if passes + 3 != _v19_canonical:
+    # V29 (the second post-freeze ok()-bearing gate). 81-seat-idle S2: +1
+    # more is V30 (the third post-freeze ok()-bearing gate). A fourth
+    # post-freeze ok() gate must bump this addend alongside the canonical
+    # total.
+    if passes + 4 != _v19_canonical:
         fail(
             f"V19/#102: green-run live count is {passes + 2}, not the frozen canonical total {_v19_canonical} (a new ok()-bearing gate must bump the freeze + docs)"
         )
@@ -3243,6 +3248,164 @@ elif _v29_ran - _v29_skipped < 16:
     fail(f"V29/77-mission-gates: tests.test_mission_gates ran only {_v29_ran - _v29_skipped} executed tests (need >= 16, non-vacuous floor)")
 if len(failures) == _v29_before:
     ok(f"V29 mission-gate ownership (77-mission-gates S2) green: stalled diff + charter markers in 9 leaves + refusal guard + {_v29_ran} corpus tests pass + S0 evidence present")
+print("\n== V30. Seat Idle-Park (81-seat-idle) ==")
+# 81-seat-idle S2 appended alongside — no V1–V29 line renumbered or
+# reworded (the V19 canonical total moves 37 -> 38 here alongside the three
+# live-count docs, per the freeze's own bump rule for a new ok()-bearing
+# gate). Coverage: the stalled-idle-park diff class + park-to-wake vs work
+# attribution (shared helper, no parallel mapping), the claim+first-action
+# charter marker in every rendered queue-handoff leaf, the daemon-source
+# rule with wave-9 attestation intact, the non-dismissible idle-park
+# recovery guard (fail-closed refusal, redacted log, never done), the S1
+# corpus (tests/test_seat_idle.py, dummy fixtures only, floor >= 16), the
+# S0 pre-fix evidence file (silence transcript present, zero bearer-shaped
+# strings), and the red-proofs log (S1a–S1d RED/GREEN plus the FAIL-ONLY
+# pre-fix run).
+_v30_before = len(failures)
+_v30_model_src = (root / "scripts/reconcile_model.py").read_text()
+for _marker30 in (
+    "def is_idle_park_prose",
+    "def stalled_idle_park_diff",
+    "def attribute_idle_latency",
+    "def trail_has_work_action",
+    '"stalled-idle-park"',
+    "park-to-wake",
+    "holding an open obligation",
+):
+    if _marker30 not in _v30_model_src:
+        fail(f"V30/81-seat-idle: scripts/reconcile_model.py lost marker {_marker30!r}")
+_v30_gen_src = (root / "scripts/generate_trackers.py").read_text()
+if "stalled_idle_park_diff" not in _v30_gen_src:
+    fail("V30/81-seat-idle: scripts/generate_trackers.py lost the shared stalled-idle-park import (no parallel mapping)")
+_v30_si_src = (root / "scripts/send_identity.py").read_text()
+for _marker30 in (
+    "DAEMON_SOURCE",
+    "def validate_handoff_source",
+    "daemon:stuck-sweep",
+    "_redact_for_log",
+    '"attested"',
+    '"rejected"',
+    '"unverified"',
+    "mint_attestation",
+    "verify_attestation",
+):
+    if _marker30 not in _v30_si_src:
+        fail(f"V30/81-seat-idle: scripts/send_identity.py lost marker {_marker30!r}")
+if re.search(r"[A-Za-z0-9_-]{40,}", _v30_si_src):
+    fail("V30/81-seat-idle: scripts/send_identity.py carries a bearer-shaped run (no inline secrets)")
+_v30_si_spec = importlib.util.spec_from_file_location("send_identity_v30", str(root / "scripts/send_identity.py"))
+_v30_si_mod = importlib.util.module_from_spec(_v30_si_spec)
+try:
+    _v30_si_spec.loader.exec_module(_v30_si_mod)
+except Exception as _e30:
+    fail(f"V30/81-seat-idle: cannot load scripts/send_identity.py ({_e30})")
+    _v30_si_mod = None
+if _v30_si_mod is not None:
+    try:
+        _v30_relabeled = _v30_si_mod.validate_handoff_source(origin="daemon:stuck-sweep", presented_from="operator")
+    except Exception as _e30:
+        fail(f"V30/81-seat-idle: daemon-origin operator-labeled handoff raised ({_e30})")
+        _v30_relabeled = None
+    if _v30_relabeled is not None and (_v30_relabeled.get("source") != "daemon:stuck-sweep" or _v30_relabeled.get("action") != "relabeled"):
+        fail(f"V30/81-seat-idle: daemon-origin operator label must relabel to daemon:stuck-sweep (got {_v30_relabeled!r})")
+    try:
+        _v30_operator = _v30_si_mod.validate_handoff_source(origin="operator", presented_from="operator")
+    except Exception as _e30:
+        fail(f"V30/81-seat-idle: genuine operator relay raised ({_e30})")
+        _v30_operator = None
+    if _v30_operator is not None and _v30_operator.get("source") != "operator":
+        fail(f"V30/81-seat-idle: genuine operator relay must keep the operator source (got {_v30_operator!r})")
+_v30_sweep_src = (root / "scripts/sweep-typed-blocks.py").read_text()
+for _marker30 in (
+    "def check_recovery_dismissal",
+    "class RecoveryDismissalRefused",
+    "_redact_for_log",
+    "never auto-close",
+):
+    if _marker30 not in _v30_sweep_src:
+        fail(f"V30/81-seat-idle: scripts/sweep-typed-blocks.py lost refusal marker {_marker30!r}")
+_v30_sweep_spec = importlib.util.spec_from_file_location("sweep_idle_park_v30", str(root / "scripts/sweep-typed-blocks.py"))
+_v30_sweep_mod = importlib.util.module_from_spec(_v30_sweep_spec)
+try:
+    _v30_sweep_spec.loader.exec_module(_v30_sweep_mod)
+except Exception as _e30:
+    fail(f"V30/81-seat-idle: cannot load scripts/sweep-typed-blocks.py ({_e30})")
+    _v30_sweep_mod = None
+if _v30_sweep_mod is not None:
+    _v30_idle_row = {"qitemId": "qitem-20261023213329-7ad896bfc962330d", "state": "in-progress", "blockedOn": None, "destinationSession": "owner-seat", "statusCell": "claimed, 1 open obligation; Handoff received — pulling the queue item; parked (arbitrated: idle at prompt)"}
+    _v30_flag = _v30_sweep_mod.snapshot_row_state(_v30_idle_row)
+    try:
+        _v30_sweep_mod.check_recovery_dismissal("recovery-idle-park-01", _v30_idle_row["qitemId"], _v30_flag, _v30_flag)
+        fail("V30/81-seat-idle: identical-snapshot idle-park dismissal was ALLOWED (must refuse)")
+    except _v30_sweep_mod.RecoveryDismissalRefused as _ref30:
+        if re.search(r"[A-Za-z0-9_-]{40,}", str(_ref30)):
+            fail("V30/81-seat-idle: idle-park refusal log line carries an unredacted bearer-shaped run")
+    except Exception as _e30:
+        fail(f"V30/81-seat-idle: idle-park refusal raised the wrong type ({type(_e30).__name__})")
+    _v30_moved = _v30_sweep_mod.snapshot_row_state(dict(_v30_idle_row, statusCell="claimed; verdict recorded, findings filed per t15"))
+    try:
+        _v30_out = _v30_sweep_mod.check_recovery_dismissal("recovery-idle-park-01", _v30_idle_row["qitemId"], _v30_flag, _v30_moved)
+    except Exception as _e30:
+        fail(f"V30/81-seat-idle: changed-snapshot idle-park dismissal was refused ({_e30})")
+        _v30_out = None
+    if _v30_out is not None and _v30_out.get("dismissal") != "permitted":
+        fail(f"V30/81-seat-idle: changed-snapshot idle-park dismissal mis-shaped ({_v30_out!r})")
+_v30_leaves = [root / "specs/agents/_shared/skills/queue-handoff/SKILL.md"] + sorted((root / "rigs").glob("*/agents/_shared/skills/queue-handoff/SKILL.md"))
+if len(_v30_leaves) != 9:
+    fail(f"V30/81-seat-idle: expected 9 rendered queue-handoff leaves (specs + 8 rigs), found {len(_v30_leaves)}")
+for _leaf30 in _v30_leaves:
+    try:
+        _lt30 = _leaf30.read_text()
+    except Exception as _e30:
+        fail(f"V30/81-seat-idle: leaf {_leaf30.relative_to(root)} unreadable ({_e30})")
+        continue
+    for _marker30 in ("first work action", "one turn", "81-seat-idle"):
+        if _marker30 not in _lt30:
+            fail(f"V30/81-seat-idle: leaf {_leaf30.relative_to(root)} lost charter marker {_marker30!r}")
+_v30_ev = root / "docs/evidence/81-seat-idle-prefix.md"
+try:
+    _v30_ev_text = _v30_ev.read_text()
+except Exception as _e30:
+    fail(f"V30/81-seat-idle: S0 evidence file unreadable ({_e30})")
+    _v30_ev_text = None
+if _v30_ev_text is not None:
+    for _marker30 in ("reconcile exit: 0", "idle-park signal: ABSENT", "park-to-wake attribution: ABSENT", "daemon source rule: ABSENT", "recorded source: operator"):
+        if _marker30 not in _v30_ev_text:
+            fail(f"V30/81-seat-idle: S0 evidence must carry the silence line {_marker30!r}")
+    if re.search(r"[A-Za-z0-9_-]{40,}", _v30_ev_text):
+        fail("V30/81-seat-idle: S0 evidence carries an unredacted bearer-shaped run")
+_v30_rp = root / "docs/evidence/81-seat-idle/red-proofs.log"
+try:
+    _v30_rp_text = _v30_rp.read_text()
+except Exception as _e30:
+    fail(f"V30/81-seat-idle: red-proofs.log unreadable ({_e30})")
+    _v30_rp_text = None
+if _v30_rp_text is not None:
+    for _marker30 in ("SABOTAGED -> None", "PATCHED -> stalled-idle-park", "PREFIX -> None", "daemon:stuck-sweep', 'action': 'relabeled'"):
+        if _marker30 not in _v30_rp_text:
+            fail(f"V30/81-seat-idle: red-proofs.log must carry the S1/FAIL-ONLY line {_marker30!r}")
+_v30_ut = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests.test_seat_idle"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v30_ran = 0
+_v30_m = re.search(r"Ran (\d+) tests", _v30_ut.stderr or "")
+if _v30_m:
+    _v30_ran = int(_v30_m.group(1))
+_v30_skipped = 0
+_v30_sk = re.search(r"skipped=(\d+)", _v30_ut.stderr or "")
+if _v30_sk:
+    _v30_skipped = int(_v30_sk.group(1))
+if _v30_ut.returncode != 0:
+    fail(f"V30/81-seat-idle: tests.test_seat_idle failed:\n{_v30_ut.stderr[-800:]}")
+elif _v30_skipped:
+    fail(f"V30/81-seat-idle: tests.test_seat_idle skipped {_v30_skipped} test(s) (skips must not count toward the corpus threshold)")
+elif _v30_ran - _v30_skipped < 16:
+    fail(f"V30/81-seat-idle: tests.test_seat_idle ran only {_v30_ran - _v30_skipped} executed tests (need >= 16, non-vacuous floor)")
+if len(failures) == _v30_before:
+    ok(f"V30 seat idle-park (81-seat-idle S2) green: stalled-idle-park + attribution + charter markers in 9 leaves + daemon-source rule + refusal guard + {_v30_ran} corpus tests pass + S0 evidence present")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

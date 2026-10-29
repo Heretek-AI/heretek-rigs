@@ -1,14 +1,14 @@
-# Handoff — next session (2026-10-28, post-PR #126 merge on main)
+# Handoff — next session (2026-10-28, post-PR #131 merge on main)
 
 > Superseded 2026-10-26 handoff archived in git history (`2590a87`..`83cbf86`).
-> This document reflects the authoritative state of `main` after merging PR #120 through PR #126, plus wave 9 (09-send-identity, merged as PR #128) and wave 4 (77-mission-gates, merged locally, PR pending).
+> This document reflects the authoritative state of `main` after merging PR #120 through PR #131 (including wave 9 = PR #128 and wave 4 = PR #131).
 
 ---
 
 ## 1. Live State & Environment
 
 - **Repository**: `/home/john/Projects/heretek-rig-workspace/heretek-rigs`
-- **Branch**: `main` @ `83cbf86` (Merge PR #126). Working directory clean at time of writing.
+- **Branch**: `main` @ `80c5450` (Merge PR #131). Working directory clean at time of writing.
 - **Core Stack**:
   - `@openrig/cli@0.7.4` (`6d9e8e27`, bumped from 0.7.2 in PR #122)
   - Pi `1.4.0` (`@earendil-works/pi-coding-agent`)
@@ -16,10 +16,10 @@
   - Model: `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`
 - **Verification Baseline**:
   - `./scripts/verify-rigs.sh --check-only` → **SUMMARY: 37 checks passed, 0 failed** (V1–V29 gates green: V22 bare-queue deny, V23 seat grants, V24 rotation runbook, V25–V27 sandbox/hermetic/docker, V28 send attestation, V29 mission gates).
-  - `make test` → **558 unit tests passed, 0 failed** across 24 suites (`unittest discover`; was 530 across 22).
+  - `make test` → **562 unit tests passed, 0 failed** across 24 suites (`unittest discover`; was 558 across 24).
   - `python3 scripts/audit_loop.py --self-test` → **`SELF-TEST PASSED`**.
   - `python3 scripts/generate-rigs.py --check-idempotent` → **byte-identical**.
-  - `openspec/`: 8 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`, `send-identity`, `mission-gates`); active `openspec/changes/` holds only the archive container; 24 waves archived with history under `openspec/changes/archive/`.
+  - `openspec/`: 8 canonical specs (`identity`, `closeout`, `bump`, `p0`, `contracts`, `archive`, `send-identity`, `mission-gates`); active `openspec/changes/` holds only the archive container; 8 waves archived with history under `openspec/changes/archive/`.
 
 ---
 
@@ -69,7 +69,7 @@
 - **S3**: rotation runbook executed live in scratch (`docs/evidence/09-send-identity-rotation.md`: `--seat` ×7, `--rig` ×8, 0 rig-less); triad complete with `VERDICT: PASS` (`docs/reports/09-send-identity-verification.md`); change archived, `send-identity` promoted (4 requirements).
 - **Out of scope (kept)**: daemon edits, upstream filing (#127 still tracks the gap, no authorization granted), fleet-host live proofs. Issue #9 stays open.
 
-### Wave 4 (`feat/77-mission-gates`, Refs #77 — merged locally, PR pending)
+### Wave 4 (`feat/77-mission-gates`, Refs #77 — merged as PR #131, 2 reworks)
 - **S0**: B2-pattern fixtures proving pre-fix silence (gateless parent unflagged, dismissal-without-change allowed; `docs/evidence/77-mission-gates-prefix.md`).
 - **S1**: charter closure-ownership rule via `fleet/skill-patches/mission-slice-sop.yaml` + clean regen (9 leaves +1) + new `stalled-awaiting-gate` diff class in `reconcile_model.py` (propose-only; live gate exempts).
 - **S2**: sweep recovery non-dismissible without row state change (fail-closed refusal, never `done`) + appended **V29** (V19 freeze 36→37); `make test` 558 OK.
@@ -88,11 +88,11 @@
 | **#12** | P1 | No seat can execute builds | **Code blockers cleared**; gates green on main. **Pending**: D1–D4 in-seat proof, D5–D7 committer path. Status comment left. |
 | **#74** | P1 | Granted tools not provisioned | Gate done (V16 + render warning). **Pending**: host-side provisioning or matrix doc update. |
 | **#66** | Umbrella | Tracking: Oct 23–24 adversarial audit | Rollup comment left (#120–#126). Stays open until P1/P2 items close. |
-| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | **Code landed on main** (wave 4, `VERDICT: PASS`, Refs #77). **Pending**: open the PR, then live-mission proof. |
+| **#77** | P2 | Mission parent rows stuck 'standing by for gate' | **Merged as PR #131** (wave 4, `VERDICT: PASS`, Refs #77). **Pending**: live-mission proof only. |
 | **#78** | P2 | Seats pinned to one workspace | Untouched. Architectural. |
 | **#80** | P3 | `rig snapshot list <name>` prints `[object Object]` | Untouched (upstream CLI bug, local mitigation in place). |
 | **#81** | P2 | Seats park idle right after claiming | Untouched (daemon behavior). |
-| **#9** | P2 | Operator `rig send` carries no sender identity | **Code landed on main** (wave 9, `VERDICT: PASS`, Refs #9). **Pending**: open the PR, then fleet-host live proof. |
+| **#9** | P2 | Operator `rig send` carries no sender identity | **Merged as PR #128** (wave 9, `VERDICT: PASS`, Refs #9). **Pending**: fleet-host live proof only. |
 | **#11** | P2 | `rig launch` refuses running nodes | Repo-side replaced by #96 live refresh (shipped PR #119); full restart tracked upstream. |
 | **#15** | P2 | Authorization loop lags seat fix cycles | Untouched (investigation). |
 | **#16** | P2 | Parallel slice execution | Untouched (investigation). |
@@ -105,8 +105,8 @@
 ## 4. Priority Roadmap
 
 ### Priority 1: Next issue wave (needs principal pick + spec)
-- Wave 9 landed as PR #128. Wave 4 consumed the #77 pick (code on main, PR pending — open it next).
-- Recommended next: #77 (stuck missions) or a fleet-host proof batch (#91 live, #12 D1–D4) if operating on the live host.
+- Wave 9 landed as PR #128. Wave 4 landed as PR #131 (reworks 1–2, both `VERDICT: PASS`). Both #77 and #9 are merged; remaining work is live-mission/fleet-host proof.
+- Recommended next: a fleet-host proof batch (#91 live, #12 D1–D4) if operating on the live host, or pick a fresh issue.
 - Every wave needs an approved `openspec/changes/<id>/` spec first (`/grill-spec`), then the standard triad.
 
 ### Priority 2: Fleet Host Proofs (when operating on live host)
@@ -138,7 +138,7 @@
   - One closing keyword per issue (`Closes #X, closes #Y`). Use `Refs #Z` for issues that stay open.
   - Generator changes: source commit → clean regen → leaves chore commit. Never hand-resolve generated leaves (take `main`'s generator, keep the catalog edit, re-run).
   - Provenance re-lag (1+ commits) is known/accepted; do NOT "fix" registry files.
-  - `verify-rigs.sh` gates are audit-baselined (V1–V27): append new blocks, never renumber/reword.
+  - `verify-rigs.sh` gates are audit-baselined (V1–V29): append new blocks, never renumber/reword.
   - `openspec archive <id>` requires parser-valid specs (`### Requirement:` + `#### Scenario:`) and completed task boxes; pre-create the canonical spec shell if the capability is new.
 - **Secrets Rule**:
   - Keys live strictly in `~/.config/heretek-rigs/secrets/` (0700/0600). Never print, log, or commit secret values. Dummy keys in scratch/tests only. Bearer-shaped strings in evidence must be redacted (`or…XX`) or dummy.

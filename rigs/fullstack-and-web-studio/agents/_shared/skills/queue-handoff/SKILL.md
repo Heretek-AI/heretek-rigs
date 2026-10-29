@@ -51,6 +51,8 @@ without an owner.
 Active work ends by passing the ball to a named next owner or to the
 human. The qitem state machine enforces this:
 
+**Claiming is not finishing — claim+first-action is one turn.** Claiming a qitem and the first work action are one turn: a seat holding an open obligation MUST NOT end its turn immediately after the claim with no work action recorded — no park-at-prompt after claim. The first act after claiming is the first work action, not a parked prompt (81-seat-idle claim rule).
+
 `pending → in-progress → done` requires `closure_reason` from one of:
 
 - `handed_off_to` — work continues at a different seat (target = new owner)
