@@ -83,3 +83,17 @@
 - `git status --short` → empty (clean). `git stash list` → empty. `git diff HEAD --stat` → empty (byte-identical to committed `d158dc7`).
 - Post-probe `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0.
 - Vacuous checks found: NONE (every acceptance check proven RED under targeted sabotage; one validator boundary noted in Probe D).
+
+## Probe R1 — Rework-1 re-proof: V13 Dockerfile pin gate still fail-closed (docker/Dockerfile:16)
+
+- **Date (UTC):** 2026-10-29 · **Worktree:** `.lane/trees/bump-075-r1` · **Branch:** `fix/bump-075-r1` @ `0381977` · **Role:** agency-qa (re-verification)
+- **Purpose:** prove the Rework-1 docs/spec edits (USER_GUIDE warning, QA wording, SUPERSEDED lines) did not blunt any gate.
+- **Pre-state:** `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- **Target assertion:** `ARG OPENRIG_VERSION=0.7.5` must be present or V13 fails.
+- **Byte backup:** `cp docker/Dockerfile /tmp/opencode/Dockerfile.r1bak` (sha256 `9e309ea4…85b8b185` both copies, identical).
+- **Sabotage:** `ARG OPENRIG_VERSION=0.7.5` → `ARG OPENRIG_VERSION=0.7.4` (sed, line 16 only).
+- **RED command:** `./scripts/verify-rigs.sh --check-only`
+- **RED output:** `[FAIL] V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.5` + `SUMMARY: 38 checks passed, 1 failed`, rc=1.
+- **Outcome:** RED (gate trips on pin downgrade, non-vacuous — rework did not blunt it).
+- **Restore:** `git checkout -- docker/Dockerfile` + `cmp` vs byte backup → BYTE-IDENTICAL (backup removed after).
+- **GREEN command:** `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0. `git status --short` shows only the two qa evidence/report appendices (no production or test code modified).
