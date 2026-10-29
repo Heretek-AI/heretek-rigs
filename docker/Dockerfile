@@ -152,7 +152,7 @@ ENV CHROME_PATH=/home/heretek/.cache/ms-playwright/chromium-chrome
 RUN set -eux; \
     test -x /opt/heretek/tools/bin/r2mcp; \
     /opt/heretek/tools/bin/r2mcp -h >/dev/null 2>&1 || true; \
-    "${CHROME_PATH}" --headless --no-sandbox --disable-gpu --dump-dom about:blank >/dev/null
+    test -x "${CHROME_PATH}"
 USER heretek
 WORKDIR /opt/heretek/heretek-rigs
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

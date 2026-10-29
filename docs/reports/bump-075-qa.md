@@ -143,7 +143,7 @@
 
 ## Rework-6 QA re-verification (2026-10-29 UTC, branch feat/bump-075, role agency-qa)
 
-- **Diff scope (3 code files + docs):** `.dockerignore` (unignore `.git/` and `docs/evidence/`), `docker/Dockerfile` (add `safe.directory`), `tests/test_generate_supplychain.py` (dynamicize `test_live_interpreter_takes_filter_branch`).
+- **Diff scope (3 code files + docs):** `.dockerignore` (unignore `.git/` and `docs/evidence/`), `docker/Dockerfile` (add `safe.directory` + restore `test -x "${CHROME_PATH}"`), `tests/test_generate_supplychain.py` (dynamicize `test_live_interpreter_takes_filter_branch`).
 - **Tests verified:**
   - `python -m unittest tests.test_generate_supplychain.TestTarFilterGuard tests.test_generate_supplychain.TestHermeticCharterFallback tests.test_generate_supplychain.TestHermeticVendorRestore`: 7 tests run, 0 failures, rc=0.
   - `.dockerignore` inspection: `.git` and `docs/evidence` present in build context; runtime transcripts, caches, untracked working trees remain ignored.

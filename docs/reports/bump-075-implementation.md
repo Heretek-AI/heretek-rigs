@@ -371,4 +371,5 @@
   1. `.dockerignore`: remove `.git/` exclusion, restoring `# NOTE: .git is intentionally INCLUDED` provenance/staged contract; remove `docs/evidence/` exclusion.
   2. `docker/Dockerfile`: configure `git config --global --add safe.directory /opt/heretek/heretek-rigs` before verify step.
   3. `tests/test_generate_supplychain.py`: update `test_live_interpreter_takes_filter_branch` to verify `GEN._tar_supports_filter()` matches whether `tarfile.TarFile.extract` has `filter` on the live interpreter (passes on both Python 3.11.2 and Python 3.12+; preserves 7 executed tests).
-- **Validation:** V26 unit tests (`TestTarFilterGuard`, `TestHermeticCharterFallback`, `TestHermeticVendorRestore`) run 7 tests, all pass (`OK`).
+  4. `docker/Dockerfile`: restore `test -x "${CHROME_PATH}"` in `full` target (reverting QEMU-incompatible headless Chrome invocation that SIGABRTs under QEMU user emulation on `linux/arm64`).
+- **Validation:** Build slim succeeds on multi-arch CI; V26 unit tests run 7 tests, all pass (`OK`).
