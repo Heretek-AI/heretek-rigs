@@ -175,3 +175,102 @@ Reverted via `git checkout -- scripts/reconcile_model.py` (status clean);
 re-run GREEN: `SUMMARY: 38 checks passed, 0 failed`, V30 PASS.
 
 Post-sabotage state: `git status --short` clean (no sabotage residue).
+
+## Rework-1 QA (2026-10-29, commit 367cb45, tree clean at start)
+
+Scope: PR #132 review findings F1-F5. Baseline on the unmodified tree
+(commit 367cb45): `python3 -m unittest tests.test_seat_idle
+tests.test_seat_idle_prefix` 34 OK exit 0; `./scripts/verify-rigs.sh
+--check-only` SUMMARY 38 passed 0 failed V30 PASS exit 0; `make test`
+596 OK exit 0; `generate-rigs.py --check-idempotent` exit 0 (registry
+resolvedCommit re-lag only, restored via `git checkout -- registry/`,
+status clean); `audit_loop.py --self-test` SELF-TEST PASSED exit 0.
+Fix-record claims verified against the diff before sabotage: F1 block +
+frozen test present; `_WAKE_NOTE_RE` gate present; render_diff
+stalled-idle-park early return present; `_WORK_ACTION_RE` +
+`_is_non_work_only` shared by both work-detection paths; evidence
+interval reads `(+84s from claim, +53s park-to-wake)` with both WAKE_TS
+constants byte-identical (`2026-10-23T21:34:53.000Z`). Arithmetic
+independently checked: claim 21:33:29 -> wake 21:34:53 = 84s;
+park 21:34:00 -> wake = 53s.
+
+### QA-R1: F1 evidence invocation-result line altered -> frozen test RED (RED)
+
+Sabotage: `docs/evidence/81-seat-idle-prefix.md`, invocation-result line
+`... (rule ABSENT, no relabel)` altered to `... (rule PRESENT,
+relabeled)`. Check: `python3 -m unittest
+tests.test_seat_idle_prefix.TestPrefixEvidenceFrozen.test_evidence_records_daemon_handoff_invocation_result`.
+RED: exit 1, `FAILED (failures=1)`, AssertionError naming the expected
+frozen line — the F1 pin is non-vacuous. Reverted via `git checkout --
+docs/evidence/81-seat-idle-prefix.md` (byte-identical to pre-sabotage
+backup, status clean); `tests.test_seat_idle_prefix` GREEN (10 OK).
+
+### QA-R2: F2 wake-gate removed -> heartbeat becomes wake evidence (RED via probe; committed suite VACUOUS)
+
+Sabotage: `scripts/reconcile_model.py`, `if
+_WAKE_NOTE_RE.search(note):` gate removed so any post-park non-idle-park
+note sets `wake_ts`. Probe (/tmp scratch, heartbeat-only trail
+claim/handoff/park + watchdog heartbeat without wake prose, plus
+`watchdog release: owner woken` trail): RED exit 1, `heartbeat-only
+trail must leave wake_ts unset, got 2026-10-23T21:34:20.000Z` — the gate
+is causal for the F2 behavior. Committed `tests.test_seat_idle +
+tests.test_seat_idle_prefix` (34 tests) stayed GREEN (exit 0) under this
+sabotage: NO committed check pins heartbeat-only -> wake_ts None, so F2
+is VACUOUS with respect to the committed suite (see QA report
+recommendation for a pinning test). Reverted via `git checkout --
+scripts/reconcile_model.py` (status clean); probe GREEN
+(`heartbeat None / release 53.0s`, exit 0), release trail still
+`wake_ts 2026-10-23T21:34:53.000Z`, `park_to_wake_s 53.0`.
+
+### QA-R3: F3 review-only early return removed -> idle-park paste-ready (RED via probe; committed suite VACUOUS)
+
+Sabotage: `scripts/reconcile_model.py`, `render_diff`
+`stalled-idle-park` early-return block replaced with `pass`, so idle-park
+falls through to the `PROPOSED-CELL` + `converged` queue-note block.
+Probe (/tmp scratch, `render_diff` on an idle-park diff + an other-class
+diff): RED exit 1, `idle-park must never be paste-ready` — the revert
+restores the F3 defect exactly. Committed 34 tests stayed GREEN (exit 0)
+under this sabotage: NO committed check asserts absence of
+`PROPOSED-CELL` / presence of `SUGGESTED (not paste-ready)` for idle-park
+(the CLI test asserts only presence of `stalled-idle-park` +
+`park-to-wake`, both surviving the revert), and V30 has no render-shape
+assertion — so F3 is VACUOUS with respect to the committed suite (see QA
+report recommendation). Reverted via `git checkout --
+scripts/reconcile_model.py` (status clean); probe GREEN
+(`idle-park review-only, others unchanged`, exit 0).
+
+### QA-R4: F4 mixed-note helper neutered -> mixed note excluded (RED via probe; committed suite VACUOUS)
+
+Sabotage: `scripts/reconcile_model.py`, `_is_non_work_only` tail
+`return not bool(_WORK_ACTION_RE.search(note))` replaced with
+`return True` (restores pre-fix bare-`any()` semantics in both
+`trail_has_work_action` and the `work_ts` leg of
+`attribute_idle_latency`). Probe (/tmp scratch): RED exit 1, `mixed
+note must count as work` for `claimed; verdict recorded, findings
+filed` — the helper is causal in both paths. Committed 34 tests stayed
+GREEN (exit 0): the only work-note fixture (`verdict recorded, findings
+filed per t13`) carries no non-work token, so old and new logic agree on
+it — NO committed check uses a genuinely mixed trail note, so F4 is
+VACUOUS with respect to the committed suite (see QA report
+recommendation). Reverted via `git checkout --
+scripts/reconcile_model.py` (status clean); probe GREEN
+(`mixed counts, pure classes unchanged`, exit 0).
+
+### QA-R5: F5 interval prose reverted to wrong arithmetic -> suite stays GREEN (VACUOUS, prose-only as expected)
+
+Sabotage: `docs/evidence/81-seat-idle-prefix.md`, corrected `(+84s from
+claim, +53s park-to-wake)` reverted to the pre-fix `(+53s, +22s
+park-to-wake)`. Committed 34 tests stayed GREEN (exit 0) and all five
+V30 evidence markers (`reconcile exit: 0`, `idle-park signal: ABSENT`,
+`park-to-wake attribution: ABSENT`, `daemon source rule: ABSENT`,
+`recorded source: operator`) still present — no frozen test pins the
+interval prose, so F5 is VACUOUS with respect to the committed suite, as
+expected for evidence prose (the arithmetic was verified by hand above:
+84s / 53s correct). Reverted via `git checkout --
+docs/evidence/81-seat-idle-prefix.md` (status clean).
+
+Post-sabotage state: `git status --short` clean except this log append;
+re-ran `python3 -m unittest tests.test_seat_idle
+tests.test_seat_idle_prefix` (34 OK) and `./scripts/verify-rigs.sh
+--check-only` (SUMMARY 38 passed, 0 failed, V30 PASS). Full `make test`
+(596 OK) recorded on the byte-identical tree pre-sabotage.
