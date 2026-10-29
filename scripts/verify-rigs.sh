@@ -37,6 +37,11 @@ if ! python3 -c "import yaml, jsonschema, referencing" >/dev/null 2>&1; then
   fi
 fi
 
+if ! "${RUNNER[@]}" -c "import re, sys; from importlib.metadata import version; p=re.findall('[0-9]+', version('jsonschema'))[:2]; sys.exit(0 if len(p)==2 and (int(p[0]), int(p[1]))>=(4,18) else 1)" >/dev/null 2>&1; then
+  echo "verify-rigs.sh requires jsonschema>=4.18 for Draft202012Validator(registry=...); upgrade with: pip install \"jsonschema>=4.18\" referencing" >&2
+  exit 1
+fi
+
 "${RUNNER[@]}" - "${REPO_ROOT}" <<'PY'
 import hashlib
 import importlib.util

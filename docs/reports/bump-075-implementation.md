@@ -209,3 +209,57 @@
   left untouched per the minimal-diff constraint (one-word guard change
   only); it does not cover `referencing` if system python lacks it — flagged
   here as a known residual, not fixed. No commit/push/merge (per instructions).
+
+## Rework-3 (2026-10-29-bump-075 REWORK-3, branch fix/bump-075-r3 @ 14f4ee8): unblock PR #135 CI — jsonschema>=4.18 floor for `registry=` kwarg
+
+- **Symptom:** PR #135 CI fails (after rework-2 fixed the missing
+  `referencing`) with
+  `TypeError: create.<locals>.Validator.__init__() got an unexpected keyword
+  argument 'registry'` at verify-rigs.sh's `Draft202012Validator(schema,
+  registry=...)` calls.
+- **Code facts (verified in-tree before editing):**
+  `scripts/verify-rigs.sh:924`
+  (`val = Draft202012Validator(schemas[schema_name], registry=registry)`)
+  and `scripts/verify-rigs.sh:2380-2381`
+  (`_val18 = Draft202012Validator(schemas["bundle-status.v1.schema.json"],
+  registry=registry)`); `.github/workflows/docker-release.yml:53`
+  (`pip install --quiet pyyaml jsonschema referencing`).
+- **Mechanism proof (coordinator-reproduced, confirmed consistent locally):**
+  the `registry=` kwarg requires jsonschema>=4.18 — coordinator reproduced
+  the EXACT `TypeError` string in a scratch venv with jsonschema==4.17.3 +
+  referencing installed, and proved the floor with jsonschema==4.18.6
+  (construct OK). CI runners ship system jsonschema 4.17.x, so bare
+  `pip install jsonschema` is a satisfied no-op and never upgrades. Same gate
+  fails on unmodified main — environmental, not a Wave-1 regression. Local
+  confirmation: installed jsonschema is 4.26.0 and
+  `Draft202012Validator({}, registry=Registry())` constructs OK (rc=0).
+- **Fix (floor only, no exact pins, bare-name style kept):**
+  1. `.github/workflows/docker-release.yml:53`:
+     `pip install --quiet pyyaml jsonschema referencing` →
+     `pip install --quiet pyyaml "jsonschema>=4.18" referencing`
+     (specifier quoted so YAML/shell pass it literally; `yaml.safe_load`
+     re-parses rc=0).
+  2. `scripts/verify-rigs.sh:40-43` (preamble, before the heredoc at :45,
+     NOT in any V-gate block): 4-line fail-closed floor check via the
+     effective `${RUNNER[@]}` interpreter — `importlib.metadata.version`
+     major/minor tuple compared against (4,18); on <4.18 (or missing) prints
+     `verify-rigs.sh requires jsonschema>=4.18 for
+     Draft202012Validator(registry=...); upgrade with: pip install
+     "jsonschema>=4.18" referencing` to stderr and exits 1. Uses
+     `importlib.metadata` (not deprecated `jsonschema.__version__`) and
+     `[0-9]+` regex (no backslash-escape fragility inside bash double
+     quotes). No V-gate text/markers/counts touched — `git diff` shows zero
+     `V[0-9]` matches.
+- **Validation (real outputs, inside worktree `.lane/trees/bump-075-r3`):**
+  `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+  0 failed`, rc=0; `python3 -c "import yaml;
+  yaml.safe_load(open('.github/workflows/docker-release.yml'))"` → `YAML OK`,
+  rc=0; `bash -n scripts/verify-rigs.sh` → syntax OK; isolated floor probe
+  (comparison exercised against fake tuples, tree untouched): `4.17.3` →
+  reject, `4.18.0` → accept, `4.26.0` → accept; `git status --short` → only
+  the 2 intended files plus this report addendum; `git diff --stat` → 2
+  files, 6 insertions, 1 deletion. `make test`: SKIPPED — change is one CI
+  pip-line plus a preamble-only floor check (no generator/runtime/catalog/
+  V-gate code touched); 634/0 baseline stands per instructions.
+- **Deviations / notes (explicit):** none — no other files touched, no exact
+  pins introduced, no V-gate edits. No commit/push/merge (per instructions).
