@@ -206,3 +206,61 @@ VERDICT: PASS
 - Never committed; never printed secrets.
 
 VERDICT: PASS
+
+## Rework-4 re-audit (2026-10-29, branch fix/bump-075-r4 @ 205cf01, role agency-drift-guard)
+
+- **Role:** independent adversarial auditor; fixed no code; committed nothing. Prior verdicts above re-issued, not copied: every claim below re-verified against current worktree files with commands I ran myself.
+- **Start state:** `git status --short` clean (empty output before any audit command). Revs seen: `bea4d16` (rework-3 drift-guard VERDICT) → `728662c` (rework fix) → `205cf01` (QA re-verification) = HEAD.
+- **Mandate note:** plan's 3-cycle rework budget was spent, but the user explicitly authorized continued fixes until PR #135 CI passes — this Rework-4 proceeds under that mandate (same basis recorded in the implementation appendix).
+- **Rework delta (`git diff bea4d16 HEAD --stat`):** exactly 3 files, 70 insertions, 1 deletion — `.github/workflows/docker-release.yml` (1+/1-, one line moved), `docs/reports/bump-075-implementation.md` (+48), `docs/reports/bump-075-qa.md` (+21). Fix commit alone (`bea4d16..728662c`): 2 files, 49 insertions, 1 deletion (workflow move + implementation appendix); the third file is the QA re-verification appendix (uncommitted-by-qa equivalent, committed as `205cf01`). No hunk beyond the moved block + docs appendices exists — minimality HOLDS.
+
+### Hunk-by-hunk audit (full `git diff bea4d16 HEAD` read from disk, `-U0` confirmed)
+
+- **H1 — workflow verify-fleet reorder (`docker-release.yml`):** `-U0` shows exactly one `+` line (`+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap && bwrap --version` at new line 54) and exactly one `-` line (identical string removed from old line 60). Byte-identical string, pure move, zero new steps, zero new content, zero deleted content. YAML-parsed step lists prove preservation: OLD 6 steps / NEW 6 steps, `sorted(old)==sorted(new)` TRUE; only indices change (OLD `verify-idx=2 apt-get-idx=5` → NEW `apt-get-idx=2 verify-idx=3`; full NEW order: checkout / pip-install / apt-get-bubblewrap / verify / audit-self-test / guard-profiles). All other jobs byte-identical: `build`/`smoke` hunks absent (`grep -E 'build|smoke|matrix|target|container'` over the workflow diff returns no lines), checkout SHA pin `d23441a48e516b6c34aea4fa41551a30e30af803`, pip line `"jsonschema>=4.18"`, guard-profiles triple all untouched.
+- **H2/H3 — report appendices:** implementation.md hunk anchored `@@ -263,3 +263,51 @@` (+48), qa.md hunk anchored `@@ -100,3 +100,24 @@` (+21), both tail-appended sections. `git diff bea4d16 HEAD -- docs/ | grep '^-' | grep -v '^---'` returns zero content-deletion lines — pure append. Content verified accurate against the tree (fail-closed cite `scripts/verify-rigs.sh:1707-1711` re-read by me; V27 order-independence claim `scripts/verify-rigs.sh:3032-3034` re-read by me; host bwrap `/usr/bin/bwrap` `0.13.1` confirmed by me).
+- **V-gate text note (adversarial clarity):** a naive `git diff bea4d16 HEAD | grep -E 'V[0-9]'` returns 3 hits — all are prose mentions of `V22–V27`/`V27`/`[FAIL] tool-existence` inside the docs appendices, NOT gate-code edits. `git diff bea4d16 HEAD --name-only -- scripts/` is EMPTY (no generator/runtime/catalog/V-gate code touched); SUMMARY frozen at 39, confirmed by re-run. Zero V-gate text touched HOLDS.
+
+### Discipline verdicts
+
+- **One Rule:** PASS — `git diff bea4d16 HEAD --name-only -- specs/ rigs/ rosters/ registry/ fleet/ schemas/ scripts/generate-rigs.py` empty (sole functional touch is the workflow step order, not the generator or generated leaves).
+- **Frozen-archive integrity:** PASS — `git diff bea4d16 HEAD --name-only -- archive/ openspec/` empty (no active change-id touched, archived package untouched).
+- **Secrets / no-local-paths hygiene on added lines:** PASS — added-line scan for `ghp_|gho_|sk-ant-|AKIA|Bearer|/home/|/Users/|secrets/|.key|.pat|password|token` returns zero hits. Appendix worktree references are repo-relative (`.lane/trees/bump-075-r4`), never machine-absolute.
+- **`Refs`-only discipline:** PASS — no `Closes #`/`Fixes #`/`Resolves #` in the delta (bump ledger wave; nothing to close).
+
+### Workflow judgment (all steps preserved, just reordered; YAML + V27 UniqueKey risk)
+
+- **YAML risk: NONE.** `yaml.safe_load` parses OK; jobs keys intact (`verify-fleet`/`build`/`smoke`); verify-fleet step count 6; quoting/indent of the moved line unchanged (it moved as a whole line, so no new parse edge).
+- **V27 UniqueKey risk: NONE, proven green.** V27 asserts only that SOME verify-fleet `run:` step contains `"bubblewrap"` (line 3033: `if not any("bubblewrap" in _s27 ...)`) — order-independent by construction — plus the UniqueKey duplicate-key parse (lines 3017-3026) and the Dockerfile bubblewrap assertions. Live 39/0 run shows `V27/overhaul-a M3 green` (R-row below). A reorder cannot trip UniqueKey (no key added/removed/duplicated) and cannot trip the substring assertion (string still present exactly once).
+
+### Re-ran myself (exit codes observed, not quoted)
+
+| # | Command (inside worktree) | Observed result | rc |
+|---|---|---|---|
+| R1 | `./scripts/verify-rigs.sh --check-only` (serial, post-restore) | `SUMMARY: 39 checks passed, 0 failed` | 0 |
+| R2 | `git diff bea4d16 HEAD --stat` | 3 files, 70 insertions, 1 deletion | 0 |
+| R3 | `python3 -c "yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | YAML OK, 3 jobs, 6 verify-fleet steps, `apt-get-idx=2 verify-idx=3` | 0 |
+| R4 | Old-vs-new step-set comparison (YAML-parsed, `git show bea4d16:` vs tree) | 6 vs 6, sets equal TRUE, OLD `verify-idx=2 apt-get-idx=5` documents the bug | 0 |
+| R5 | Added-line secret/local-path scan + Refs-only scan | zero hits both | — |
+| R6 | Protected-path diff (`specs/ rigs/ rosters/ registry/ fleet/ schemas/ archive/ openspec/ scripts/`) | empty | 0 |
+| R7 | Fail-closed cite `sed -n '1700,1715p' scripts/verify-rigs.sh` + workflow `HERETEK_ALLOW_NO_BWRAP` grep | `which("bwrap") is None` → note-mode only when `HERETEK_ALLOW_NO_BWRAP=1`, else `fail(...)`; workflow sets no such var (absent, correct — CI verifies-for-real) | — |
+| R8 | Host bwrap | `/usr/bin/bwrap`, `bubblewrap 0.13.1` | 0 |
+
+### Own sabotage probe (DG-R4, RED→GREEN, restore proof — distinct from QA's R4-6/R4-7 old-order-in-/tmp-copy proof, which touched no tree file)
+
+- **DG-R4 — V27 Dockerfile bubblewrap gate (topical: proves the reorder blunts no bubblewrap gate):** byte backup of `docker/Dockerfile` to `/tmp` (sha256 `9e309ea4…85b8b185` both copies) → sabotage `bubblewrap` → `no-such-pkg-xyz` on line 94 (single-word `sed`, `git diff --stat` shows that 1 line only) → verify RED `[FAIL] V27/overhaul-a: docker/Dockerfile must install bubblewrap`, `SUMMARY: 39 checks passed, 1 failed`, rc=1 → `git checkout -- docker/Dockerfile` + `cmp` vs backup → **BYTE-IDENTICAL** (sha256 `9e309ea4…85b8b185` both, backup removed) → verify GREEN `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- **Why the Dockerfile leg and not a repeat order-tamper:** QA already proved the OLD order is broken (parsed idx) and the NEW order is fixed — repeating that tamper would prove nothing new. DG-R4 instead proves the property the reorder must preserve: every bubblewrap gate still fails loudly when its pinned truth is disturbed. Post-probe: `git status --short` clean, `git stash list` empty.
+
+### Addressed question — could moving apt-get earlier break the `build`/`smoke` jobs or the guard-profiles step in any way? AGREE it cannot, with evidence (no refutation found)
+
+- **`build`/`smoke` jobs: CANNOT be affected — separate runners by construction.** Each job declares its own `runs-on: ubuntu-24.04` (`verify-fleet` needs: none, `build` needs: verify-fleet, `smoke` needs: build); GitHub Actions provisions a fresh VM per job, so `verify-fleet`'s `apt-get install bubblewrap` leaves zero filesystem state for `build`/`smoke`. Corroborated by the diff: zero `build`/`smoke` lines touched. `smoke` additionally runs inside the published container image (`container: image: ghcr.io/...`), where host apt state is definitionally irrelevant. No cross-job contamination vector exists for a step reorder within `verify-fleet`.
+- **guard-profiles step (runs after, same job): additive-only, proven independent.** The moved step installs one package (`bubblewrap`) and prints its version — it removes nothing, exports no env vars, writes no repo files. `guard-profiles` (`Makefile:55-65`) is a pure shell `case` over `$(SIDECAR_PROFILES)` refusing `mobile`+`devsec`/`web-research` co-scheduling; its body references no `bwrap`/`bubblewrap`/apt state (grep over `Makefile` guard target: no hits). A package install earlier in the same runner cannot change a string-match guard's outcome — and the step's own pass/fail semantics are unchanged (it still runs exactly once, same command). Worst case (apt mirror flake) fails the workflow at the apt step instead of later — fail-closed, strictly earlier signal, never a silent green.
+- **verify/audit legs (also run after): strictly improved, not regressed.** Both require bwrap present (verify fail-closed at `:1707-1711`; audit self-test unaffected by bwrap). Installing before them converts a deterministic RED (`38/1 bwrap not found`) into the proven GREEN (`39/0`), which is the entire purpose of the fix.
+
+### Skips (explicit)
+
+- `make test` not re-run by this auditor: delta is a workflow step reorder + docs appendices (no generator/runtime/catalog/V-gate/test code touched); full suite green at 634/0 per QA baseline and the directly affected gate re-ran green 39/0 (R1). Skipped with reason.
+- `openspec validate <change-id>`: N/A — no active change-id (`openspec/changes/` holds only `archive/`); canonical-spec health unchanged since rework-1.
+- `gh`-side re-verification of PR #135 CI logs: not re-fetched; the reorder's correctness is proven locally (R3-R4 step-set equality + R1 39/0 + R8 host bwrap + DG-R4 gate still armed) and CI-behavior claims are the coordinator's merge-time concern, not this delta's correctness gate.
+- Never committed; never printed secrets.
+
+VERDICT: PASS
