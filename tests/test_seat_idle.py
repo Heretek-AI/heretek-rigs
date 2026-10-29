@@ -359,6 +359,92 @@ class TestStalledIdlePark(unittest.TestCase):
         self.assertGreater(attribution["park_to_wake_s"], 0)
         self.assertIn("park-to-wake", attribution["note"])
 
+    def test_heartbeat_only_trail_leaves_wake_unset(self):
+        """Rework-1 F2 pin: a post-park watchdog heartbeat without
+        wake/release prose is not wake evidence (wake_ts None,
+        park_to_wake_s None), while a release note records the release
+        ts — removing the _WAKE_NOTE_RE gate must turn this RED."""
+        model = load_model()
+        heartbeat_trail = idle_trail() + [
+            {
+                "transitionId": 15,
+                "qitemId": PARENT,
+                "ts": "2026-10-23T21:34:20.000Z",
+                "state": "in-progress",
+                "transitionNote": (
+                    "watchdog heartbeat: owner still parked, obligation still open"
+                ),
+            }
+        ]
+        heartbeat_attr = model.attribute_idle_latency(heartbeat_trail)
+        self.assertIsNone(heartbeat_attr["wake_ts"])
+        self.assertIsNone(heartbeat_attr["park_to_wake_s"])
+        release_trail = idle_trail() + [
+            {
+                "transitionId": 15,
+                "qitemId": PARENT,
+                "ts": WAKE_TS,
+                "state": "in-progress",
+                "transitionNote": (
+                    "watchdog release: owner woken, obligation still open"
+                ),
+            }
+        ]
+        release_attr = model.attribute_idle_latency(release_trail)
+        self.assertEqual(release_attr["wake_ts"], WAKE_TS)
+        self.assertEqual(release_attr["park_to_wake_s"], 53.0)
+
+    def test_idle_park_render_is_review_only(self):
+        """Rework-1 F3 pin: the stalled-idle-park diff renders review-only
+        (no PROPOSED-CELL marker, no converged queue-note) while another
+        diff class keeps them — removing the early return must RED."""
+        model = load_model()
+        row = parent_row(IDLE_STATUS)
+        diff = model.stalled_idle_park_diff(
+            row, idle_queue_by_id(), {PARENT: idle_trail()}
+        )
+        self.assertIsNotNone(diff)
+        rendered = model.render_diff(row, diff)
+        self.assertNotIn("PROPOSED-CELL", rendered)
+        self.assertNotIn("converged", rendered)
+        self.assertIn("SUGGESTED (not paste-ready)", rendered)
+        other = {
+            "class": "stale-state",
+            "reason": "queue is QA-passed/placed/closed; tracker state is stale",
+            "tracker": "stale tracker cell",
+            "queue": "state=in-progress latest_transition=14 (note)",
+            "proposal": "re-verify with QA",
+        }
+        rendered_other = model.render_diff(row, other)
+        self.assertIn("PROPOSED-CELL", rendered_other)
+        self.assertIn("converged", rendered_other)
+
+    def test_mixed_note_counts_as_work_in_both_paths(self):
+        """Rework-1 F4 pin: a mixed trail note (known non-work event plus
+        a work action) counts as work in both trail_has_work_action and
+        attribute_idle_latency work_ts — neutering _is_non_work_only
+        must turn this RED."""
+        model = load_model()
+        trail = [
+            {
+                "transitionId": 11,
+                "qitemId": PARENT,
+                "ts": CLAIM_TS,
+                "state": "in-progress",
+                "transitionNote": "claimed",
+            },
+            {
+                "transitionId": 13,
+                "qitemId": PARENT,
+                "ts": PARK_TS,
+                "state": "in-progress",
+                "transitionNote": "claimed; verdict recorded, findings filed",
+            },
+        ]
+        self.assertTrue(model.trail_has_work_action(trail))
+        attribution = model.attribute_idle_latency(trail)
+        self.assertEqual(attribution["work_ts"], PARK_TS)
+
     def test_attribution_is_report_only(self):
         """REQ-I2 propose-only: attribution performs no rig write and the
         diff path writes no tracker or queue state."""
