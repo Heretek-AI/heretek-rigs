@@ -79,3 +79,24 @@
 - **uv-fallback safety judgment (one line):** SAFE to leave unchanged — `uv run --with` resolves transitive deps into a fresh env, so pinning `jsonschema` pulls `referencing` automatically, unlike the broken system-pip no-op path where a pre-installed `jsonschema` skipped the transitive fetch.
 - **Test scope:** full `make test` skipped — change is one CI pip-line word plus one guard-import word plus docs (no generator/runtime/catalog/V-gate code touched; R2-4 re-ran the directly affected gate green). Directly-related guard test files: none exist — `tests/test_verify*.py` glob finds nothing and `grep "verify-rigs|import yaml, jsonschema" tests/` returns only two incidental comments (`test_bare_queue_send_deny.py:10`, `test_regen_gate.py:190`), no functional guard-behavior tests to run; stated here instead of run.
 - **Skips and failures:** none beyond the stated `make test` skip. No baseline failure. Final tree uncommitted by qa (appendix only).
+
+## Rework-3 QA re-verification (2026-10-29 UTC, branch fix/bump-075-r3 @ 8246141, role agency-qa)
+
+- **Pre-state:** `git status --short` clean at start, HEAD `8246141`. Fix claims treated as untrusted; each verified against worktree files. Nothing committed by qa.
+- **Diff scope (EXACT, 3 files):** `git diff 14f4ee8 HEAD --stat` = 3 files, 60 insertions, 1 deletion (`.github/workflows/docker-release.yml` 2 +/-, `scripts/verify-rigs.sh` 5 +/-, `docs/reports/bump-075-implementation.md` +54 docs-only). Every functional hunk inspected: (1) workflow pip line `pip install --quiet pyyaml jsonschema referencing` → `pip install --quiet pyyaml "jsonschema>=4.18" referencing` (single-line hunk); (2) 4-line preamble floor block at `scripts/verify-rigs.sh:40-43` (fail-closed `importlib.metadata.version` major/minor `>= (4,18)` check via `${RUNNER[@]}`, stderr message + `exit 1` on reject); (3) report appendix in `bump-075-implementation.md` (docs-only). Zero `V[0-9]` gate-text changes — `git diff 14f4ee8 HEAD | grep -E 'V[0-9]'` returns no matches (re-grepped by qa).
+
+| # | Check (inside worktree) | Real output | rc | Result |
+|---|---|---|---|---|
+| R3-1 | Workflow YAML parses: `python3 -c "import yaml; yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | `YAML OK` | 0 | PASS |
+| R3-2 | `bash -n scripts/verify-rigs.sh` | syntax OK (no output) | 0 | PASS |
+| R3-3 | `./scripts/verify-rigs.sh --check-only` | `SUMMARY: 39 checks passed, 0 failed` | 0 | PASS |
+| R3-4 | Floor accepts real env: script's exact line-40 comparison expression under installed jsonschema 4.26.0 | accept | 0 | PASS |
+| R3-5 | Floor rejects emulated 4.17.3: SAME comparison expression with stubbed `importlib.metadata.version` returning "4.17.3", tree untouched | reject (`parsed: ['4', '17']`) | 1 | PASS |
+| R3-6 | Floor accepts emulated 4.18.0 boundary (same stub method) | accept (`parsed: ['4', '18']`) | 0 | PASS |
+| R3-7 | Floor fail-closed on missing version metadata (stub raises) | reject | 1 | PASS |
+| R3-8 | Sabotage re-proof, floor-tamper in a COPY (distinct from prior probes): `cp` script to `/tmp`, `sed s/(4,18)/(99,0)/` (diff shows that single line only), run copy's line-40 expression | RED: reject + exact floor stderr message | 1 | PASS |
+| R3-9 | Byte-identical GREEN restore: `cp` tree script again, `cmp` vs pre-tamper copy | `BYTE-IDENTICAL`, expression matches tree, accept | 0 | PASS |
+
+- **Residue check:** `/tmp` probe copies removed; `git status --short` clean after probes except this qa appendix (uncommitted by qa). No tree edits made during floor/sabotage proofs (stub-injection + `/tmp` copies only).
+- **Test scope:** full `make test` skipped — change is one CI pip-line specifier plus a preamble-only floor check (no generator/runtime/catalog/V-gate code touched; R3-3 re-ran the directly affected gate green 39/0).
+- **Skips and failures:** none beyond the stated `make test` skip. No baseline failure.
