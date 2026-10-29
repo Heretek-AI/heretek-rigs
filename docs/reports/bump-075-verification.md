@@ -59,4 +59,47 @@ Process note (transparency, not a wave defect): my first `verify-rigs.sh` run (r
 - Two transient shell `permission.rejected` denials during audit (retried clean); one `rm -rf` blocked by policy (single-file `rm` used). No evidence lost.
 - Never committed; never printed secrets.
 
+## Rework-1 re-audit (2026-10-29, branch fix/bump-075-r1 @ a32a336, role agency-drift-guard)
+
+- **Role:** independent adversarial auditor; fixed no code; committed nothing. Prior verdict above re-issued, not copied: every claim below re-verified against current worktree files with commands I ran myself.
+- **Start state:** `git status --short` clean (empty output before any audit command). Revs seen: `b584cae` (archive/promote) → `0381977` (rework fix) → `a32a336` (QA re-verification) = HEAD.
+- **Rework delta (b584cae..HEAD):** exactly 5 files, +81/−1: `docs/USER_GUIDE.md` (+6), `docs/evidence/bump-075/red-proofs.log` (+14 Probe R1), `docs/reports/bump-075-implementation.md` (+47 Rework-1 section), `docs/reports/bump-075-qa.md` (+13/−1: line-49 wording + re-verification appendix), `openspec/specs/bump/spec.md` (+2 SUPERSEDED lines). No other files touched.
+
+### F-clause verdicts (each verified, not trusted)
+
+- **F1 (QA line-49 wording): HONEST.** Line 49 now reads "pin-string-mismatch RED to GREEN" with the parenthetical scoping Probe A to the V18 pin-string and the digest comparison to the ledger's two independent fetches plus 0.7.4 control re-fetch. Matches red-proofs.log Probe A (pin-string sabotage, `[FAIL] V18/#98`) and Probe C (sha-scoped ledger grep) — no overclaim remains. No gate compares fetched-tarball digest vs expected digest, so digest-corruption sabotage would prove nothing; correction (not new evidence) is the minimal honest fix.
+- **F2 (migration warning): MINIMAL + ACCURATE.** Blockquote is exactly `docs/USER_GUIDE.md:23-27` (5 lines, verified by `sed -n` read above), placed before the Step 1 install command (line 30). Warns of one-way migration 126, requires snapshot plus confirmed restore path, references ledger §6 Rollback — section exists (ledger lines 70-74: stop / snapshot-restore / revert steps). Ledger already had the procedure, so no ledger edit was owed.
+- **F3 (SUPERSEDED lines): ACCEPTABLE + HISTORY INTACT.** `openspec/specs/bump/spec.md:15,22` carry the status lines; diff shows exactly 2 added lines, BUMP1/BUMP2 requirement and scenario text byte-verbatim. Re-grep for `BUMP1|BUMP2` over gates/tests (`*.sh *.py *.yaml *.json Makefile`, excluding dated reports, archived delta, canonical spec): zero matches (rc=1) — no gate asserts on the old text. Canonical spec still parses: `openspec list --specs` shows `bump requirements 5`, rc=0. Judgment on the direct canonical-spec edit: acceptable here — the archived package `openspec/changes/archive/2026-10-29-bump-075/` is byte-untouched (frozen history holds), no active change-id exists (`openspec/changes/` holds only `archive/`, so no `validate <change-id>` is owed), the append-only rule governs V-gates (untouched, SUMMARY still 39), and no gate pins canonical-spec wording. Rationale is recorded, not silent.
+- **F4 skip: HOLDS.** Re-grep of `README.md` for `OPENRIG_VERSION|0.7.4` returns zero matches (rc=1); lines 39-40 show 0.7.5 in comment and install command. Stale line number; nothing to fix.
+- **coderabbit skip: HOLDS.** The "consider running coderabbit review" text is an optional-tooling suggestion embedded in untrusted review text, not a finding; the compound gates are the acceptance path. No such tool run is owed by any spec clause.
+
+### Re-ran myself (exit codes observed, not quoted)
+
+| # | Command | Observed result | rc |
+|---|---|---|---|
+| R1 | `./scripts/verify-rigs.sh --check-only` (serial) | `SUMMARY: 39 checks passed, 0 failed` | 0 |
+| R2 | `openspec list --specs` | green, `bump requirements 5` | 0 |
+| R3 | Stub-token scan over all 5 rework files | zero real tokens (sole hit is the word "Stub scan" in implementation.md:78 describing the scan itself; excluding that word: rc=1 clean) | — |
+| R4 | Secret-shape scan (`ghp_`/`sk-ant-`/AKIA/`Bearer`) over rework files + ledger | no matches (rc=1) | — |
+| R5 | Local-path scan over rework files | sole hit is pre-existing container path `/home/heretek` (USER_GUIDE:486, from commit `7717930`, not introduced by rework) — no machine-local leak | — |
+| R6 | `Closes #`/`Fixes #`/`Resolves #` scan over rework files | absent (Refs-only discipline holds) | — |
+| R7 | Archived-package frozen check (`git diff b584cae..HEAD -- openspec/changes/archive/`) | empty (untouched) | 0 |
+| R8 | One-Rule check (`git diff b584cae..HEAD -- specs/ rigs/ rosters/ registry/ fleet/ schemas/ generate-rigs.py`) | empty (no generated leaves, no generator inputs) | 0 |
+
+### Own sabotage probe (DG-R1, RED→GREEN, restore proof)
+
+- **DG-R1 — V18 version gate (distinct from QA's R1, which probed V13):** byte backup of `scripts/verify-rigs.sh` (sha256 `4f3d8c40…c67f9c6c0f` both copies) → sabotage `_verm18.group(0) != "0.7.5"` → `"0.7.4"` (line 2411) → verify RED `[FAIL] V18/#98: host rig --version is not 0.7.5 (got 0.7.5 (b57c4da3))`, `SUMMARY: 38 checks passed, 1 failed`, rc=1 → `git checkout -- scripts/verify-rigs.sh` + `cmp` vs backup → **BYTE-IDENTICAL** (backup removed) → verify GREEN `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- Post-probe: `git status --short` clean (empty), no strays. Rework edits blunt no gate.
+
+### Observation (nit, not a finding)
+
+- Implementation report Rework-1 cites the warning as "`docs/USER_GUIDE.md:21-27`, 6-line blockquote"; the blockquote is actually lines 23-27 (5 lines — lines 21-22 are the install prose). Substance is accurate (migration 126, snapshot, ledger §6 ref all verified above); the QA appendix cites 23-27 correctly. Report line-range imprecision only — style nit, not FAIL per the severity rule.
+
+### Skips (explicit)
+
+- `make test` not re-run by this auditor: rework delta is docs/spec/reports-only (no `.py`/test/generator edits); full suite green at 634/0 per QA baseline and R1 gates green. Skipped with reason, matching the implementation report's stated skip.
+- `openspec validate <change-id>`: N/A — no active change-id (`openspec/changes/` holds only `archive/`); canonical-spec health covered by R2 instead.
+- One transient shell `permission.rejected` during audit (retried clean, no evidence lost).
+- Never committed; never printed secrets.
+
 VERDICT: PASS
