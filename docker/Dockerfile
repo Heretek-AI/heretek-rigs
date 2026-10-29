@@ -111,6 +111,7 @@ USER heretek
 WORKDIR /opt/heretek/heretek-rigs
 COPY --chown=heretek:heretek . /opt/heretek/heretek-rigs/
 RUN set -eux; \
+    git config --global --add safe.directory /opt/heretek/heretek-rigs; \
     chmod +x scripts/*.sh scripts/*.py; \
     bash ./scripts/verify-rigs.sh --check-only; \
     python3 ./scripts/audit_loop.py --self-test

@@ -358,3 +358,17 @@
   stands per instructions.
 - **Deviations / notes (explicit):** none — two literals only, no V-gate
   edits, no pins. No commit/push/merge (per instructions).
+
+
+## Rework-6 (2026-10-29-bump-075 REWORK-6, branch feat/bump-075): unblock PR #135 CI — in-container verification during Docker build
+
+- **Symptom:** PR #135 CI "Host verification gate" passes, but "Build slim" and "Build full" fail during `docker/build-push-action`. In `docker/Dockerfile`, lines 113-116 run `verify-rigs.sh --check-only` inside the image, failing with `SUMMARY: 33 checks passed, 12 failed`.
+- **Root causes:**
+  1. `.dockerignore` excluded `.git/`, causing `scripts/manifest-closure.py --staged` (V8) and `scripts/policy-verifier.py --staged` (V9) to fail with `fatal: not a git repository`. `.git` was intentionally included originally (`77179301`), but mistakenly excluded in `b8a9da3`.
+  2. `.dockerignore` excluded `docs/evidence/`, causing 9 evidence-reading verification checks (V24, V28, V29, V30, V31, and `tests/test_identity_m1.py` in V23) to fail with `FileNotFoundError`.
+  3. `tests/test_generate_supplychain.py`'s `TestTarFilterGuard.test_live_interpreter_takes_filter_branch` unconditionally asserted `self.assertTrue(GEN._tar_supports_filter())`, assuming host supports PEP 706 `filter="data"`. Debian Bookworm runs Python 3.11.2, where `_tar_supports_filter()` returns `False`, failing V26 with `AssertionError: False is not true`.
+- **Fixes applied:**
+  1. `.dockerignore`: remove `.git/` exclusion, restoring `# NOTE: .git is intentionally INCLUDED` provenance/staged contract; remove `docs/evidence/` exclusion.
+  2. `docker/Dockerfile`: configure `git config --global --add safe.directory /opt/heretek/heretek-rigs` before verify step.
+  3. `tests/test_generate_supplychain.py`: update `test_live_interpreter_takes_filter_branch` to verify `GEN._tar_supports_filter()` matches whether `tarfile.TarFile.extract` has `filter` on the live interpreter (passes on both Python 3.11.2 and Python 3.12+; preserves 7 executed tests).
+- **Validation:** V26 unit tests (`TestTarFilterGuard`, `TestHermeticCharterFallback`, `TestHermeticVendorRestore`) run 7 tests, all pass (`OK`).

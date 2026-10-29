@@ -1,15 +1,15 @@
 # heretek-rigs Docker build context exclusions.
 # Keep the image reproducible and free of session data / secrets / VCS weight.
 
-.git/
+# NOTE: .git is intentionally INCLUDED (public repo; generate-rigs.py needs a
+# clean checkout to bake resolvedCommit provenance at build time).
 .gitignore
 
 # Session transcripts -- MUST NEVER ship in a published image
 .opencode/
 .scratch/
 
-# Prior audit/remediation working artifacts (regenerable, untracked)
-docs/evidence/
+# Prior audit/remediation working artifacts (regenerable)
 docs/reports/
 
 # Audit report contains session-specific findings, not release content
