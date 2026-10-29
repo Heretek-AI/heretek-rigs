@@ -151,3 +151,58 @@ VERDICT: PASS
 - Never committed; never printed secrets.
 
 VERDICT: PASS
+
+## Rework-3 re-audit (2026-10-29, branch fix/bump-075-r3 @ 33e012a, role agency-drift-guard)
+
+- **Role:** independent adversarial auditor; fixed no code; committed nothing. Prior verdicts above re-issued, not copied: every claim below re-verified against current worktree files with commands I ran myself.
+- **Start state:** `git status --short` clean (empty output before any audit command). Revs seen: `14f4ee8` (rework-2 drift-guard VERDICT) → `8246141` (rework fix) → `33e012a` (QA re-verification) = HEAD.
+- **Rework delta (`git diff 14f4ee8 HEAD --stat`):** exactly 4 files, 81 insertions, 1 deletion — `.github/workflows/docker-release.yml` (2 +/-, 1 line), `scripts/verify-rigs.sh` (5 +/-, all insertions), `docs/reports/bump-075-implementation.md` (+54), `docs/reports/bump-075-qa.md` (+21). Functional delta is exactly the pip floor + the preamble block; docs diffs are pure tail appends (hunks anchored `@@ -209,3 +209,57 @@` / `@@ -79,3 +79,24 @@`, zero deletion lines). No hunk beyond pip floor + preamble block + docs appendices exists — minimality HOLDS.
+
+### Hunk-by-hunk audit (full `git diff 14f4ee8 HEAD` read from disk, `-U0` confirmed single-hunk per functional file)
+
+- **H1 — workflow pip line (`docker-release.yml:53`):** `pip install --quiet pyyaml jsonschema referencing` → `pip install --quiet pyyaml "jsonschema>=4.18" referencing`. Single-line hunk; `-U0` shows this is the only hunk in the file. All other steps byte-identical (checkout SHA pin `d23441a48e516b6c34aea4fa41551a30e30af803`, audit_loop leg, guard-profiles triple, bwrap install, and the entire `build`/`smoke` jobs untouched — verified by the single-hunk diff, not by summary). Quoting is correct: double-quoted `"jsonschema>=4.18"` passes YAML `safe_load` as one scalar (proven R2 below) and survives shell intact; the bare-name style of the line is otherwise kept, no exact pin invented. YAML-schema risk: NONE — parses OK, `jobs` keys intact (`verify-fleet`/`build`/`smoke`), verify-fleet step count 6, V27 UniqueKey parse green inside the 39/0 run.
+- **H2 — preamble floor block (`scripts/verify-rigs.sh:40-43`):** 4-line fail-closed check inserted after the `RUNNER` selection (lines 33-38) and before the heredoc at line 45 — NOT in any V-gate block. Uses the effective `"${RUNNER[@]}"` interpreter, `importlib.metadata.version` (not deprecated `jsonschema.__version__`), `[0-9]+` regex with no backslash-escape fragility inside bash double quotes, major/minor tuple compared against `(4,18)`; on <4.18 (or missing metadata) prints the actionable `requires jsonschema>=4.18 for Draft202012Validator(registry=...)` stderr message and exits 1. Append-only V-gates HOLDS — zero gate text touched (`git diff 14f4ee8 HEAD | grep -E 'V[0-9]'` returns no matches), SUMMARY frozen at 39 (confirmed by re-run).
+- **H3/H4 — report appendices:** implementation.md +54 and qa.md +21, both tail-appended sections, zero deletions. Content verified accurate against the tree (workflow line 53, preamble lines 40-43, `registry=` call sites at verify-rigs.sh:924 and 2380-2381 all re-grepped by me — strings match; the 4.17.3-reproduces-TypeError / 4.18.6-constructs-OK mechanism claim is consistent with the locally proven floor behavior below).
+
+### Discipline verdicts
+
+- **One Rule:** PASS — `git diff 14f4ee8 HEAD --name-only -- specs/ rigs/ rosters/ registry/ fleet/ schemas/ scripts/generate-rigs.py` empty (sole `scripts/` touch is the preamble, not the generator).
+- **Frozen-archive integrity:** PASS — `git diff 14f4ee8 HEAD --name-only -- archive/ openspec/` empty (no active change-id touched, archived package untouched).
+- **Secrets / no-local-paths hygiene on added lines:** PASS — added-line scan for `ghp_|gho_|sk-ant-|AKIA|Bearer|/home/|/Users/|secrets/|.key|.pat|password|token` returns zero hits. Appendix worktree references are repo-relative (`.lane/trees/bump-075-r3`), never machine-absolute.
+- **`Refs`-only discipline:** PASS — no `Closes #`/`Fixes #`/`Resolves #` in the delta (bump ledger wave; nothing to close).
+
+### Re-ran myself (exit codes observed, not quoted)
+
+| # | Command (inside worktree) | Observed result | rc |
+|---|---|---|---|
+| R1 | `./scripts/verify-rigs.sh --check-only` (serial, post-restore) | `SUMMARY: 39 checks passed, 0 failed` | 0 |
+| R2 | `git diff 14f4ee8 HEAD --stat` | 4 files, 81 insertions, 1 deletion | 0 |
+| R3 | `python3 -c "yaml.safe_load(open('.github/workflows/docker-release.yml'))"` | `YAML OK`, 3 jobs, 6 verify-fleet steps, pip line carries `"jsonschema>=4.18"` | 0 |
+| R4 | `bash -n scripts/verify-rigs.sh` | syntax OK (no output) | 0 |
+| R5 | Added-line secret/local-path scan + Refs-only scan | zero hits both | — |
+| R6 | Protected-path diff (`specs/ rigs/ rosters/ registry/ fleet/ schemas/ archive/ openspec/`) | empty | 0 |
+| R7 | Preamble edge matrix, exact line-40 comparison logic, tree untouched: `4.17.3`→reject, `3.2.0`→reject, `4.9`→reject, single-component `4`→reject, `4.18.0`→accept, `4.26.0`→accept, `4.18.0.post1`→accept, `4.18rc1`→accept | all as listed | 1/1/1/1/0/0/0/0 |
+| R8 | Floor fail-closed on missing metadata (`version('no-such-pkg-xyz')` raises; floor expression rejects) | reject | 1 |
+| R9 | `uv run --no-project --with pyyaml --with jsonschema python3 -c "import referencing"` | `uv-jsonschema: 4.26.0`, `referencing resolves OK` | 0 |
+
+### Own sabotage probe (DG-R3, RED→GREEN, restore proof — distinct from QA's R3-8 floor-tamper-in-copy probe and from all prior V13/V18 pin probes by fresh backup/sha on this HEAD)
+
+- **DG-R3 — V18 version gate (topical: proves the preamble insert blunts no gate):** byte backup of `scripts/verify-rigs.sh` to `/tmp` (sha256 `2e8adbc4…9258e45` both copies) → sabotage line 2416 `_verm18.group(0) != "0.7.5"` → `"0.7.4"` (single-line `sed`, `git diff --stat` shows that 1 line only) → verify RED `[FAIL] V18/#98: host rig --version is not 0.7.5 (got 0.7.5 (b57c4da3))`, `SUMMARY: 38 checks passed, 1 failed`, rc=1 → `git checkout -- scripts/verify-rigs.sh` + `cmp` vs backup → **BYTE-IDENTICAL** (sha256 `2e8adbc4…9258e45` both, backup removed) → verify GREEN `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- **Why V18 and not a second floor-tamper:** QA already proved the floor rejects when raised to `(99,0)`; repeating the same tamper would prove nothing new. DG-R3 instead proves the property the floor must preserve — every downstream V-gate still fails loudly when its pinned truth is disturbed. Post-probe: `git status --short` clean, `git stash list` empty.
+
+### Addressed question — does the preamble floor check itself introduce any new failure mode for supported envs? REFUTED, with evidence
+
+- **uv-fallback path: SAFE, proven.** The check runs AFTER `RUNNER` selection (lines 33-38 → 40) and execs through `"${RUNNER[@]}"`, i.e. it tests the EFFECTIVE interpreter, not a hardcoded `python3`. Two cases: (a) system python lacks `referencing` → `RUNNER` becomes `uv run … --with jsonschema`, a fresh env that R9 proves resolves jsonschema 4.26.0 + `referencing` — floor always passes there, no false RED; (b) system python has old jsonschema 4.17 + `referencing` (the CI failure mode) → first guard succeeds so `RUNNER` stays system python, and the floor correctly rejects 4.17 early with an actionable message instead of the later cryptic `TypeError: … 'registry'`. Strictly better, no new mode.
+- **Missing `importlib.metadata`: NOT a supported-env failure.** stdlib since Python 3.8; supported envs (ubuntu-24.04, local 3.15.1 observed) always have it (R8 pre-check imports OK). If it were ever absent, `from importlib.metadata import version` raises ImportError → non-zero → shell `if !` triggers → stderr message + `exit 1` fail-closed. A missing stdlib module can never yield a silent GREEN.
+- **Missing version metadata (package not found): fail-closed, proven.** `version('no-such-pkg-xyz')` raises (rc=1); the floor expression inherits the non-zero exit → reject (R8, rc=1). Uninstallable/broken envs fail loudly at the preamble, never slip through to a misleading gate result.
+- **Odd version strings (`4.18rc1`, `.post1`, single-component): NO supported-env impact, evidence in R7.** `[0-9]+` prefix-tuple parsing accepts `4.18rc1` (→ `(4,18)`) and `4.18.0.post1`, rejects single-component `4` fail-closed. `4.18rc1` acceptance is harmless: (i) pip never installs an `rc` under the workflow's `>=4.18` specifier unless explicitly pinned with `==`, which the workflow does not do — CI always resolves a final release; (ii) even in a hypothetical rc1 env, the worst case is the floor passing and the later `Draft202012Validator(registry=...)` raising exactly as before the floor — the pre-existing failure, not a new silent-green. No false RED exists for any real jsonschema release (all PyPI releases are `X.Y.Z` finals; every `>=4.18` final accepts, every `<4.18` final rejects — matrix confirms the boundary `4.17.3`→reject / `4.18.0`→accept).
+- **`set -u` / quoting: SAFE.** `RUNNER` is unconditionally assigned at line 33 before the check, so `"${RUNNER[@]}"` cannot trip `set -u`; array expansion preserves the multi-word `uv run …` form without word-splitting. `bash -n` clean (R4), live 39/0 run exercises the exact line green (R1).
+
+### Skips (explicit)
+
+- `make test` not re-run by this auditor: delta is one CI pip-line specifier + a preamble-only floor check + docs appendices (no generator/runtime/catalog/V-gate/test code touched); full suite green at 634/0 per QA baseline and the directly affected gate re-ran green 39/0 (R1). Skipped with reason.
+- `openspec validate <change-id>`: N/A — no active change-id (`openspec/changes/` holds only `archive/`); canonical-spec health unchanged since rework-1 (covered by QA's `openspec list --specs` green).
+- `gh`-side re-verification of PR #135 CI logs: not re-fetched; the floor's correctness is proven locally (R7-R9) and the CI-behavior claim is the coordinator's merge-time concern, not this delta's correctness gate.
+- Never committed; never printed secrets.
+
+VERDICT: PASS
