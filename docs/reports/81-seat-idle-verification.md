@@ -1,65 +1,163 @@
-# Drift-guard verification — 81-seat-idle (Refs #81)
+# Drift-guard verification — 81-seat-idle rework-1 (Refs #81)
 
-Independent adversarial audit run 2026-10-29 in worktree `.lane/trees/81-seat-idle`
-at HEAD `37ee746` (implementation `2bf02ac` + clean-regen leaves `9461324` +
-red-proofs/QA `37ee746`). Every claim below was verified against current code,
-not trusted from reports. `git status --short` was clean on entry; the only
-tree mutation during this audit was the idempotence-check registry re-lag
-(API-known, reverted via `git checkout -- registry/`) plus two live sabotages,
-both fully reverted. No commits, no pushes.
+Independent adversarial audit of rework cycle 1, run 2026-10-29 in worktree
+`.lane/trees/81-seat-idle`, branch `feat/81-seat-idle`, HEAD `d9cbdb4`.
+Base of prior PASS verdict: `7c211b2`. New commits since base: `7980d7b`
+(archive + spec promotion), `367cb45` (F1–F5 fixes), `f23a66d` (QA
+re-verification), `84980d9` (F2/F3/F4 pins), `d9cbdb4` (pins confirmation).
+Nothing below is trusted from reports — every claim re-verified against
+current code, tests re-run, sabotages re-performed by this auditor.
+`git status --short` was clean on entry; the only tree mutations during
+this audit were the idempotence-check registry re-lag (reverted via
+`git checkout -- registry/`), two live sabotages (both fully reverted,
+byte-identical restore confirmed via `diff -q` against backup), and this
+report (the auditor's sole allowed write). No commits, no pushes.
 
-## 1. Spec trace (REQ-I1…I4 → code → test → evidence)
+Prior verdict file (PASS at `37ee746`) was read and then fully
+re-verified, not trusted — this report overwrites it entirely.
 
-| Req | Code | Test (re-run by auditor) | Evidence |
-|---|---|---|---|
-| REQ-I1 charter one-turn rule, generated not hand-edited | `fleet/skill-patches/queue-handoff.yaml` (`replacements`, fail-closed one-hit) → regen; all 9 leaves (`specs/` + 8 rigs) carry `81-seat-idle` + `one turn` + `first work action` (auditor `grep -c` = 1 in each of the 9 leaves) | `TestCharterRule` 4 tests OK (patch input + rendered + named + all-nine) | runbook Flow A verbatim exit-0 negative control |
-| REQ-I2 claim-then-park ⇒ `stalled-idle-park` + attribution, propose-only; obligation-free idle and live-gate waiting quiet | `scripts/reconcile_model.py`: `is_idle_park_prose` + `trail_has_claim` / `trail_has_work_action` (only known non-work classes excluded, unfamiliar note counts as work — fail-closed against over-flagging) + `attribute_idle_latency` (report-only) + shared `stalled_idle_park_diff`; `diff_row` tail tries gate then idle-park; `render_diff` appends attribution line. `scripts/generate_trackers.py` OTHER-arm carve-out consumes the SAME helper (no parallel mapping) and renders review-only (class stays outside `PASTE_READY_CLASSES`) | `TestStalledIdlePark` 7 + `TestIdlePark…` quiet guards OK; CLI exit-1 with attribution OK; report-only inspection OK; auditor re-ran full `tests.test_seat_idle` (24 OK) + `tests.test_seat_idle_prefix` (9 OK) | prefix.md Transcript 1 (`reconcile exit: 0 / idle-park signal: ABSENT`) + Transcript 2 (attribution ABSENT); runbook Flow B verbatim exit-1 diff with `park-to-wake` attribution; #15/#17 sample `park_to_wake_s: 53.0, work_s: 0` |
-| REQ-I3 daemon source `daemon:stuck-sweep`, never `operator`; wave-9 genuine-operator handling unchanged | `scripts/send_identity.py`: `DAEMON_SOURCE` + `validate_handoff_source` (daemon origin + non-daemon label → relabeled with `_redact_for_log` line; honest daemon persists; genuine `operator`→`operator` persists; unknown origin raises fail-closed). Wave-9 `mint_attestation` / `verify_attestation`, `attested`/`rejected`/`unverified` untouched in same file | `TestDaemonSource` 5 OK incl. genuine-operator-relay + redaction + S1d sabotage test | prefix.md Transcript 3 (`daemon source rule: ABSENT / recorded source: operator`); runbook Flow C C1–C4 verbatim |
-| REQ-I4 V30 gate + corpus | `scripts/verify-rigs.sh` appended `== V30. Seat Idle-Park ==` block only; V19 freeze 37→38 (`passes + 4`) + 3 live-count docs; `HANDOFF.md` untouched (prior-session file) | corpus 24 ≥ 16 floor, 0 skips; auditor: `make test` → `Ran 595 tests OK` | S0 silence transcript + zero-secret grep lines pinned in V30 |
+## 1. Fix record vs diff (all five fixes real)
 
-Scenario coverage: flagged (Mission-A fixture → `stalled-idle-park`), legitimate-idle-quiet, live-gate-quiet, worked-claim-quiet, attribution-report-only, relabel/persist/untouched/redaction, non-dismissible recovery (refused while byte-identical, permitted after owner action, never `done`).
+`git diff 7c211b2..HEAD --name-only -- scripts/ tests/` =
+`scripts/reconcile_model.py`, `tests/test_seat_idle.py`,
+`tests/test_seat_idle_prefix.py` only. Behavior footprint matches the
+fix record exactly.
 
-## 2. Auditor red-proof sabotages (own, temporary, fully reverted)
+- **F1 (evidence invocation result) — REAL.** `docs/evidence/81-seat-idle-prefix.md`
+  carries the appended dummy-invocation block (`validate_handoff_source
+  present: False` + `handoff invocation result: recorded source operator
+  (rule ABSENT, no relabel)`) and `tests/test_seat_idle_prefix.py`
+  carries `test_evidence_records_daemon_handoff_invocation_result`
+  asserting both lines. All five V30 evidence markers byte-intact
+  (V30 green, see §3).
+- **F2 (wake gate) — REAL and causal.** `_WAKE_NOTE_RE`
+  (`wake|woken|woke|released?|resumed?|unparked?`) gates the `wake_ts`
+  assignment in the parked-trail branch; docstring updated. Auditor
+  sabotage (gate removed): pin test RED —
+  `AssertionError: '2026-10-23T21:34:20.000Z' is not None` (heartbeat
+  leaks into `wake_ts`, the exact F2 defect). Restored → GREEN.
+- **F3 (review-only render) — REAL.** `render_diff` early-returns for
+  `class == "stalled-idle-park"` with `NEEDS-HUMAN-REVIEW` +
+  `SUGGESTED (not paste-ready)` and no `PROPOSED-CELL` / `converged`
+  markers; all other classes fall through unchanged. No committed test
+  asserts `PROPOSED-CELL` for idle-park (auditor grep: zero hits outside
+  the new pin); CLI presence assertions (`stalled-idle-park`,
+  `park-to-wake`) survive via header/attribution lines. No spec/V30
+  conflict: REQ-I2 demands route-for-review + report-only, which the old
+  `PROPOSED-CELL` + `converged` output contradicted.
+- **F4 (mixed-note work evidence) — REAL and causal.** `_WORK_ACTION_RE`
+  (`verdict|filed|files|QA PASS|PLACED|DONE`) + shared `_is_non_work_only`
+  helper consumed by both `trail_has_work_action` and the `work_ts` leg
+  of `attribute_idle_latency`. Auditor sabotage (tail forced to
+  `return True`): pin test RED — `AssertionError: False is not true`
+  (mixed note excluded, the exact F4 defect). Restored → GREEN.
+- **F5 (interval arithmetic) — REAL.** Evidence line now reads `(+84s
+  from claim, +53s park-to-wake)`. Hand-verified: claim 21:33:29 →
+  wake 21:34:53 = 84s; park 21:34:00 → wake = 53s. Both `WAKE_TS`
+  constants byte-identical (`tests/test_seat_idle.py:58`,
+  `tests/test_seat_idle_prefix.py:56`, both
+  `2026-10-23T21:34:53.000Z`).
 
-- **DG-S1a classifier removal**: injected `return None` at top of `stalled_idle_park_diff` → `test_mission_a_pattern_flagged_stalled` FAILED (`unexpectedly None`, silent — the exact pre-fix gap). Restored → OK. `git status` clean after.
-- **DG-S1d operator-label bypass**: injected early `persisted` return in daemon arm of `validate_handoff_source` → `TestDaemonSource` FAILED (failures=3, `operator` collision). Restored → 5 OK. `git status` clean after.
+## 2. Pins genuinely non-vacuous
 
-Both RED for the right reason, GREEN on restore. Non-vacuous. (QA's five logged sabotages in red-proofs.log — S1a, S1b/S1c both-ways, S1d, S2 dismissal, V30 marker — were read and are consistent with the code; not re-run in full to avoid duplicating tree churn.)
+- P2 (`test_heartbeat_only_trail_leaves_wake_unset`) and P4
+  (`test_mixed_note_counts_as_work_in_both_paths`): auditor's OWN
+  sabotages above turn each RED for the right reason and GREEN on
+  restore. Non-vacuous, independently proven.
+- P3 (`test_idle_park_render_is_review_only`): QA's pins-confirmation
+  entry records independent RED-then-GREEN sabotage
+  (`if False:` neutering → `'PROPOSED-CELL' unexpectedly found ...;
+  1 failure`); code read confirms the pin asserts absence of both
+  markers plus presence of `SUGGESTED (not paste-ready)` and a
+  stale-state control keeping both markers. Pattern confirmed; not
+  re-duplicated to avoid redundant tree churn.
+- P1 (F1 frozen test): QA-R1 entry proves RED on line alteration;
+  assertion text matches the evidence block verbatim (auditor read both).
 
-## 3. V30 append-only
+## 3. V30 append-only, SUMMARY 38/0 re-run by auditor
 
-`scripts/verify-rigs.sh` diff vs base `8dec2ed`: the ONLY removed non-comment lines are the three V19-freeze lines (`_v19_canonical = 37`, `passes + 3` + its comment) replaced by the freeze's own bump rule (`38`, `passes + 4` + comment). No V1–V29 block renumbered or reworded. Auditor run: `SUMMARY: 38 checks passed, 0 failed`, V30 PASS listed. `AGENTS.md`/`README.md`/`docs/USER_GUIDE.md` 37→38 count moves are V19-gated.
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 38 checks passed,
+  0 failed`, V30 PASS (auditor-run, exit 0). No V1–V29 renumber/reword:
+  `git diff 7c211b2..HEAD` touches no line of `verify-rigs.sh`.
+- `python3 -m unittest tests.test_seat_idle tests.test_seat_idle_prefix`
+  → 37 tests OK (27 + 10; was 33 at base: +1 F1 pin, +3 F2/F3/F4 pins).
+- `make test` → 599 tests OK (105s, 0 failures; was 595 at base:
+  +1 F1, +3 pins).
+- `python3 scripts/generate-rigs.py --check-idempotent` → pass, exit 0
+  (known `resolvedCommit` re-lag dirtied 16 registry files; reverted via
+  `git checkout -- registry/`, status clean).
+- `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`.
 
-## 4. Propose-only / never-done intact
+## 4. Propose-only / never-done intact; wave-9 handling unchanged
 
-`stalled_idle_park_diff` returns a review-routed diff only; `attribute_idle_latency` is a pure report field; the generate_trackers carve-out renders `WITHHELD — TPM judgment required`; `check_recovery_dismissal` refuses identical-snapshot dismissal (never permits `done` — `TestIdleParkNonDismissibleRecovery.test_guard_issues_no_writes_and_never_done` OK). No tracker or queue writes in the diff. No daemon edits, no auto-wake, no upstream filing.
+- `git diff 7c211b2..HEAD -- scripts/send_identity.py
+  scripts/generate_trackers.py scripts/verify-rigs.sh fleet/` is EMPTY:
+  daemon-source validation, tracker carve-out, V30, and generator inputs
+  untouched by rework. `TestDaemonSource` re-run: 5 OK, genuine
+  operator relay intact.
+- `stalled_idle_park_diff` still returns a review-routed dict only;
+  `attribute_idle_latency` still a pure report field; the only new
+  `render_diff` path returns early with review-routing text. No new
+  write paths in the rework hunks (the `os.open O_EXCL` writer is the
+  pre-existing propose-only fresh-file mechanism).
+- `TestIdleParkNonDismissibleRecovery` green within the 37-test run;
+  no `done` permit, no queue/tracker writes added.
 
-## 5. Wave-9 attestation unchanged for genuine operator relays
+## 5. Scope creep: none (archive + docs-map are sanctioned closeout)
 
-`validate_handoff_source(origin="operator", presented="operator")` → persisted `operator` (auditor re-ran `TestDaemonSource` incl. `test_genuine_operator_relay_untouched`, OK); mint/verify semantics, `attested`/`rejected`/`unverified` markers all present per V30 assertions. Unknown origin raises fail-closed.
+Full `7c211b2..HEAD` file list beyond §1: `AGENTS.md` (1-line docs-map
+path update, S3.2-sanctioned), `openspec/changes/archive/…` rename +
+`openspec/specs/seat-idle/spec.md` promotion (`7980d7b`), `tasks.md`
+checkbox flips (`[ ]`→`[x]`), three audit artifacts (r1-fixes, r1-qa,
+red-proofs append). Archive bodies verified identical to the change
+spec (only the standard `openspec archive` header + TBD Purpose line
+differ); proposal/design/spec are pure renames (0-line content diff).
+The archive is explicitly allowed by the tasks' own rule ("Nothing
+under `openspec/` changes after this spec except the end-of-wave
+archive"). No unrelated behavior change anywhere in the diff.
 
 ## 6. Secrets discipline
 
-`grep -rE '[A-Za-z0-9_-]{40,}'` over prefix.md, runbook, red-proofs.log, implementation and QA reports → exit 1 (clean). New log paths go through `_redact_for_log`; refusal-log redaction covered by tests. No bearer-shaped runs in `send_identity.py` (V30 asserts). No real credentials touched.
+`grep -rEn '(ghp_|gho_|github_pat|sk-|AKIA|BEGIN [A-Z ]*PRIVATE KEY)'`
+over both test files, `reconcile_model.py`, prefix evidence, r1-fixes,
+r1-qa, red-proofs.log → exit 1 (clean). The naive 40+ run pattern hits
+only long test identifiers (e.g. pin test names) — false positives, not
+credentials; V30's own zero-secret grep passes. No `Closes #81` closing
+keyword anywhere (only `never Closes #81` prose, which is mandatory).
+`git status` showed no stray scratch files; sabotage backup lived in
+`/tmp`, never in-tree.
 
 ## 7. Anti-stub scan
 
-No `TODO`/`FIXME`/`skipTest`/`@unittest.skip`/`|| true`/bare-`except-pass` in `reconcile_model.py`, `send_identity.py`, `generate_trackers.py`, both test files, or the skill patch. Tests assert concrete values (class names, attribution numbers, relabel actions, refusal exceptions), not tautologies. Zero hand-edited generated leaves (all `specs/`/`rigs/`/`rosters/`/`registry/` changes via regen; `fleet/fleet.yaml` untouched).
+`grep -rEn 'TODO|FIXME|skipTest|@unittest\.skip|\|\| true|except.*: *pass'`
+over `reconcile_model.py`, both test files, prefix evidence, r1 reports,
+red-proofs.log → exit 1 (clean). New helpers are real regexes grounded
+in corpus vocabulary; new tests assert concrete values (timestamps,
+marker absence/presence, boolean work verdicts), not tautologies. No
+hand-edited generated leaves (`fleet/fleet.yaml` untouched; registry
+has no `DIRTY` stamps — auditor grep clean).
 
 ## 8. Generator provenance
 
-No `DIRTY-` stamps anywhere in registry (`grep DIRTY` clean — committed-tree regen, unlike the dev-dirt self-audit baseline). `generate-rigs.py --check-idempotent` → byte-identical, exit 0 (the check's known `resolvedCommit` re-lag dirtied 16 registry files; reverted via `git checkout -- registry/`, status clean; 38/0 was proven on the committed tree before and QA after). `audit_loop.py --self-test` → `SELF-TEST PASSED`, exit 0.
+No `DIRTY-` stamps in registry. `--check-idempotent` passes
+byte-identical across two consecutive runs (registry re-lag reverted).
+`audit_loop.py --self-test` green.
 
-## Commands run by the auditor (exit codes)
+## Observation (non-binding, not a finding)
 
-- `./scripts/verify-rigs.sh --check-only` → 0, `SUMMARY: 38 checks passed, 0 failed`, V30 PASS
-- `python3 -m unittest tests.test_seat_idle tests.test_seat_idle_prefix` → 0, 33 OK
-- `make test` → 0, `Ran 595 tests OK`
-- `python3 scripts/generate-rigs.py --check-idempotent` → 0 (registry re-lag reverted)
-- `python3 scripts/audit_loop.py --self-test` → 0, `SELF-TEST PASSED`
-- DG-S1a / DG-S1d sabotages → RED as recorded above, restored GREEN, tree clean
-- `git status --short` after all reverts → clean apart from this report
+`docs/reports/81-seat-idle-implementation.md:18` still repeats the
+pre-fix `wake +53s` figure (pre-existing stale prose, untouched by
+rework per the minimal-diff rule, already flagged in the fix record and
+QA advisories for the coordinator). Style/prose nit, no spec clause
+violated — correctly left for coordinator decision, not this audit.
 
-No `Closes #81` anywhere (only `never Closes #81` prose); issue correctly stays open.
+## Commands run by the auditor (all on the unmodified tree except noted)
+
+- `python3 -m unittest tests.test_seat_idle tests.test_seat_idle_prefix` → 37 OK
+- F2 sabotage (gate removed) → pin RED (`...21:34:20.000Z is not None`); restored → OK
+- F4 sabotage (`_is_non_work_only` neutered) → pin RED (`False is not true`); restored → OK (`diff -q` confirms byte-identical restore; `git status` clean)
+- `make test` → 599 OK; `./scripts/verify-rigs.sh --check-only` → 38/0 V30 PASS
+- `generate-rigs.py --check-idempotent` → pass (registry re-lag reverted); `audit_loop.py --self-test` → PASSED
+- `TestDaemonSource` → 5 OK; secret/stub/DIRTY/`Closes #81` greps as recorded above
 
 VERDICT: PASS
