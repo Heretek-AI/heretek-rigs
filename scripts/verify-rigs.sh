@@ -2523,15 +2523,19 @@ _v19_before = len(failures)
 # 81-seat-idle S2: V30 is the third ok()-bearing gate since the freeze,
 # so the canonical total moves 37 -> 38 here (same rule, no other V1–V29
 # line changes). The three live-count docs move with it.
-_v19_canonical = 38
+# 15-auth-envelope S2: V31 is the fourth ok()-bearing gate since the
+# freeze, so the canonical total moves 38 -> 39 here (same rule, no other
+# V1–V30 line changes). The three live-count docs move with it.
+_v19_canonical = 39
 if not failures:
     # 09-send-identity S2: +1 is V19's own ok() below, +1 is V28 (the first
     # ok()-bearing gate since the freeze). 77-mission-gates S2: +1 more is
     # V29 (the second post-freeze ok()-bearing gate). 81-seat-idle S2: +1
-    # more is V30 (the third post-freeze ok()-bearing gate). A fourth
-    # post-freeze ok() gate must bump this addend alongside the canonical
-    # total.
-    if passes + 4 != _v19_canonical:
+    # more is V30 (the third post-freeze ok()-bearing gate).
+    # 15-auth-envelope S2: +1 more is V31 (the fourth post-freeze
+    # ok()-bearing gate). A fifth post-freeze ok() gate must bump this
+    # addend alongside the canonical total.
+    if passes + 5 != _v19_canonical:
         fail(
             f"V19/#102: green-run live count is {passes + 2}, not the frozen canonical total {_v19_canonical} (a new ok()-bearing gate must bump the freeze + docs)"
         )
@@ -3406,6 +3410,153 @@ elif _v30_ran - _v30_skipped < 16:
     fail(f"V30/81-seat-idle: tests.test_seat_idle ran only {_v30_ran - _v30_skipped} executed tests (need >= 16, non-vacuous floor)")
 if len(failures) == _v30_before:
     ok(f"V30 seat idle-park (81-seat-idle S2) green: stalled-idle-park + attribution + charter markers in 9 leaves + daemon-source rule + refusal guard + {_v30_ran} corpus tests pass + S0 evidence present")
+print("\n== V31. Pre-Authorization Envelopes (15-auth-envelope) ==")
+# 15-auth-envelope S2 appended alongside — no V1–V30 line renumbered or
+# reworded (the V19 canonical total moves 38 -> 39 here alongside the three
+# live-count docs, per the freeze's own bump rule for a new ok()-bearing
+# gate). Coverage: the stalled-premise-drift diff class with premise-age
+# attribution (shared helper, no parallel mapping), envelope mint/validate
+# (diff-hash + scope + mandatory expiry + single-use nonce, HMAC-bound,
+# 0600 stores, redacted logs — never self-executing, never auto-commit),
+# the non-dismissible recovery guard reuse (fail-closed refusal, redacted
+# log, never done), the S1/S2 corpus (tests/test_auth_envelope.py, dummy
+# fixtures only, floor >= 16), the S0 pre-fix evidence file (silence
+# transcript present, zero bearer-shaped strings), and the red-proofs log
+# (S1a–S1d RED/GREEN plus the FAIL-ONLY pre-fix run).
+_v31_before = len(failures)
+_v31_model_src = (root / "scripts/reconcile_model.py").read_text()
+for _marker31 in (
+    "def stalled_premise_drift_diff",
+    "def attribute_premise_age",
+    "def _parse_premise",
+    "def _parse_landing",
+    '"stalled-premise-drift"',
+    "premise age",
+    "open authorization with no matching landing",
+):
+    if _marker31 not in _v31_model_src:
+        fail(f"V31/15-auth-envelope: scripts/reconcile_model.py lost marker {_marker31!r}")
+_v31_gen_src = (root / "scripts/generate_trackers.py").read_text()
+if "stalled_premise_drift_diff" not in _v31_gen_src:
+    fail("V31/15-auth-envelope: scripts/generate_trackers.py lost the shared stalled-premise-drift import (no parallel mapping)")
+_v31_ae = root / "scripts/auth_envelope.py"
+if not _v31_ae.is_file():
+    fail("V31/15-auth-envelope: scripts/auth_envelope.py missing (envelope mint/validate)")
+    _v31_ae_src = ""
+else:
+    _v31_ae_src = _v31_ae.read_text()
+for _marker31 in (
+    "def mint_envelope",
+    "def validate_envelope",
+    "compare_digest",
+    "_redact_for_log",
+    "0o600",
+    "single-use",
+    "nonce already consumed",
+    "envelope expired",
+    "drifted from authorized premise",
+    "breaches the authorized scope",
+):
+    if _marker31 not in _v31_ae_src:
+        fail(f"V31/15-auth-envelope: scripts/auth_envelope.py lost marker {_marker31!r}")
+if re.search(r"[A-Za-z0-9_-]{40,}", _v31_ae_src):
+    fail("V31/15-auth-envelope: scripts/auth_envelope.py carries a bearer-shaped run (no inline secrets)")
+if _v31_ae_src:
+    _v31_ae_code = re.sub(r'""".*?"""', "", _v31_ae_src, flags=re.DOTALL)
+    _v31_ae_code = "\n".join(_ln31.split("#", 1)[0] for _ln31 in _v31_ae_code.splitlines())
+    for _marker31 in ("subprocess", "os.system", "os.exec", "os.popen", "check_output", ".commit("):
+        if _marker31 in _v31_ae_code:
+            fail(f"V31/15-auth-envelope: scripts/auth_envelope.py must never self-execute or commit (found {_marker31!r} in code)")
+_v31_ae_spec = importlib.util.spec_from_file_location("auth_envelope_v31", str(root / "scripts/auth_envelope.py"))
+_v31_ae_mod = importlib.util.module_from_spec(_v31_ae_spec)
+try:
+    _v31_ae_spec.loader.exec_module(_v31_ae_mod)
+except Exception as _e31:
+    fail(f"V31/15-auth-envelope: cannot load scripts/auth_envelope.py ({_e31})")
+    _v31_ae_mod = None
+if _v31_ae_mod is not None:
+    _v31_seen = set()
+    _v31_env = _v31_ae_mod.mint_envelope(
+        "dummy-v31-binding-secret", "aaaaaaaaaaaaaaaa", ["src/include/hash.h"],
+        expires_at=1780000000, nonce="v31-clean-nonce-000001")
+    _v31_clean = _v31_ae_mod.validate_envelope(
+        "dummy-v31-binding-secret", _v31_env, "aaaaaaaaaaaaaaaa", ["src/include/hash.h"],
+        now=1779999999, seen=_v31_seen)
+    if _v31_clean.status != "authorized":
+        fail(f"V31/15-auth-envelope: clean envelope was not authorized ({_v31_clean!r})")
+    _v31_drift = _v31_ae_mod.validate_envelope(
+        "dummy-v31-binding-secret", _v31_env, "bbbbbbbbbbbbbbbb", ["src/include/hash.h"],
+        now=1779999999, seen=set())
+    if _v31_drift.status != "refused":
+        fail("V31/15-auth-envelope: drifted landing was AUTHORIZED (must refuse)")
+    _v31_scope = _v31_ae_mod.validate_envelope(
+        "dummy-v31-binding-secret", _v31_env, "aaaaaaaaaaaaaaaa",
+        ["src/include/hash.h", "fleet/fleet.yaml"], now=1779999999, seen=set())
+    if _v31_scope.status != "refused":
+        fail("V31/15-auth-envelope: scope-breaching landing was AUTHORIZED (must refuse)")
+    _v31_exp = _v31_ae_mod.validate_envelope(
+        "dummy-v31-binding-secret", _v31_env, "aaaaaaaaaaaaaaaa", ["src/include/hash.h"],
+        now=1780000001, seen=set())
+    if _v31_exp.status != "refused":
+        fail("V31/15-auth-envelope: expired envelope was AUTHORIZED (must refuse)")
+    _v31_replay = _v31_ae_mod.validate_envelope(
+        "dummy-v31-binding-secret", _v31_env, "aaaaaaaaaaaaaaaa", ["src/include/hash.h"],
+        now=1779999999, seen=_v31_seen)
+    if _v31_replay.status != "refused":
+        fail("V31/15-auth-envelope: replayed nonce was AUTHORIZED (must refuse)")
+_v31_sweep_src = (root / "scripts/sweep-typed-blocks.py").read_text()
+for _marker31 in (
+    "def check_recovery_dismissal",
+    "class RecoveryDismissalRefused",
+    "_redact_for_log",
+    "never auto-close",
+):
+    if _marker31 not in _v31_sweep_src:
+        fail(f"V31/15-auth-envelope: scripts/sweep-typed-blocks.py lost refusal marker {_marker31!r}")
+_v31_ev = root / "docs/evidence/15-auth-envelope-prefix.md"
+try:
+    _v31_ev_text = _v31_ev.read_text()
+except Exception as _e31:
+    fail(f"V31/15-auth-envelope: S0 evidence file unreadable ({_e31})")
+    _v31_ev_text = None
+if _v31_ev_text is not None:
+    for _marker31 in ("reconcile exit: 0", "stalled-premise-drift signal: ABSENT", "premise-age attribution: ABSENT", "envelope validation: ABSENT", "landing authorization: NONE"):
+        if _marker31 not in _v31_ev_text:
+            fail(f"V31/15-auth-envelope: S0 evidence must carry the silence line {_marker31!r}")
+    if re.search(r"[A-Za-z0-9_-]{40,}", _v31_ev_text):
+        fail("V31/15-auth-envelope: S0 evidence carries an unredacted bearer-shaped run")
+_v31_rp = root / "docs/evidence/15-auth-envelope/red-proofs.log"
+try:
+    _v31_rp_text = _v31_rp.read_text()
+except Exception as _e31:
+    fail(f"V31/15-auth-envelope: red-proofs.log unreadable ({_e31})")
+    _v31_rp_text = None
+if _v31_rp_text is not None:
+    for _marker31 in ("SABOTAGED diff_row -> None", "PATCHED drifted -> stalled-premise-drift", "SABOTAGED clean -> None", "PATCHED clean -> None", "S1c SABOTAGED drifted landing -> authorized", "S1c PATCHED drifted landing -> refused", "S1d REPLAYED nonce -> refused", "S1d EXPIRED envelope -> refused", "pre-fix reconcile exit: 0"):
+        if _marker31 not in _v31_rp_text:
+            fail(f"V31/15-auth-envelope: red-proofs.log must carry the RED/GREEN line {_marker31!r}")
+_v31_ut = subprocess.run(
+    [sys.executable, "-m", "unittest", "tests.test_auth_envelope"],
+    cwd=str(root),
+    capture_output=True,
+    text=True,
+)
+_v31_ran = 0
+_v31_m = re.search(r"Ran (\d+) tests", _v31_ut.stderr or "")
+if _v31_m:
+    _v31_ran = int(_v31_m.group(1))
+_v31_skipped = 0
+_v31_sk = re.search(r"skipped=(\d+)", _v31_ut.stderr or "")
+if _v31_sk:
+    _v31_skipped = int(_v31_sk.group(1))
+if _v31_ut.returncode != 0:
+    fail(f"V31/15-auth-envelope: tests.test_auth_envelope failed:\n{_v31_ut.stderr[-800:]}")
+elif _v31_skipped:
+    fail(f"V31/15-auth-envelope: tests.test_auth_envelope skipped {_v31_skipped} test(s) (skips must not count toward the corpus threshold)")
+elif _v31_ran - _v31_skipped < 16:
+    fail(f"V31/15-auth-envelope: tests.test_auth_envelope ran only {_v31_ran - _v31_skipped} executed tests (need >= 16, non-vacuous floor)")
+if len(failures) == _v31_before:
+    ok(f"V31 pre-authorization envelopes (15-auth-envelope S2) green: premise-drift diff + attribution + mint/validate + refusal guard + {_v31_ran} corpus tests pass + S0 evidence present")
 print(f"\nSUMMARY: {passes} checks passed, {len(failures)} failed.")
 if failures:
     sys.exit(1)

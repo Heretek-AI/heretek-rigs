@@ -1,0 +1,140 @@
+# Red-proofs — 15-auth-envelope (Refs #15)
+
+Each entry: sabotage the check, observe RED (the #15 incident outcome
+restored), restore, observe GREEN. FAIL-ONLY pre-fix proof is the S0
+transcript (docs/evidence/15-auth-envelope-prefix.md); the S2 entry
+references it. All sabotage was temporary file edits with backups in
+/tmp/si15/bak (the wave-15 branch is uncommitted by design — no
+`git checkout --` restores, `cp` from /tmp only); `diff` confirmed
+byte-identical restores after every entry.
+
+## S1 REQ-E2: premise-drift classification
+
+RED (sabotage): `scripts/reconcile_model.py` diff_row tail
+`return stalled_premise_drift_diff(row, queue_by_id, transitions_by_id)`
+replaced by `return None  # QA-SABOTAGE(S1a)` (mechanical equivalent of
+removing the classification). S02 fixture
+(qitem-20261020100001-a1b2c3d4e5f60718, authorized one-liner premise vs
+multi-file drifted landing, queue in-progress) through the sabotaged tree:
+
+```
+reconcile: in sync — 1 rows across 1 tracker(s) agree with queue state.
+```
+
+```
+S1a sabotaged reconcile exit: 0
+SABOTAGED diff_row -> None
+```
+
+No stalled-premise-drift signal — the fixture returns to pre-fix silence
+(exit 0, silent agreement; no diff class names it).
+
+GREEN (restored): same fixture through the patched module:
+
+```
+S1a restored reconcile exit: 1
+PATCHED drifted -> stalled-premise-drift
+```
+
+Executable form: tests.test_auth_envelope
+TestPremiseDriftClassification.test_classifier_removal_is_silent
+(mock-disables stalled_premise_drift_diff -> None; enabled -> stalled
+diff). Corpus: python3 -m unittest tests.test_auth_envelope (21 tests, rc=0).
+
+## S1b clean premise stays quiet both ways
+
+The clean-premise fixture (landing hash identical to the premise hash,
+landing paths inside scope) through the sabotaged copy (/tmp/si15/sab)
+and the patched module:
+
+```
+SABOTAGED clean -> None
+PATCHED clean -> None
+```
+
+Quiet both ways: the classifier never over-flags a faithful landing.
+
+## S1c REQ-E1: drifted landing refused (guard is load-bearing)
+
+RED (sabotage): `scripts/auth_envelope.py` validate_envelope entry forced
+to `EnvelopeResult(status="authorized", ...)` (mechanical equivalent of
+bypassing landing validation). Drifted landing
+(a1b2c3d4e5f60718 premise vs f1f2f3f4f5f60718 landing + out-of-scope path)
+through the sabotaged validator:
+
+```
+S1c SABOTAGED drifted landing -> authorized
+```
+
+The #15 incident outcome restored: drift authorizes silently.
+
+GREEN (restored): same landing through the patched validator:
+
+```
+auth-envelope: refused (landing diff f1f2f3f4f5f60718 drifted from authorized premise a1b2c3d4e5f60718)
+S1c PATCHED drifted landing -> refused
+```
+
+Executable form: tests.test_auth_envelope
+TestEnvelopeMintValidate.test_drifted_landing_refused (+
+test_scope_breach_refused, test_bad_mac_refused).
+
+## S1d REQ-E1: replay and expiry attacks refused
+
+Attacks against the INTACT validator (RED = the attack direction, which
+must fail; restore is a no-op — GREEN = still refused):
+
+```
+auth-envelope: authorized (a1b2c3d4e5f60718 scope src/include/hash.h; actor still performs the landing)
+auth-envelope: refused (replayed envelope (nonce already consumed))
+auth-envelope: refused (envelope expired)
+S1d first presentation -> authorized
+S1d REPLAYED nonce -> refused
+S1d EXPIRED envelope -> refused
+```
+
+A consumed nonce presented again is refused (the store is never rewound);
+an envelope past its expiry window is refused. Restored tree: identical
+refusals (GREEN = still refused).
+
+Executable form: tests.test_auth_envelope
+TestEnvelopeMintValidate.test_replayed_nonce_refused +
+test_expired_envelope_refused + test_missing_replay_set_fails_closed.
+
+## S2 FAIL-ONLY pre-fix run (unpatched tree)
+
+Tracked scripts reverted (`git stash push scripts/reconcile_model.py
+scripts/generate_trackers.py`; untracked wave-15 files moved aside to
+/tmp/si15/aside), S02 fixture through the pre-fix tree:
+
+```
+reconcile: in sync — 1 rows across 1 tracker(s) agree with queue state.
+pre-fix reconcile exit: 0
+```
+
+```
+grep -c "stalled-premise-drift\|mint_envelope\|validate_envelope" scripts/reconcile_model.py scripts/send_identity.py
+scripts/reconcile_model.py:0
+scripts/send_identity.py:0
+```
+
+```
+ls: cannot access 'scripts/auth_envelope.py': No such file or directory
+```
+
+No drift signal, no envelope to present — the exact S0 transcript
+(docs/evidence/15-auth-envelope-prefix.md, tree @ 471f628). Restored via
+`git stash pop` + `mv` back; `diff` against /tmp/si15/bak confirms
+byte-identical restores; `git status --short` shows only the wave-15
+change set.
+
+## Post-fix gates
+
+- `./scripts/verify-rigs.sh --check-only`: SUMMARY 39 checks passed,
+  0 failed, V31 PASS listed (V1–V30 intact).
+- `make test`: 0 failures (corpus grown: 21 envelope + 8 prefix tests).
+- `python3 scripts/audit_loop.py --self-test`: SELF-TEST PASS.
+- `python3 scripts/generate-rigs.py --check-idempotent`: byte-identical.
+- Secret-shaped grep over the S0 evidence + runbook: no 40+ runs
+  (exit 1). Long test identifiers in this log stay under the 40-run
+  floor (dots split dotted paths; the longest bare name is 35 runs).
