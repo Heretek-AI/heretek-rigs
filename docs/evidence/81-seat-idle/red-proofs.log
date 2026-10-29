@@ -274,3 +274,41 @@ re-ran `python3 -m unittest tests.test_seat_idle
 tests.test_seat_idle_prefix` (34 OK) and `./scripts/verify-rigs.sh
 --check-only` (SUMMARY 38 passed, 0 failed, V30 PASS). Full `make test`
 (596 OK) recorded on the byte-identical tree pre-sabotage.
+
+### Pins-confirmation (84980d9, rework-1 F2/F3/F4 pinning tests, Refs #81)
+
+Commit under test: 84980d9 `test(81-seat-idle): pin F2/F3/F4 fixes against
+vacuity (Refs #81)`. `git show --stat HEAD` confirms exactly one file
+changed, test-only: `tests/test_seat_idle.py | 86 ++++++++...` (86
+insertions, 0 production lines). Spot-read of the diff confirms the three
+pins: P2 `test_heartbeat_only_trail_leaves_wake_unset` (heartbeat without
+wake/release prose leaves wake_ts/park_to_wake_s None; release note sets
+wake_ts + 53.0s), P3 `test_idle_park_render_is_review_only` (idle-park
+render has no PROPOSED-CELL/converged markers, shows SUGGESTED-not-paste-ready,
+while stale-state keeps both), P4 `test_mixed_note_counts_as_work_in_both_paths`
+(mixed note counts as work in trail_has_work_action and work_ts).
+
+Full acceptance from the clean tree at 84980d9:
+- `python3 -m unittest tests.test_seat_idle tests.test_seat_idle_prefix`:
+  37 tests OK (was 34; +3 pins).
+- `./scripts/verify-rigs.sh --check-only`: SUMMARY 38 checks passed,
+  0 failed, V30 PASS.
+- `make test`: 599 tests, 0 failures (OK).
+- `python3 scripts/generate-rigs.py --check-idempotent`: passed
+  (two consecutive runs byte-identical; note: the run re-pins generated
+  `resolvedCommit` fields to the worktree HEAD, leaving registry/ dirty —
+  restored via `git checkout -- registry/` afterwards, tree clean).
+- `python3 scripts/audit_loop.py --self-test`: SELF-TEST PASSED.
+
+Independent QA sabotage (F3 pin, own temporary defect, fully reverted):
+neutered the F3 early-return in `scripts/reconcile_model.py`
+(`if diff.get("class") == "stalled-idle-park":` -> `if False:`), re-ran
+`test_idle_park_render_is_review_only` -> RED as required
+(AssertionError: 'PROPOSED-CELL' unexpectedly found in stalled-idle-park
+render; 1 failure). Restored via `git checkout --
+scripts/reconcile_model.py`; re-ran full 37-test idle suite -> OK;
+`git status --short` clean except this log append (registry/ side-effect
+also reverted as noted above). Pin P3 is non-vacuous. (P2/P4 pins were
+sabotage-verified RED-then-GREEN by the programmer pre-commit; this QA
+pass independently re-proves one of the three, confirming the pattern.)
+No vacuous checks found in this pass. No Unity binding.
