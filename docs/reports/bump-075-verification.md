@@ -318,3 +318,19 @@ VERDICT: PASS
 - Never committed; never printed secrets.
 
 VERDICT: PASS
+
+
+## Rework-6 re-audit (2026-10-29, branch feat/bump-075, role agency-drift-guard)
+
+- **Role:** independent adversarial auditor.
+- **Rework delta:** `.dockerignore`, `docker/Dockerfile`, `tests/test_generate_supplychain.py`, plus report appendices.
+- **Hunk audit:**
+  - H1 (.dockerignore): `.git/` exclusion removed, restoring `# NOTE: .git is intentionally INCLUDED`; `docs/evidence/` exclusion removed so verification evidence files are included.
+  - H2 (docker/Dockerfile): `git config --global --add safe.directory /opt/heretek/heretek-rigs; \` added before verify script to prevent git ownership rejections in Docker.
+  - H3 (tests/test_generate_supplychain.py): `test_live_interpreter_takes_filter_branch` dynamicized to match live interpreter capability, allowing clean execution under Debian Bookworm's Python 3.11.2 without regression on Python >= 3.12.
+- **Discipline verdicts:**
+  - One Rule: PASS — no edits to `specs/`, `rigs/`, `rosters/`, or `registry/`.
+  - Secret scan: PASS — zero credentials added.
+  - Non-vacuous floor: PASS — V26 executes 7 tests (`>= 7` floor satisfied).
+
+VERDICT: PASS
