@@ -1,0 +1,118 @@
+# QA red-proofs — fleet-proofs re-review (independent, 2026-10-30)
+
+Re-reviewer: agency-qa (subagent, independent of self-issued VERDICT).
+Worktree: `.lane/trees/fleet-proofs` (branch `feat/fleet-proofs`).
+Rule: no production/test code touched; all sabotages restored via `git checkout --`.
+
+## 1. Baseline acceptance (unmodified tree, all rc=0)
+
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- `openspec validate 2026-10-29-fleet-proofs` → `Change '2026-10-29-fleet-proofs' is valid`, rc=0.
+- `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`, rc=0.
+- `python3 scripts/generate-rigs.py --check-idempotent` → `idempotence check passed (two consecutive runs byte-identical)`, rc=0.
+  Side-effect: 35 generated leaves dirtied vs HEAD (queue-handoff content from host
+  global npm @openrig/cli@0.7.5 vs committed 0.7.4-era snapshot; see F-QA1).
+  Reverted via `git checkout -- fleet/skills-lock.json registry/ rigs/ specs/ rosters/`.
+  Post-revert `git status --short` clean; `verify-rigs.sh` re-run → 39/0, rc=0.
+- `make test`: SKIPPED with reason — `git diff main..HEAD --name-only` lists 11 files,
+  none under scripts//tests//specs//rigs//rosters//registry//fleet//archive/ (verified empty
+  per-path). Untracked-code probe (below) confirms the detector is non-vacuous.
+
+## 2. Read-only live-claim re-verification
+
+- Secrets: `stat` → dir `700 john`, `github.pat 600`, `opencode-go.key 600`. Matches S1 claim (post-hardening).
+- Dry-run: `render-seat.py --role appsec-engineer --rig defensive-sec-and-red-team --pod blue --dry-run`
+  → rc=0 path; output carries 1× `!cat` reference; secret-pattern grep over output → 0 hits.
+- Tool versions (match recon exactly): `rig 0.7.5 (b57c4da3)`, `go 1.27.3`, `pytest 9.1.1`,
+  `cmake 4.3.0`, `bubblewrap 0.13.1`; `r2/rabin2/tshark/trivy` all resolve via linuxbrew
+  (consistent with Step-2 Brew-resolved claim).
+- Daemon (read-only `rig ps --nodes -A`): UP; `heretek-omni-fleet` 51/51 `run` (+55 configured
+  kernel/other rows, 4 `seat-not-running` non-fleet rows); queued WORK present (e.g. ts-node 7).
+  Consistent with HANDOFF "51/51 run+idle" post-restore narrative.
+- Evidence files exist: `runbook.md` (6642 B), `phase-a-recon.md`, `loop-mechanisms.log`
+  (8/8 PASS lines + ALL-PASS), `predicate-scan.log` (POS controls True/True, 27 live rows 0 hits).
+- In-seat execution RCs (pytest/cmake/go Step 3, #96 hashes, #81 claim timings, #107 issue/revoke):
+  NOT re-verifiable read-only (transient live state; re-running needs seat interaction).
+  Accepted on cited-evidence basis; see judgments §4.
+
+## 3. Red-proofs (each: sabotage → RED rc≠0 → restore → GREEN byte-identical)
+
+R1. Spec validation is non-vacuous.
+  - Pre-sabotage sha256: `0e9dccabab64799e70189837c8616563a00255b42a5af51c0a643c65072b7ed8`
+    (matches sha cited in implementation report §Self-QA — same file state).
+  - Sabotage: removed REQ-P1 `#### Scenario: safe-check green` block (5 lines).
+  - `openspec validate` → `✗ [ERROR] fleet-proofs/spec.md: ADDED "REQ-P1 — secrets safe-check" must include at least one scenario`, rc=1 (RED proven; note: rc captured via file redirect, bare pipe would mask it).
+  - Restore: `git checkout -- <spec>` → sha256 identical to pre-sabotage → `diff` vs backup: BYTE-IDENTICAL → validate rc=0.
+
+R2. verify-rigs.sh gates are non-vacuous.
+  - Sabotage: appended `# QA-SABOTAGE-PROBE` to `specs/agents/_shared/skills/queue-handoff/SKILL.md`.
+  - `verify-rigs.sh --check-only` → `SUMMARY: 36 checks passed, 1 failed`, rc=1, with
+    `[FAIL] shared skill queue-handoff: tree-hash mismatch disk=sha256:6430… lock=sha256:97a0…`. RED proven.
+  - Restore: `git checkout -- <leaf>` → sha `c864b850…` (== committed) → verify → 39/0, rc=0.
+
+R3. audit_loop self-test is non-vacuous (shares the verify gate).
+  - Under the same R2 sabotage: `audit_loop.py --self-test` → rc=1. RED proven.
+  - (Green-on-clean already recorded in §1.)
+
+R4. generate-rigs --check-idempotent fail-closed paths are non-vacuous.
+  - Sabotage A (dirty input): appended invalid-YAML line to `fleet/fleet.yaml` → check → rc=2
+    `error: refusing to bake provenance on a dirty checkout`. RED proven.
+  - Sabotage B (corrupt input, guard bypassed): `HERETEK_RIGS_ALLOW_DIRTY=1` → check → rc=1
+    YAML parse error (`could not find expected ':' ... line 4247`). RED proven.
+  - Restore: `git checkout -- fleet/fleet.yaml` → sha `22121041…` (== pre-sabotage) → status clean.
+
+R5. make-test-skip detector is non-vacuous.
+  - Probe: `touch scripts/__qa_probe_tmp.py tests/__qa_probe_tmp.py` → `git status --short`
+    shows both as `??` (detection works) → removed → status clean.
+  - Caveat recorded: `git diff main..HEAD --name-only` alone misses untracked files; the
+    skip justification is valid only as the conjunction (tracked-diff ∩ code-dirs = ∅ AND
+    no untracked code in status). Both hold: tracked diff = 11 allowlisted files (§5), status clean.
+
+R6. Scope-discipline checks (all GREEN, verified).
+  - `git diff main..HEAD --name-only -- fleet/` → empty (fleet.yaml delta reverted, git-clean).
+  - `... -- archive/` → empty (untouched).
+  - `... -- scripts/ tests/ specs/ rigs/ rosters/ registry/` → empty (zero V-gate/script/test diffs).
+  - Bearer-shape scan over all 11 changed files (`ghp_|github_pat_|sk-|xox[bpas]-|Bearer …`) → 0 hits.
+  - `Closes #` in changed files: 4 hits, ALL in HANDOFF.md retained-history/guidance sections
+    (lines 170/227/236/297: merged-PR record, two negations, general guidance). Wave's own
+    sections (§0–5, proposal, runbook, report) are Refs-only. No live issue can be closed by this PR.
+
+## 4. Prime-suspect judgments (honest, no downgrade to FAIL)
+
+J1. Go-step framing (S3 PARTIAL-GREEN: policy-pass + exec-BLOCKED).
+  - The runbook text states BOTH halves explicitly (bare forms ALLOWED, no denial; execution
+    RC=1 EROFS/GOCACHE-ro; BIN=no) and names the follow-up (→ #12 D5-D7, committer+GOCACHE binds).
+    PARTIAL-GREEN is a hedged label, not a full-green overclaim. HOLD as honest. Limitation: the
+    in-seat RCs are not re-verifiable read-only now; drift-guard may spot-check via seat transcript.
+
+J2. #77 recovery absence (detect-scan + fixtures, recovery follow-up).
+  - Detect evidence file is substantive (positive controls fire, 27 live rows clean), not a stub.
+    Recovery non-run is disclosed in the same step with a reason. Step-6 checkbox covers the step
+    whose per-item deferrals are itemized — acceptable. FOLLOW-UP label honest.
+
+J3. D1–D4 absence (Step-4 box checked, "not attempted").
+  - Mild checkbox-vs-text tension, BUT spec REQ-P3 acceptance explicitly permits NO-GO-with-reason,
+    and the reason + redirect (#18 track) are recorded. Transparent in text. Advisory only, no finding.
+
+## 5. Allowed-set conformance
+
+`git diff main..HEAD --name-only` (final) = exactly 11 files: HANDOFF.md,
+docs/74-PROVISIONING-MATRIX.md, docs/evidence/fleet-proofs-2026-10-30/{loop-mechanisms.log,
+phase-a-recon.md, predicate-scan.log, runbook.md} (+ this red-proofs.log, untracked),
+docs/reports/fleet-proofs-implementation.md,
+openspec/changes/2026-10-29-fleet-proofs/{design.md, proposal.md, specs/fleet-proofs/spec.md, tasks.md}.
+No other modifications. Nothing committed by QA (coordinator owns commit).
+
+## Findings
+
+- F-QA1 (gate-semantics caveat, NOT a wave defect): `--check-idempotent` compares pass-1 vs pass-2
+  into the working tree; it does NOT compare against committed HEAD. Proof: it exited rc=0 while
+  leaving 35 generated leaves divergent from HEAD (host npm @openrig/cli@0.7.5 skill content vs
+  committed 0.7.4-era snapshot; generator reads skills from global npm root, line 737-741).
+  The wave did not cause this (zero generator-input diffs; divergence is environmental and pre-existing
+  per Wave-1 "idempotence HOLD-with-deferral" note). Recommendation: future waves either pin the
+  skill source for regen or document that post-check `git checkout --` of generated leaves is expected
+  on hosts with npm 0.7.5 (as done here and in the self-QA).
+- No vacuous acceptance checks found. No overclaims warranting FAIL.
+
+QA verdict: PASS (independent re-review). Final VERDICT ownership stays with drift-guard per handoff §2.
