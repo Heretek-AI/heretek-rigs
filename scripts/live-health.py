@@ -100,6 +100,16 @@ def check_allowed(argv):
                 "(pinned parseable combo, #44)"
             )
         return
+    if (
+        argv[0] == "seat"
+        and len(argv) == 4
+        and argv[1] == "status"
+        and argv[3] == "--json"
+    ):
+        # seat-repair REQ-R3: per-seat launch_cwd is read-only observation
+        # (pinned parseable combo, like queue/ps verbs). Every other seat
+        # verb (launch/stop/exec/...) stays refused below.
+        return
     raise RuntimeError(f"refusing non-read-only rig invocation: {argv}")
 
 
@@ -227,6 +237,19 @@ class FixtureClient:
         if status is None:
             return {"missing": [], "total": 0}
         return status
+
+    def fetch_seat_paths(self):
+        """seat-repair (REQ-R3, Refs #147): replayed seat path entries, or
+        None when the fixture ships none (SKIP, never healthy)."""
+        loaded = self._load("seat_paths.json", default=None)
+        if loaded is None:
+            return None
+        if isinstance(loaded, dict):
+            return {
+                "entries": loaded.get("entries", []),
+                "unassessed": loaded.get("unassessed", []),
+            }
+        return {"entries": loaded, "unassessed": []}
 
 
 # ---------------------------------------------------------------------------
@@ -562,6 +585,128 @@ def evaluate_seat_idleness(nodes, holders):
     }
 
 
+def _resolve_against_root(value, repo_root):
+    """Resolve a daemon-state path value: absolute as-is, relative against
+    the repo root. Returns None for missing/empty/non-string values."""
+    if not isinstance(value, str) or not value.strip():
+        return None
+    candidate = Path(value.strip())
+    if not candidate.is_absolute():
+        candidate = Path(repo_root) / value.strip()
+    return candidate
+
+
+def evaluate_shell_paths(entries, unassessed, repo_root):
+    """seat-repair REQ-R3 (Refs #147): shellPath + launch_cwd resolvability
+    for every running seat. WARN names each dangling seat (warn-first);
+    anything unassessed caps at SKIP, never healthy."""
+    unassessed = [str(u) for u in (unassessed or [])]
+    if entries is None:
+        detail = "no seat-path entries assessed"
+        detail += (": " + "; ".join(unassessed)) if unassessed else " (never healthy)"
+        return {
+            "name": "seat-shell-paths",
+            "status": "SKIP",
+            "detail": detail,
+            "breached": [],
+        }
+    if not entries and not unassessed:
+        return {
+            "name": "seat-shell-paths",
+            "status": "SKIP",
+            "detail": "no running seats assessed (never healthy)",
+            "breached": [],
+        }
+    dangling = []
+    for entry in entries or []:
+        if not isinstance(entry, dict):
+            dangling.append({"session": "?", "field": "entry", "target": repr(entry)})
+            continue
+        session = entry.get("session", "?")
+        for field in ("shell_path", "launch_cwd"):
+            target = _resolve_against_root(entry.get(field), repo_root)
+            if target is None or not target.exists():
+                dangling.append(
+                    {
+                        "session": session,
+                        "field": field,
+                        "target": entry.get(field),
+                    }
+                )
+    if unassessed:
+        detail = "unassessed seats (SKIP, not healthy): " + "; ".join(unassessed)
+        if dangling:
+            detail += "; dangling: " + "; ".join(
+                f"{d['session']} {d['field']}->{d['target']}" for d in dangling
+            )
+        return {
+            "name": "seat-shell-paths",
+            "status": "SKIP",
+            "detail": detail,
+            "breached": dangling,
+        }
+    if dangling:
+        detail = "dangling seat paths: " + "; ".join(
+            f"{d['session']} {d['field']}->{d['target']}" for d in dangling
+        )
+        return {
+            "name": "seat-shell-paths",
+            "status": "WARN",
+            "detail": detail,
+            "breached": dangling,
+        }
+    return {
+        "name": "seat-shell-paths",
+        "status": "PASS",
+        "detail": f"all {len(entries)} assessed seat path(s) resolve",
+        "breached": [],
+    }
+
+
+def _live_launch_cwd(session):
+    """Read-only launch_cwd for one seat via the allowlisted status verb."""
+    parsed = run_rig(["seat", "status", session, "--json"])
+    if not isinstance(parsed, dict):
+        raise DataSourceError(f"rig seat status {session}: expected a JSON object")
+    cwd = parsed.get("launch_cwd")
+    if not cwd:
+        raise DataSourceError(f"rig seat status {session}: no launch_cwd")
+    return cwd
+
+
+def collect_seat_paths(ps_nodes, repo_root, state_root, status_fetcher):
+    """Build per-running-seat path entries: shellPath from daemon-state
+    settings.json (filesystem read), launch_cwd via status_fetcher.
+    Unreadable seats are returned as unassessed (never silently skipped)."""
+    entries, unassessed = [], []
+    for node in ps_nodes or []:
+        if not isinstance(node, dict):
+            continue
+        session = node.get("canonicalSessionName")
+        if not session:
+            continue
+        if node.get("sessionStatus") != "running":
+            continue
+        try:
+            with open(Path(state_root) / session / "agent" / "settings.json") as handle:
+                shell_path = (json.load(handle) or {}).get("shellPath")
+        except (OSError, ValueError) as exc:
+            unassessed.append(f"{session} (settings.json unreadable: {exc})")
+            continue
+        if not shell_path:
+            unassessed.append(f"{session} (no shellPath in settings.json)")
+            continue
+        try:
+            launch_cwd = status_fetcher(session)
+        except Exception as exc:
+            unassessed.append(f"{session} (seat status unreadable: {exc})")
+            continue
+        entries.append(
+            {"session": session, "shell_path": shell_path, "launch_cwd": launch_cwd}
+        )
+    return entries, unassessed
+
+
 def load_heartbeat_map(fleet_path):
     """Parse role -> heartbeat_sec from the fleet catalog (read-only).
 
@@ -716,6 +861,7 @@ def run_gate(client, fleet_map, unconfigured, opts, now, tool_status=None):
             skip("heartbeat"),
             skip("seat-idleness"),
             skip("tool-provisioning"),
+            skip("seat-shell-paths"),
         ]
         return finalize(checks, opts)
 
@@ -861,8 +1007,48 @@ def run_gate(client, fleet_map, unconfigured, opts, now, tool_status=None):
     tools_check = safe(evaluate_tool_provisioning, tool_status)
     tools_check["name"] = "tool-provisioning"
 
+    # seat-repair REQ-R3 (#147): shellPath + launch_cwd resolvability for
+    # every running seat. Live clients collect from daemon state + the
+    # allowlisted seat-status verb; fixture clients replay seat_paths.json;
+    # anything else degrades to SKIP (never healthy).
+    seat_entries, seat_unassessed = None, []
+    if isinstance(client, RigClient):
+        try:
+            seat_entries, seat_unassessed = collect_seat_paths(
+                nodes if not isinstance(nodes, DataSourceError) else [],
+                REPO_ROOT,
+                Path(os.environ.get("OPENRIG_HOME", str(Path.home() / ".openrig")))
+                / "state"
+                / "pi",
+                _live_launch_cwd,
+            )
+        except Exception as exc:
+            seat_entries, seat_unassessed = (
+                None,
+                [f"seat-path collection failed: {exc}"],
+            )
+    else:
+        fetch_paths = getattr(client, "fetch_seat_paths", None)
+        if callable(fetch_paths):
+            try:
+                fetched = fetch_paths()
+            except Exception as exc:
+                fetched = None
+                seat_unassessed = [f"seat-path fixture unreadable: {exc}"]
+            if fetched is None:
+                if not seat_unassessed:
+                    seat_unassessed = ["no seat-path fixture (never healthy)"]
+            else:
+                seat_entries = fetched.get("entries", [])
+                seat_unassessed = list(fetched.get("unassessed", []))
+        else:
+            seat_unassessed = ["no seat-path source for this client (never healthy)"]
+    paths_check = safe(evaluate_shell_paths, seat_entries, seat_unassessed, REPO_ROOT)
+    paths_check["name"] = "seat-shell-paths"
+
     return finalize(
-        [pickup, overdue, undelivered, heartbeat, idleness, tools_check], opts
+        [pickup, overdue, undelivered, heartbeat, idleness, tools_check, paths_check],
+        opts,
     )
 
 

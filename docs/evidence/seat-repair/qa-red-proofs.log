@@ -1,0 +1,51 @@
+# QA red-proofs — seat-repair wave (stage: seat-repair, change: 2026-10-30-seat-repair)
+# QA: agency-qa (independent verification). Worktree: .lane/trees/seat-repair @ 928a1d7
+# Protocol: red-proof-sabotage skill, 7 steps each. All sabotages restored; tree verified clean after each.
+# Timestamps: 2026-10-30 (UTC). No commits by QA. Read-only live ops only (no launches/sends/queue writes).
+
+## S1 — spec sabotage A (Scenario renamed away) — CHECK WEAKNESS FOUND, restored
+- Target assertion: `openspec validate 2026-10-30-seat-repair` guards spec completeness (REQ-R1..R4 + Scenarios).
+- Defect: renamed `#### Scenario: dangling seat trips the check, clean fleet clears it` -> `#### Tripwire-removed scenario:` in specs/seat-repair/spec.md (1 line).
+- Result: validate still `Change '2026-10-30-seat-repair' is valid` (GREEN under sabotage; exit code masked by pipe, re-measured properly in S2).
+- Restore: `cp /tmp/spec-backup.md` (pre-sabotage copy); `git diff --stat -- openspec/` empty. CLEAN.
+
+## S2 — spec sabotage B (proposal.md deleted; Requirement heading corrupted; tasks.md deleted) — TRUE EXIT CODES
+- Defect B1: `mv proposal.md /tmp/` (file absent). Result: `openspec validate` -> `Change ... is valid`, TRUE rc=0 (measured without pipe). RED-PROOF FAILED: check stays green.
+- Defect B2: `### Requirement: REQ-R2 ...` -> `### Not-a-requirement: REQ-R2 ...`. Result: valid rc=0 + `[INFO] ... is not a "### Requirement:" header and is ignored by validation`. The requirement is SILENTLY DROPPED yet the gate stays green.
+- Defect B3: `mv tasks.md /tmp/` (file absent). Result: valid rc=0. RED-PROOF FAILED.
+- Control (proves tool not hardcoded-green): `openspec validate no-such-change-xyz` -> `Unknown item ...`, TRUE rc=1. RED.
+- Restores: proposal.md/tasks.md moved back; spec.md via `git checkout -- <spec>`; `git status --short -- openspec/` empty after each. CLEAN.
+- Manual compensation (QA): spec.md on disk verified by read: 4 `### Requirement:` (REQ-R1..R4) + 7 `#### Scenario:` blocks, matching design. See QA report finding F1.
+
+## S3 — new-test sabotage (dangling WARN flipped to PASS) — RED, restored, GREEN
+- Target assertion: TestSeatShellPaths (12 new tests) trip on dangling shell_path.
+- Defect: scripts/live-health.py `evaluate_shell_paths` dangling branch `"status": "WARN"` -> `"status": "PASS"` (1 line).
+- Result: `python3 -m unittest tests.test_live_health.TestSeatShellPaths` -> `Ran 12 tests ... FAILED (failures=4)`, TRUE rc=1. RED CONFIRMED (non-vacuous).
+- Restore: `git checkout -- scripts/live-health.py`; `git status --short` empty. Re-run: `Ran 12 tests ... OK`, rc=0. GREEN.
+
+## S4 — strict-promotion sabotage (overall_exit forced to 0) — RED, restored
+- Target assertion: `--strict` promotes WARN->FAIL exit 2 (REQ-R3 strict semantics), pinned by test_strict_promotes_shell_warn_to_fail + TestStrictPromotion.
+- Defect: `overall_exit` body replaced with unconditional `return 0`.
+- Result: 2 strict tests run -> `FAILED (failures=2)`, TRUE rc=1. RED CONFIRMED (strict path fail-closed, test-pinned).
+- Restore: `git checkout -- scripts/live-health.py`; `git status --short` empty. CLEAN.
+
+## S5 — scope / bearer / Refs-only checks (no sabotage; read-only greps over main...HEAD)
+- `git diff main...HEAD --name-only`: exactly AGENTS.md, docs/evidence/seat-repair-2026-10-30/* (runbook + 8 ps + 8 queue snapshots), docs/reports/seat-repair-implementation.md, openspec/changes/2026-10-30-seat-repair/* (proposal/design/tasks/spec), scripts/live-health.py, tests/test_live_health.py. Guarded fleet/ specs/ rigs/ rosters/ registry/ archive/ openspec/specs/ EMPTY in committed diff.
+- NOTE: QA's own `generate-rigs.py --check-idempotent` run rewrote 35 generated files (queue-handoff SKILL.md parked-row text + digests) because host toolchain is rig 0.7.5 while committed output pins 0.7.4-era assets. Environment/toolchain drift, NOT wave drift. All 35 reverted via `git checkout --`; `git status --short` empty. See QA report finding F2. The check itself reported `idempotence check passed (two consecutive runs byte-identical)` rc=0.
+- Bare `(closes|fixes|resolves) #147` in diff: 2 hits, BOTH negated guards (`Never Closes #147`, ``never `Closes #147` ``) — zero bare closing directives. Commit message Refs-only (`Refs #147`). PR-body Refs-only remains coordinator-owned at PR time.
+- Secret shapes (`Bearer |ghp_|github_pat|sk-|AKIA|token...=`) in diff: EMPTY (excluding no-secret/redact/!cat/SEAT-REPAIR-OK contexts). Probe string SEAT-REPAIR-OK is a dummy marker, acceptable.
+
+## Live read-only spot checks (no launches, sends, queue writes, seat reads beyond status/ps)
+- `python3 scripts/live-health.py` (advisory): exit 0; seat-shell-paths WARN names ONLY build-java-kotlin-eng + build-python-backend-spec (stale fleet-proofs path). All 22 repaired seats clear. Gate performs zero mutations (read-only verbs only; allowlist refuses seat launch etc., test-pinned in S3/S4 + TestReadOnly).
+- `python3 scripts/live-health.py --strict`: rc=2, seat-shell-paths FAIL naming only the same 2 seats. Strict promotion verified live.
+- `rig ps --nodes -A`: 111 lines (baseline shape holds); all 22 repaired + 2 lobotomized present and `run` (51 running total).
+- `rig queue list --json -A`: 24 active rows, ZERO rows containing SEAT-REPAIR (probes went via `rig send`, never queue).
+- Queue forensics from evidence snapshots: B1 26->26 (+0/-0), B2 26->27 (+1 seat-created handoff qitem-20261030185958 from build-ts-node-fullstack, not wave), B3 27->24 (-3 terminal completions via seat-self, listing-scope effect), B4 263->263 (+0/-0, `-a -A` full history). Zero wave-authored rows.
+- Launch bound: 22 unique fresh sessionIds (01M670M3... through 01M67506...) in runbook; 22 re-seeds rc=0 + 22 relaunches rc=0 + 22 sends rc=0; 0 retries; 0 skips; 2 lobotomized verify-only, untouched (identical ps lines across all 8 snapshots; still dangling confirmed live).
+
+## Acceptance commands (true outputs, worktree)
+- `make test` FULL: `Ran 657 tests ... OK` (108s). GREEN (12 new TestSeatShellPaths included; re-ran standalone: 12 OK).
+- `./scripts/verify-rigs.sh --check-only`: `39 checks passed, 0 failed`. GREEN, NO new V-block (V31 pre-existing).
+- `openspec validate 2026-10-30-seat-repair`: valid rc=0. GREEN (with F1 weakness noted).
+- `python3 scripts/audit_loop.py --self-test`: SELF-TEST PASSED. GREEN.
+- `python3 scripts/generate-rigs.py --check-idempotent`: `idempotence check passed` rc=0 (with F2 environment note; side-effects reverted).

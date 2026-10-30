@@ -591,5 +591,266 @@ class TestToolProvisioning(unittest.TestCase):
         self.assertIn("0 missing tools", by_name["tool-provisioning"]["detail"])
 
 
+class TestSeatShellPaths(unittest.TestCase):
+    """seat-repair (Refs #147, REQ-R3): shellPath + launch_cwd resolvability
+    for every running seat. Warn-first: WARN names the seat (exit 0);
+    --strict promotes via the existing gate path."""
+
+    def setUp(self):
+        self.gate = load_gate()
+
+    def _write(self, root, name, content="x"):
+        path = Path(root) / name
+        path.write_text(content)
+        return str(path)
+
+    def test_dangling_shell_named_warn(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            good_cwd = tmp
+            entries = [
+                {
+                    "session": "blue-appsec-engineer@heretek-omni-fleet",
+                    "shell_path": os.path.join(tmp, "no-such-wrapper.sh"),
+                    "launch_cwd": good_cwd,
+                }
+            ]
+            result = self.gate.evaluate_shell_paths(entries, [], tmp)
+        self.assertEqual(result["name"], "seat-shell-paths")
+        self.assertEqual(result["status"], "WARN")
+        self.assertIn("blue-appsec-engineer@heretek-omni-fleet", result["detail"])
+        self.assertIn("shell_path", result["detail"])
+
+    def test_clean_entries_pass(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            shell = self._write(tmp, "seat-sandbox.sh", "#!/bin/sh\n")
+            entries = [
+                {
+                    "session": "blue-cloud-sec-auditor@heretek-omni-fleet",
+                    "shell_path": shell,
+                    "launch_cwd": tmp,
+                }
+            ]
+            result = self.gate.evaluate_shell_paths(entries, [], tmp)
+        self.assertEqual(result["status"], "PASS")
+
+    def test_relative_paths_resolve_against_repo_root(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            shell = self._write(tmp, "seat-sandbox.sh", "#!/bin/sh\n")
+            entries = [
+                {
+                    "session": "s@r",
+                    "shell_path": "seat-sandbox.sh",
+                    "launch_cwd": ".",
+                }
+            ]
+            result = self.gate.evaluate_shell_paths(entries, [], tmp)
+            self.assertEqual(result["status"], "PASS")
+
+    def test_missing_launch_cwd_named(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            shell = self._write(tmp, "seat-sandbox.sh", "#!/bin/sh\n")
+            entries = [
+                {
+                    "session": "design-a11y-specialist@heretek-omni-fleet",
+                    "shell_path": shell,
+                    "launch_cwd": os.path.join(tmp, "no-such-cwd"),
+                }
+            ]
+            result = self.gate.evaluate_shell_paths(entries, [], tmp)
+        self.assertEqual(result["status"], "WARN")
+        self.assertIn("design-a11y-specialist@heretek-omni-fleet", result["detail"])
+        self.assertIn("launch_cwd", result["detail"])
+
+    def test_empty_entries_skip_never_healthy(self):
+        result = self.gate.evaluate_shell_paths([], [], "/tmp")
+        self.assertEqual(result["status"], "SKIP")
+        self.assertNotEqual(result["status"], "PASS")
+
+    def test_unassessed_forces_skip_naming_seat(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            shell = self._write(tmp, "seat-sandbox.sh", "#!/bin/sh\n")
+            entries = [
+                {
+                    "session": "s-clean@r",
+                    "shell_path": shell,
+                    "launch_cwd": tmp,
+                }
+            ]
+            result = self.gate.evaluate_shell_paths(
+                entries, ["s-blind@r (settings.json unreadable)"], tmp
+            )
+        self.assertEqual(result["status"], "SKIP")
+        self.assertIn("s-blind@r", result["detail"])
+
+    def test_gate_level_trip_and_clear_via_fixture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "queue_list.json").write_text("[]")
+            shell = root / "seat-sandbox.sh"
+            shell.write_text("#!/bin/sh\n")
+            (root / "seat_paths.json").write_text(
+                json.dumps(
+                    {
+                        "entries": [
+                            {
+                                "session": "blue-appsec-engineer@heretek-omni-fleet",
+                                "shell_path": str(root / "no-such-wrapper.sh"),
+                                "launch_cwd": str(root),
+                            }
+                        ],
+                        "unassessed": [],
+                    }
+                )
+            )
+            client = self.gate.FixtureClient(root)
+            fleet_map, unconfigured = heartbeat_map_all_configured()
+            report = self.gate.run_gate(
+                client,
+                fleet_map,
+                unconfigured,
+                default_opts(self.gate),
+                NOW,
+                tool_status={"missing": [], "total": 1},
+            )
+            by_name = {c["name"]: c for c in report["checks"]}
+            self.assertIn("seat-shell-paths", by_name)
+            self.assertEqual(by_name["seat-shell-paths"]["status"], "WARN")
+            self.assertIn(
+                "blue-appsec-engineer@heretek-omni-fleet",
+                by_name["seat-shell-paths"]["detail"],
+            )
+            # Clear: point the entry at the real wrapper -> PASS.
+            (root / "seat_paths.json").write_text(
+                json.dumps(
+                    {
+                        "entries": [
+                            {
+                                "session": "blue-appsec-engineer@heretek-omni-fleet",
+                                "shell_path": str(shell),
+                                "launch_cwd": str(root),
+                            }
+                        ],
+                        "unassessed": [],
+                    }
+                )
+            )
+            report = self.gate.run_gate(
+                client,
+                fleet_map,
+                unconfigured,
+                default_opts(self.gate),
+                NOW,
+                tool_status={"missing": [], "total": 1},
+            )
+            by_name = {c["name"]: c for c in report["checks"]}
+            self.assertEqual(by_name["seat-shell-paths"]["status"], "PASS")
+
+    def test_strict_promotes_shell_warn_to_fail(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "queue_list.json").write_text("[]")
+            (root / "seat_paths.json").write_text(
+                json.dumps(
+                    {
+                        "entries": [
+                            {
+                                "session": "s-dangling@r",
+                                "shell_path": str(root / "missing.sh"),
+                                "launch_cwd": str(root),
+                            }
+                        ],
+                        "unassessed": [],
+                    }
+                )
+            )
+            client = self.gate.FixtureClient(root)
+            fleet_map, unconfigured = heartbeat_map_all_configured()
+            report = self.gate.run_gate(
+                client,
+                fleet_map,
+                unconfigured,
+                default_opts(self.gate, strict=True),
+                NOW,
+                tool_status={"missing": [], "total": 1},
+            )
+            by_name = {c["name"]: c for c in report["checks"]}
+            self.assertEqual(by_name["seat-shell-paths"]["status"], "FAIL")
+            self.assertEqual(self.gate.overall_exit(report, strict=True), 2)
+
+    def test_check_allowed_seat_status_json_passes_and_launch_refused(self):
+        gate = load_gate()
+        gate.check_allowed(
+            ["seat", "status", "blue-appsec-engineer@heretek-omni-fleet", "--json"]
+        )
+        with self.assertRaises(RuntimeError):
+            gate.check_allowed(
+                ["seat", "launch", "blue-appsec-engineer@heretek-omni-fleet"]
+            )
+        with self.assertRaises(RuntimeError):
+            gate.check_allowed(
+                ["seat", "status", "blue-appsec-engineer@heretek-omni-fleet"]
+            )
+
+    def test_dead_gate_includes_shell_paths_skip(self):
+        gate = load_gate()
+        client = FakeClient(error=gate.DataSourceError("daemon down"))
+        report = gate.run_gate(client, {}, [], default_opts(gate), NOW)
+        by_name = {c["name"]: c for c in report["checks"]}
+        self.assertIn("seat-shell-paths", by_name)
+        for check in report["checks"]:
+            self.assertEqual(check["status"], "SKIP", check["name"])
+
+    def test_collect_uses_settings_and_status_fetcher(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state" / "pi"
+            seat_dir = state / "s-one@r" / "agent"
+            seat_dir.mkdir(parents=True)
+            shell = Path(tmp) / "seat-sandbox.sh"
+            shell.write_text("#!/bin/sh\n")
+            (seat_dir / "settings.json").write_text(
+                json.dumps({"shellPath": str(shell)})
+            )
+            nodes = [
+                {
+                    "canonicalSessionName": "s-one@r",
+                    "sessionStatus": "running",
+                },
+                {
+                    "canonicalSessionName": "s-stopped@r",
+                    "sessionStatus": "stopped",
+                },
+            ]
+            entries, unassessed = self.gate.collect_seat_paths(
+                nodes,
+                tmp,
+                str(state),
+                lambda session: tmp,
+            )
+        self.assertEqual(unassessed, [])
+        self.assertEqual(len(entries), 1)
+        self.assertEqual(entries[0]["session"], "s-one@r")
+        self.assertEqual(entries[0]["shell_path"], str(shell))
+
+    def test_collect_marks_unreadable_unassessed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            state = Path(tmp) / "state" / "pi"
+            state.mkdir(parents=True)
+            nodes = [
+                {
+                    "canonicalSessionName": "s-blind@r",
+                    "sessionStatus": "running",
+                }
+            ]
+
+            def boom(session):
+                raise Exception("status exploded")
+
+            entries, unassessed = self.gate.collect_seat_paths(
+                nodes, tmp, str(state), boom
+            )
+        self.assertEqual(entries, [])
+        self.assertTrue(any("s-blind@r" in u for u in unassessed))
+
+
 if __name__ == "__main__":
     unittest.main()
