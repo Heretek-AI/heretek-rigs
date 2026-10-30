@@ -1,0 +1,65 @@
+# QA red-proofs log — seat-hygiene audit wave (stage: seat-hygiene, change: 2026-10-30-seat-hygiene)
+
+QA host run: 2026-10-30. Worktree: `.lane/trees/seat-hygiene` (branch `feat/seat-hygiene`, HEAD `ac5375d`).
+Read-only live ops only (no launches, no queue writes, no sends). No secrets printed or committed.
+No Unity binding (not a Unity project). No commits by QA — final tree must show only `docs/evidence/` additions.
+
+## A. Baseline acceptance (unmodified tree — all GREEN before sabotage)
+
+1. `sha256sum ps-pre.txt ps-post.txt` → identical hashes (`1a0b936e…6726` both); `cmp` rc=0 IDENTICAL; 111 lines each. REQ-H3 file proof holds.
+2. `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0. No new gate.
+3. `openspec validate 2026-10-30-seat-hygiene` → `Change is valid`, rc=0.
+4. `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`, rc=0.
+5. `python3 scripts/generate-rigs.py --check-idempotent` → `idempotence check passed (two consecutive runs byte-identical)`, rc=0. Side-effect: 35 generated-leaf modifications (PRE-EXISTING staleness, same as implementation report) → reverted via `git checkout -- .` → `git status --short` clean.
+6. `make test` SKIP legitimate: committed diff = 10 files (1 json + 7 md + 2 txt); zero `*.py`/`*.sh`/`Makefile`/`tests/` diffs; scope gate `git diff main...HEAD --name-only -- fleet/ scripts/ tests/ specs/ rigs/ rosters/ registry/ archive/ openspec/specs/` → EMPTY.
+7. `tasks.md` triad box UNCHECKED — correct.
+
+## B. Completeness re-verification (independent, read-only)
+
+- ps-pre distinct live seats: 51. Audit-table data rows: 51. Seats in ps-pre missing from table: NONE.
+- Daemon state: 70 dirs = 54 with `agent/settings.json` + 16 sessions-only (all 16 names/rigs match audit §2 list exactly).
+- 3 orphaned `command-*@heretek-omni-fleet` dirs: exist, absent from `rig ps`, `settings.json` carries NO `shellPath` key — matches audit note.
+- shellPath spot-checks (live reads): 3 stale (blue-appsec-engineer, delivery-git-drift-coord, systems-rust-systems-spec → fleet-proofs path, target absent) + 2 lobotomized (build-java-kotlin-eng, build-python-backend-spec → fleet-proofs path) + 3 clean (blue-cloud-sec-auditor, qa-sabotage-qa-tester, platform-k8s-orchestrator → in-repo wrapper, target EXISTS). 8/8 confirm audit classification.
+- `launch_cwd` full 51-seat `rig seat status --json` re-sweep: ALL 51 report the live absolute launch_cwd value (51/51 uniform, EXISTS), running/active/ready. Uniformity claim VERIFIED (not just spot-checked). Note: live value is absolute; audit/JSON record repo-relative `../../heretek-asset-manager` — see FINDING-01.
+- F1 counts: 24 DANGLING (2 lobotomized + 22 stale) + 27 clean = 51; reconciles exactly with `dangling-seats.json` (JSON valid, 24 entries, 2/22 split, schema complete, `_notation` key present).
+- F2 counts reconcile exactly (21 missing binaries / 16 seats / same 7 binary names) — but flag detail overstated, see FINDING-02.
+- F3 spot-checks (2 seats): `packages[]` 0 missing; `sessionFile` exists. Confirmed.
+- Queue baseline: 100 qitems, ZERO containing `seat-hygiene`; max `tsCreated` 2026-10-30T14:59:28Z predates audit window (ps-pre 12:29 EDT = 16:29Z). No wave-attributable queue writes. ps snapshots identical → no launches/sends.
+
+## C. Mandatory red-proofs (sabotage → RED → restore → GREEN)
+
+### RP-1: spec content sabotage vs `openspec validate` — CHECK WEAK (stayed GREEN)
+- Removed `#### Scenario: impact classified per seat` block → validate still `Change is valid`, rc=0 (GREEN — defect NOT caught).
+- Escalated: removed ENTIRE `### Requirement: REQ-H2` block → still valid, rc=0 (GREEN).
+- Escalated: moved `tasks.md` away → still valid, rc=0 (GREEN).
+- Escalated: emptied `proposal.md` → still valid, rc=0 (GREEN).
+- Control: `openspec validate 2026-10-30-no-such-change` → `Unknown item`, rc=1 (RED — command resolves target, not a total no-op).
+- Restore: `git checkout -- <spec.md> <proposal.md>` (+tasks.md moved back); `cmp` vs pre-sabotage backups → SPEC_BYTE_IDENTICAL + PROPOSAL_BYTE_IDENTICAL; re-validate → `Change is valid`, rc=0; `git status --short` clean.
+- Assessment: validate guards change-existence/recognizability only — it does NOT guard requirement/scenario content. NOT counted as wave FAIL: scenario presence (4 Scenarios + REQ-H1/H2/H3, each with `#### Scenario:` blocks) verified instead by direct QA read of spec.md. Logged as a qualification for drift-guard: future waves must not rely on `openspec validate` alone for content completeness.
+
+### RP-2: scope-gate sabotage — RED (filter proven live), restored GREEN
+- Appended probe line to tracked `fleet/fleet.yaml` → committed-scope form `git diff main...HEAD --name-only -- <guarded>` stays empty BY DESIGN (uncommitted dirt not in HEAD diff; wave is fully committed so this form is the correct one and is EMPTY = GREEN).
+- Same sabotage via working-tree form `git diff main --name-only -- <guarded>` → lists `fleet/fleet.yaml` (RED — path filter demonstrably matches guarded paths, i.e. gate is NOT vacuous).
+- Restore: `git checkout -- fleet/fleet.yaml` → `git status --short` clean. GREEN restored.
+
+### RP-3: secret-sweep sabotage — RED (pattern proven live), real files GREEN
+- Planted ghp_-prefixed canary (full string redacted here) in temp probe file → grep sweep MATCHES (RED — pattern detects secret-shaped text, not vacuous) → probe `rm`oved.
+- Real wave files: sole match is the pattern-literal self-mention in implementation-report line 40 (`Secret sweep (…pattern…)`) — excluded → CLEAN. No Bearer secrets. GREEN.
+
+### RP-4: scope/bearer/Refs-only static checks
+- Bare `Closes #147`: 3 occurrences — proposal:28 (backticked ✓), report:41 (backticked ✓), report:15 `never Closes #147` (prose, NOT backticked — see FINDING-03). Zero `Fixes/Resolves/Close #147` variants. Commit msg `ac5375d` uses `Refs #147` ✓. No GitHub closure risk (no occurrence in a PR body/commit).
+- `Refs #147`: 8 occurrences across wave files. Refs-only posture holds.
+
+## D. Findings (numbered)
+
+- FINDING-01 (minor): `launch_cwd` repo-relative rewrite does not resolve against the repo root (off by one — single-`..` form lands one level short, ABSENT; corrected to the two-level form in this pass, which resolves to the live absolute launch_cwd value that EXISTS). Notation legend overclaimed machine-resolvability for this one field. Repair-critical paths (`stale_value` `.lane/trees/fleet-proofs/...` → absent ✓; `expected_shell` `scripts/seat-sandbox.sh` → exists ✓) resolve correctly; meaning recoverable ("sibling checkout"). No repair-input corruption. Recommend repair wave resolve `launch_cwd` via the corrected two-level form.
+- FINDING-02 (minor): F2 "EVERY one belongs to an `enabled: false` + `exposure: deferred` server" is overstated. Fleet-wide scan: 11×(False,deferred) + 4×(enabled-absent,deferred) + 3×(absent,direct) + 3×(False,direct). Counts (21/16) reconcile exactly. One live direct-exposure case (`qa-api-contract-tester` openapi explorer, enabled-by-default) references a missing binary under a plausibly-loaded server → correctly bucketed as provisioning (#74 class) but "never loaded" justification not established for direct-exposure cases. No worktree-coupled dangling missed (MCP paths are host-installs, outside the wave's dangling definition). Recommend repair wave re-gate F2 on exact flags.
+- FINDING-03 (negligible): implementation-report line 41 claims "Sole `Closes #147` occurrence is inside backticks" — actually 3 occurrences (report:15 `never Closes #147` unb backticked). Zero closure risk (docs files aren't parsed by GitHub; commit msg Refs-only), but contradicts the repo's own "even in a negation" caution. Recommend backticking report:15.
+
+## E. REQ verdicts + QA verdict
+
+- REQ-H1 (completeness): PASS. 51/51 seats covered, zero missing/misclassified in 8/8 spot-checks + full launch_cwd re-sweep; 16+3 unscannable/orphaned dirs recorded with reason; dangling set reconciles exactly with JSON.
+- REQ-H2 (machine-readable repair input): PASS (FINDING-01 caveat on `launch_cwd` relativity; repair-critical fields resolve correctly).
+- REQ-H3 (zero mutation): PASS. Byte-identical snapshots (matching sha256), zero queue/launches/sends attributable to the wave.
+- QA VERDICT: PASS (3 non-blocking findings: 2 minor + 1 negligible). RP-1 qualification noted: `openspec validate` is content-insensitive; content verified by direct QA read.
+- Final VERDICT to drift-guard: PASS — wave is audit-complete, zero-mutation proven, repair input consumable; findings are repair-wave advisories, not audit defects.

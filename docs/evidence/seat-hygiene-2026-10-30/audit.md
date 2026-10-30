@@ -12,8 +12,11 @@ none (grep-verified at close-out — see implementation report).
 ## NOTATION (path legend — hook-compliant, machine-resolvable)
 
 - All paths in this runbook are relative to the repo root (no
-  machine-local home-directory prefix appears anywhere below). `../` =
-  sibling of the repo root.
+  machine-local home-directory prefix appears anywhere below).
+  `stale_value` / `expected_shell` resolve directly against the repo root;
+  `launch_cwd` uses the two-level form `../../heretek-asset-manager`
+  (sibling checkout: two levels up from the repo root, path relative to
+  the repo root — EXISTS, host dir verified).
 - The repair wave runs on the same host and resolves these against the
   repo root, so machine-usability is preserved without local prefixes.
 
@@ -61,8 +64,8 @@ none (grep-verified at close-out — see implementation report).
 - Command: `rig seat status <seat> --json` × 51 (one per live
   `heretek-omni-fleet` seat from `rig ps --nodes --json -A`) → rc=0 all.
 - Observed: ALL 51 report
-  `launch_cwd: ../heretek-asset-manager` (sibling checkout, path relative
-  to repo root), which EXISTS
+  `launch_cwd: ../../heretek-asset-manager` (sibling checkout, path
+  relative to the repo root — two levels up), which EXISTS
   (host dir verified). Zero worktree-coupled `launch_cwd`. All 51 report
   `session_status: running`, `occupant_lifecycle: active`,
   `startup_status: ready` — the daemon does NOT validate `shellPath` at
@@ -74,12 +77,18 @@ none (grep-verified at close-out — see implementation report).
   `.../.lane/trees/fleet-proofs/scripts/seat-sandbox.sh` (target pruned).
   27 live seats point at the in-repo
   `.../heretek-rigs/scripts/seat-sandbox.sh` (exists, clean).
-- F2 (benign, recorded): 21 absolute MCP `command` paths missing on disk
-  (`mcp-server-memory`, `playwright-mcp`, `chrome-devtools-mcp`,
-  `mcp-server-mobile`, `kubernetes-mcp-server`, `mcp-openapi-schema-explorer`,
-  `r2mcp` across 16 seats) — EVERY one belongs to an `enabled: false` +
-  `exposure: deferred` server (verified per-server; zero enabled-and-missing).
-  Never loaded → not dangling. Provisioning note only (Wave-2 #74 class).
+- F2 (recorded, provisioning class): 21 absolute MCP `command` paths
+  missing on disk (`mcp-server-memory`, `playwright-mcp`,
+  `chrome-devtools-mcp`, `mcp-server-mobile`, `kubernetes-mcp-server`,
+  `mcp-openapi-schema-explorer`, `r2mcp` across 16 state dirs, 14 of them
+  live seats) — per-server flag split: 11×(`enabled: false`, deferred) +
+  4×(enabled-key-absent, deferred) + 3×(enabled-key-absent, direct) +
+  3×(`enabled: false`, direct). "Never loaded" holds for the 15 deferred
+  cases only; the 6 direct-exposure cases (memory ×5 incl. 3 live seats,
+  plus the live `qa-api-contract-tester` openapi explorer which is
+  enabled-by-default) reference a missing binary under a plausibly-loaded
+  server — bucketed as provisioning gaps (Wave-2 #74 class), not as
+  dangling (MCP paths are host-installs, not worktree-coupled).
 - F3 (clean): `packages[]` — 0 missing (all resolve under
   `~/.local/share/heretek-rigs/tools/pi-packages/`). `sandbox.env`
   `HERETEK_SECRET_STORE` — all exist, never read (secret discipline).
@@ -104,62 +113,64 @@ none (grep-verified at close-out — see implementation report).
 ## 5. Per-seat table (51 live seats)
 
 Columns: shell (`clean` = in-repo wrapper exists; `DANGLING` = pruned
-fleet-proofs target) | cwd (`launch_cwd` verdict) | pkgs | mcp (`dis` =
-all missing binaries disabled/deferred) | sess (`sessionFile`) | impact.
+fleet-proofs target) | cwd (`launch_cwd` verdict) | pkgs | mcp (`ok` =
+none missing; `dis` = missing only under disabled+deferred servers;
+`mix` = includes direct-exposure missing — see F2) | sess
+(`sessionFile`) | impact.
 
 | seat (short) | shell | cwd | pkgs | mcp | sess | impact |
 |---|---|---|---|---|---|---|
-| blue-appsec-engineer | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| blue-cloud-sec-auditor | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| blue-compliance-auditor | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| blue-threat-modeler | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| build-go-backend-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| build-java-kotlin-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | lobotomized |
-| build-python-backend-spec | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | lobotomized |
-| build-ts-node-fullstack | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| data-analytics-metrics-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| data-cache-streaming-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| data-data-pipeline-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| data-dba-specialist | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| delivery-git-drift-coord | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| delivery-tech-docs-lead | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| delivery-tpm-scrum-lead | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
+| blue-appsec-engineer | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| blue-cloud-sec-auditor | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| blue-compliance-auditor | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| blue-threat-modeler | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| build-go-backend-eng | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| build-java-kotlin-eng | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | lobotomized |
+| build-python-backend-spec | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | lobotomized |
+| build-ts-node-fullstack | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| data-analytics-metrics-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| data-cache-streaming-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| data-data-pipeline-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| data-dba-specialist | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| delivery-git-drift-coord | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| delivery-tech-docs-lead | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| delivery-tpm-scrum-lead | DANGLING | cwd-ok | pkgs-ok | mcp-mix | sess-ok | stale |
 | design-a11y-specialist | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| design-brand-copy-spec | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
+| design-brand-copy-spec | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
 | design-design-system-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
 | design-fe-perf-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
 | design-mobile-web-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
 | design-ui-ux-designer | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| design-ux-research-analyst | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| engine-engine-systems-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| engine-graphics-shader-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| engine-physics-sim-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| exec-exec-director | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| exec-product-director | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| exec-system-architect | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| gameplay-game-ai-dev | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| gameplay-game-systems-dev | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| gameplay-tech-artist-pipeline | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| ml-mlops-serving-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| ml-vector-rag-spec | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
+| design-ux-research-analyst | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| engine-engine-systems-eng | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| engine-graphics-shader-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| engine-physics-sim-eng | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| exec-exec-director | DANGLING | cwd-ok | pkgs-ok | mcp-mix | sess-ok | stale |
+| exec-product-director | DANGLING | cwd-ok | pkgs-ok | mcp-mix | sess-ok | stale |
+| exec-system-architect | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| gameplay-game-ai-dev | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| gameplay-game-systems-dev | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| gameplay-tech-artist-pipeline | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| ml-mlops-serving-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| ml-vector-rag-spec | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
 | mobile-android-mobile-spec | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| mobile-ios-mobile-spec | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| platform-cloud-platform-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| platform-dependency-patcher | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
+| mobile-ios-mobile-spec | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| platform-cloud-platform-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| platform-dependency-patcher | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
 | platform-k8s-orchestrator | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| qa-api-contract-tester | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
+| qa-api-contract-tester | clean | cwd-ok | pkgs-ok | mcp-mix | sess-ok | — |
 | qa-e2e-browser-qa | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| qa-load-stress-tester | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| qa-release-qa-officer | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| qa-sabotage-qa-tester | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| qa-static-analysis-lead | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| red-ai-red-teamer | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
+| qa-load-stress-tester | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| qa-release-qa-officer | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| qa-sabotage-qa-tester | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| qa-static-analysis-lead | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| red-ai-red-teamer | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
 | red-binary-reverse-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
 | red-firmware-sec-analyst | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| sre-observability-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| sre-sre-incident-eng | clean | cwd-ok | pkgs-ok | mcp-dis | sess-ok | — |
-| systems-cpp-lowlevel-eng | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
-| systems-rust-systems-spec | DANGLING | cwd-ok | pkgs-ok | mcp-dis | sess-ok | stale |
+| sre-observability-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| sre-sre-incident-eng | clean | cwd-ok | pkgs-ok | mcp-ok | sess-ok | — |
+| systems-cpp-lowlevel-eng | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
+| systems-rust-systems-spec | DANGLING | cwd-ok | pkgs-ok | mcp-ok | sess-ok | stale |
 
 Counts: 51 live rows — 24 DANGLING (2 lobotomized + 22 stale), 27 clean.
 Reconciles exactly with `dangling-seats.json` (24 entries).

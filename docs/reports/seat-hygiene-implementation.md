@@ -12,7 +12,7 @@ checks of referenced paths.
 
 - `openspec/changes/2026-10-30-seat-hygiene/proposal.md` (goal: fleet-wide
   audit; non-goals: no repairs / no launches / no live-health change /
-  no V-gate / never Closes #147)
+  no V-gate / never `Closes #147`)
 - `openspec/changes/2026-10-30-seat-hygiene/specs/seat-hygiene/spec.md`
   (ADDED REQ-H1 completeness, REQ-H2 machine-readable output, REQ-H3
   zero-mutation, each with `#### Scenario:` blocks)

@@ -9,7 +9,7 @@
   field-checked; 16 sessions-only dirs listed unscannable-with-reason;
   every referenced absolute path existence-checked rc=0
 - [x] `launch_cwd` sweep: `rig seat status --json` × 51 live seats rc=0
-  (all `../heretek-asset-manager`, exists)
+  (all `../../heretek-asset-manager`, exists)
 - [x] Post-audit snapshot → `ps-post.txt`; `cmp` byte-identical rc=0
   (REQ-H3 zero-mutation proof)
 - [x] Evidence: `audit.md` (per-seat table, counts, impact) +
