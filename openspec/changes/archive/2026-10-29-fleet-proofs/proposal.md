@@ -18,7 +18,7 @@ the fleet host, and record redacted evidence per step. Single PR, Refs-only
 
 - **Phase A (this change, landed first):** change package + Step 1 safe-check +
   Step 2 provisioning re-take + read-only live recon with per-step GO/NO-GO.
-- **Phase B (gated on user approval):** runbook steps 3–7 against live seats.
+- **Phase B (executed after recorded user approvals — see HANDOFF §2 / docs/evidence/fleet-proofs-2026-10-30/runbook.md):** runbook steps 3–7 against live seats.
 
 ## Acceptance
 
