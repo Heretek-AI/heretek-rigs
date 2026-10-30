@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "seat": {
+    "rigId": "01M5GWFPKVNQEXQVSAGQ2ANJBE",
+    "rigName": "heretek-omni-fleet",
+    "logicalId": "build.python-backend-spec",
+    "nodeId": "01M5GWG006GVXBFDHKH7H9HF5T"
+  },
+  "status": "ready",
+  "sessionName": "build-python-backend-spec@heretek-omni-fleet",
+  "sessionId": "01M679DC8YV74MEC39AYQBDSY2",
+  "generation": "c4ce1d13-7d89-4017-8fc6-ba824dc539dc",
+  "model": "opencode-go/muse-spark-1.3-contributor:high",
+  "effort": "high",
+  "startupPolicyHash": "b0a8f5fc0750a7e8f52739e9b79099131f4e92ef195a72edd085dab66da615d7",
+  "supersededSessionIds": [
+    "01M66RET4ETMF47CJFR2Z3A2C8"
+  ],
+  "warnings": [
+    "Replacing the tmux session for \"build-python-backend-spec@heretek-omni-fleet\" detaches its open terminal clients. New tiles wait up to 30 seconds for the same seat; for older views or a tile that closes, close and reopen the view: rig terminal open 'rig:heretek-omni-fleet' --window (Herdr or tmux), or rig terminal open 'rig:heretek-omni-fleet' --provider cmux."
+  ]
+}
