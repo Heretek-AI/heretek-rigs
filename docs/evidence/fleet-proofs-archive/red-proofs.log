@@ -1,0 +1,39 @@
+# Red-proofs — fleet-proofs-archive delta QA (stage: fleet-proofs-archive)
+
+Date: 2026-10-30. Worktree: `.lane/trees/fleet-proofs-archive` (branch
+`chore/fleet-proofs-archive`, HEAD `6b26235` on top of main `873363b`).
+Scope: 3-line prose touch-up only (tasks.md 2 lines + proposal.md 1 line +
+new archive-note.md). No code/scripts/tests/specs-semantics touched.
+
+## Baseline (unmodified tree)
+
+- `openspec validate 2026-10-29-fleet-proofs` → "Change is valid", rc=0.
+- `./scripts/verify-rigs.sh --check-only` → SUMMARY: 39 checks passed, 0 failed, rc=0.
+- `git diff origin/main...HEAD --name-only` (== `main...HEAD`) → exactly 3 files:
+  `docs/reports/fleet-proofs-archive-note.md`,
+  `openspec/changes/2026-10-29-fleet-proofs/proposal.md`,
+  `openspec/changes/2026-10-29-fleet-proofs/tasks.md`.
+  No code/scripts/tests/specs/rigs/fleet/archive diffs.
+- tasks.md: 11× `[x]`, 0× `[ ]`. Step 4 box flipped to `[x]` with FOLLOW-UP
+  text verbatim (NO-GO-with-reason disposition, no execution implied).
+  Triad line cites `8f27252` (agency-qa PASS) + `5af4712` (drift-guard PASS) +
+  `docs/reports/fleet-proofs-verification.md`.
+- proposal.md: single-line Phase B change, past-tense
+  "executed after recorded user approvals — see HANDOFF §2 /
+  docs/evidence/fleet-proofs-2026-10-30/runbook.md". Nothing else touched.
+- `git status --short` → clean.
+
+## R1 — spec sabotage (Scenario removal → validate RED, restore → GREEN)
+
+- Sabotage: removed `#### Scenario: safe-check green` block (3 lines) from
+  `openspec/changes/2026-10-29-fleet-proofs/specs/fleet-proofs/spec.md`
+  (sha256 before: `0e9dccabab64799e70189837c8616563a00255b42a5af51c0a643c65072b7ed8`).
+- Re-ran `openspec validate 2026-10-29-fleet-proofs` → RED, rc=1:
+  `✗ [ERROR] fleet-proofs/spec.md: ADDED "REQ-P1 — secrets safe-check" must
+  include at least one scenario`.
+- Restore: `git checkout -- <spec.md>` → sha256 after identical
+  (`0e9dccabab64799e70189837c8616563a00255b42a5af51c0a643c65072b7ed8`).
+- Re-ran validate → GREEN, rc=0 ("Change is valid").
+- `git status --short` → clean. Check is non-vacuous.
+
+No secrets printed or touched. Log only; NOT committed (coordinator commits).
