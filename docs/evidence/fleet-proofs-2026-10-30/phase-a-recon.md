@@ -51,3 +51,21 @@ All commands ran on the fleet host. No secret values appear below (stat +
 1. Launch seats for proofs? (single seat vs wider; token spend + side effects)
 2. Approve tty-sudo installs (tshark, radare2, trivy repo) now or defer?
 3. Leave daemon running (current) or tidy-stop until Phase B?
+
+## Addendum: stale-rig restore (post-Phase-A commit)
+
+- Fresh `rig up rig.all-51.yaml` REFUSED: rig `heretek-omni-fleet`
+  (`01M5GWFPKVNQEXQVSAGQ2ANJBE`) already exists and OpenRig could not
+  confirm it stopped (`tmux ... No such file or directory` — stale
+  pre-reboot/tmux-less state). "Nothing was created" (exit masked 0 by
+  `tail`; the message is the signal). This is the #11-adjacent refusal
+  class playing out live: launch-over-existing is refused, restore-or-
+  archive is required. Chose restore (non-destructive; archive would drop
+  queued WORK rows).
+- Restore command (backgrounded): `rig up heretek-omni-fleet --cwd
+  /tmp/opencode/fleet-live --yes` from the scratch workspace (never from
+  a bundle dir, per AGENTS.md cwd rule). Result pending at write time.
+- Brew: `trivy 0.76.1` + `radare2 6.2.4` poured (`r2`/`rabin2` now on PATH
+  via linuxbrew bin, which is already in PATH). `wireshark` (tshark)
+  install backgrounded. Seed strict-clean for all 51 (fail-loud warns
+  only: memory/chrome-devtools/playwright/markdownlint degraded).

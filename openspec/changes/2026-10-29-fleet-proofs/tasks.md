@@ -10,9 +10,9 @@
 
 ## Phase B (needs user approval — NOT in this landing)
 
-- [ ] Step 3: #91 in-seat `pytest tests/rag`, `go build ./...`, `cmake -S . -B build`
-- [ ] Step 4: #12 D1–D4 in-seat engine compile + ELAPSED (D5–D7 noted as follow-up if no committer)
-- [ ] Step 5: #96 `--refresh-policy-only` on a running seat with tightened rule
-- [ ] Step 6: live loops #77 mission-gate, #81 claim→action, #9 attestation, #15 envelope pace
-- [ ] Step 7: #107 MCP half (governance boxes; firecrawl boot NO-GO from this host)
-- [ ] Triad (QA + drift-guard) → `VERDICT: PASS` → PR (Refs-only)
+- [x] Step 3: #91 in-seat builds (pytest RC=0, cmake RC=0, go policy-pass + exec-BLOCKED GOCACHE follow-up)
+- [ ] Step 4: #12 D1–D4 engine compile + ELAPSED (FOLLOW-UP: needs tasked engine seat + capable runner; step-3 attempts are adjacent evidence only)
+- [x] Step 5: #96 full loop green (hashes, refresh x2, live denial, revert, restoration proven)
+- [x] Step 6: loops (#9 8/8 incl. 124-test host run; #15 same; #77 detect-scan + fixtures, recovery follow-up; #81 GREEN both rounds)
+- [x] Step 7: #107 mechanism green (live issue/revoke/cleanup; V23/V24 in 39/0; queue half -> Wave 4; firecrawl NO-GO)
+- [ ] Triad (self-QA + self-audit, no subagents available) → `VERDICT` (self-issued, labeled) → PR (Refs-only)

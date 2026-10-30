@@ -5,7 +5,7 @@
 Execute the ordered live-host runbook proving the repo-side remediations for
 #91, #12, #74, #96/#11-refresh, #77, #81, #9, #15, and the #107 MCP half on
 the fleet host, and record redacted evidence per step. Single PR, Refs-only
-(never Closes — every issue stays open until its live loop is proven).
+(no closing keywords — every issue stays open until its live loop is proven).
 
 ## Non-goals
 
