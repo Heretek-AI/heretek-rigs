@@ -55,8 +55,8 @@
   outcome: NOT appended — 39/0 stands; 3 findings recorded with
   reasons (dangling shellPath un-gateable-while-red; destination
   enforcement intended-correct; gate-denial probe lesson; runbook §7)
-- [ ] Triad (agency-qa red-proof + agency-drift-guard audit) → VERDICT
-  before any PR (Refs #16, Refs #17, Refs #140 — never Closes)
+- [x] Triad (agency-qa red-proof + agency-drift-guard audit) → VERDICT
+  before any PR (Refs #16, Refs #17, Refs #140 — never Closes); outcome: agency-qa PASS (qa-red-proofs.log) + agency-drift-guard VERDICT: PASS (seat-race-verification.md), both committed pre-merge
 
 ## Racer designation (fixed at fan-out; amended round-2 with rationale)
 
