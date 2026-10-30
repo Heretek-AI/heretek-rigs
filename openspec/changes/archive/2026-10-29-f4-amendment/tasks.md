@@ -92,8 +92,8 @@ Acceptance (A4): decision + reason recorded in `docs/reports/f4-amendment-implem
   byte-identical; E2 tests green unmodified; no `Closes` tokens wave-owned.
 - [x] A5.2 `docs/reports/f4-amendment-implementation.md` (what changed, validation, skips); AGENTS.md ONE
   surgical docs-map row (≤5 lines, conventions verbatim).
-- [ ] A5.3 Triad → `VERDICT` read from disk before any PR. Do NOT archive (`openspec archive` forbidden here);
-  do NOT commit (leave the tree for the coordinator).
+- [x] A5.3 Triad → `VERDICT` read from disk before any PR. Do NOT archive (`openspec archive` forbidden here);
+  do NOT commit (leave the tree for the coordinator); outcome: agency-qa PASS (qa-red-proofs.log) + agency-drift-guard VERDICT: PASS (f4-amendment-verification.md), both committed pre-merge.
 
 Acceptance (A5):
 
