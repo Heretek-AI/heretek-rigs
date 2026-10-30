@@ -470,7 +470,7 @@ def propose_cell(row, latest_id, latest_note, parked):
     )
 
 
-def diff_row(row, queue_by_id, transitions_by_id):
+def diff_row(row, queue_by_id, transitions_by_id, envelope_by_id=None):
     cell = row["status"]
     qitem_raw = row["qitem"].strip()
     if qitem_raw in NO_QITEM_CELLS:
@@ -562,7 +562,9 @@ def diff_row(row, queue_by_id, transitions_by_id):
     stalled = stalled_idle_park_diff(row, queue_by_id, transitions_by_id)
     if stalled is not None:
         return stalled
-    return stalled_premise_drift_diff(row, queue_by_id, transitions_by_id)
+    return stalled_premise_drift_diff(
+        row, queue_by_id, transitions_by_id, envelope_by_id=envelope_by_id
+    )
 
 
 def stalled_awaiting_gate_diff(row, queue_by_id, transitions_by_id):
@@ -939,14 +941,84 @@ def attribute_premise_age(premise_ts, verify_ts, landing_ts):
     }
 
 
-def stalled_premise_drift_diff(row, queue_by_id, transitions_by_id):
+def stalled_envelope_absence_diff(
+    row, premise, landing, queue_evidence, envelope_by_id=None
+):
+    """Shared envelope-presence gating classifier (issue #134, REQ-E5).
+
+    Returns the stalled diff when the row's landing is CLEAN (hash
+    identical, file-set inside scope — established by the caller) but the
+    consulted envelope lookup holds no envelope matching the row's
+    premise, with premise-age attribution attached. Pure classification —
+    propose-only (REQ-R2), read-only against the lookup (no store
+    rewrites), no row state written, never done/complete/closed by this
+    module. Opt-in by construction: an absent (None) or empty lookup is
+    never gating, so the REQ-E2 clean-quiet default is preserved. A
+    lookup entry bound to a different premise hash is no envelope.
+    Consumed by stalled_premise_drift_diff's clean-landing tail; no
+    command may own a parallel envelope-presence mapping.
+    """
+    if not envelope_by_id:
+        return None
+    qitem_raw = row["qitem"].strip()
+    m = QITEM_RE.search(qitem_raw)
+    qid = m.group(0) if m else qitem_raw
+    record = envelope_by_id.get(qid)
+    if record is not None:
+        if isinstance(record, dict):
+            for key in ("premise_hash", "diff_hash", "premise"):
+                if key in record and str(record[key]).lower() != premise["diff_hash"]:
+                    break
+            else:
+                return None
+            detail = (
+                "the consulted envelope registry binds that qitem to a "
+                "different premise (a wrong-premise envelope is no envelope)"
+            )
+        else:
+            return None
+    else:
+        detail = (
+            "the consulted envelope registry holds no matching envelope "
+            "(open authorization with no envelope bound)"
+        )
+    attribution = attribute_premise_age(
+        premise["premise_ts"],
+        premise["verify_ts"],
+        landing["landing_ts"],
+    )
+    return {
+        "class": "stalled-envelope-absence",
+        "reason": (
+            "row carries a clean landing for premise "
+            f"{premise['diff_hash']} but {detail}"
+        ),
+        "tracker": row["status"],
+        "queue": queue_evidence,
+        "proposal": (
+            f"Route {row['slice']} for human review: the landing matches "
+            f"premise {premise['diff_hash']} yet no envelope bound to that "
+            f"premise is on record ({landing['landing_ts']} landing); the "
+            "owner owns next action (mint a matching envelope, fresh "
+            "premise, or explicit hold)"
+        ),
+        "attribution": attribution,
+    }
+
+
+def stalled_premise_drift_diff(
+    row, queue_by_id, transitions_by_id, envelope_by_id=None
+):
     """Shared premise-drift classifier (issue #15, REQ-E2).
 
     Returns the stalled diff when the row's landing diff drifted from its
     authorized premise (hash mismatch or scope breach), or when the row
     carries an open authorization with no matching landing record — with
     premise-age attribution attached. Clean premises and rows declaring
-    no premise return None (stay quiet). Pure classification —
+    no premise return None (stay quiet) unless the opt-in REQ-E5
+    envelope-presence gate fires (a populated envelope_by_id lookup with
+    no envelope matching the premise; absent/empty lookup stays quiet).
+    Pure classification —
     propose-only (REQ-R2), no row state written, never done/complete/
     closed by this module. Both reconcile.py (via diff_row's tail) and
     generate_trackers.py (OTHER-arm carve-out, review-only render)
@@ -1015,7 +1087,11 @@ def stalled_premise_drift_diff(row, queue_by_id, transitions_by_id):
     uncovered = _scope_covers(premise["scope"], landing["paths"])
     drifted = landing["diff_hash"] != premise["diff_hash"]
     if not drifted and not uncovered:
-        return None
+        # Clean landing: REQ-E2 stays quiet by default; the opt-in REQ-E5
+        # presence gate fires only against a consulted (populated) lookup.
+        return stalled_envelope_absence_diff(
+            row, premise, landing, queue_evidence, envelope_by_id
+        )
     if drifted and uncovered:
         reason = (
             f"landing diff {landing['diff_hash']} drifted from authorized "
@@ -1063,13 +1139,18 @@ def render_diff(row, diff):
     attribution = diff.get("attribution")
     if isinstance(attribution, dict) and attribution.get("note"):
         lines.append(f"  attribution: {attribution['note']}")
-    # 81-seat-idle rework-1 (F3) + 15-auth-envelope (REQ-E2): the
-    # stalled-idle-park and stalled-premise-drift diffs route for human
-    # review — never a paste-ready cell. Render their review-routing
-    # proposals as SUGGESTED (not paste-ready): no PROPOSED-CELL marker
-    # and no "converged" queue-note suggestion (the row has not
-    # converged). Every other diff class keeps the existing output below.
-    if diff.get("class") in ("stalled-idle-park", "stalled-premise-drift"):
+    # 81-seat-idle rework-1 (F3) + 15-auth-envelope (REQ-E2/REQ-E5): the
+    # stalled-idle-park, stalled-premise-drift, and stalled-envelope-absence
+    # diffs route for human review — never a paste-ready cell. Render their
+    # review-routing proposals as SUGGESTED (not paste-ready): no
+    # PROPOSED-CELL marker and no "converged" queue-note suggestion (the
+    # row has not converged). Every other diff class keeps the existing
+    # output below.
+    if diff.get("class") in (
+        "stalled-idle-park",
+        "stalled-premise-drift",
+        "stalled-envelope-absence",
+    ):
         lines += [
             "  NEEDS-HUMAN-REVIEW: TPM decide; owner owns next action.",
             f"  SUGGESTED (not paste-ready): {diff['proposal']}",

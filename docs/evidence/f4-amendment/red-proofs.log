@@ -1,0 +1,86 @@
+# Red-proofs log — F4 amendment, REQ-E5 envelope-presence gating
+
+Refs #15, Refs #134 (never `Closes`). Fixtures only (`/tmp` scratch, dummy
+ids, dummy 16-hex diff hashes — never the live mission checkout, never real
+bearer material). Worktree `.lane/trees/f4-amendment`, branch
+`feat/f4-amendment` (from `main` 7644d9c).
+
+Green pins (patched tree):
+- `scripts/reconcile_model.py` sha256
+  `081987f95c4a63adb428b2cc1044f53951ff1582439e71d023ad913cfaf80626`
+- `scripts/reconcile.py` sha256
+  `042824b1da5b64e48559359e74792889fa0edc9eb18e661439027a2c2fd749c4`
+- `tests/test_auth_envelope.py` sha256
+  `5258c0bf5f19c64b17769f44cb81702935c14086f67f0b181bc1d369dbdd3968`
+- `TestEnvelopePresenceGating`: `Ran 11 tests OK` (38/38 whole file OK).
+
+## Probe R1 — presence check removed from the classifier (RED → GREEN)
+
+Sabotage: replaced the clean-landing tail
+
+    return stalled_envelope_absence_diff(
+        row, premise, landing, queue_evidence, envelope_by_id
+    )
+
+with `return None` (temporary file edit, green backup at
+`/tmp/opencode/f4-proof/reconcile_model.py.green`).
+
+Result RED: `python3 -m unittest
+tests.test_auth_envelope.TestEnvelopePresenceGating` →
+`Ran 11 tests, FAILED (failures=5)`. The 5 firing pins
+(`test_clean_landing_without_envelope_stalls_when_lookup_populated`,
+`test_mismatched_binding_fires`, both end-to-end flag tests, the
+anti-vacuity restore half) flip; the 6 quiet pins hold — the exact RED
+signature (clean-no-envelope fixture returns to silent).
+
+Restore: backup copied back byte-identical, sha256
+`081987f9…` confirmed above; re-run →
+`Ran 11 tests OK` (GREEN).
+
+## Probe R2 — lookup emptied at the call site (RED → GREEN)
+
+Sabotage: `scripts/reconcile.py` diff loop patched to
+`envelope_by_id=None` (backup at
+`/tmp/opencode/f4-proof/reconcile.py.green`).
+
+Fixture (synthetic `/tmp` tracker + queue + transitions + populated
+envelope index holding NO envelope for the row qitem), run with
+`--envelopes env.json`:
+
+Result RED: `reconcile: in sync — 1 rows across 1 tracker(s) agree with
+queue state.`, exit 0 (silent — the gap returns).
+
+Restore: backup copied back byte-identical, sha256 `042824b1…`
+confirmed; same fixture re-run → exit 1 with
+`DIFF [stalled-envelope-absence]`, reason `row carries a clean landing
+for premise aaaaaaaaaaaaaaaa but the consulted envelope registry holds
+no matching envelope (open authorization with no envelope bound)`,
+`attribution: premise age 720.0s at landing`, `NEEDS-HUMAN-REVIEW`,
+`SUGGESTED (not paste-ready)`, and no `PROPOSED-CELL:::` marker
+(GREEN).
+
+## Probe R3 — vacuity guard: pre-fix tree vs the new pins
+
+Method: `git show main:scripts/reconcile_model.py` +
+`git show main:scripts/reconcile.py` staged into place (worktree
+backups held), new pins run, then byte-identical restore (shas above).
+
+Result: `Ran 11 tests, FAILED (failures=2, errors=11)` — every firing
+pin fails or errors (the `envelope_by_id` keyword and
+`stalled-envelope-absence` class do not exist pre-fix), while the
+pre-existing E2 clean-quiet pins (`test_clean_premise_stays_quiet`,
+`test_reconcile_end_to_end_clean_quiet`) stay green on the same
+pre-fix tree. The gap was real, the corpus pins it, and no pin is
+vacuous: each RED signature above names the missing envelope-absence
+signal, and each GREEN restores on byte-identical files.
+
+Restore verified: both script shas match the green pins; new pins
+`Ran 11 tests OK`.
+
+## V33 relevance
+
+R1/R2/R3 each flip named pins RED and GREEN on byte-identical
+restores — there is NO sabotage that restores silence while the corpus
+stays green. Per `design.md` §5: no behavior gap the corpus cannot pin
+⇒ NO V33 appended (decision recorded in
+`docs/reports/f4-amendment-implementation.md`).

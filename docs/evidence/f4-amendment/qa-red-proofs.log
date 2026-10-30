@@ -1,0 +1,143 @@
+# QA red-proofs log — Wave 5 F4 amendment (`f4-amendment`), independent verification
+
+QA seat, worktree `.lane/trees/f4-amendment`, branch `feat/f4-amendment`,
+HEAD `732083b`. Refs #15, Refs #134 (never Closes). Fixtures only
+(`/tmp/f4qa-r1`, `/tmp/f4qa-r2`, `/tmp/f4qa-r3` scratch; dummy ids, dummy
+16-hex hashes). The worktree was NEVER modified by QA: every sabotage ran
+in a `/tmp` scratch copy; `git status --short` in the worktree stayed
+empty throughout (verified before and after each probe). This file is the
+QA-owned companion to `red-proofs.log` (implementer-owned — NOT
+overwritten).
+
+Baseline (unmodified tree, all green before any probe):
+- `make test` → `Ran 645 tests OK` (112s)
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+  0 failed`, no V33 block present
+- `openspec validate 2026-10-29-f4-amendment` → valid, rc=0
+- `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`
+- `python3 scripts/generate-rigs.py --check-idempotent` → `idempotence
+  check passed (two consecutive runs byte-identical)`, rc=0; left the
+  documented environmental side-effects (registry re-lag + hermetic-mode
+  drift in `registry/ rigs/ specs/ fleet/`), reverted with
+  `git checkout -- registry rigs specs fleet` → `git status --short`
+  empty. Determinism proof (two runs identical) + confinement to
+  generated leaves + zero generator-input changes by the wave ⇒ drift is
+  environmental, not wave-caused. No ALLOW_DIRTY used.
+- `git diff main...HEAD --name-only` → exactly the allowlisted set
+  (`AGENTS.md`, `docs/evidence/f4-amendment/red-proofs.log`,
+  `docs/reports/f4-amendment-implementation.md`,
+  `openspec/changes/2026-10-29-f4-amendment/{design,proposal,tasks}.md` +
+  `specs/auth-envelope/spec.md`, `scripts/reconcile.py`,
+  `scripts/reconcile_model.py`, `tests/test_auth_envelope.py`); guarded
+  paths `fleet/ specs/ rigs/ rosters/ registry/ archive/ openspec/specs/`
+  empty in the diff.
+- `tests/test_auth_envelope.py` diff: +281/-0 append-only.
+- REQ-E2 intact: both green pins
+  `TestPremiseDriftClassification.test_clean_premise_stays_quiet` and
+  `.test_reconcile_end_to_end_clean_quiet` pass unmodified (2 tests OK);
+  REQ-E2 spec text untouched (no diff under `openspec/specs/`).
+- `TestEnvelopePresenceGating`: 11/11 OK on the pristine tree.
+
+## QA Probe Q-R1 — presence check removed (scratch, RED reproduces log R1)
+
+Method: copied `scripts/reconcile_model.py` + `scripts/reconcile.py` +
+`tests/test_auth_envelope.py` to `/tmp/f4qa-r1/{scripts,tests}/`
+(REPO_ROOT-relative loading preserved); replaced the clean-landing tail
+`return stalled_envelope_absence_diff(row, premise, landing,
+queue_evidence, envelope_by_id)` with `return None`.
+
+Result RED: `python3 -m unittest
+tests.test_auth_envelope.TestEnvelopePresenceGating` →
+`Ran 11 tests, FAILED (failures=5)` — identical count to log R1. Failing
+set observed: `test_clean_landing_without_envelope_stalls_when_lookup_populated`,
+`test_mismatched_binding_fires`,
+`test_envelope_absence_attribution_is_report_only`,
+`test_reconcile_end_to_end_envelopes_flag`,
+`test_presence_check_removal_is_silent` (restore half); the 6 quiet pins
+hold. NOTE (minor doc imprecision, see Finding F2): the log's
+parenthetical names "both end-to-end flag tests" among the five; observed
+is ONE end-to-end flag test plus the attribution report-only pin (the
+matching-envelope-quiet e2e test correctly holds as a quiet pin). Count
+(5) and signature (clean-no-envelope returns to silent) reproduce exactly.
+
+Worktree untouched: sabotage existed only at
+`/tmp/f4qa-r1/scripts/reconcile_model.py:1092`.
+
+## QA Probe Q-R2 — lookup emptied at the call site (scratch, RED reproduces log R2)
+
+Method: synthetic fixture in `/tmp/f4qa-r2/` (tracker + queue +
+transitions + populated `env-populated.json` holding NO envelope for the
+row qitem); ran pristine worktree `scripts/reconcile.py --envelopes` and
+a scratch copy `/tmp/f4qa-r2/sab/scripts/` with the diff loop patched to
+`envelope_by_id=None`.
+
+Result GREEN (pristine): exit 1, `DIFF [stalled-envelope-absence]`,
+reason `row carries a clean landing for premise aaaaaaaaaaaaaaaa but the
+consulted envelope registry holds no matching envelope (open
+authorization with no envelope bound)`, `attribution: premise age 720.0s
+at landing`, `NEEDS-HUMAN-REVIEW`, `SUGGESTED (not paste-ready)`, no
+`PROPOSED-CELL:::` marker — matches log R2 verbatim.
+Result RED (sabotaged copy): `reconcile: in sync — 1 rows across 1
+tracker(s) agree with queue state.`, exit 0 (silent — the gap returns).
+
+Q-R2b (corpus pins the call site — V33-relevant): same one-line
+call-site sabotage applied to the `/tmp/f4qa-r1` scratch tree, then the
+two end-to-end tests run there: `Ran 2 tests, FAILED (failures=1)` —
+`test_reconcile_end_to_end_envelopes_flag` flips (exit 0 ≠ 1) while the
+matching-quiet e2e holds. So R2's RED has a named corpus pin; dropping
+the lookup cannot outrun the corpus either.
+
+## QA Probe Q-R3 — vacuity guard: pre-fix tree vs the new pins (reproduces log R3)
+
+Method: `/tmp/f4qa-r3/` with `git show main:scripts/reconcile_model.py`
++ `git show main:scripts/reconcile.py` and the current test file.
+
+Result: `Ran 11 tests, FAILED (failures=2, errors=11)` — byte-identical
+signature to log R3 (subtests inflate the error count past the test
+count; the two FAILs are the end-to-end tests whose `--envelopes` flag
+does not exist pre-fix). Same pre-fix tree:
+`TestPremiseDriftClassification.test_clean_premise_stays_quiet` +
+`.test_reconcile_end_to_end_clean_quiet` → `Ran 2 tests OK` (E2 holds
+pre-fix — the gap was real, the corpus pins it, no pin vacuous).
+
+## Judge answers
+
+(a) V33 absence is RIGHT. Per `design.md` §5, V33 appends only if a
+sabotage restores silence while the corpus stays green. Q-R1, Q-R2/Q-R2b,
+Q-R3 each flip named pins RED with GREEN on pristine files; no
+silence-with-green-corpus direction exists. `verify-rigs.sh` correctly
+stays at 39/0 with V31 last and V1–V31 unrenumbered.
+(b) Default-empty lookup preserves clean-quiet in ALL CLI paths
+(verified on pristine `reconcile.py` with the Q-R2 fixture):
+`{}` envelopes file → exit 0 in sync; no `--envelopes` flag → exit 0;
+non-dict envelopes file → exit 2 `UNPARSEABLE ENVELOPES (expected a JSON
+object)` fail-closed; matching envelope → exit 0. `if not
+envelope_by_id: return None` covers both `None` and `{}` at the single
+gate; no path bypasses it (the clean-landing tail is the only caller).
+(c) Report accuracy: all command/output claims re-verified above EXCEPT
+two minor notes recorded as Findings F1 (secret-sweep `⇒ empty`
+overstates the literal grep output — substance holds, see F1) and F2
+(R1 parenthetical mislabels one of the five failing pins — count and
+signature exact).
+
+## Findings
+
+F1 (MINOR, informational — not a FAIL): implementation report §Validation
+claims `grep -rE '[A-Za-z0-9_-]{40,}' docs/evidence/f4-amendment/ ⇒
+empty`; the literal command returns 4 hits (3 sha256 restore pins +
+1 long test identifier). Substance holds: the three 64-hex strings are
+one-way digests of committed public source files (independently
+re-verified by QA: `sha256sum` of all three files matches the log pins
+exactly — corroborating the byte-identical restore claims), the fourth
+is a test-method name; no bearer material, fixtures stay dummy/16-hex.
+Recommend rewording to "no secret-shaped bearer material (only sha256
+restore pins + long identifiers)".
+F2 (MINOR, informational — not a FAIL): `red-proofs.log` R1
+parenthetical lists "both end-to-end flag tests" among the 5 failures;
+QA-observed 5th-set member is the attribution report-only pin (the
+second e2e test is a quiet pin and correctly holds). Count (5),
+signature, and restore behavior reproduce exactly; enumeration only.
+
+No FAIL-grade findings. No vacuous checks (every acceptance check was
+forced RED by a minimal targeted sabotage and restored GREEN).
+Worktree left clean: `git status --short` empty; nothing committed.

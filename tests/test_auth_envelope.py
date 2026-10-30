@@ -806,5 +806,286 @@ class TestEnvelopeMintValidate(unittest.TestCase):
         self.assertEqual(outcome.get("dismissal"), "permitted")
 
 
+class TestEnvelopePresenceGating(unittest.TestCase):
+    """REQ-E5: opt-in envelope-presence gating on a consulted registry.
+
+    A clean landing (hash identical, paths in scope) stalls with the
+    stalled-envelope-absence class IFF a populated envelope lookup holds
+    no envelope matching the row's premise. Absent/empty lookup and a
+    matching envelope stay quiet (REQ-E2 clean-quiet preserved). Fixtures
+    only: dummy ids, dummy 16-hex hashes, /tmp scratch.
+    """
+
+    def clean_row(self):
+        return {
+            "file": "t.md",
+            "line": 1,
+            "slice": "S02",
+            "qitem": PARENT,
+            "status": PREMISE_STATUS,
+        }
+
+    def clean_queue(self):
+        return {PARENT: {"qitemId": PARENT, "state": "in-progress"}}
+
+    def clean_trans(self):
+        return {
+            PARENT: [
+                {
+                    "transitionId": 62,
+                    "state": "in-progress",
+                    "transitionNote": landing_note(
+                        diff_hash=PREMISE_HASH, paths="src/include/hash.h"
+                    ),
+                    "ts": LANDING_TS,
+                },
+            ]
+        }
+
+    def test_clean_landing_without_envelope_stalls_when_lookup_populated(
+        self,
+    ):
+        """REQ-E5 fires: clean landing, populated lookup, no envelope -> stalled."""
+        model = load_model()
+        lookup = {
+            "qitem-20261020100009-ffffffffffffffff": {"premise_hash": PREMISE_HASH}
+        }
+        diff = model.stalled_premise_drift_diff(
+            self.clean_row(),
+            self.clean_queue(),
+            self.clean_trans(),
+            envelope_by_id=lookup,
+        )
+        self.assertIsNotNone(diff)
+        self.assertEqual(diff["class"], "stalled-envelope-absence")
+        self.assertIn("envelope", diff["reason"])
+        self.assertIn("premise age", diff["attribution"]["note"])
+        self.assertEqual(diff["attribution"]["premise_age_s"], 720)
+
+    def test_quiet_when_lookup_absent(self):
+        """REQ-E5 quiet: no lookup passed -> default preserves clean-quiet."""
+        model = load_model()
+        self.assertIsNone(
+            model.stalled_premise_drift_diff(
+                self.clean_row(), self.clean_queue(), self.clean_trans()
+            )
+        )
+
+    def test_quiet_when_lookup_empty(self):
+        """REQ-E5 quiet: an empty (unconfigured) lookup never gates."""
+        model = load_model()
+        self.assertIsNone(
+            model.stalled_premise_drift_diff(
+                self.clean_row(),
+                self.clean_queue(),
+                self.clean_trans(),
+                envelope_by_id={},
+            )
+        )
+
+    def test_quiet_when_matching_envelope_present(self):
+        """REQ-E5 quiet: lookup holds an envelope bound to the premise hash."""
+        model = load_model()
+        for record in (
+            {"premise_hash": PREMISE_HASH},
+            {"diff_hash": PREMISE_HASH},
+            {"nonce": "dummy-nonce-00000001"},
+        ):
+            with self.subTest(record=record):
+                self.assertIsNone(
+                    model.stalled_premise_drift_diff(
+                        self.clean_row(),
+                        self.clean_queue(),
+                        self.clean_trans(),
+                        envelope_by_id={PARENT: record},
+                    )
+                )
+
+    def test_mismatched_binding_fires(self):
+        """REQ-E5 fires: lookup entry bound to another premise is no envelope."""
+        model = load_model()
+        diff = model.stalled_premise_drift_diff(
+            self.clean_row(),
+            self.clean_queue(),
+            self.clean_trans(),
+            envelope_by_id={PARENT: {"premise_hash": LANDING_HASH}},
+        )
+        self.assertIsNotNone(diff)
+        self.assertEqual(diff["class"], "stalled-envelope-absence")
+
+    def test_drifted_row_keeps_e2_class_without_lookup(self):
+        """REQ-E5 changes nothing for drift: E2 stall stands, lookup or not."""
+        model = load_model()
+        row = self.clean_row()
+        queue_by_id = self.clean_queue()
+        trans = {
+            PARENT: [
+                {
+                    "transitionId": 62,
+                    "state": "in-progress",
+                    "transitionNote": landing_note(),
+                    "ts": LANDING_TS,
+                },
+            ]
+        }
+        for lookup in (None, {}, {"other": {"premise_hash": PREMISE_HASH}}):
+            with self.subTest(lookup=lookup):
+                kwargs = {} if lookup is None else {"envelope_by_id": lookup}
+                diff = model.stalled_premise_drift_diff(
+                    row, queue_by_id, trans, **kwargs
+                )
+                self.assertIsNotNone(diff)
+                self.assertEqual(diff["class"], "stalled-premise-drift")
+
+    def test_envelope_absence_attribution_is_report_only(self):
+        """REQ-E5: gating computes attribution from fixtures, writes nothing."""
+        model = load_model()
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp)
+            before = Path(tracker).read_bytes()
+            qlist, trans = write_queue(
+                tmp, landing_note(diff_hash=PREMISE_HASH, paths="src/include/hash.h")
+            )
+            qlist_before = Path(qlist).read_bytes()
+            trans_before = Path(trans).read_bytes()
+            lookup = {
+                "qitem-20261020100009-ffffffffffffffff": {"premise_hash": PREMISE_HASH}
+            }
+            diff = model.stalled_premise_drift_diff(
+                self.clean_row(),
+                self.clean_queue(),
+                self.clean_trans(),
+                envelope_by_id=lookup,
+            )
+            self.assertIsNotNone(diff)
+            self.assertEqual(diff["attribution"]["premise_age_s"], 720)
+            self.assertEqual(Path(tracker).read_bytes(), before)
+            self.assertEqual(Path(qlist).read_bytes(), qlist_before)
+            self.assertEqual(Path(trans).read_bytes(), trans_before)
+
+    def test_reconcile_end_to_end_envelopes_flag(self):
+        """REQ-E5 through reconcile: --envelopes without a match -> exit 1."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp)
+            qlist, trans = write_queue(
+                tmp, landing_note(diff_hash=PREMISE_HASH, paths="src/include/hash.h")
+            )
+            env_path = str(Path(tmp) / "envelopes.json")
+            Path(env_path).write_text(
+                json.dumps(
+                    {
+                        "qitem-20261020100009-ffffffffffffffff": {
+                            "premise_hash": PREMISE_HASH
+                        }
+                    }
+                )
+            )
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--envelopes",
+                env_path,
+            )
+            self.assertEqual(proc.returncode, 1, proc.stdout + proc.stderr)
+            self.assertIn("stalled-envelope-absence", proc.stdout)
+            self.assertIn("NEEDS-HUMAN-REVIEW", proc.stdout)
+            self.assertNotIn("PROPOSED-CELL:::", proc.stdout)
+            # Same fixtures without the flag stay quiet (E2 clean-quiet).
+            proc = run_reconcile(
+                "--tracker", tracker, "--queue-list", qlist, "--transitions", trans
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertIn("in sync", proc.stdout)
+
+    def test_reconcile_end_to_end_matching_envelope_quiet(self):
+        """REQ-E5 through reconcile: --envelopes with a match -> exit 0."""
+        with tempfile.TemporaryDirectory() as tmp:
+            tracker = write_tracker(tmp)
+            qlist, trans = write_queue(
+                tmp, landing_note(diff_hash=PREMISE_HASH, paths="src/include/hash.h")
+            )
+            env_path = str(Path(tmp) / "envelopes.json")
+            Path(env_path).write_text(
+                json.dumps({PARENT: {"premise_hash": PREMISE_HASH}})
+            )
+            proc = run_reconcile(
+                "--tracker",
+                tracker,
+                "--queue-list",
+                qlist,
+                "--transitions",
+                trans,
+                "--envelopes",
+                env_path,
+            )
+            self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+            self.assertIn("in sync", proc.stdout)
+
+    def test_presence_check_removal_is_silent(self):
+        """Anti-vacuity pin: killing the presence check restores silence.
+
+        Proves the suite is non-vacuous: if the classifier ever stops
+        consulting the envelope lookup, this test (and the end-to-end
+        above) flips — sabotage cannot outrun the corpus.
+        """
+        model = load_model()
+        lookup = {
+            "qitem-20261020100009-ffffffffffffffff": {"premise_hash": PREMISE_HASH}
+        }
+        with mock.patch.object(
+            model, "stalled_envelope_absence_diff", return_value=None
+        ):
+            self.assertIsNone(
+                model.diff_row(
+                    self.clean_row(),
+                    self.clean_queue(),
+                    self.clean_trans(),
+                    envelope_by_id=lookup,
+                ),
+                "with the presence check disabled the clean unenveloped row "
+                "must go silent (RED direction of the R1 red-proof)",
+            )
+        self.assertIsNotNone(
+            model.diff_row(
+                self.clean_row(),
+                self.clean_queue(),
+                self.clean_trans(),
+                envelope_by_id=lookup,
+            )
+        )
+
+    def test_no_commit_surface_in_presence_path(self):
+        """REQ-E3 pinning: the presence path owns no executor or committer.
+
+        Scoped to the NEW presence helper (the module's pre-existing
+        `run_rig` read-only queue fetcher is allow-listed to
+        `queue list/transitions --json` and untouched by this change):
+        stripping docstrings/comments from the helper source must leave
+        no executor, shell, or commit call behind.
+        """
+        import inspect
+
+        model = load_model()
+        source = inspect.getsource(model.stalled_envelope_absence_diff)
+        code = re.sub(r'""".*?"""', "", source, flags=re.DOTALL)
+        code = "\n".join(line.split("#", 1)[0] for line in code.splitlines())
+        for marker in (
+            "subprocess",
+            "os.system",
+            "os.exec",
+            "os.popen",
+            "check_output",
+            ".commit(",
+            "auto-commit",
+            "self-execut",
+        ):
+            self.assertNotIn(marker, code)
+        self.assertIn("never", source.lower())
+
+
 if __name__ == "__main__":
     unittest.main()
