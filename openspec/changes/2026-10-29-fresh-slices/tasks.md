@@ -24,9 +24,8 @@
   slice, ≤6 launches (3 workers + 3 fresh-relaunch spares); abort on first
   RED ; outcome: 3 rows pending/cold, base e5cd3d6, 0 launches used, no RED (runbook §2)
 - [x] Join: per-slice proofs + integration commit (none green until join);
-  failed slice pins base, no mid-exercise rebase — UNCHECKED: proofs filed
-  (join.json) but the integration commit hash exists only after the
-  coordinator commits; join-row deviation disclosed in runbook §4; outcome: integration close-out = commit 67cae8d (proofs + join.json + metrics + #18 report in one commit; close-out PR to follow)
+  failed slice pins base, no mid-exercise rebase — proofs filed
+  (join.json); join-row deviation disclosed in runbook §4; outcome: integration close-out = commit 67cae8d (proofs + join.json + metrics + #18 report in one commit; close-out PR to follow)
 - [x] #17 metrics captured, first-degrading metric named (claim latency,
   stuck-sweep volume, snapshot cost, daemon responsiveness, ACTIVE/queue
   samples) ; outcome: "none degraded in this run" + watched-candidate

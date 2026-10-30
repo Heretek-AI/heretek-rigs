@@ -76,10 +76,11 @@ preserved as `proof-{a,b,c}.json`).
 - All three slices GREEN; none cited green until this join (REQ-F1).
 - Base SHAs: all `e5cd3d6`. No failures → failure-isolation rule untested
   but armed; no mid-exercise rebase (none performed, none needed).
-- Integration commit: DEFERRED to coordinator — the Stage-B agent does not
-  commit (explicit bound), so no commit hash is invented here. `join.json`
-  records per-slice proof hashes + the deferral; the close-out commit lands
-  with the coordinator's PR.
+- Integration commit: 67cae8d `feat(fresh-slices): Stage B joint exercise,
+  metrics, #18 report` — value filled at close-out (was DEFERRED pre-commit;
+  the Stage-B agent does not commit, so the hash was recorded, not invented,
+  once the coordinator committed). `join.json` records per-slice proof
+  hashes + the close-out hash.
 - Join artifact: `docs/evidence/fresh-slices-2026-10-29/join.json`.
 
 ### Join-row deviation note (disclosure, not edit)

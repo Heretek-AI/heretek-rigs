@@ -73,8 +73,8 @@ synthetic rows only; abort-on-first-RED armed, never triggered.
   stalled-after-claim 7 (pre-existing, untouched); C ps reads 0.52–0.63 s,
   51/51 idle, 12 WORK rows (others', untouched). Proofs filed as
   `proof-{a,b,c}.json` (sha256 in `join.json`).
-- Join: `join.json` — all green at join, no rebase; integration commit
-  DEFERRED to coordinator (Stage-B agent does not commit; no hash invented).
+- Join: `join.json` — all green at join, no rebase; integration close-out =
+  commit 67cae8d (value filled at close-out; was DEFERRED pre-commit).
 - #17: full series in `metrics.log` — first-degrading metric: **none
   degraded** (ranges recorded); true seat-claim latency unobservable
   by design (recorded with reason, not invented); stuck-sweep 0
