@@ -1,0 +1,10 @@
+LIVE-HEALTH WARN (advisory, exit 0): breaching rows/seats listed below; warn-first, not yet failing
+effective thresholds: T_pickup_min=15, T_stuck_min=30, T_undelivered_min=15, T_hb_mult=3
+[PASS] pickup: all claimed rows progressed within T_pickup=15m
+[PASS] stuck-overdue: no overdue rows past grace T_stuck=30m | histogram: <=T_stuck(30m)=0, T_stuck-2xT(30m-60m)=0, >2xT(>60m)=0
+[PASS] undelivered: no undelivered rows beyond grace T_undelivered=15m
+[WARN] heartbeat: stale/missing heartbeat: build-ts-node-fullstack@heretek-omni-fleet (age-unknown), delivery-tpm-scrum-lead@heretek-omni-fleet (age-unknown), design-a11y-specialist@heretek-omni-fleet (age-unknown), design-ui-ux-designer@heretek-omni-fleet (age-unknown), design-ux-research-analyst@heretek-omni-fleet (age-unknown)
+[WARN] seat-idleness: idle-at-prompt holders of claimed rows: build-ts-node-fullstack@heretek-omni-fleet, delivery-tpm-scrum-lead@heretek-omni-fleet, design-a11y-specialist@heretek-omni-fleet, design-ui-ux-designer@heretek-omni-fleet, design-ux-research-analyst@heretek-omni-fleet
+[WARN] tool-provisioning: 7 missing host tool artifact(s) of 23 checked: chrome-devtools:/home/john/.local/share/heretek-rigs/tools/mcp/node_modules/.bin/chrome-devtools-mcp, kubernetes:/home/john/.local/share/heretek-rigs/tools/mcp/node_modules/.bin/kubernetes-mcp-server, memory:/home/john/.local/share/heretek-rigs/tools/mcp/node_modules/.bin/mcp-server-memory, mobile:/home/john/.local/share/heretek-rigs/tools/mcp/node_modules/.bin/mcp-server-mobile, openapi:/home/john/.local/share/heretek-rigs/tools/mcp/node_modules/.bin/mcp-openapi-schema-explorer, playwright:/home/john/.local/share/heretek-rigs/tools/mcp/node_modules/.bin/playwright-mcp, radare2:/home/john/.local/share/heretek-rigs/tools/bin/r2mcp
+[WARN] seat-shell-paths: dangling seat paths: build-java-kotlin-eng@heretek-omni-fleet shell_path-><repo-root>/.lane/trees/fleet-proofs/scripts/seat-sandbox.sh; build-python-backend-spec@heretek-omni-fleet shell_path-><repo-root>/.lane/trees/fleet-proofs/scripts/seat-sandbox.sh
+sources: 7 ok, 0 skipped
