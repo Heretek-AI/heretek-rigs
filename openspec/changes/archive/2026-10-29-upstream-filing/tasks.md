@@ -35,5 +35,5 @@
       diffs)
 - [x] Negative check stated in stage report (all upstream interactions
       GETs, listed; zero filed) for QA re-verification
-- [ ] Triad → `VERDICT: PASS` before any PR (Refs #127, Refs #80,
-      Refs #11 — never Closes)
+- [x] Triad → `VERDICT: PASS` before any PR (Refs #127, Refs #80,
+      Refs #11 — never Closes); outcome: agency-qa PASS (red-proofs.log) + agency-drift-guard VERDICT: PASS (upstream-filing-verification.md), both committed pre-merge
