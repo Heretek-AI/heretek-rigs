@@ -1,0 +1,101 @@
+# seat-race metrics.log — #17 telemetry across the race window (all UTC)
+
+Window 1 (round 1, synthetic destinations): opened 2026-10-30T15:05:22.836Z
+(last of 4 sends, all rc=0). Rows unclaimable-by-design (destinations
+matched no live seat); racers refused with claim_destination_mismatch.
+Window 2 (round 2, addressed rows): fallbacks 15:13:59.927Z (R1->B) and
+~15:14:05.907Z (R2->C); opened 2026-10-30T15:14:29.797Z (last of 4 sends,
+all rc=0). Base SHA 2b3999b pinned throughout, no rebase.
+
+## Claim-latency series (authoritative: queue transition log)
+
+R1 qitem-20261030145926-b82354bc9dce4899 (tsCreated 14:59:26.596Z):
+- claimed 15:14:13.987Z by blue-compliance-auditor@heretek-omni-fleet
+  (transition 1535, actor = seat identity, in-progress).
+- tsCreated -> claimed: 887.391 s, of which 873.331 s unclaimable
+  (synthetic destination; round-1 design falsified, see runbook).
+- fallback-routed (15:13:59.927Z) -> claimed: 14.060 s. This is the
+  claim-latency point: time-to-claim once claimable.
+- window-open-2 (15:14:29.797Z) -> claimed: -15.8 s (claimed BEFORE the
+  round-2 prompt; B acted on the fallback/watchdog wake with its standing
+  round-1 instructions — prompted by reroute, not by re-send).
+
+R2 qitem-20261030145928-4779d07d4c7fdf1c (tsCreated 14:59:28.922Z):
+- claimed 15:14:31.658Z by data-dba-specialist@heretek-omni-fleet
+  (transition 1536, actor = seat identity, in-progress).
+- tsCreated -> claimed: 902.736 s, of which 876.985 s unclaimable.
+- fallback-routed (15:14:05.907Z) -> claimed: 25.751 s.
+- round-2 send to C (15:14:27.609Z) -> claimed: 4.049 s (LLM action
+  latency once prompted).
+
+Claim-latency distribution (once-claimable basis): {R1: 14.1 s, R2: 25.8 s}
+(n=2). Spread is LLM-seat action variance, not daemon variance.
+
+## Loser receipts (refused claims)
+
+Round 1 (all claim_destination_mismatch, rc=1, synchronous error JSON):
+- A (blue-cloud-sec-auditor): R1 refused -> STOPPED-RED per round-1 abort
+  rule (2b unattempted, marked UNVERIFIED then).
+- B (blue-compliance-auditor): R1 refused, R2 refused; self-check ok.
+- C (data-dba-specialist): R1 refused, R2 refused; self-check ok.
+Round 2 (claim_destination_mismatch; destination check precedes state
+check — R1 already B-held still reports mismatch to A, not
+already-claimed):
+- A: R1 refused, R2 refused; self-check ok; RED=none (completed).
+- D: no attempts (diagnostic only, instructed).
+Refusal latency: synchronous within the claim command round-trip for all
+7 attempts. Racers cannot timestamp (no `date` under seat policy), so
+refusal latency is unobservable-with-reason at sub-command granularity;
+bounded above by operator-side daemon round-trips below.
+
+## Watchdog / stuck-sweep behavior
+
+- 15:14:08.535Z watchdog reserved parked-owner wake for B on R1
+  (transition 1534, post-fallback); delivered 15:16:09.020Z (transition
+  1537), AFTER B's 15:14:13 claim — redundant but harmless; no duplicate
+  delivery, no row disturbance. Watchdog ACTIVE and correct during race.
+- queue-stuck-sweep:unclaimed backstop (due 15:59:26Z on R1) never fired:
+  rows claimed at 15:14Z. Correct non-firing.
+- `rig queue overdue --json` mid-window: [] (0 rows overdue; 0 attributable
+  to the exercise).
+- Mid-window queue: 100 rows (done 74, blocked 13, in-progress 9 incl. our
+  2, handed-off 4). Post-exercise: 100 rows (done 76, blocked 13,
+  in-progress 7, handed-off 4) — baseline shape restored, zero residue.
+
+## Snapshot cost (operator-side, mid-window wall-clock)
+
+- `rig queue list --json -a`: 0.376 s.
+- `rig ps --nodes -A`: 0.654 s.
+- `rig queue overdue --json`: 0.239 s.
+Racer-side samples (`rig queue list`, `rig ps --nodes`, bare): all rc=0,
+no timeouts reported by any racer. Snapshot cost sub-second and stable.
+
+## Daemon responsiveness
+
+Every operator command across the window rc=0 with sub-second latency
+(2 creates, 6 launches, 8 sends, 2 fallbacks, 2 closes + 1 fail-closed
+close, reads). Every racer command rc=0 except policy-denied builtins and
+the 7 expected claim refusals. No 400s, no timeouts, no stale-resume
+events (Wave-2 F2 path not needed; 0 of 2 spares... spares used for
+shellPath casualties instead, 6/6 launches total).
+
+## ACTIVE / queue-depth samples (idle classification)
+
+- Kickoff: 51 run/idle, 0 ACTIVE racers; fleet correctly-idle.
+- Mid-window: racers B/C acting (claims land 15:14:13/15:14:31Z);
+  fleet seats untouched, no eligible unclaimed work for fleet seats.
+- Post: 51 run, 50 idle + racer C `working` (settling post-report);
+  zero dead/down. Correctly-idle throughout; no spuriously-idle
+  (no eligible work unclaimed — synthetic rows were addressed and
+  claimed within ~26 s of becoming claimable).
+
+## First-degrading metric
+
+NONE DEGRADED IN THIS RUN. Observed ranges: claim-once-claimable 14.1 /
+25.8 s; refusals synchronous; snapshots 0.24–0.65 s stable; watchdog
+active with one redundant-but-harmless wake; daemon responsive on all
+~25 operator commands; 51/51 correctly-idle-or-engaged.
+Watched-candidate projection (labeled, not observed): CLAIM LATENCY —
+the 14.1 s vs 25.8 s spread is pure LLM-seat action variance (prompt
+delivery to tmux, model turn latency); under higher racer concurrency
+that variance dominates first, before any daemon-side metric moves.

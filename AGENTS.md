@@ -78,3 +78,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `openspec/changes/2026-10-29-fresh-slices/` — wave 3 spec: bounded #16+#17 joint live exercise (Stage B, Refs-only) + costed #18 report (Refs #16, Refs #17, Refs #18).
 - `openspec/changes/2026-10-29-upstream-filing/` — wave 4 spec: three upstream draft bodies, PREPARE-ONLY (Refs #127, Refs #80, Refs #11 — never Closes; zero filed without per-issue approval).
 - `openspec/changes/2026-10-29-f4-amendment/` — wave 5 spec: F4 envelope-presence gating as new REQ-E5 (amendment-first; REQ-E2 intact) + opt-in classifier/lookup + corpus pins (Refs #15, Refs #134 — never Closes; fixtures-only, no V33).
+- `openspec/changes/2026-10-30-seat-race/` — seat-race live exercise for #140 (4 racers/2 synthetic rows, claim-mismatch + shellPath findings; Refs #16, Refs #17, Refs #140 — never Closes).
