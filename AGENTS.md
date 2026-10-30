@@ -77,3 +77,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `docs/sprints/CLI-0.7.5-BUMP.md` — wave `2026-10-29-bump-075` ledger: host toolchain `@openrig/cli@0.7.5` (tarball sha256 `22d67c2c…`), 8 true-pin files, zero generator-input changes.
 - `openspec/changes/2026-10-29-fresh-slices/` — wave 3 spec: bounded #16+#17 joint live exercise (Stage B, Refs-only) + costed #18 report (Refs #16, Refs #17, Refs #18).
 - `openspec/changes/2026-10-29-upstream-filing/` — wave 4 spec: three upstream draft bodies, PREPARE-ONLY (Refs #127, Refs #80, Refs #11 — never Closes; zero filed without per-issue approval).
+- `openspec/changes/2026-10-29-f4-amendment/` — wave 5 spec: F4 envelope-presence gating as new REQ-E5 (amendment-first; REQ-E2 intact) + opt-in classifier/lookup + corpus pins (Refs #15, Refs #134 — never Closes; fixtures-only, no V33).

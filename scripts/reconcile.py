@@ -11,7 +11,7 @@ a tracker or any queue state (REQ-R2); applying all approved proposals is
 checkable by re-running to an "in sync" empty diff (REQ-R3).
 
 Usage:
-  reconcile.py --tracker PATH [--tracker PATH...] --queue-list FILE --transitions FILE [--out FILE]
+  reconcile.py --tracker PATH [--tracker PATH...] --queue-list FILE --transitions FILE [--envelopes FILE] [--out FILE]
   reconcile.py --tracker PATH [--tracker PATH...] --live [--rig-bin BIN] [--rig NAME | --all] [--out FILE]
 
   --queue-list is a file holding `rig queue list --json` output (a JSON list
@@ -71,6 +71,10 @@ def main(argv=None):
     parser.add_argument("--tracker", action="append", required=True)
     parser.add_argument("--queue-list", default=None)
     parser.add_argument("--transitions", default=None)
+    parser.add_argument(
+        "--envelopes",
+        default=None,
+    )
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--rig-bin", default="rig")
     parser.add_argument("--rig", default=None)
@@ -122,10 +126,21 @@ def main(argv=None):
                 )
             queue_by_id = {e.get("qitemId"): e for e in qlist if isinstance(e, dict)}
             transitions_by_id = trans
+        if args.envelopes:
+            envelopes = load_json_file(args.envelopes, "ENVELOPES")
+            if not isinstance(envelopes, dict):
+                raise ReconcileError(
+                    f"UNPARSEABLE ENVELOPES '{args.envelopes}' (expected a JSON object)"
+                )
+            envelope_by_id = envelopes
+        else:
+            envelope_by_id = None
 
         diffs = []
         for row in rows:
-            diff = diff_row(row, queue_by_id, transitions_by_id)
+            diff = diff_row(
+                row, queue_by_id, transitions_by_id, envelope_by_id=envelope_by_id
+            )
             if diff is not None:
                 diffs.append(render_diff(row, diff))
         if diffs:
