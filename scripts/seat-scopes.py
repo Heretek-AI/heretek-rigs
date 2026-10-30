@@ -51,6 +51,9 @@ blank conversation; queue rows and seat identity are kept.
 `*` in a glob also matches `/`, so `src/*` covers `src/a/b.c`. Rows marked
 read-only charter write reports only; they do not author code.
 
+In `heretek-omni-fleet` a seat keeps the name below (`<seat>@heretek-omni-fleet`),
+except the command pod: {command}.
+
 | Seat | Rig | Writable (relative to the workspace) |
 |---|---|---|
 """
@@ -59,6 +62,11 @@ read-only charter write reports only; they do not author code.
 def render() -> str:
     fleet = yaml.safe_load(FLEET.read_text())
     roles = fleet["roles"]
+    core = fleet["omni"]["core_pod"]
+    command = ", ".join(
+        f"`{core['id']}-{m}` uses the `{roles[m]['session'].split('@', 1)[0]}` row"
+        for m in core["members"]
+    )
     rows = []
     for rid, role in sorted(roles.items(), key=lambda kv: (kv[1]["rig"], kv[0])):
         seat = role["session"].split("@", 1)[0]
@@ -67,7 +75,7 @@ def render() -> str:
         if role.get("readonly_charter"):
             scope += " (read-only charter)"
         rows.append(f"| `{seat}` | {role['rig']} | {scope} |\n")
-    return HEADER + "".join(rows)
+    return HEADER.format(command=command) + "".join(rows)
 
 
 def main() -> int:

@@ -264,7 +264,7 @@ address and identity are kept.
 python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only
 
 # Charter, model, MCP or skill change: re-seed, then relaunch only the
-# affected seat. Check it is idle first (rig ps --nodes --json); a fresh
+# affected seat. Check it is idle first (rig ps --nodes --json --rig <rig>); a fresh
 # launch starts a blank conversation.
 python3 scripts/seed-rig.py rigs/<rig>/rig.yaml        # or members/<role>.yaml --rig <rig> --pod <pod>
 rig seat launch <seat> --fresh --stop --reason "refresh: <change>"

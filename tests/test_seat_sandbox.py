@@ -115,8 +115,13 @@ class SeatSandboxEscapes(unittest.TestCase):
             'test -d "$GOCACHE" && echo t > "$XDG_CACHE_HOME/x"'
         )
         self.assertEqual(proc.returncode, 0, proc.stderr)
-        self.run_jailed('mkdir -p "$HOME/.cache/go-build"')
-        self.assertFalse((self.home / ".cache").exists())
+        # The workspace is bound read-only outside its write roots, like a
+        # real seat's HOME on the host root (the test HOME under /tmp is not).
+        ro_home = self.ws / "home"
+        ro_home.mkdir()
+        proc = self.run_jailed('mkdir -p "$HOME/.cache/go-build"', HOME=str(ro_home))
+        self.assertNotEqual(proc.returncode, 0)
+        self.assertFalse((ro_home / ".cache").exists())
 
     def test_cache_does_not_survive_the_run(self):
         d = self._jail_scratch()
@@ -134,8 +139,10 @@ class SeatSandboxEscapes(unittest.TestCase):
             'package w\nimport "testing"\nfunc TestW(t *testing.T) {}\n'
         )
         # The test HOME sits under /tmp, which the jail replaces with a
-        # writable tmpfs; a real seat's HOME is on the read-only host root.
-        proc = self.run_jailed("cd src && go test ./...", HOME=str(REPO_ROOT))
+        # writable tmpfs; use a read-only dir in the bound workspace instead,
+        # like a real seat's HOME on the read-only host root.
+        (self.ws / "home").mkdir()
+        proc = self.run_jailed("cd src && go test ./...", HOME=str(self.ws / "home"))
         self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
 
     # --- the per-command scratch dir is cleaned up ----------------------

@@ -25,6 +25,9 @@ blank conversation; queue rows and seat identity are kept.
 `*` in a glob also matches `/`, so `src/*` covers `src/a/b.c`. Rows marked
 read-only charter write reports only; they do not author code.
 
+In `heretek-omni-fleet` a seat keeps the name below (`<seat>@heretek-omni-fleet`),
+except the command pod: `command-exec-director` uses the `exec-exec-director` row, `command-tpm-scrum-lead` uses the `delivery-tpm-scrum-lead` row, `command-system-architect` uses the `exec-system-architect` row.
+
 | Seat | Rig | Writable (relative to the workspace) |
 |---|---|---|
 | `data-analytics-metrics-eng` | cloud-sre-and-data-platform | `migrations/clickhouse/*`, `analytics/*` |
