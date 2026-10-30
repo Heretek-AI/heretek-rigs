@@ -1,0 +1,91 @@
+# QA run log — stage upstream-filing (change 2026-10-29-upstream-filing)
+
+QA seat: agency-qa. Worktree `.lane/trees/upstream-filing`, branch
+`feat/upstream-filing`, HEAD `ffca5d6`. Date 2026-10-30 (UTC). No commits made.
+
+## Baseline acceptance (unmodified tree)
+
+1. `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+   0 failed`, rc=0. No V-gate added (39/0 stands).
+2. `openspec validate 2026-10-29-upstream-filing` →
+   `Change '2026-10-29-upstream-filing' is valid`, rc=0.
+3. `python3 scripts/audit_loop.py --self-test` → `SELF-TEST PASSED`, rc=0.
+4. `python3 scripts/generate-rigs.py --check-idempotent` → `idempotence check
+   passed (two consecutive runs byte-identical)`, rc=0. Side-effect: generator
+   rewrote digest/timestamp fields vs committed HEAD (35 files, e.g.
+   registry/status.json packageDigests); reverted via `git checkout -- .`,
+   `git status --short` clean. Observation: committed generated output drifts
+   from what this environment's generator emits, but consecutive runs are
+   byte-identical (self-consistent, not a stage defect — stage touches no
+   generator inputs).
+5. `make test`: SKIPPED with reason — zero code/test/script diffs vs main
+   (`git diff main...HEAD --name-only -- scripts/ tests/ src/ Makefile`
+   empty; full diff is AGENTS.md 1-line docs-map row + docs/package dirs only).
+6. Scope: `git diff main...HEAD --name-only -- fleet/ scripts/ tests/ specs/
+   rigs/ rosters/ registry/ archive/ openspec/specs/` → EMPTY, rc=0.
+
+## Negative check (acceptance-critical): zero upstream filing
+
+Re-ran key GETs read-only (`gh api`, no writes):
+- `repos/mvschwarz/openrig` → full_name `mvschwarz/openrig`, default_branch
+  `main`. Matches report §1.
+- `issues/2200` → state `open`, `pull_request: null`, created 2026-10-27,
+  title matches restart-refusal report. Matches report §2. Still open after
+  v0.7.5 (published 2026-10-29T07:38:44Z, confirmed via releases endpoint).
+- `issues/{1681,1707,2168}` → all state `closed` + `pull_request: true`;
+  `pulls/<n>` → `merged: true` (1681 @2026-10-21T11:43, 1707 @2026-10-21T16:52,
+  2168 @2026-10-27T09:03). Matches report §4.
+- `pulls/1681` body + files confirm the correction: `resolveRigHandle`
+  shared with `down/grow/remove`, unknown handle → `Rig '<h>' not found`
+  exit 1. #1681 COVERS #80's core ask; draft (b)'s discrepancy record is
+  honest. #1707 title confirms cosmetic columns; #2168 title confirms
+  scheduler-flag scoping. Matches design §"Upstream facts".
+- `compare/v0.7.4...v0.7.5` → `ahead_by: 41`, `status: diverged`. Matches
+  report §6.
+- No write tooling in stage files: grep for `--method| -X POST/PATCH/PUT/
+  DELETE|gh issue create|gh pr create` over change package + drafts + report
+  + AGENTS.md → zero hits (rc=1).
+- No draft-attributable filings upstream: 5 most-recent issues (#2294–#2299)
+  are unrelated (slack/export/daemon topics); none matches draft titles.
+- QA performed read-only GETs only; nothing filed, posted, or patched.
+
+## Draft quality
+
+- All three drafts contain: upstream new-issue URL
+  (`https://github.com/mvschwarz/openrig/issues/new` + template), problem a
+  maintainer can act on without our repo, file:line evidence pointers, the
+  draft-specific mandatory note ((a) "Attribution, not authentication";
+  (b) #1681-as-covering-fix + release-vehicle ask; (c) #2200 distinguished +
+  #96 live-refresh route), explicit ask, per-issue filing gate
+  (`DRAFT ONLY — NOT FILED … separate explicit per-issue approval`).
+- Secret/bearer/path sweep → zero hits. Dangerous closing-keyword pattern
+  `(Closes|Fixes|Resolves) + #N` in drafts → zero hits. All tracker links are
+  `Refs #127/#80/#11`.
+- Advisory (non-blocking, NOT a fail): proposal.md:22 states the rule as
+  ``Never `Closes #127/#80/#11` `` — negation-prose inside backticks in a
+  repo file (inert; GitHub automation only reads PR bodies/commit messages,
+  and the merge commit + all draft link usages are Refs-only). Flagged so the
+  merge-PR author does not paste that line into the PR body verbatim.
+
+## Red-proofs
+
+See `red-proofs.log` (same directory): RP-1 spec Scenario removal → rc=1
+RED → byte-identical restore → GREEN; RP-2 scope gate GREEN + discrimination
+proven; RP-3 planted token detected → restore → clean; RP-4 planted Closes
+detected → restore → clean. Zero vacuous checks.
+
+## Per-REQ verdicts
+
+- REQ-U0 (prepare-only, zero writes): PASS — all upstream interactions GETs,
+  listed with outputs; scope empty; zero filed.
+- REQ-U1 (draft a, attestation): PASS — URL, spoof problem, wave-9/#127
+  evidence pointers, attribution-note, daemon-attestation ask present.
+- REQ-U2 (draft b, snapshot-by-name): PASS — URL, original symptom, #1681
+  covering-fix recorded (discrepancy honest), #1707/#2168 adjacent, 0.7.5
+  verification, release-vehicle ask present.
+- REQ-U3 (draft c, relaunch/refresh): PASS — URL, launch-refusal problem,
+  live impact, #2200 accurately distinguished, #96 existence proof, relaunch/
+  refresh/help-text ask present.
+
+QA verdict: PASS. Final VERDICT to drift-guard: PASS (one non-blocking
+advisory above; triad box in tasks.md left for drift-guard co-sign).

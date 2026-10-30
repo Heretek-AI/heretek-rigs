@@ -1,0 +1,65 @@
+# Red-proof log — stage upstream-filing (change 2026-10-29-upstream-filing)
+
+QA seat: agency-qa. Worktree `.lane/trees/upstream-filing`, branch
+`feat/upstream-filing`, HEAD `ffca5d6`. Date 2026-10-30 (UTC).
+Method: red-proof-sabotage skill, 7-step protocol. Every sabotage restored
+via `git checkout -- <file>`; restore proven by sha256 match to pre-sabotage
+baseline; `git status --short` clean after each proof. No commits made.
+
+Baseline hashes (pre-sabotage):
+- spec.md:                    d6e9dc1190e9f8ae70ae6a01b06666907b533ac1042e735dcdffdd82ba9e2033
+- 127-queue-send-attestation: 2233e412107a1524e1d448f2d5f0e0f97c498eb495e755b06c2e9a03b5866c5a
+- 011-full-restart:            34fcce71f5c2dae02dae9cf4989e36f4daadf8061f9b2ffae3fed1e0089bf8bc
+
+## RP-1 — openspec validate guards Scenario presence (RED proven, NOT vacuous)
+
+- Target assertion: every ADDED Requirement carries ≥1 `#### Scenario:` block.
+- Defect: removed the entire REQ-U2 Scenario block (header + 5 bullets) from
+  `openspec/changes/2026-10-29-upstream-filing/specs/upstream-filing/spec.md`.
+- Command: `openspec validate 2026-10-29-upstream-filing` (rc captured WITHOUT
+  pipe; earlier piped `| tail` invocation masked the rc — lesson recorded).
+- RED: rc=1, `Change '2026-10-29-upstream-filing' has issues`,
+  `✗ [ERROR] ... REQ-U2 ... must include at least one scenario`.
+- Restore: `git checkout -- <spec.md>` → sha256 d6e9dc11… (matches baseline),
+  re-validate rc=0 `Change ... is valid`, `git status --short` clean.
+- Verdict: check FAILS CLOSED on Scenario removal. Not vacuous.
+
+## RP-2 — scope gate discriminates (GREEN + detection proven)
+
+- Target assertion: `git diff main...HEAD --name-only -- fleet/ scripts/
+  tests/ specs/ rigs/ rosters/ registry/ archive/ openspec/specs/` is EMPTY.
+- GREEN: rc=0, 0 bytes output on guarded paths.
+- Discrimination (same command shape, path that DID change):
+  `git diff main...HEAD --name-only -- AGENTS.md` → `AGENTS.md` (non-empty).
+  The command lists diffs when they exist, so empty output is signal, not
+  default-green. No working-tree mutation was needed; nothing to restore.
+- Verdict: check discriminates. Not vacuous.
+
+## RP-3 — secret/bearer/local-path scan detects planted token (RED proven)
+
+- Target assertion: zero secret-shaped / Bearer / machine-local-path hits in
+  `docs/evidence/upstream-filing/`.
+- Defect: appended `FAKE-SABOTAGE-LINE token=ghp_abcdef…` (synthetic, never a
+  real credential) to `127-queue-send-attestation.md:64`.
+- RED: grep rc=0 with exactly the planted line as the hit.
+- Restore: `git checkout --` → sha256 2233e412… (matches baseline), rescan
+  rc=1 (zero hits), `git status --short` clean.
+- Verdict: scan FAILS CLOSED on secret-shaped content. Not vacuous.
+
+## RP-4 — Refs-only (closing-keyword) scan detects planted Closes (RED proven)
+
+- Target assertion: no `(Closes|Fixes|Resolves) + #N` pattern in drafts.
+- Defect: appended `<!-- SABOTAGE Closes #127 -->` to
+  `011-full-restart.md:65`.
+- RED: grep rc=0 with exactly the planted line as the hit.
+- Restore: `git checkout --` → sha256 34fcce71… (matches baseline), rescan
+  rc=1 (zero hits), `git status --short` clean.
+- Verdict: scan FAILS CLOSED on closing keywords. Not vacuous.
+
+## Vacuous-check summary
+
+Zero vacuous checks. All four acceptance checks turned RED under minimal
+targeted sabotage and GREEN after byte-identical restore.
+
+Note (method, not a finding): `cmd | tail; echo $?` reports tail's rc, not
+the check's — all verdict rcs above were captured pipe-free.
