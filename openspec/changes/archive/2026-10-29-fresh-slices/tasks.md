@@ -40,5 +40,5 @@
 - [x] V32 decision: append ONLY if a live behavior gap is proven (V19-freeze
   39→40 note + live-count docs), else 39/0 stands ; outcome: NOT appended —
   no live gap proven, 39/0 stands (runbook §7)
-- [ ] Triad (agency-qa red-proof + agency-drift-guard audit) → `VERDICT: PASS`
-  before any PR (Refs #16, Refs #17, Refs #18 — never Closes)
+- [x] Triad (agency-qa red-proof + agency-drift-guard audit) → `VERDICT: PASS`
+  before any PR (Refs #16, Refs #17, Refs #18 — never Closes); outcome: agency-qa PASS (red-proofs.log) + agency-drift-guard VERDICT: PASS (fresh-slices-verification.md), both committed pre-merge
