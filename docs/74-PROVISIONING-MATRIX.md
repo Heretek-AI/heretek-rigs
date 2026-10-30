@@ -82,3 +82,36 @@ Its gate remains the secrets path (`required_secrets: [github.pat]`).
   on every host (host-mutating rollout, own change).
 - Browser sufficiency probes (binary presence is necessary, not sufficient
   for playwright/chrome-devtools).
+
+## Re-take 2026-10-30 — fleet-proofs Phase A (this host)
+
+Measured on the fleet host (dev machine). Deltas vs the 2026-10-25 snapshot:
+
+- B1 `r2` / B2 `rabin2` / B3 `tshark`: still MISSING (`command -v` rc=1).
+  Installs NOT attempted: `sudo -n` requires a password (unattended apt
+  impossible); `r2` needs universe-or-source build, `tshark` needs the
+  interactive wireshark-common prompt. Named follow-ups: run with a tty
+  (`sudo apt-get install -y --no-install-recommends tshark`,
+  radare2 from source or universe) and re-take.
+- Extra observation: `render-seat.py --dry-run` for
+  `blue-appsec-engineer@defensive-sec-and-red-team` warns
+  `bash grant 'trivy fs*' missing tool artifact: trivy` — `trivy` also
+  MISSING on this host (needs the aquasecurity repo; follow-up, same
+  sudo constraint).
+
+RESOLVED 2026-10-30 via Homebrew (user: "try Brew first"; no sudo needed):
+- B1 `r2 6.2.4` / B2 `rabin2` (radare2 6.2.4 bottle): PRESENT. Proven by
+  `render-seat.py --dry-run` for
+  `red-binary-reverse-eng@defensive-sec-and-red-team`: B1–B3 warns gone (rc=0).
+- B3 `tshark`: `brew install wireshark` → TShark 4.6.9: PRESENT.
+- `trivy 0.76.1` (brew bottle): PRESENT (`command -v` + `--version`).
+  linuxbrew bin is already on this host's PATH, so seats inherit it.
+- Still MISSING (out of Brew scope, stay as follow-ups): `r2mcp` git
+  artifact (`@TOOLS@/bin/r2mcp` needs the radare2-mcp repo clone),
+  `markdownlint`, `memory`/`playwright`/`chrome-devtools`/`mobile`/
+  `openapi`/`kubernetes` npm artifacts (missing-tool renders stay
+  `enabled:false` per gate design).
+- Build tools PRESENT: `go 1.27.3`, `pytest 9.1.1`, `cmake 4.3.0`,
+  `bwrap 0.13.1`, `rig 0.7.5 (b57c4da3)`.
+- Secrets finding (fixed same session): `github.pat` was `644`; hardened
+  to `600` (`chmod`), re-statted `600`; dir `700`. Strict-mode compliant.

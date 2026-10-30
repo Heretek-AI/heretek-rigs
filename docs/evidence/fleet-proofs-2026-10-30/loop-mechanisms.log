@@ -1,0 +1,9 @@
+PASS attest-fresh
+PASS attest-replay-rejected
+PASS attest-wrong-scope-not-attested
+PASS attest-tamper-unverified
+PASS envelope-match-authorized
+PASS envelope-replay-refused
+PASS envelope-wrong-diff-refused
+PASS envelope-expired-refused
+RESULT: ALL-PASS
