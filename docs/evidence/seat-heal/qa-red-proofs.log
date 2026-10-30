@@ -1,0 +1,59 @@
+# QA red-proofs — seat-heal (change 2026-10-30-seat-heal, branch feat/seat-heal @ c762d50)
+QA role: agency-qa (independent acceptance). Date: 2026-10-30. No commits made by QA.
+Worktree: .lane/trees/seat-heal (branch feat/seat-heal)
+Log dir docs/evidence/seat-heal/ holds ONLY this file (wave evidence lives in docs/evidence/seat-heal-2026-10-30/).
+
+## RP-1 spec sabotage → `openspec validate 2026-10-30-seat-heal`
+Baseline sha256 of openspec/changes/2026-10-30-seat-heal/specs/seat-heal/spec.md:
+  e4f87844a496e8a2d5aec8133963d05ff6c32b5bbe79f7bcc66325abc6a2d37f (84 lines)
+- Probe A (rename one Scenario title): validate rc=0 GREEN. Scenario titles are not schema-guarded.
+- Probe B (remove ONE full Scenario block, requirement keeps 1 scenario): validate rc=0 GREEN.
+  Finding (informational, NOT a wave defect): `openspec validate` guards "each requirement has
+  >=1 Scenario", not scenario count. Single-scenario removal is caught by reviewer/drift-guard
+  diff review, not by validate. The check is therefore narrow but NOT vacuous (see Probe C).
+- Probe C (RED): removed BOTH REQ-SH1 scenarios (lines 28-39, requirement left with zero scenarios).
+  Command: `openspec validate 2026-10-30-seat-heal` → exit rc=1 RED.
+  Error: `✗ [ERROR] seat-heal/spec.md: ADDED "REQ-SH1 — kickoff re-verification with scope cap" must include at least one scenario`
+- Restore: `git checkout -- <spec.md>` → sha256 e4f87844… (byte-identical) →
+  `openspec validate` rc=0 GREEN ("Change '2026-10-30-seat-heal' is valid"). `git status --short` clean.
+- Extra (same session): garbage spec (no delta sections) → validate --strict rc=1 RED
+  ("Change must have at least one delta... each requirement MUST include at least one #### Scenario: block");
+  restored byte-identical. `openspec validate nonexistent-change-xyz` prints "Unknown item" but exits 0
+  (upstream CLI behavior — item-name typos are NOT fail-closed; noted for coordinator awareness).
+
+## RP-2 scope-gate sabotage → protected-path diff
+Acceptance gate: `git diff main...HEAD --name-only -- fleet/ specs/ rigs/ rosters/ registry/ archive/ openspec/specs/` must be EMPTY.
+Baseline: EMPTY (0 lines) — confirmed pre- and post-sabotage.
+- Sabotage: appended `# SABOTAGE-PROBE` to tracked fleet/fleet.yaml + staged.
+  A temporary `git commit` of the probe was DENIED by the environment (permission.rejected —
+  commit guardrail held; QA did not pursue; no commit was made by QA).
+- RED proof via worktree-inclusive form of the same filter (no commit required):
+  `git diff main --name-only -- fleet/ specs/ rigs/ rosters/ registry/ archive/ openspec/specs/`
+  → `fleet/fleet.yaml` (non-empty = RED; filter fires on exactly the protected set).
+  The committed-range form is the identical path filter over committed state, so a committed
+  protected-path change appears there by construction.
+- Restore: `git reset HEAD -- fleet/fleet.yaml && git checkout -- fleet/fleet.yaml` →
+  `git status --short` EMPTY, `git rev-parse HEAD` = c762d504e8f81fafb44640005db0e05e3273cdd3 (unchanged),
+  protected-path diff EMPTY again (GREEN).
+
+## RP-3 Refs-only / closing-keyword sabotage → bare `Closes #147` detector
+Acceptance gate: zero bare actionable `Closes|Fixes|Resolves #147` in wave files (Refs #147 only;
+PR-body discipline is coordinator-owned; GitHub parses closing keywords only in PR bodies/commits,
+never in file contents — merged precedent: seat-repair PR #150 / seat-hygiene docs use the same
+"never Closes #147" file phrasing).
+- Sabotage: appended a bare `Closes #147` line to docs/evidence/seat-heal-2026-10-30/runbook.md.
+  Detector (`grep -rn ... | grep -v "never Closes"`) FIRED on runbook.md:143 (RED proven).
+- Restore: `git checkout -- <runbook.md>` → remaining `Closes #147` hits are exactly 2, both
+  negated/backticked ("never `Closes #147`", "Never Closes #147"), matching merged-wave precedent → GREEN.
+- Live queue cross-check (read-only): `rig queue list --json -a -A --limit 10000` → 263 rows,
+  0 seat-heal-related rows; evidence queue-pre/post snapshots: 263→263, 0 added/removed/changed.
+
+## RP-4 secrets sweep (detector sanity)
+Detectors: `grep -cE "ghp_[A-Za-z0-9]{10,}|github_pat_[A-Za-z0-9]{5,}"` on full branch diff → 0;
+same patterns over docs/evidence/seat-heal-2026-10-30/ + change package + report → 0 matches (GREEN).
+(SEAT-HEAL-OK typed marker in probe transcripts is an explicit dummy token per wave design, not a bearer.)
+
+## Post-proof state
+`git status --short`: EMPTY except this untracked log dir (docs/evidence/seat-heal/ — allowed residue).
+`git rev-parse HEAD`: c762d504e8f81fafb44640005db0e05e3273cdd3 (unmoved; QA made zero commits).
+No launches, no queue writes, no seat sends issued by QA (read-only live ops only).
