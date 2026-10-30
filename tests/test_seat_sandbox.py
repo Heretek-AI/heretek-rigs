@@ -105,6 +105,39 @@ class SeatSandboxEscapes(unittest.TestCase):
         proc = self.run_jailed('echo t > "$TMPDIR/x" && echo t > /tmp/y')
         self.assertEqual(proc.returncode, 0, proc.stderr)
 
+    def test_toolchain_caches_point_into_scratch(self):
+        """#91/#12: go (and anything on XDG_CACHE_HOME) needs a writable
+        cache; it lives under the per-run scratch while $HOME stays
+        read-only."""
+        proc = self.run_jailed(
+            'case "$GOCACHE" in "$TMPDIR"/*) ;; *) exit 3 ;; esac; '
+            'case "$XDG_CACHE_HOME" in "$TMPDIR"/*) ;; *) exit 4 ;; esac; '
+            'test -d "$GOCACHE" && echo t > "$XDG_CACHE_HOME/x"'
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.run_jailed('mkdir -p "$HOME/.cache/go-build"')
+        self.assertFalse((self.home / ".cache").exists())
+
+    def test_cache_does_not_survive_the_run(self):
+        d = self._jail_scratch()
+        proc = self.run_jailed(
+            'echo t > "$GOCACHE/x"', HERETEK_JAIL_SCRATCH=str(d)
+        )
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(list(d.iterdir()), [], "seatjail cache leaked")
+
+    @unittest.skipUnless(shutil.which("go"), "go toolchain not installed")
+    def test_go_test_runs_in_seat_scope(self):
+        """#91 live finding: `go test ./...` failed on a read-only GOCACHE."""
+        (self.ws / "src/go.mod").write_text("module example.com/w\n\ngo 1.21\n")
+        (self.ws / "src/w_test.go").write_text(
+            'package w\nimport "testing"\nfunc TestW(t *testing.T) {}\n'
+        )
+        # The test HOME sits under /tmp, which the jail replaces with a
+        # writable tmpfs; a real seat's HOME is on the read-only host root.
+        proc = self.run_jailed("cd src && go test ./...", HOME=str(REPO_ROOT))
+        self.assertEqual(proc.returncode, 0, proc.stdout + proc.stderr)
+
     # --- the per-command scratch dir is cleaned up ----------------------
     def _jail_scratch(self):
         d = Path(self.tmp.name) / "jailscratch"
