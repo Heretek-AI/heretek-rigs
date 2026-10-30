@@ -75,3 +75,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `openspec/changes/archive/2026-10-28-81-seat-idle/` — wave 81 spec: seat idle-park after claim + daemon source label (Refs #81, fixtures-only, propose-only).
 - `openspec/changes/archive/2026-10-29-15-auth-envelope/` — wave 15 spec: pre-authorization envelopes for slice classes (Refs #15, fixtures-only, propose-only, never auto-commit).
 - `docs/sprints/CLI-0.7.5-BUMP.md` — wave `2026-10-29-bump-075` ledger: host toolchain `@openrig/cli@0.7.5` (tarball sha256 `22d67c2c…`), 8 true-pin files, zero generator-input changes.
+- `openspec/changes/2026-10-29-fresh-slices/` — wave 3 spec: bounded #16+#17 joint live exercise (Stage B, Refs-only) + costed #18 report (Refs #16, Refs #17, Refs #18).

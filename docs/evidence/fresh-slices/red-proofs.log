@@ -1,0 +1,179 @@
+# red-proofs.log — Wave 3 / stage fresh-slices (change 2026-10-29-fresh-slices)
+
+QA seat: agency-qa (independent re-verification, no trust in self-reports).
+Worktree: .lane/trees/fresh-slices (branch feat/fresh-slices)
+Branch: feat/fresh-slices, HEAD 93d7f2d (2026-10-30).
+Log date (UTC): 2026-10-30. All commands run IN the worktree above.
+Nothing below was committed (coordinator commits). No secrets printed.
+
+## 0. Baseline acceptance (unmodified tree, TRUE exit codes, no pipes)
+
+- `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+  V32 block absent: `grep -c V32 scripts/verify-rigs.sh` → 0. (V19-freeze intact.)
+- `openspec validate 2026-10-29-fresh-slices` → valid, rc=0.
+- `python3 scripts/audit_loop.py --self-test` → SELF-TEST PASSED, rc=0
+  (serial re-run; see §6 for a parallel cross-talk artifact that was root-caused, NOT a baseline failure).
+- `python3 scripts/generate-rigs.py --check-idempotent` → rc=0, "two consecutive runs byte-identical".
+  Side effect: rewrote 35 generated leaves (fleet/skills-lock.json queue-handoff tree hash
+  97a07a0e…→bc2d543c…, + registry/rigs/specs mirrors) — host asset drift (npm 0.7.4→0.7.5 skill tree),
+  NOT branch edits. Reverted via `git checkout -- fleet/skills-lock.json registry/ rigs/ specs/`,
+  `git status --short` clean. Re-verified a second time with identical result + revert.
+- `make test` (unittest discover): SKIPPED with reason — `git diff main...HEAD --name-only` =
+  AGENTS.md + docs/evidence/fresh-slices-2026-10-29/* + docs/reports/fresh-slices-implementation.md +
+  openspec/changes/2026-10-29-fresh-slices/* only; zero code/test/script changes (Wave-2 precedent).
+  QA cross-check (read-only, not required): full suite ran anyway → 634 tests OK, rc=0, 114 s.
+- Scope gate: `git diff main...HEAD --name-only -- fleet/ scripts/ tests/ specs/ rigs/ rosters/ registry/ openspec/changes/archive/ openspec/specs/` → EMPTY (rc=0). No V-gate, no archive/promotion in-branch — matches "archive post-merge like Wave 2".
+
+## 1. Live-adjacent read-only re-verification (no launches, no queue writes)
+
+- Secrets: `stat` → dir `700 john`, `github.pat` `600 john`, `opencode-go.key` `600 john`.
+- Dry-run: `render-seat.py --role appsec-engineer --rig defensive-sec-and-red-team --pod blue --dry-run`
+  → rc=0, `!cat` refs only (spot-checked auth.json/model weights header).
+- Evidence files exist + substantive: join.json (3 slice hashes), proof-{a,b,c}.json,
+  ps-kickoff.txt + ps-post.txt (111 lines each), runbook.md, metrics.log, provisioning-report-18.md,
+  phase-a-recon.md.
+- `sha256sum proof-{a,b,c}.json` → 872aa9b2…fb3059 / d9e73ab9…bba6d0 / 74d386f8…f3d44 —
+  match join.json hashes byte-for-byte. Concurrency window 03:43:15–03:43:54Z overlaps all three
+  (A 03:43:15–03:44:52Z, B 03:43:12–03:43:54Z, C 03:43:12–03:43:54Z).
+- `sha256sum ps-kickoff.txt ps-post.txt` → identical `1a282dc3…403c8205` both; `cmp` → BYTE-IDENTICAL.
+  Matches runbook §6 claimed prefix. Zero fleet footprint confirmed from disk.
+- Queue (read-only `rig queue list --json -a`): 100 rows; 3 FRESH-SLICES rows, ALL `state: done`,
+  `closureReason: no-follow-on`, `sourceSession: fresh-slices-stage-b`, `claimedAt: null`,
+  destinations `fresh-slices-probe-{a,b,c}@heretek-omni-fleet`. 0 open FRESH-SLICES rows.
+  Close mechanism: exercise's own declared source identity; no live seat impersonated
+  (claimedAt null throughout — cold rows never claimed, consistent with --no-nudge design).
+- Residue: `ls /tmp/opencode | grep -i fresh` → none (probe dirs removed). `rig host ls` →
+  "No hosts registered", `~/.openrig/hosts.yaml` absent. No `*tracker*` files in repo
+  (reconcile never invoked — propose-only intact). `$0` spend claim consistent with recorded
+  command set (no apt/dpkg/cloud-console actions anywhere in runbook §§1–6).
+
+## 2. RP1 — spec validator sabotage (REQ-F3 Scenario removal)
+
+- Sabotage: removed `#### Scenario: report complete, nothing provisioned` block from
+  `openspec/changes/2026-10-29-fresh-slices/specs/fresh-slices/spec.md` (python splice, backup to /tmp).
+- Check: `openspec validate 2026-10-29-fresh-slices` → "must include at least one scenario", rc=1 (RED).
+- Restore: `cp` backup over file, `cmp` → BYTE-IDENTICAL, `git status --short openspec/` clean.
+- Re-check: validate → valid, rc=0 (GREEN). Validator proven fail-closed, non-vacuous.
+
+## 3. RP2 — scope-gate sabotage (planted fleet/ file)
+
+- Sabotage: `touch fleet/zz-qa-sabotage-canary.txt` (untracked).
+- Check: working-tree scope listing `git status --short -- fleet/ scripts/ tests/ …` → lists canary (RED-trip).
+  (Committed-diff gate `git diff main...HEAD` correctly unaffected — it gates committed state.)
+- Restore: `rm` canary; scope listing → EMPTY (GREEN). Detector trips on real violations.
+
+## 4. RP3 — bearer-scan sabotage (planted canary)
+
+- Sabotage: wrote `ghp_fakesecretcanary…` to `docs/evidence/fresh-slices-2026-10-29/zz-qa-canary.tmp`.
+- Check: `grep -rlE 'sk-|ghp_|Bearer [A-Za-z0-9]'` → flags canary file (RED-trip).
+- Restore: `rm` canary. Re-scan over all 8 substantive evidence files
+  (proofs, join, metrics, ps-kickoff, ps-post, provisioning-report) → 0 hits (GREEN).
+- Note: phase-a-recon.md + runbook.md each contain exactly 1 match — verified to be the
+  self-referential grep-pattern documentation string itself, not a secret. Zero real hits.
+
+## 5. RP4 — Refs-only sabotage (planted closing keyword)
+
+- Sabotage: appended bare `Closes #16` line to tasks.md (backup to /tmp).
+- Check: `grep -rnE '(Closes|Fixes|Resolves) #[0-9]+'` → line 47 `Closes #16` (RED-trip).
+- Restore: `git checkout -- <tasks.md>`, `cmp` vs backup → BYTE-IDENTICAL, status clean (GREEN).
+- Standing state: strict detector matches exactly ONE wave line — proposal.md:21
+  "Never `Closes #16/#17/#18`". Judged CONFORMANT, not a violation: (i) inside backtick code
+  span (GitHub excludes code spans from closing-keyword parsing); (ii) openspec files are not
+  PR bodies (only PR bodies auto-close); (iii) identical "never `Closes #N`" phrasing is
+  established precedent (archive 09-send-identity tasks.md:13, 77-mission-gates tasks.md:13).
+  Commit messages on this branch use Refs-only. Coordinator must keep the PR body Refs-only.
+
+## 6. RP5 — queue-state detector (live + offline fixture, zero live writes)
+
+- Live: open-FRESH-SLICES-row detector → 0 (all 3 done/no-follow-on). Close-out verified.
+- Fixture (offline python, no queue writes): same detector against synthetic
+  `[{'id':'qitem-FAKE','state':'pending','tags':['FRESH-SLICES-X']}]` → 1 detected.
+  Detector proven non-vacuous in both directions.
+
+## 7. RP6 — verify-rigs digest-gate sabotage
+
+- Lesson: piped runs (`… | tail`) mask exit codes via `$?`=tail. All verdicts below use TRUE codes.
+- Weak sabotage (correctly non-violating): appended YAML comment to fleet/fleet.yaml →
+  still 39/0 rc=0. A trailing comment changes no generated bytes — GREEN is CORRECT here,
+  not vacuity. Reverted.
+- Targeted sabotage: appended canary line to generated `specs/agents/_shared/skills/queue-handoff/SKILL.md`.
+  → `[FAIL] shared skill queue-handoff: tree-hash mismatch …`, `36 passed, 1 failed`, TRUE rc=1 (RED).
+- Restore: `git checkout -- <file>`, status clean. Re-run → `39 passed, 0 failed`, TRUE rc=0 (GREEN).
+  Digest gate proven fail-closed, non-vacuous.
+
+## 8. RP7 — audit_loop self-test sabotage
+
+- Artifact (NOT a baseline failure): one parallel run returned rc=1 because it raced the
+  concurrent `generate-rigs.py` rewrite (self-test shells out to verify-rigs). Root-caused;
+  serial re-run on clean tree → SELF-TEST PASSED, rc=0. QA takes the serial result.
+- Sabotage: `mv fleet/fleet.yaml /tmp/…` (stash) → `[FAIL] Missing or stub file: …/fleet/fleet.yaml`, rc=1 (RED).
+- Restore: moved back, `cmp` vs backup → identical; re-run → SELF-TEST PASSED, rc=0 (GREEN).
+  `git status --short` clean. Self-test proven fail-closed.
+
+## 9. RP8 — idempotence non-vacuity (natural experiment)
+
+- `generate-rigs.py --check-idempotent` exits rc=0 (self-consistent: two consecutive runs byte-identical)
+  AND rewrote 35 leaves vs committed state on this host (queue-handoff tree-hash drift, §0).
+  A vacuous/self-fulfilling check could not produce working-tree mutations — the tool demonstrably
+  diffs real bytes. Side effect reverted twice, status clean both times.
+
+## 10. QA findings (honest-reporting judgments (a)–(f))
+
+- (a) Join-row deviation: design item 2 envisioned a FOURTH join queue row; runbook §4 discloses
+  none was created (post-hoc row = theater + extra live writes; close-out via join.json +
+  branch commit). REQ-F1's Scenario requires "per-slice proofs AND the integration commit".
+  Commit 67cae8d (committed, on-branch) contains proofs + join.json + metrics + #18 report —
+  it IS one integration commit joining all three slices. SATISFIED with disclosed deviation.
+  Staleness blemish (non-blocking): tasks.md Join box is [x] but retains the pre-close-out
+  "UNCHECKED: proofs filed… hash exists only after the coordinator commits" prefix alongside
+  the 93d7f2d outcome suffix naming 67cae8d; likewise join.json's `integration_commit` field
+  still reads "DEFERRED to coordinator". Content is correct; labels lag. Recommend a 1-line
+  cleanup (coordinator-side) striking "UNCHECKED:" — not a re-run.
+- (b) Watched-candidate projection: metrics.log labels it "WATCHED-CANDIDATE PROJECTION (labeled
+  projection, not observation…)" with an explicit promote-or-retire obligation for the next
+  N>3-slice run. Projection, NOT fabrication. Honest.
+- (c) UNVERIFIED marks intact: spot-checked setup-env.sh/glslc layout + vkcube/Xvfb flags +
+  Debian shaderc alternative (ll.43–47), physical SKU gap (l.53), Azure price + region/transport
+  (ll.69–70, 79–80) — all preserved verbatim as UNVERIFIED/secondary-source, none upgraded
+  to facts. Honest. Provenance gap (observation, not FAIL): the cited "deep-researcher dossier
+  2026-10-30" is not filed on disk, so dossier-§4 verbatimness is trust-based; mitigated by the
+  report's own re-verify-at-spend-time flags on every number.
+- (d) Operator-touch audit: runbook §8 table (14 rows: 13 agent + 1 coordinator-side) present,
+  cross-referenced to §§1–6 + queue transition log, tags split automatable (11) vs
+  needs-new-scope/judgment (queue-write authority, seat identity for mutation; #12 candidate).
+  Recount consistent with evidence. Factual, no charter changes claimed. Honest.
+- (e) 0-of-6 launches vs "at most 6", and "none degraded" honesty: bound respected (0 ≤ 6).
+  BUT the substantive reading must be narrow — probes ran as LOCAL SHELLS in /tmp probe dirs,
+  never as seats; no seat claimed anything (claimedAt null); true seat-claim latency is
+  recorded UNOBSERVED-WITH-REASON. What "3 slices execute concurrently against the live fleet"
+  actually proved: 3-way concurrent READ load against the live daemon/queue (timed queue-list,
+  ps snapshots, self-test) with zero disturbance — NOT seat-execution parallelism, NOT the
+  #16 execution model in full (no real slice, disjoint-scopes trivially satisfied read-only,
+  failure isolation untested-by-luck, no fourth join row). The report's "none degraded in this
+  run" is HONEST only under its explicit scoping (observed ranges listed, unobservable metric
+  named with reason, projection labeled). Drift-guard must ensure the triad VERDICT and any
+  PR body carry the same scoping — "daemon-read concurrency proven; seat-execution parallelism
+  NOT proven; claim-latency-under-contention still open" — and do not let "none degraded"
+  be quoted without "in this run".
+- (f) Fallback-composition box marking: TPM-designation + fan-out boxes are [x] with outcomes
+  recording 3-probe fallback (TPM-confirmed, no slice certified ready, designation line empty
+  per rule) — disposition, NOT overclaim. Triad box correctly remains [ ] unchecked. The only
+  blemish is the (a) stale "UNCHECKED:" prefix inside the checked Join box.
+
+## 11. Vacuous-check verdict
+
+No vacuous checks. Every acceptance check was red-proven: spec validator (rc=1/0), scope gate
+(trips/clean), bearer scan (flags/clean), Refs detector (flags/clean + precedent analysis),
+queue detector (0-live/1-fixture), verify digest gate (rc=1 tree-hash FAIL / 39-0 rc=0),
+self-test (rc=1 missing-input / rc=0), idempotence (natural drift mutation observed).
+In-exercise timings accepted on cited evidence (not re-runnable by design — cold-window
+timestamps + byte-identical snapshots + hash-linked proofs corroborate from disk).
+
+## 12. QA verdict: PASS (with 3 non-blocking observations for coordinator/drift-guard)
+
+1. Strike the stale "UNCHECKED:" prefix in the tasks.md Join box (1-line, coordinator-side).
+2. Scope-narrow the #17 claim in triad/PR language: daemon-read concurrency proven;
+   seat-execution parallelism and claim-latency-under-contention NOT proven (still open).
+3. File (or explicitly waive filing) the deep-researcher dossier behind provisioning-report-18.md
+   so dossier-§4 verbatimness is auditable.
+FINAL VERDICT left to drift-guard per wave protocol.
