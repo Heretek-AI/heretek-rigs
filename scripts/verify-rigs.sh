@@ -31,10 +31,15 @@ for arg in "$@"; do
 done
 
 RUNNER=(python3)
-if ! python3 -c "import yaml, jsonschema" >/dev/null 2>&1; then
+if ! python3 -c "import yaml, jsonschema, referencing" >/dev/null 2>&1; then
   if command -v uv >/dev/null 2>&1; then
     RUNNER=(uv run --quiet --with pyyaml --with jsonschema python3)
   fi
+fi
+
+if ! "${RUNNER[@]}" -c "import re, sys; from importlib.metadata import version; p=re.findall('[0-9]+', version('jsonschema'))[:2]; sys.exit(0 if len(p)==2 and (int(p[0]), int(p[1]))>=(4,18) else 1)" >/dev/null 2>&1; then
+  echo "verify-rigs.sh requires jsonschema>=4.18 for Draft202012Validator(registry=...); upgrade with: pip install \"jsonschema>=4.18\" referencing" >&2
+  exit 1
 fi
 
 "${RUNNER[@]}" - "${REPO_ROOT}" <<'PY'
@@ -1838,8 +1843,8 @@ if _v13_offline:
 
 # --- #100: Dockerfile install lists match catalog/fleet pins (drift fails closed) ---
 _dockerfile13 = (root / "docker/Dockerfile").read_text()
-if "ARG OPENRIG_VERSION=0.7.4" not in _dockerfile13:
-    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.4")
+if "ARG OPENRIG_VERSION=0.7.5" not in _dockerfile13:
+    fail("V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.5")
 _expected_npm13 = {}
 for _n13, _s13 in mcp_catalog.items():
     _pm13 = re.fullmatch(r"npm:(\S+)@(\S+)", str(_s13.get("pin", "")))
@@ -2395,7 +2400,7 @@ if _v18_rig is None:
     )
 else:
     # Fail closed: the ok() below claims validation ran on installed
-    # 0.7.4 — verify the host binary actually is 0.7.4 before claiming it.
+    # 0.7.5 — verify the host binary actually is 0.7.5 before claiming it.
     try:
         _ver18 = subprocess.run(
             [_v18_rig, "--version"],
@@ -2408,9 +2413,9 @@ else:
         _verout18 = ""
         _verrc18 = 1
     _verm18 = re.search(r"\d+\.\d+\.\d+", _verout18)
-    if _verrc18 != 0 or _verm18 is None or _verm18.group(0) != "0.7.4":
+    if _verrc18 != 0 or _verm18 is None or _verm18.group(0) != "0.7.5":
         fail(
-            f"V18/#98: host rig --version is not 0.7.4 (got {(_verout18[:80] or 'unreadable')}); validation claim requires installed 0.7.4"
+            f"V18/#98: host rig --version is not 0.7.5 (got {(_verout18[:80] or 'unreadable')}); validation claim requires installed 0.7.5"
         )
     # #98: the five vendored upstream schemas must equal the installed
     # CLI's own copies byte-for-byte.
@@ -2493,7 +2498,7 @@ if len(failures) == _v18_before:
         )
     else:
         ok(
-            f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.4"
+            f"Upstream contracts (#98) green: local schemas pinned + non-vacuous (tests/test_schema_contracts.py {_v18_ran} tests pass), rig bundle check + spec validate clean on installed 0.7.5"
         )
 
 print("\n== V19. Canonical Stale-Count Guard (#102) ==")

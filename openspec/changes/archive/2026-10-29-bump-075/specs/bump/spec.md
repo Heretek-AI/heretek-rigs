@@ -1,0 +1,41 @@
+# Delta spec: 2026-10-29-bump-075
+
+## ADDED Requirements
+
+### Requirement: REQ-BUMP3 — pinned 0.7.5 toolchain with ledger
+The build host toolchain MUST run `@openrig/cli@0.7.5` (`rig --version` →
+`0.7.5 (b57c4da3)`). A bump ledger `docs/sprints/CLI-0.7.5-BUMP.md` MUST
+record the version output, the published tarball sha256
+(`22d67c2c7e0d0ab4a5ec9faac0a725d54f9ead2c0f71564985cf4ae240bb9754`,
+re-verified by two independent fetches), every pin location updated (the 8
+true-pin files), the 0.7.4→0.7.5 tarball-diff disposition (zero
+generator-input changes: MEMBER_KEYS identical, run-record byte-identical,
+queue-handoff skill-body delta deferred), and the verify result.
+
+#### Scenario: version and ledger present
+- When `rig --version` runs on the build host it prints `0.7.5`, and
+  `docs/sprints/CLI-0.7.5-BUMP.md` contains the version string, the tarball
+  SHA with two-fetch evidence, the 8 true-pin files, and the green verify
+  output.
+
+### Requirement: REQ-BUMP4 — green tree on bumped toolchain
+`./scripts/verify-rigs.sh --check-only` MUST be green on the bumped toolchain
+with no gate added, renumbered, or reworded and SUMMARY frozen at 39
+(V18 fail-closed `rig --version` gate MUST assert `0.7.5`; V13 MUST assert
+`ARG OPENRIG_VERSION=0.7.5`). `generate-rigs.py --check-idempotent` MUST exit
+0 byte-identical (no generator input changed, so no regen is owed) and
+`audit_loop.py --self-test` MUST print SELF-TEST PASSED. `make test` MUST
+pass with ≥634 tests and 0 failures.
+
+#### Scenario: gates hold the bump
+- When the full gate suite runs after the bump, `SUMMARY: 39 checks passed, 0
+  failed` with V18/V13 asserting the 0.7.5 pins, idempotence exit 0, and
+  self-test passes.
+
+## MODIFIED Requirements
+
+### Requirement: REQ-G1 — append-only, generator rule
+New coverage MUST be new appended blocks (or new scripts), never renumber/reword of V1–V31. `specs/` `rigs/` `rosters/` `registry/` MUST change only via `generate-rigs.py`.
+
+#### Scenario: gates intact
+- When `make verify` runs after this change, V1–V31 pass unrenamed and SUMMARY stays frozen at 39.

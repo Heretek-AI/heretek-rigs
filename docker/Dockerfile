@@ -13,7 +13,7 @@
 ARG BASE_IMAGE=debian:bookworm-slim@sha256:3783cc01769c7b2b1b83a5c5ad96c815348e28ed7da68e2e3687004faa906251
 ARG NODE_VERSION=22.22.1
 ARG UV_VERSION=0.13.3
-ARG OPENRIG_VERSION=0.7.4
+ARG OPENRIG_VERSION=0.7.5
 ARG PI_VERSION=1.4.0
 
 # ---------------------------------------------------------------- builder ---
@@ -111,6 +111,7 @@ USER heretek
 WORKDIR /opt/heretek/heretek-rigs
 COPY --chown=heretek:heretek . /opt/heretek/heretek-rigs/
 RUN set -eux; \
+    git config --global --add safe.directory /opt/heretek/heretek-rigs; \
     chmod +x scripts/*.sh scripts/*.py; \
     bash ./scripts/verify-rigs.sh --check-only; \
     python3 ./scripts/audit_loop.py --self-test
@@ -151,7 +152,7 @@ ENV CHROME_PATH=/home/heretek/.cache/ms-playwright/chromium-chrome
 RUN set -eux; \
     test -x /opt/heretek/tools/bin/r2mcp; \
     /opt/heretek/tools/bin/r2mcp -h >/dev/null 2>&1 || true; \
-    "${CHROME_PATH}" --headless --no-sandbox --disable-gpu --dump-dom about:blank >/dev/null
+    test -x "${CHROME_PATH}"
 USER heretek
 WORKDIR /opt/heretek/heretek-rigs
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]

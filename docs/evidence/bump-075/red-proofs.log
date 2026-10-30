@@ -1,0 +1,99 @@
+# Red-proofs log — Wave 1 `2026-10-29-bump-075` (agency-qa sabotage protocol)
+
+- **Date (UTC):** 2026-10-29 · **Worktree:** `.lane/trees/bump-075` · **Branch:** `feat/bump-075` @ `d158dc7`
+- **Role:** agency-qa · **Method:** 7-step sabotage per probe (inject → RED → `git checkout --`/mv restore → GREEN → `git status --short` clean)
+- **Secrets:** none printed, logged, or committed (version strings + tarball sha256 only — no secret-shaped values handled)
+- **Rule:** sabotage edits were temporary and reverted; nothing committed by qa (coordinator commits evidence)
+
+## Probe A — V18 fail-closed `rig --version` gate (scripts/verify-rigs.sh:2411)
+
+- Target assertion: `_verm18.group(0) != "0.7.5"` trips V18 when host binary is not 0.7.5.
+- Sabotage: `_verm18.group(0) != "0.7.5"` → `_verm18.group(0) != "0.7.4"` (host rig is 0.7.5).
+- RED command: `./scripts/verify-rigs.sh --check-only`
+- RED output: `[FAIL] V18/#98: host rig --version is not 0.7.5 (got 0.7.5 (b57c4da3)); validation claim requires installed 0.7.5` + `SUMMARY: 38 checks passed, 1 failed`, rc=1.
+- Verdict: RED (gate is fail-closed, non-vacuous).
+- Restore: `git checkout -- scripts/verify-rigs.sh` + `cmp` vs byte backup → BYTE-IDENTICAL.
+- GREEN command: `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0. `git status --short` clean.
+
+## Probe B — V13 Dockerfile pin gate (docker/Dockerfile:16 + verify-rigs.sh:1841)
+
+- Target assertion: `ARG OPENRIG_VERSION=0.7.5` must be present or V13 fails.
+- Sabotage: `ARG OPENRIG_VERSION=0.7.5` → `ARG OPENRIG_VERSION=0.7.4`.
+- RED command: `./scripts/verify-rigs.sh --check-only`
+- RED output: `[FAIL] V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.5` + `SUMMARY: 38 checks passed, 1 failed`, rc=1.
+- Verdict: RED (pin gate trips, non-vacuous).
+- Restore: `git checkout -- docker/Dockerfile` + `cmp` vs byte backup → BYTE-IDENTICAL.
+- GREEN command: `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0. `git status --short` clean.
+
+## Probe C — Ledger tarball-sha claim (docs/sprints/CLI-0.7.5-BUMP.md:16, REQ-BUMP3)
+
+- Target assertion: ledger contains full tarball sha256 `22d67c2c…bb9754` with two-fetch evidence.
+- Sabotage: full sha replaced with 64 zeros (two-fetch prose left intact).
+- RED command: `grep -q "22d67c2c…bb9754" docs/sprints/CLI-0.7.5-BUMP.md` → rc=1 (sha claim fails); two-fetch prose grep still rc=0 (proves sabotage was sha-scoped, not file deletion).
+- Verdict: RED (ledger-content check detects sha removal, non-vacuous).
+- Restore: `git checkout -- docs/sprints/CLI-0.7.5-BUMP.md` + `cmp` vs byte backup → BYTE-IDENTICAL.
+- GREEN command: same grep → rc=0. `git status --short` clean.
+
+## Probe D — `openspec validate 2026-10-29-bump-075` (REQ-BUMP3/REQ-BUMP4 deltas)
+
+- Target assertion: change package validates (delta sections present).
+- Sabotage 1 (attempted, did NOT trip): `### Requirement: REQ-BUMP3` → `### NotARequirement: REQ-BUMP3` → validator prints INFO "not a Requirement header and is ignored", still `is valid`, rc=0. Sabotage 2 (attempted, did NOT trip): `tasks.md` removed → still `is valid`, rc=0. Sabotage 3 (attempted, did NOT trip): `proposal.md` removed → still `is valid`, rc=0 (proposal restored immediately after).
+- Sabotage 4 (trips): `specs/bump/spec.md` replaced with garbage line → validator errors `No delta sections found` + `Change must have at least one delta`, rc=1.
+- Verdict: RED on delta-absence (check can fail, non-vacuous) — WITH NOTED BOUNDARY: the validator enforces delta-section/scenario presence only; it does not enforce requirement-header naming, proposal.md presence, or tasks.md presence. Those three gaps are validator limitations, not wave defects (the wave ships all four files; T0 `ls` gate in Probe H covers file presence).
+- Restore: `git checkout -- openspec/changes/2026-10-29-bump-075/specs/bump/spec.md` + `cmp` vs byte backup → BYTE-IDENTICAL.
+- GREEN command: `openspec validate 2026-10-29-bump-075` → `Change '2026-10-29-bump-075' is valid`, rc=0. `git status --short` clean.
+
+## Probe E — `make test` anti-vacuity (suite can fail on logic defect)
+
+- Target: one fast hermetic unit (`tests/test_manifest_closure.py::test_fixed_pins_pass`, 0.09s) standing in for suite fail-closedness (full 634-test suite ran GREEN at baseline, 106.123s, rc=0 — re-running the full suite per sabotage was not needed to prove non-vacuity).
+- Sabotage: `scripts/manifest-closure.py` findings gate `if checker.findings:` → `if not checker.findings:` (pass/fail inversion).
+- RED command: `python3 -m unittest tests.test_manifest_closure.TestManifestClosure.test_fixed_pins_pass` → `FAILED (failures=1)` (unittest failure verdict; shell rc masked by `tail` pipeline — the RED evidence is the runner's FAILED verdict, not a captured rc).
+- Verdict: RED (test detects inverted production logic, non-vacuous).
+- Restore: `git checkout -- scripts/manifest-closure.py` + `cmp` vs byte backup → BYTE-IDENTICAL.
+- GREEN command: same unittest → `OK` (`Ran 1 test`, rc=0 via PIPESTATUS). `git status --short` clean.
+
+## Probe F — `audit_loop.py --self-test` (fleet.yaml presence assertion)
+
+- Target assertion: self-test requires `fleet/fleet.yaml` (and other inputs) to exist.
+- Sabotage: `mv fleet/fleet.yaml /tmp/opencode/fleet.yaml.hold` (no repo edit at all).
+- RED command: `python3 scripts/audit_loop.py --self-test` → tail shows checks stopping, rc=1 (PIPESTATUS).
+- Verdict: RED (self-test fails without its required input, non-vacuous).
+- Restore: `mv` back; `git status --short` clean (tracked file byte-identical — clean status proves it).
+- GREEN command: same self-test → `SELF-TEST PASSED`, rc=0.
+
+## Probe G — AGENTS.md surgical-scope gate (≤15 lines vs merge-base c1da1fb)
+
+- Target assertion: `git diff --numstat c1da1fb -- AGENTS.md` sums to ≤15 changed lines.
+- Sabotage: appended 20 padding lines to worktree AGENTS.md.
+- RED check: numstat sum = 24 lines vs base → exceeds 15, rc=1.
+- Verdict: RED (scope gate trips on excess diff, non-vacuous).
+- Restore: `git checkout -- AGENTS.md` + `cmp` vs byte backup → BYTE-IDENTICAL.
+- GREEN check: numstat sum = 3 lines (2+/1-) vs base → ≤15, rc=0. `git status --short` clean.
+
+## Probe H — T0 spec-file gate (tasks.md acceptance `ls` of 4 files)
+
+- Target assertion: `ls proposal.md design.md tasks.md specs/bump/spec.md` exits 0.
+- Sabotage: `mv openspec/changes/2026-10-29-bump-075/tasks.md` to /tmp hold.
+- RED command: the 4-path `ls` → `ls: cannot access '…/tasks.md': No such file or directory`, rc=2.
+- Verdict: RED (gate detects missing spec file, non-vacuous).
+- Restore: `mv` back; all 4 paths list, rc=0. `git status --short` clean.
+
+## Final state
+
+- `git status --short` → empty (clean). `git stash list` → empty. `git diff HEAD --stat` → empty (byte-identical to committed `d158dc7`).
+- Post-probe `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- Vacuous checks found: NONE (every acceptance check proven RED under targeted sabotage; one validator boundary noted in Probe D).
+
+## Probe R1 — Rework-1 re-proof: V13 Dockerfile pin gate still fail-closed (docker/Dockerfile:16)
+
+- **Date (UTC):** 2026-10-29 · **Worktree:** `.lane/trees/bump-075-r1` · **Branch:** `fix/bump-075-r1` @ `0381977` · **Role:** agency-qa (re-verification)
+- **Purpose:** prove the Rework-1 docs/spec edits (USER_GUIDE warning, QA wording, SUPERSEDED lines) did not blunt any gate.
+- **Pre-state:** `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0.
+- **Target assertion:** `ARG OPENRIG_VERSION=0.7.5` must be present or V13 fails.
+- **Byte backup:** `cp docker/Dockerfile /tmp/opencode/Dockerfile.r1bak` (sha256 `9e309ea4…85b8b185` both copies, identical).
+- **Sabotage:** `ARG OPENRIG_VERSION=0.7.5` → `ARG OPENRIG_VERSION=0.7.4` (sed, line 16 only).
+- **RED command:** `./scripts/verify-rigs.sh --check-only`
+- **RED output:** `[FAIL] V13/#100: docker/Dockerfile must set ARG OPENRIG_VERSION=0.7.5` + `SUMMARY: 38 checks passed, 1 failed`, rc=1.
+- **Outcome:** RED (gate trips on pin downgrade, non-vacuous — rework did not blunt it).
+- **Restore:** `git checkout -- docker/Dockerfile` + `cmp` vs byte backup → BYTE-IDENTICAL (backup removed after).
+- **GREEN command:** `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed, 0 failed`, rc=0. `git status --short` shows only the two qa evidence/report appendices (no production or test code modified).

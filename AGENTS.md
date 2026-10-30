@@ -1,7 +1,7 @@
 # AGENTS.md — heretek-rigs operator guide (for agents working in this repo)
 
 51 specialist seats across 8 OpenRig v0.2 bundles, generated deterministically.
-Stack: `@openrig/cli@0.7.4` (`rig`), Pi 1.4.0 (`pi`), `@gotgenes/pi-permission-system@41.0.0`,
+Stack: `@openrig/cli@0.7.5` (`rig`, tarball sha256 `22d67c2c…`), Pi 1.4.0 (`pi`), `@gotgenes/pi-permission-system@41.0.0`,
 `opencode-go/muse-spark-1.3-contributor:high` via `https://opencode.ai/inference/go/v1`.
 
 ## The one rule
@@ -74,3 +74,4 @@ NO permission config — always seed before `up`/`expand`/`add`.
 - `openspec/changes/archive/2026-10-28-77-mission-gates/` — wave 4 spec: mission-row gate ownership (Refs #77, detect/classify/propose-only).
 - `openspec/changes/archive/2026-10-28-81-seat-idle/` — wave 81 spec: seat idle-park after claim + daemon source label (Refs #81, fixtures-only, propose-only).
 - `openspec/changes/archive/2026-10-29-15-auth-envelope/` — wave 15 spec: pre-authorization envelopes for slice classes (Refs #15, fixtures-only, propose-only, never auto-commit).
+- `docs/sprints/CLI-0.7.5-BUMP.md` — wave `2026-10-29-bump-075` ledger: host toolchain `@openrig/cli@0.7.5` (tarball sha256 `22d67c2c…`), 8 true-pin files, zero generator-input changes.

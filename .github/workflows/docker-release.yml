@@ -42,7 +42,7 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  IMAGE_NAME: heretek-ai/heretek-rigs # ghcr.io requires lowercase repository names
 
 jobs:
   verify-fleet:
@@ -50,14 +50,14 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - run: pip install --quiet pyyaml jsonschema
+      - run: pip install --quiet pyyaml "jsonschema>=4.18" referencing
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap && bwrap --version
       - run: ./scripts/verify-rigs.sh --check-only
       - run: python3 ./scripts/audit_loop.py --self-test
       - run: |
           if make guard-profiles SIDECAR_PROFILES="mobile devsec"; then echo "guard accepted mobile+devsec" >&2; exit 1; fi
           if make guard-profiles SIDECAR_PROFILES="mobile web-research"; then echo "guard accepted mobile+web-research" >&2; exit 1; fi
           make guard-profiles SIDECAR_PROFILES="web-research"
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends bubblewrap && bwrap --version
 
   build:
     name: Build ${{ matrix.target }}
@@ -111,7 +111,7 @@ jobs:
       matrix:
         target: [slim, full]
     container:
-      image: ghcr.io/${{ github.repository }}:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
+      image: ghcr.io/heretek-ai/heretek-rigs:sha-${{ github.sha }}${{ matrix.target == 'full' && '-full' || '' }}
       credentials:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
