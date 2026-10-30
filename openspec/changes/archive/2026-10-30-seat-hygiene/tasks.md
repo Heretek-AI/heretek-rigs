@@ -15,5 +15,5 @@
 - [x] Evidence: `audit.md` (per-seat table, counts, impact) +
   `dangling-seats.json` (24 entries, 2 lobotomized / 22 stale) filed
 - [x] Bearer-shaped grep: none (prose "Bearer-shaped strings: none" only)
-- [ ] Triad (agency-qa red-proof + agency-drift-guard audit) → VERDICT
-  before any PR (Refs #147 — never Closes)
+- [x] Triad (agency-qa red-proof + agency-drift-guard audit) → VERDICT
+  before any PR (Refs #147 — never Closes); outcome: agency-qa PASS (qa-red-proofs.log) + agency-drift-guard VERDICT: PASS (seat-hygiene-verification.md), both committed pre-merge
