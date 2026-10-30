@@ -244,6 +244,40 @@ Every seat is governed by the **Heretek Fleet Culture** (`CULTURE.md`) and `@got
   `[pi-permission-system] Denied by policy: 'path_write' for tool 'write' for path 'src/auth.ts' (rule '*')`
 - Instead of working around the restriction, the seat writes its advisory to `docs/security/advisories/` and escalates or hands off the code fix to its designated escalation target (`rig send <reports_to> "<message>"`) as documented in its `<agentDir>/AGENTS.md` `## Seat` block.
 
+### Where Mission Files Must Live
+
+Seats can only write under their own `path_write` globs, relative to the
+workspace they were launched in, and every seat denies paths outside that
+workspace. Check [`SEAT-WRITE-SCOPES.md`](SEAT-WRITE-SCOPES.md) (generated from
+`fleet/fleet.yaml`) before placing a mission, and put each slice under the
+globs of the seat that owns it. A scratch directory or a new top-level folder
+is writable by no seat (#78).
+
+### Refreshing or Re-homing One Seat
+
+`rig launch <rig> <node>` does not relaunch a running node (#11). Use the
+single-seat verbs instead; they touch only the named seat, and its queue rows,
+address and identity are kept.
+
+```bash
+# Permission-only change: hot reload, no relaunch (#96)
+python3 scripts/seed-rig.py rigs/<rig>/rig.yaml --refresh-policy-only
+
+# Charter, model, MCP or skill change: re-seed, then relaunch only the
+# affected seat. Check it is idle first (rig ps --nodes --json --rig <rig>); a fresh
+# launch starts a blank conversation.
+python3 scripts/seed-rig.py rigs/<rig>/rig.yaml        # or members/<role>.yaml --rig <rig> --pod <pod>
+rig seat launch <seat> --fresh --stop --reason "refresh: <change>"
+
+# Give one seat a mission workspace (path_write globs then apply there)
+rig seat set-cwd <seat> --cwd /abs/path/to/mission-workspace --reason "<mission>"
+rig seat launch <seat> --fresh --stop --reason "<mission>: adopt workspace"
+```
+
+Preview any launch with `--plan`. After a whole-fleet restart, resumed seats
+can fail their first model call (`encrypted_content was not issued to this
+caller`); the same `rig seat launch <seat> --fresh --stop` clears it.
+
 ### Snapshotting, Restoring, and Stopping a Rig
 
 ```bash

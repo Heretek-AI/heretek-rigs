@@ -195,6 +195,11 @@ done
 scratch=$(mktemp -d "$jail_tmp/seatjail.$$.XXXXXX")
 # Cleaned on exit, so bwrap below must not be exec'd (exec drops the trap).
 trap 'jail_rm "$scratch"' EXIT
+# #91/#12: $HOME is read-only in the jail, so toolchains that default their
+# cache under it (go: ~/.cache/go-build, golangci-lint and others via
+# XDG_CACHE_HOME) fail before doing any work. Point them at the per-run
+# scratch: nothing persists between commands or crosses seats.
+mkdir -p "$scratch/cache/go-build"
 
 # A write root may never resolve outside cwd (symlinked dir/file escape), and
 # never touch agent/VCS control paths (.git, .pi, .agents, AGENTS.md).
@@ -304,6 +309,8 @@ bwrap \
   --ro-bind / / --dev /dev --proc /proc \
   "${broad[@]}" --ro-bind "$cwd" "$cwd" \
   --bind "$scratch" "$scratch" --setenv TMPDIR "$scratch" \
+  --setenv XDG_CACHE_HOME "$scratch/cache" \
+  --setenv GOCACHE "$scratch/cache/go-build" \
   "${binds[@]}" "${mask[@]}" --chdir "$cwd" \
   /bin/bash -c "$cmd" <&3 3<&- &
 child=$!

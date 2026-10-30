@@ -409,3 +409,9 @@
 - Revert verified: `git status --short` shows only `M scripts/verify-rigs.sh`; re-ran verify → 30/0.
 - `make test` (untouched, proven): `Ran 257 tests ... OK`, exit 0; Makefile `test:` runs 11 suites.
 - `scripts/generate-rigs.py` NOT run (no catalog edits in this stage — nothing to re-bake).
+
+## 2026-10-30 — #91/#12 go exec residual + #11/#78 single-seat routes (Claude follow-up)
+
+- Live finding (fleet-proofs runbook S3): `go build`/`go test` were policy-allowed but died on `failed to initialize build cache at ~/.cache/go-build: read-only file system` because the jail binds `/` read-only. `scripts/seat-sandbox.sh` now sets `XDG_CACHE_HOME` and `GOCACHE` under the per-run scratch. Nothing persists between commands or crosses seats; each command rebuilds what it needs. Red-proof: `tests/test_seat_sandbox.py::test_go_test_runs_in_seat_scope` fails on the old wrapper with the exact live error and passes on the new one.
+- Remaining go limit (by design, not fixed): `go build` of a single main package writes its binary into the cwd, which is read-only in the jail, and `-o` is denied by the go command effect. Use `go test ./...` or `go build ./...` over several packages (outputs discarded) as the compile proof. `go mod init` cannot create `go.mod` from bash (file roots bind existing files only); write it with the `write` tool first.
+- #11/#78: OpenRig 0.7.5 (the pinned host toolchain) already ships `rig seat launch --fresh --stop`, `rig seat stop` and `rig seat set-cwd`, and `rig launch` help no longer promises relaunch. Seat-heal/seat-repair used the re-seed + fresh-launch route live on 24 seats. Documented in USER_GUIDE "Refreshing or re-homing one seat", AGENTS.md, and the generated `docs/SEAT-WRITE-SCOPES.md` (`scripts/seat-scopes.py`, drift-tested by `tests/test_seat_scopes.py`). `set-cwd` on a pi seat is not yet proven live.
