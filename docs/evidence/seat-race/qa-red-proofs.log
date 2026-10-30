@@ -1,0 +1,118 @@
+# QA red-proofs — seat-race wave (stage: seat-race, 2026-10-30)
+
+Verifier: agency-qa (independent). Worktree: `.lane/trees/seat-race`
+(branch `feat/seat-race`, HEAD `0ffe6b3`). No commits made by verifier.
+All sabotage restored; `git status --short` clean at close (0 lines).
+
+## A. Acceptance gates (real output, unmodified tree)
+
+1. `./scripts/verify-rigs.sh --check-only` → `SUMMARY: 39 checks passed,
+   0 failed.` rc=0. No V32/seat-race block: latest is V31
+   (pre-authorization envelopes). V-gate absence confirmed structurally.
+2. `openspec validate 2026-10-30-seat-race` → `Change is valid` rc=0.
+3. `python3 scripts/audit_loop.py --self-test` → SELF-TEST PASSED rc=0.
+4. `python3 scripts/generate-rigs.py --check-idempotent` → rc=0
+   (two consecutive runs byte-identical) BUT left 35 generated files
+   modified vs HEAD (registry/*, rigs/* bundle + SKILL.md, specs skill).
+   Cause: PRE-EXISTING staleness, not wave-caused — wave touched zero
+   generator inputs (`git diff --name-only main...HEAD -- fleet/ scripts/
+   specs/ rigs/ rosters/ registry/` is empty); the "Park the row"
+   paragraph already sits in `specs/agents/_shared/skills/queue-handoff/
+   SKILL.md` on main while committed leaves predate it. Side effects
+   reverted via `git checkout -- .` → status clean → verify re-run 39/0.
+5. `make test` SKIPPED, reason verified: `git diff --name-only
+   main...HEAD` = AGENTS.md (1 docs-map row) + 8 evidence files +
+   1 report + 4 openspec files. Zero code/test/script diffs. Skip legit.
+
+## B. Red-proofs (sabotage → RED → restore → GREEN)
+
+R1 spec sabotage: removed REQ-SR3's `#### Scenario:` block (366 chars)
+  from `spec.md` → `openspec validate` rc=1:
+  `ADDED "REQ-SR3 ..." must include at least one scenario` (RED proven,
+  check non-vacuous). Restored via `git checkout -- <file>` →
+  sha256 `34925570...b8270b` identical pre/post → validate rc=0
+  (`Change is valid`), status clean.
+R2 verify-rigs sabotage: flipped 1 char of a packageDigest in
+  `registry/status.json` → verify rc=1 with
+  `[FAIL] registry/status.json bodyDigest mismatch` (RED proven,
+  digest gate non-vacuous). Restored via git checkout → sha
+  `7ed16e7f...addda94e` identical → 39/0, status clean.
+R3 scope/bearer checks: positive control — pattern
+  `Closes #16|#17|#140` matches a planted bare `Closes #16` in /tmp
+  (rc=0, pattern works). Wave files: sole match is proposal.md:25
+  ``Never `Closes #16/#17/#140` `` inside backticks (code span — GitHub
+  does not parse closing keywords there); matches f4-amendment +
+  seat-idle precedent exactly. No bare closing token. PASS.
+  Bearer-shaped grep (`sk-|ghp_|xox[bap]-`): 0 secret hits; the 2
+  "Bearer" hits per file are the literal words "Bearer-shaped strings:
+  none" (prose, not tokens). PASS.
+R4 claim-consistency (re-hash, read-only live):
+  R1 claimedAt 15:14:13.987Z (proof-b = join = metrics = runbook);
+  live `queue show` 15:14:13.986Z (1 ms field-rounding, trivial).
+  R2 15:14:31.658Z exact everywhere incl. live.
+  Fallback→claim: R1 14.060 s, R2 25.751 s recomputed exact.
+  C send(15:14:27.609)→claim 4.049 s exact. Base `2b3999b` in all
+  proofs/join/runbook/metrics. Winners B-R1 / C-R2 consistent.
+R5 snapshot byte-claim: ps-kickoff/post both 111 lines; non-Model lines
+  differ ONLY by `data-dba-specialist idle→working` (diff-proven) —
+  runbook §6 claim VERIFIED precisely. Model lines differ only by fresh
+  activity timestamps on the 6 touched seats.
+
+## C. Live read-only re-verification (no launches/writes/sends)
+
+- `rig queue list --json -a`: 100 rows (done 76 / blocked 13 /
+  in-progress 7 / handed-off 4) = baseline shape; ZERO open SEAT-RACE
+  rows; both SEAT-RACE rows `done` with close-out resolutions. Cleanup GREEN.
+- All 6 launched sessions `run`: spares + C + D idle (probes complete),
+  originals A/B idle. Originals' Model last-native 14:59:56/57Z
+  (launch-time only, never answered 15:05 prompts) corroborates the
+  lobotomy story; spares/C/D show 15:14+ probe responses.
+- shellPath scan (`~/.openrig/state/pi/*/agent/settings.json`,
+  read-only): 24 of 54 seat dirs carry stale `fleet-proofs` substring
+  (builder claimed "~27 of 51" — same phenomenon, approximate count);
+  stale target confirmed absent; repo `scripts/seat-sandbox.sh` exists.
+  Casualty mapping exact: original A/B DANGLING, spares + C + D clean.
+  F1 mechanism CORROBORATED. Count imprecision (~27 vs 24) noted, trivial.
+- `/tmp/opencode`: no seat-race residue (clean). /tmp droppings claim
+  taken as filed (nothing to re-check).
+- Launch bound: 6/6 disclosed (4+2 spares, each with reason/timestamp);
+  no 7th-launch evidence anywhere (only 6 sessions show race-window
+  activity; daemon.log has no distinct launch events to contradict).
+  WITHIN BOUND, evidence-limited, no contradiction found.
+
+## D. Findings (numbered; FAIL = bound broken / SR2 misgraded /
+##    falsification overstated / residue open / hidden mutation)
+
+F1 (info, for triad): abort-rule interpretation. Round 1 produced 7/7
+  refused claims; A-prime STOPPED-RED per the round-1 rule, yet the
+  exercise continued into round 2 (fallback reroute) instead of aborting.
+  Builder rationale is fully recorded (refusals = intended
+  destination-enforcement, i.e. falsification evidence, not failure;
+  `claim_destination_mismatch` is a deliberate synchronous guard and
+  `fallback` its designed remedy). Confidence HIGH (not certain — daemon
+  source not inspected) that enforcement is intended behavior, so
+  "structural, not a defect" is well-supported. No hidden mutation;
+  NOT a QA FAIL, but the triad owns whether continuation stretched the
+  "abort on first RED" bound.
+F2 (info): REQ-SR2 graded NOT EXECUTED — HONEST. The Scenario trigger
+  ("When D's step 3 exits nonzero") never occurred (D blocked step 0;
+  reassigned C-gate policy-denied, never executed, no rc). Grading it
+  MET would be dishonest; FAIL would misread the conditional. Emergent
+  isolation (A's stop, others continued, no rebase) is labeled
+  supporting-only, not compliance. Correct call; triad judges SR2.
+F3 (info): V-gate NOT appended — rule-consistent. F1 is a genuine
+  corpus-unpinnable live gap but cannot be a green gate while seats
+  still dangle; F2 is intended-correct; gate-denial is a probe-design
+  lesson. Matches the wave's V-rule. Honest absence.
+F4 (trivial): dangling-seat count "~27" vs re-scan 24; R1 claimedAt
+  1 ms rounding live vs evidence. Neither material.
+F5 (pre-existing, NOT wave): committed generated leaves are stale vs
+  in-tree generator (35 files rewrite on generate; §A.4). Flagged for
+  main, not this wave.
+
+No FAIL. No vacuous acceptance check found (R1/R2/R3 all RED-proven).
+Seats left RUNNING incl. two idle-lobotomized originals: DISCLOSED in
+runbook §2/§6 + report §Live-state, flagged out-of-bounds — not hidden.
+
+## QA verdict: PASS (per-REQ: SR1 MET-as-adapted-and-recorded,
+## SR2 NOT EXECUTED-honest, SR3 MET). Triad owns F1 + SR2 disposition.
