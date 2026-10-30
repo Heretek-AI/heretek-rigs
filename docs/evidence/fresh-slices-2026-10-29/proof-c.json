@@ -1,0 +1,11 @@
+{
+  "slice": "FRESH-SLICES-C",
+  "base_sha": "e5cd3d6",
+  "probe_start_utc": "2026-10-30T03:43:12Z",
+  "samples": [
+    {"i": 1, "ts_utc": "2026-10-30T03:43:12Z", "ps_rc": 0, "fleet": {"fleet_rows": 51, "activity": {"idle": 51}, "rows_with_work": 12}, "sample_secs": .632469699},
+    {"i": 2, "ts_utc": "2026-10-30T03:43:33Z", "ps_rc": 0, "fleet": {"fleet_rows": 51, "activity": {"idle": 51}, "rows_with_work": 12}, "sample_secs": .517470689},
+    {"i": 3, "ts_utc": "2026-10-30T03:43:54Z", "ps_rc": 0, "fleet": {"fleet_rows": 51, "activity": {"idle": 51}, "rows_with_work": 12}, "sample_secs": .611408555}
+  ],
+  "probe_end_utc": "2026-10-30T03:43:54Z"
+}

@@ -1,0 +1,14 @@
+{
+  "slice": "FRESH-SLICES-B",
+  "base_sha": "e5cd3d6",
+  "probe_start_utc": "2026-10-30T03:43:12Z",
+  "samples": [
+    {"i": 1, "ts_utc": "2026-10-30T03:43:12Z", "queue_rc": 0, "queue": {"n": 100, "states": {"pending": 3, "done": 73, "handed-off": 4, "in-progress": 7, "blocked": 13}, "stalled_after_claim": 7, "active_owners": 12}, "sample_secs": .297872914},
+    {"i": 2, "ts_utc": "2026-10-30T03:43:33Z", "queue_rc": 0, "queue": {"n": 100, "states": {"pending": 3, "done": 73, "handed-off": 4, "in-progress": 7, "blocked": 13}, "stalled_after_claim": 7, "active_owners": 12}, "sample_secs": .285491158},
+    {"i": 3, "ts_utc": "2026-10-30T03:43:53Z", "queue_rc": 0, "queue": {"n": 100, "states": {"pending": 3, "done": 73, "handed-off": 4, "in-progress": 7, "blocked": 13}, "stalled_after_claim": 7, "active_owners": 12}, "sample_secs": .370383633}
+  ],
+  "overdue_count": "0",
+  "overdue_rc": 0,
+  "overdue_sample_secs": .259108230,
+  "probe_end_utc": "2026-10-30T03:43:54Z"
+}

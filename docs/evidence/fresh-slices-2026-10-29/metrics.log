@@ -1,0 +1,96 @@
+# #17 metrics series — fresh-slices Stage B (2026-10-30T03:42–03:46Z, UTC)
+
+All commands rc=0. All outputs redacted (counts/timings only).
+
+## Queue-claim latency
+
+- Queue write path (create→verified receipt, --verify): ~0.2 s/row (3/3 rows).
+- True seat-claim latency: NOT OBSERVED BY DESIGN. Rows were created cold
+  (--no-nudge, synthetic destinations matching no live seat) so no live
+  seat was nudged or disturbed; no seat claims them (nextBackstop:
+  queue-stuck-sweep:unclaimed, 1h — rows closed at ~04 min age, sweep never
+  fired). Claiming them from outside a seat env would misattribute
+  ownership, so no claim was attempted. Per REQ-F2 scenario this metric is
+  recorded as unobservable-with-reason rather than invented.
+
+## Stuck-sweep volume (read-only observation of live state)
+
+- `stalled-after-claim` rows: 7/100 (stable across all 3 samples; pre-existing
+  live-fleet state, e.g. qitem-20261024023941 stalled 8700 min — untouched).
+- `rig queue overdue --json`: 0 rows, rc=0, 0.26 s.
+- Stuck-sweep volume attributable to THIS exercise: 0 (our 3 rows pending
+  <5 min, then closed; sweep interval 300 s never engaged them).
+
+## Periodic snapshot cost
+
+- `rig queue list --json -a`: 0.29–0.40 s/sample (6 samples, rc=0).
+- `rig ps --nodes -A`: 0.52–0.63 s/sample standalone (slice C, 3 samples);
+  0.36–0.40 s in combined queue+ps samples (slice A, 3 samples). rc=0.
+- `python3 scripts/audit_loop.py --self-test`: 53.9 s, rc=0, SELF-TEST PASSED.
+- Caveat: `queue list -a` output caps at 100 rows — state counts are windowed
+  (baseline done 76 → 73 done + 3 pending after fan-out = same 100-row window).
+
+## Daemon responsiveness
+
+- Daemon UP throughout; every daemon round-trip sub-second except the
+  expected self-test gate. No timeouts, no 400s, no stale-resume failures —
+  zero fresh-relaunch spares needed (0 of 6 launch budget used).
+
+## ACTIVE / queue-depth samples (idle classification)
+
+- Fleet: 51/51 rows `idle` activity across all samples; 12 rows carry WORK
+  (other sessions' live work — untouched).
+- Queue: in-progress 7, blocked 13, handed-off 4, live pending 0.
+- Classification: correctly-idle (WORK sits on rows owned by other active
+  sessions; zero eligible-unclaimed live rows) — NO spuriously-idle rows
+  observed. Our 3 synthetic pending rows are cold-by-design, not live demand.
+
+## Report-only inputs from prior waves (REQ-F2, read-only reuse)
+
+- `attribute_idle_latency` park-to-wake: `scripts/reconcile_model.py:665-668`
+  (verified Phase A). Live correlate this run: 51/51 idle with 12 WORK rows
+  and 0 live pending — consistent with parked/waiting seats, no wake lag
+  measurable from outside.
+- `attribute_premise_age` premise age: `scripts/reconcile_model.py:902`
+  (verified Phase A). Live correlate: oldest live row observed 2026-10-24
+  (stalled-after-claim 8700 min) — aged premise, read-only, untouched.
+
+## First-degrading metric
+
+**None degraded in this run.** Observed ranges: queue reads 0.29–0.40 s,
+ps snapshots 0.36–0.63 s, create→receipt ~0.2 s, overdue 0.26 s,
+self-test 53.9 s pass; all rc=0, zero variance across samples, daemon
+responsive throughout.
+
+WATCHED-CANDIDATE PROJECTION (labeled projection, not observation — for
+higher concurrency): queue-claim latency is the expected first degrader
+once real seats claim real rows under contention. This run could not
+observe it (cold rows by design, zero seat claims); the next exercise
+that runs N>3 slices with live claimants MUST measure create→claim per
+row and promote this projection to an observed bottleneck or retire it.
+
+## REQ-F2 field consumption — read-only, exercised window (2026-10-30)
+
+Consumed 2026-10-30 by importing the pure report functions from
+`scripts/reconcile_model.py` and calling them on real exercised-window
+data. No tracker or queue state written (import + in-memory call only).
+
+- `attribute_idle_latency` (:665, comment :668) on the actual row-A
+  transition trail (`rig queue transitions --json`, read-only, 2
+  transitions: created 03:42:40.448Z → done 03:46:15.275Z):
+  `claim_ts null, park_ts null, wake_ts null, park_to_wake_s null` —
+  note: "seat still parked (wake pending)". Consistent with the
+  correctly-idle classification: a cold row with no seat activity yields
+  no wake lag, exactly as the function specifies (None while parked).
+- `attribute_premise_age` (:902, comment :808-810) with premise =
+  fan-out tsCreated 03:42:40.447Z, verify = join 03:46:00Z, landing =
+  close 03:46:15.275Z: `premise_age_s 214.83, verify_to_landing_s 15.28`.
+  Slice lifecycle premise age ≈ 3.6 min (bounded-exercise scale).
+
+Per-metric end state: queue-claim latency unobservable-with-reason
+(recorded § above); stuck-sweep volume observed (0 attributable, 7
+pre-existing); snapshot cost observed (sub-second, stable); daemon
+responsiveness observed (responsive, rc=0 throughout); ACTIVE/queue-depth
+observed with idle classified (51/51 correctly-idle). Scenario satisfied:
+every metric observed or unobservable-with-reason, and the report names
+"none degraded in this run" plus the watched-candidate projection above.

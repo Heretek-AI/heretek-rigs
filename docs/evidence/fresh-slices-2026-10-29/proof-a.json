@@ -1,0 +1,15 @@
+{
+  "slice": "FRESH-SLICES-A",
+  "base_sha": "e5cd3d6",
+  "probe_start_utc": "2026-10-30T03:43:15Z",
+  "selftest_rc": 0,
+  "selftest_secs": 53.879155434,
+  "selftest_tail": "SELF-TEST PASSED: audit_loop.py is ready for autonomous OpenCode execution.",
+  "selftest_sha256": "dcbec3aee6df7446a6f2059e4aed33a2772b8e7981950e98642d41a655532053",
+  "samples": [
+    {"i": 1, "ts_utc": "2026-10-30T03:44:09Z", "queue_states": "{'pending': 3, 'done': 73, 'handed-off': 4, 'in-progress': 7, 'blocked': 13}", "fleet_rows": 51, "ps_rc": 0, "sample_secs": .362363202},
+    {"i": 2, "ts_utc": "2026-10-30T03:44:30Z", "queue_states": "{'pending': 3, 'done': 73, 'handed-off': 4, 'in-progress': 7, 'blocked': 13}", "fleet_rows": 51, "ps_rc": 0, "sample_secs": .398686494},
+    {"i": 3, "ts_utc": "2026-10-30T03:44:51Z", "queue_states": "{'pending': 3, 'done': 73, 'handed-off': 4, 'in-progress': 7, 'blocked': 13}", "fleet_rows": 51, "ps_rc": 0, "sample_secs": .387630909}
+  ],
+  "probe_end_utc": "2026-10-30T03:44:52Z"
+}
