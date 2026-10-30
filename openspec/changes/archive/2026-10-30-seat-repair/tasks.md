@@ -42,5 +42,5 @@
 
 ## Gate
 
-- [ ] Triad (agency-qa red-proof + agency-drift-guard audit) → VERDICT
-  before any PR (Refs #147 — never Closes)
+- [x] Triad (agency-qa red-proof + agency-drift-guard audit) → VERDICT
+  before any PR (Refs #147 — never Closes); outcome: agency-qa PASS (qa-red-proofs.log) + agency-drift-guard VERDICT: PASS (seat-repair-verification.md), both committed pre-merge
