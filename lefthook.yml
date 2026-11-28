@@ -1,4 +1,4 @@
-# Standardized Lefthook v2 configuration — Profile: universal (Docs, Skills, Docker, Config repos)
+# Standardized Lefthook v2 configuration — Profile: python-uv (Python 3.12 + uv + Ruff v0.17 + ty + pnpm)
 # Managed by Heretek-AI/.github fleet-sync. Local overrides belong in lefthook-local.yml.
 min_version: 1.10.0
 
@@ -19,9 +19,25 @@ pre-commit:
           gitleaks protect --staged --redact --no-banner
         fi
 
-    - name: json-validate
-      glob: "*.json"
-      run: jq empty {staged_files}
+    - name: python-ruff
+      glob: "*.{py,pyi}"
+      group:
+        piped: true
+        jobs:
+          - name: ruff-lint
+            stage_fixed: true
+            run: uv run ruff check --fix {staged_files}
+          - name: ruff-format
+            stage_fixed: true
+            run: uv run ruff format {staged_files}
+
+    - name: toml-taplo
+      glob: "*.toml"
+      stage_fixed: true
+      run: |
+        if command -v taplo >/dev/null 2>&1; then
+          taplo fmt {staged_files}
+        fi
 
     - name: shellcheck
       glob: "*.sh"
@@ -37,3 +53,19 @@ pre-commit:
       run: |
         if command -v actionlint >/dev/null 2>&1; then actionlint {staged_files}; fi
         if command -v zizmor >/dev/null 2>&1; then zizmor --format=plain {staged_files}; fi
+
+pre-push:
+  parallel: true
+  jobs:
+    - name: uv-lock-check
+      run: uv lock --check
+    - name: python-typecheck
+      run: |
+        if uv run ty --version >/dev/null 2>&1; then
+          uv run ty check
+        fi
+    - name: tach-check
+      run: |
+        if [ -f tach.toml ] && command -v tach >/dev/null 2>&1; then
+          tach check || echo "WARN: tach reported Python module-boundary findings (advisory)."
+        fi
